@@ -1,7 +1,15 @@
-atomtypes
+from read_input import *
+from atomtypes_definitions import *
+from functions import *
+from read_output import *
 
-topology
+gro = gromos_topology(read_gro_atoms())
+print(gro)
 
-dihedrals
+#atomtypes
 
-ffnonbonded
+#topology
+
+#dihedrals
+
+#ffnonbonded
