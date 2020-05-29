@@ -3,6 +3,7 @@ from functions import *
 from write_output import *
 
 
+
     # Making a dictionary out of it to change the atomnumber to the atomtype
 print('Creation of peptide and fibril dictionaries')
 print('')
@@ -45,14 +46,17 @@ write_gromos_topology(gromos_top)
 
 print('Writing the proper dihedrals from SMOG to GROMOS')
 
-
-    # smog_to_gromos_dihedrals
-    # fib_smog_to_gro_dict
-
-
-propers_to_gro = smog_to_gromos_dihedrals(read_pep_dihedrals(), read_fib_dihedrals(), smog_to_gro_dict)
+propers_to_gro = smog_to_gromos_dihedrals(read_pep_dihedrals(), read_fib_dihedrals(), fib_smog_to_gro_dict)
 write_smog_to_gromos_dihedrals(propers_to_gro)
 
 print('SMOG to GROMOS proper dihedrals ready!')
+print('')
 
+    # FFnonbonded section
 
+print('Merge ffnonbonded.itp preparation')
+
+merge_pairs = ffnonbonded_merge_pairs(read_pep_pairs(), read_fib_pairs(), dict_pep_atomtypes, dict_fib_atomtypes)
+write_merge_ffnonbonded(atomtypes, merge_pairs)
+
+print('Merge ffnonbonded.itp created')

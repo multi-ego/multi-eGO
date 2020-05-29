@@ -1,8 +1,10 @@
+import numpy as np
 from atomtypes_definitions import *
 
 
-# This script includes all the functions used to create a FF
+    # This script includes all the functions used to create a FF
 
+    # Topology section
 
 def gromos_topology(gro_atoms):
     # This function prepares the atomtypes section of gromos topology
@@ -36,7 +38,7 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # Addition of the information from gromos FF (gromos_atp from atomtypes_aa_definitions.py)
     atomtypes['at.group'].replace(gromos_res_atom_dict, inplace = True)
     atomtypes.insert(3, 'at.num', 4)
-    atomtypes['at.num'] = atomtypes['at.group'].map(gromos_atp['at.num'])
+    atomtypes['at.num'] = atomtypes['at.group'].map(gromos_atp['at.num']) # QUI AD ESEMPIO SI POTREBBE UNIRE CON GROMOS_MASS
     atomtypes.insert(4, 'mass', 5)
     atomtypes['mass'] = atomtypes['at.group'].map(gromos_mass_dict)
     atomtypes["charge"] = '0.000000'
@@ -84,4 +86,89 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     proper_dihedrals["func"] = proper_dihedrals["func"].replace(1, 9)
     proper_dihedrals.columns = ["; ai", "aj", "ak", "al", "func", "phi", "kd", "mult"]
     return proper_dihedrals
+
     
+    # FFnonbonded section
+
+
+def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_atomtypes):
+    # pep_pairs = inp_pep_pairs.copy()
+    # fib_pairs = inp_fib_pairs.copy()
+    # This script allow to merge the pairs of peptide and fibril.
+    # The main difference between the other two pairs function is that peptide C6 and C12 are reweighted.
+    # This is because SMOG normalize the LJ potential based on the total number of contacts.
+    # Since the peptide has less contacts, the LJ potential is stronger than the fibril
+    # Peptide input handling
+    pep_pairs[";ai"].replace(dict_pep_atomtypes, inplace = True)
+    pep_pairs["aj"].replace(dict_pep_atomtypes, inplace = True)
+    pep_pairs.to_string(index = False)
+    pep_pairs.columns = ["ai", "aj", "type", "A", "B"]
+
+    pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
+    pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
+
+    # Fibril input handling
+    fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
+    fib_pairs["aj"].replace(dict_fib_atomtypes, inplace = True)
+    fib_pairs.to_string(index = False)
+    fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
+
+    fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
+    fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
+
+    # Calcolo di epsilon per peptide e fibrilla
+    pep_epsilon = (pep_pairs['A'] ** 2) / (4 * (pep_pairs['B']))
+    fib_epsilon = (fib_pairs['A'] ** 2) / (4 * (fib_pairs['B']))
+    ratio = pep_epsilon[0] / fib_epsilon[0]
+    # QUESTO PRINT CI PIACE MOLTO MA E' SOLO PER PYTHON 3
+    print(f'\n'
+          f'\tPeptide epsilon: {pep_epsilon[0]}\n'
+          f'\tFibril epsilon: {fib_epsilon[0]}\n'
+          f'\tRatio: {ratio}'
+          f'\n')
+
+    # Reweight peptide LJ
+    pep_pairs['A'] = pep_pairs['A'] / ratio
+    pep_pairs['B'] = pep_pairs['B'] / ratio
+
+    # From now the function behaves like the others
+    A_notation = pep_pairs["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = pep_pairs["B"].map(lambda x:'{:.9e}'.format(x))
+    pep_pairs = pep_pairs.assign(A = A_notation)
+    pep_pairs = pep_pairs.assign(B = B_notation)
+    A_notation = fib_pairs["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = fib_pairs["B"].map(lambda x:'{:.9e}'.format(x))
+    fib_pairs = fib_pairs.assign(A = A_notation)
+    fib_pairs = fib_pairs.assign(B = B_notation)
+
+    # One last step about merging the pairs
+    pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
+
+    # Cleaning the duplicates (the logic has already been explained above
+    inv_pairs = pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
+    inv_pairs.columns = ['ai', 'aj', 'type', 'A', 'B']
+    pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
+    n_ai = pairs_full.ai.str.extract('(\d+)')
+    n_aj = pairs_full.aj.str.extract('(\d+)')
+    pairs_full['n_ai'] = n_ai
+    pairs_full['n_aj'] = n_aj
+    pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
+    pairs_full = pairs_full.dropna()
+    pairs_full = pairs_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
+    # Sorting the pairs
+    pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
+    # Duplicates removal
+    # Merging columns in order to drop the duplicates
+    # pairs_full['ai'] = pairs_full['ai'].apply(str) + ':' + pairs_full['aj'].apply(str) # questo come funzionava prima
+    # Cleaning the remaining duplicates
+    pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Column separation
+    ai_aj = pairs_full['ai'].str.split(":", n = 1, expand = True)
+    # QUESTI DUE COMANDI SONO DOPO IL SET COPY WARNING
+    pairs_full.loc[:, 'ai'] = ai_aj.loc[:, 0]
+
+    # QUESTI DUE COMANDI SONO QUELLI PRIMA DEL COPY WARNING
+    # clean_pairs['ai'] = ai_aj[0]
+    # clean_pairs['aj'] = ai_aj[1]
+    pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
+    return pairs_full

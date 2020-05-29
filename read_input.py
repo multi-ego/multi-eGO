@@ -63,3 +63,15 @@ def read_fib_dihedrals():
     fib_dihedrals['mult'] = fib_dihedrals['mult'].fillna(value = '')
     # NaN are replaced with and empty line.
     return fib_dihedrals
+
+def read_pep_pairs():
+    # Reading the peptide pairs
+    pep_pairs = pd.read_csv('input/pep_pairs', sep = "\s+", header = None)
+    pep_pairs.columns = [";ai", "aj", "type", "A", "B"]
+    return pep_pairs
+
+def read_fib_pairs():
+    # Reading the fib_atomstide pairs
+    fib_pairs = pd.read_csv('input/fib_pairs', sep = "\s+", header = None)
+    fib_pairs.columns = [";ai", "aj", "type", "A", "B"]
+    return fib_pairs
