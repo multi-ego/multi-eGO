@@ -25,7 +25,7 @@ def write_smog_to_gromos_dihedrals(propers_to_gro):
     file.close()
 
 def write_merge_ffnonbonded(atomtypes, merge_pairs):
-    file = open("output/ff_merge/ffnonbonded.itp", "w")
+    file = open("output/ffnonbonded.itp", "w")
     file.write("[ atomtypes ]\n")
     file.write(str(atomtypes.to_string(index = False)))
     file.write("\n")
