@@ -1,5 +1,6 @@
 import numpy as np
-from atomtypes_definitions import *
+import pandas as pd
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict
 
 
     # This script includes all the functions used to create a FF
@@ -31,10 +32,9 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes['at.group'] = atomtypes['residue'] + '_' + atomtypes['atom']
     atomtypes['smog_to_gro'] = atomtypes['at.group'] + '_' + atomtypes['resnr'].astype(str)
     smog_to_gro_dict = atomtypes.set_index('; nr')['smog_to_gro'].to_dict()
-    
     # Creation of a dictionary which associates the atom number to the aminoacid and the atom type
     dict_aminores = atomtypes.set_index('; nr')['at.group'].to_dict()
-    
+
     # Addition of the information from gromos FF (gromos_atp from atomtypes_aa_definitions.py)
     atomtypes['at.group'].replace(gromos_res_atom_dict, inplace = True)
     atomtypes.insert(3, 'at.num', 4)
