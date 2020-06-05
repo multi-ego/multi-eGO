@@ -67,7 +67,9 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     fib_dihedrals = fib_dihedrals.loc[fib_dihedrals['func'] == 1]
     proper_dihedrals = pep_dihedrals.append(fib_dihedrals, sort = False, ignore_index = True)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
-    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
+    
+    # proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
+    
     # Actually the thing is on merged dihedrals
     proper_dihedrals[";ai"].replace(smog_to_gro_dict, inplace = True)
     proper_dihedrals["aj"].replace(smog_to_gro_dict, inplace = True)
@@ -104,8 +106,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pep_pairs.to_string(index = False)
     pep_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
-    pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
+    # pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
+    # pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
 
     # Fibril input handling
     fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
@@ -113,8 +115,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
-    fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
+    # fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
+    # fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
 
     # Calcolo di epsilon per peptide e fibrilla
     pep_epsilon = (pep_pairs['A'] ** 2) / (4 * (pep_pairs['B']))
