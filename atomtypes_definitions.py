@@ -33,13 +33,17 @@ gromos_resatom_nmr['resnr_2'] = gromos_resatom_nmr['resnr'].astype(str)
 gromos_resatom_nmr['res_atom'] = gromos_resatom_nmr['res_atom'] + '_' + gromos_resatom_nmr['resnr_2']
 gromos_resatom_nmr_dict = gromos_resatom_nmr.set_index('res_atom')['; nr'].to_dict()
 
-# THE C12 RATIO CHANGED a little bit.
+
+
+# 
+# THE C12 RATIO CHANGED a little bit.atomtypes
 gromos_atp = pd.DataFrame(
-    {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT'],
-     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17],
-     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7],
-     'c12': [1e-06, 3.011e-05, 4.639e-05, 4.937284e-06, 9.70225e-05, 3.3965584e-05,
-             2.6646244e-05, 2.8058209e-05, 1.2e-05]
+    {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT', 'S', 'NR', 'OM', 'NE', 'NZ'],
+     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 16],
+     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7],
+     'c12': [1e-06, 3.011e-05, 4.639e-05, 4.937284e-06, 9.70225e-05,
+            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 1.2e-05, 1.3075456e-05,
+            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06]
      }
 )
 

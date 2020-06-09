@@ -109,7 +109,7 @@
    109       NB_1     14    ILE     CB    109
    110       NB_1     14    ILE    CG1    110
    111       NB_1     14    ILE    CG2    111
-   112       NB_1     14    ILE    CD1    112
+   112       NB_1     14    ILE     CD    112
    113       NB_1     15    GLU      N    113
    114       NB_1     15    GLU     CA    114
    115       NB_1     15    GLU      C    115
@@ -198,7 +198,7 @@
    198       NB_1     25    ILE     CB    198
    199       NB_1     25    ILE    CG1    199
    200       NB_1     25    ILE    CG2    200
-   201       NB_1     25    ILE    CD1    201
+   201       NB_1     25    ILE     CD    201
    202       NB_1     26    GLU      N    202
    203       NB_1     26    GLU     CA    203
    204       NB_1     26    GLU      C    204

@@ -18,6 +18,7 @@ def read_pep_atoms():
     # Changing the atom type column -> patoms column 5 + 3
     pep_atoms["type"] = pep_atoms["atom"].apply(str) + '_' + pep_atoms["resnr"].apply(str)
     # Afterwards the function make_pep_atp_dict will create a dictionary based on this column
+    print(pep_atoms.to_string())
     return pep_atoms
 
 
@@ -28,8 +29,9 @@ def read_fib_atoms():
     fib_atoms["charge"] = ""
     # addition of a charge empty column
     fib_atoms.columns = ["; nr", "type", "resnr", "residue", "atom", "cgnr", "charge"]
-    fib_atoms['resnr'] = fib_atoms['resnr'] % 11
-    fib_atoms['resnr'] = fib_atoms['resnr'].replace(0, 11)
+    # THIS IS IMPORTANT TO CHANGE WHEN USING A DIFFERENT FIBRIL
+    fib_atoms['resnr'] = fib_atoms['resnr'] % 64 #64 for B2m and 11 for TTR
+    fib_atoms['resnr'] = fib_atoms['resnr'].replace(0, 64)
     # I've created the header with the correct column names
     fib_atoms["type"] = fib_atoms["atom"].apply(str) + '_' + fib_atoms["resnr"].apply(str)
     return fib_atoms
