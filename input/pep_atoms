@@ -13,7 +13,7 @@
     13       NB_1      2    ILE     CB     13
     14       NB_1      2    ILE    CG1     14
     15       NB_1      2    ILE    CG2     15
-    16       NB_1      2    ILE    CD1     16
+    16       NB_1      2    ILE     CD     16
     17       NB_1      3    GLN      N     17
     18       NB_1      3    GLN     CA     18
     19       NB_1      3    GLN      C     19
@@ -64,7 +64,7 @@
     64       NB_1      8    ILE     CB     64
     65       NB_1      8    ILE    CG1     65
     66       NB_1      8    ILE    CG2     66
-    67       NB_1      8    ILE    CD1     67
+    67       NB_1      8    ILE     CD     67
     68       NB_1      9    GLN      N     68
     69       NB_1      9    GLN     CA     69
     70       NB_1      9    GLN      C     70
@@ -826,12 +826,12 @@
    826       NB_1     99    ASP     CG    826
    827       NB_1     99    ASP    OD1    827
    828       NB_1     99    ASP    OD2    828
-   829       NB_1    100   METT      N    829
-   830       NB_1    100   METT     CA    830
-   831       NB_1    100   METT      C    831
-   832       NB_1    100   METT      O    832
-   833       NB_1    100   METT     CB    833
-   834       NB_1    100   METT     CG    834
-   835       NB_1    100   METT     SD    835
-   836       NB_1    100   METT     CE    836
-   837       NB_1    100   METT    OXT    837
+   829       NB_1    100    MET      N    829
+   830       NB_1    100    MET     CA    830
+   831       NB_1    100    MET      C    831
+   832       NB_1    100    MET      O    832
+   833       NB_1    100    MET     CB    833
+   834       NB_1    100    MET     CG    834
+   835       NB_1    100    MET     SD    835
+   836       NB_1    100    MET     CE    836
+   837       NB_1    100    MET    OXT    837

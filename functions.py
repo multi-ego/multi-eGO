@@ -46,7 +46,8 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes["ptype"] = 'A'
     atomtypes['c6'] = '0.00000e+00'
     
-    #print(atomtypes)    
+    print(atomtypes)
+    #print(atomtypes.to_string())    
     
     atomtypes['c12'] = atomtypes['at.group'].map(gromos_atp['c12'])
     # Handling the scientific notation
@@ -58,6 +59,7 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # Since this function is made also for fibrils, a drop duplicate is required, but does not affect the peptide FF
     atomtypes = atomtypes.drop_duplicates(subset = '; type', keep = 'first')
     
+    print(atomtypes)
     #print(atomtypes.to_string())
     
     # This last function creates the atomtype for atomtypes.atp
