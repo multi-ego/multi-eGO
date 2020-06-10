@@ -45,10 +45,6 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes.insert(9, 'ptype', 10)
     atomtypes["ptype"] = 'A'
     atomtypes['c6'] = '0.00000e+00'
-    
-    print(atomtypes)
-    #print(atomtypes.to_string())    
-    
     atomtypes['c12'] = atomtypes['at.group'].map(gromos_atp['c12'])
     # Handling the scientific notation
     c12_notation = atomtypes["c12"].map(lambda x:'{:.6e}'.format(x))
@@ -58,10 +54,6 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes.rename(columns = {'type':'; type'}, inplace = True)
     # Since this function is made also for fibrils, a drop duplicate is required, but does not affect the peptide FF
     atomtypes = atomtypes.drop_duplicates(subset = '; type', keep = 'first')
-    
-    print(atomtypes)
-    #print(atomtypes.to_string())
-    
     # This last function creates the atomtype for atomtypes.atp
     atp = pd.DataFrame(atomtypes, columns = ['; type', 'mass'])
     return atp, atomtypes, dict_atomtypes, dict_aminores, smog_to_gro_dict
@@ -73,6 +65,8 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     pep_dihedrals = pep_dihedrals.loc[pep_dihedrals['func'] == 1]
     fib_dihedrals = fib_dihedrals.loc[fib_dihedrals['func'] == 1]
     proper_dihedrals = pep_dihedrals.append(fib_dihedrals, sort = False, ignore_index = True)
+    
+    # TUTTI I DIEDRI VENGONO DIVISI PER DUE, CHE SIANO DOPPI (NATIVA E FIBRILLA) O SINGOLI (SOLO NELLA NATIVA)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
     
     # proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
