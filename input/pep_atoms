@@ -287,7 +287,7 @@
    287       NB_1     36    ILE     CB    287
    288       NB_1     36    ILE    CG1    288
    289       NB_1     36    ILE    CG2    289
-   290       NB_1     36    ILE    CD1    290
+   290       NB_1     36    ILE     CD    290
    291       NB_1     37    GLU      N    291
    292       NB_1     37    GLU     CA    292
    293       NB_1     37    GLU      C    293
@@ -376,7 +376,7 @@
    376       NB_1     47    ILE     CB    376
    377       NB_1     47    ILE    CG1    377
    378       NB_1     47    ILE    CG2    378
-   379       NB_1     47    ILE    CD1    379
+   379       NB_1     47    ILE     CD    379
    380       NB_1     48    GLU      N    380
    381       NB_1     48    GLU     CA    381
    382       NB_1     48    GLU      C    382
@@ -768,7 +768,7 @@
    768       NB_1     93    ILE     CB    768
    769       NB_1     93    ILE    CG1    769
    770       NB_1     93    ILE    CG2    770
-   771       NB_1     93    ILE    CD1    771
+   771       NB_1     93    ILE     CD    771
    772       NB_1     94    VAL      N    772
    773       NB_1     94    VAL     CA    773
    774       NB_1     94    VAL      C    774

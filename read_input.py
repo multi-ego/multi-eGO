@@ -18,7 +18,9 @@ def read_pep_atoms():
     # Changing the atom type column -> patoms column 5 + 3
     pep_atoms["type"] = pep_atoms["atom"].apply(str) + '_' + pep_atoms["resnr"].apply(str)
     # Afterwards the function make_pep_atp_dict will create a dictionary based on this column
-    print(pep_atoms.to_string())
+    
+    #print(pep_atoms.to_string())
+    
     return pep_atoms
 
 
@@ -29,9 +31,22 @@ def read_fib_atoms():
     fib_atoms["charge"] = ""
     # addition of a charge empty column
     fib_atoms.columns = ["; nr", "type", "resnr", "residue", "atom", "cgnr", "charge"]
+    
     # THIS IS IMPORTANT TO CHANGE WHEN USING A DIFFERENT FIBRIL
     fib_atoms['resnr'] = fib_atoms['resnr'] % 64 #64 for B2m and 11 for TTR
+    #print(fib_atoms)
     fib_atoms['resnr'] = fib_atoms['resnr'].replace(0, 64)
+
+    # In B2m model, there are not N or C terminal in the model, therefore it is necessary to change the atomid and resid
+    # Unfortunately SMOG always renumber everything and so i renumber using python
+    # The first residue of the fibril is 23 and the first atom is 179
+    fib_atoms['; nr'] = fib_atoms['; nr']+178
+    fib_atoms['cgnr'] = fib_atoms['cgnr']+178
+    fib_atoms['resnr'] = fib_atoms['resnr']+22
+
+    # Likewise, the same procedure will be applied also in dihedrals and pairs
+    # STARE ATTENTO ALLA RINUMERAZIONE! -> DALLA FIBRILLA NON PARTONO DA 1 MA DA 23
+
     # I've created the header with the correct column names
     fib_atoms["type"] = fib_atoms["atom"].apply(str) + '_' + fib_atoms["resnr"].apply(str)
     return fib_atoms
@@ -63,6 +78,13 @@ def read_fib_dihedrals():
     fib_dihedrals = pd.read_csv('input/fib_dihedrals', sep = "\s+", header = None)
     fib_dihedrals.columns = [";ai", "aj", "ak", "al", "func", "phi0", "Kd", "mult"]
     fib_dihedrals['mult'] = fib_dihedrals['mult'].fillna(value = '')
+
+    # AtomID renumber to match the native structure
+    fib_dihedrals[';ai'] = fib_dihedrals[';ai']+178
+    fib_dihedrals['aj'] = fib_dihedrals['aj']+178
+    fib_dihedrals['ak'] = fib_dihedrals['ak']+178
+    fib_dihedrals['al'] = fib_dihedrals['al']+178
+    
     # NaN are replaced with and empty line.
     return fib_dihedrals
 
@@ -76,4 +98,7 @@ def read_fib_pairs():
     # Reading the fib_atomstide pairs
     fib_pairs = pd.read_csv('input/fib_pairs', sep = "\s+", header = None)
     fib_pairs.columns = [";ai", "aj", "type", "A", "B"]
+    fib_pairs[';ai'] = fib_pairs[';ai']+178
+    fib_pairs['aj'] = fib_pairs['aj']+178
+
     return fib_pairs

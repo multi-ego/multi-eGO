@@ -25,16 +25,16 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # Creation of the atomtypes dictionary    
     # The atomtypes dictionary is used for the FFnonbonded.itp
     dict_atomtypes = atomtypes.set_index("; nr")["type"].to_dict()
-        # Handling the information from the topology atomtypes
-    
+    # Handling the information from the topology atomtypes
     # As well atomtypes here is necessary for the creation of FFnonbonded.itp    
     atomtypes['at.group'] = atomtypes['residue'] + '_' + atomtypes['atom']
+    
+    #print(atomtypes.to_string())
+    
     atomtypes['smog_to_gro'] = atomtypes['at.group'] + '_' + atomtypes['resnr'].astype(str)
     smog_to_gro_dict = atomtypes.set_index('; nr')['smog_to_gro'].to_dict()
     # Creation of a dictionary which associates the atom number to the aminoacid and the atom type
     dict_aminores = atomtypes.set_index('; nr')['at.group'].to_dict()
-    #print(atomtypes.to_string())
-
     # Addition of the information from gromos FF (gromos_atp from atomtypes_aa_definitions.py)
     atomtypes['at.group'].replace(gromos_res_atom_dict, inplace = True)
     atomtypes.insert(3, 'at.num', 4)
@@ -44,7 +44,10 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes["charge"] = '0.000000'
     atomtypes.insert(9, 'ptype', 10)
     atomtypes["ptype"] = 'A'
-    atomtypes['c6'] = '0.00000e+00'    
+    atomtypes['c6'] = '0.00000e+00'
+    
+    #print(atomtypes)    
+    
     atomtypes['c12'] = atomtypes['at.group'].map(gromos_atp['c12'])
     # Handling the scientific notation
     c12_notation = atomtypes["c12"].map(lambda x:'{:.6e}'.format(x))
@@ -55,7 +58,8 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # Since this function is made also for fibrils, a drop duplicate is required, but does not affect the peptide FF
     atomtypes = atomtypes.drop_duplicates(subset = '; type', keep = 'first')
     
-    print(atomtypes.to_string())
+    #print(atomtypes.to_string())
+    
     # This last function creates the atomtype for atomtypes.atp
     atp = pd.DataFrame(atomtypes, columns = ['; type', 'mass'])
     return atp, atomtypes, dict_atomtypes, dict_aminores, smog_to_gro_dict
