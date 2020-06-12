@@ -54,6 +54,8 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes.rename(columns = {'type':'; type'}, inplace = True)
     # Since this function is made also for fibrils, a drop duplicate is required, but does not affect the peptide FF
     atomtypes = atomtypes.drop_duplicates(subset = '; type', keep = 'first')
+    # Change from float to integer the at.num otherwise gromacs does not understand
+    atomtypes['at.num'] = atomtypes['at.num'].fillna(0.0).astype(int)
     # This last function creates the atomtype for atomtypes.atp
     atp = pd.DataFrame(atomtypes, columns = ['; type', 'mass'])
     return atp, atomtypes, dict_atomtypes, dict_aminores, smog_to_gro_dict
