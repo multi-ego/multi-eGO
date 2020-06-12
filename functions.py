@@ -40,7 +40,7 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes.insert(3, 'at.num', 4)
     atomtypes['at.num'] = atomtypes['at.group'].map(gromos_atp['at.num']) # QUI AD ESEMPIO SI POTREBBE UNIRE CON GROMOS_MASS
     atomtypes.insert(4, 'mass', 5)
-    atomtypes['mass'] = atomtypes['at.group'].map(gromos_mass_dict)
+    atomtypes['mass'] = atomtypes['at.group'].map(gromos_atp['mass'])
     atomtypes["charge"] = '0.000000'
     atomtypes.insert(9, 'ptype', 10)
     atomtypes["ptype"] = 'A'
