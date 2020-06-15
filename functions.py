@@ -22,25 +22,22 @@ def gromos_topology(gro_atoms):
 
 def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # This function prepare the file for ffnonbonded of the peptide
-    # Creation of the atomtypes dictionary
-    
+    # Creation of the atomtypes dictionary    
     # The atomtypes dictionary is used for the FFnonbonded.itp
     dict_atomtypes = atomtypes.set_index("; nr")["type"].to_dict()
-        # Handling the information from the topology atomtypes
-    
-    # As well atomtypes here is necessary for the creation of FFnonbonded.itp
+    # Handling the information from the topology atomtypes
+    # As well atomtypes here is necessary for the creation of FFnonbonded.itp    
     atomtypes['at.group'] = atomtypes['residue'] + '_' + atomtypes['atom']
     atomtypes['smog_to_gro'] = atomtypes['at.group'] + '_' + atomtypes['resnr'].astype(str)
     smog_to_gro_dict = atomtypes.set_index('; nr')['smog_to_gro'].to_dict()
     # Creation of a dictionary which associates the atom number to the aminoacid and the atom type
     dict_aminores = atomtypes.set_index('; nr')['at.group'].to_dict()
-
     # Addition of the information from gromos FF (gromos_atp from atomtypes_aa_definitions.py)
     atomtypes['at.group'].replace(gromos_res_atom_dict, inplace = True)
     atomtypes.insert(3, 'at.num', 4)
     atomtypes['at.num'] = atomtypes['at.group'].map(gromos_atp['at.num']) # QUI AD ESEMPIO SI POTREBBE UNIRE CON GROMOS_MASS
     atomtypes.insert(4, 'mass', 5)
-    atomtypes['mass'] = atomtypes['at.group'].map(gromos_mass_dict)
+    atomtypes['mass'] = atomtypes['at.group'].map(gromos_atp['mass'])
     atomtypes["charge"] = '0.000000'
     atomtypes.insert(9, 'ptype', 10)
     atomtypes["ptype"] = 'A'
@@ -54,7 +51,8 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes.rename(columns = {'type':'; type'}, inplace = True)
     # Since this function is made also for fibrils, a drop duplicate is required, but does not affect the peptide FF
     atomtypes = atomtypes.drop_duplicates(subset = '; type', keep = 'first')
-    
+    # Change from float to integer the at.num otherwise gromacs does not understand
+    atomtypes['at.num'] = atomtypes['at.num'].fillna(0.0).astype(int)
     # This last function creates the atomtype for atomtypes.atp
     atp = pd.DataFrame(atomtypes, columns = ['; type', 'mass'])
     return atp, atomtypes, dict_atomtypes, dict_aminores, smog_to_gro_dict
@@ -66,8 +64,12 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     pep_dihedrals = pep_dihedrals.loc[pep_dihedrals['func'] == 1]
     fib_dihedrals = fib_dihedrals.loc[fib_dihedrals['func'] == 1]
     proper_dihedrals = pep_dihedrals.append(fib_dihedrals, sort = False, ignore_index = True)
+    
+    # TUTTI I DIEDRI VENGONO DIVISI PER DUE, CHE SIANO DOPPI (NATIVA E FIBRILLA) O SINGOLI (SOLO NELLA NATIVA)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
-    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
+    
+    # proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
+    
     # Actually the thing is on merged dihedrals
     proper_dihedrals[";ai"].replace(smog_to_gro_dict, inplace = True)
     proper_dihedrals["aj"].replace(smog_to_gro_dict, inplace = True)
@@ -104,8 +106,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pep_pairs.to_string(index = False)
     pep_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
-    pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
+    # pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
+    # pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
 
     # Fibril input handling
     fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
@@ -113,8 +115,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
-    fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
+    # fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
+    # fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
 
     # Calcolo di epsilon per peptide e fibrilla
     pep_epsilon = (pep_pairs['A'] ** 2) / (4 * (pep_pairs['B']))
