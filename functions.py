@@ -28,9 +28,6 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     # Handling the information from the topology atomtypes
     # As well atomtypes here is necessary for the creation of FFnonbonded.itp    
     atomtypes['at.group'] = atomtypes['residue'] + '_' + atomtypes['atom']
-    
-    #print(atomtypes.to_string())
-    
     atomtypes['smog_to_gro'] = atomtypes['at.group'] + '_' + atomtypes['resnr'].astype(str)
     smog_to_gro_dict = atomtypes.set_index('; nr')['smog_to_gro'].to_dict()
     # Creation of a dictionary which associates the atom number to the aminoacid and the atom type
