@@ -30,6 +30,7 @@ def make_atomtypes_and_dict(atomtypes):  # qui si mette l'output di read_*_atoms
     atomtypes['at.group'] = atomtypes['residue'] + '_' + atomtypes['atom']
     atomtypes['smog_to_gro'] = atomtypes['at.group'] + '_' + atomtypes['resnr'].astype(str)
     smog_to_gro_dict = atomtypes.set_index('; nr')['smog_to_gro'].to_dict()
+
     # Creation of a dictionary which associates the atom number to the aminoacid and the atom type
     dict_aminores = atomtypes.set_index('; nr')['at.group'].to_dict()
     # Addition of the information from gromos FF (gromos_atp from atomtypes_aa_definitions.py)
@@ -63,14 +64,28 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     # the one which SMOG creates with specific values and to be pasted into Gromacs
     pep_dihedrals = pep_dihedrals.loc[pep_dihedrals['func'] == 1]
     fib_dihedrals = fib_dihedrals.loc[fib_dihedrals['func'] == 1]
+
+    # The Kds are different between the fibril and the native, therefore here is how to rebalance like the pairs
+    Kd_pep = pep_dihedrals['Kd']
+    Kd_fib = fib_dihedrals['Kd']
+    ratio = Kd_pep[0] / Kd_fib[0]
+    print(f'\n'
+        f'\tDihedral Ratio: {ratio}'
+        f'\n')
+    pep_dihedrals['Kd'] = pep_dihedrals['Kd'] / ratio
+    #pep_dihedrals.loc[:, 'Kd'] = pep_dihedrals.loc[:, 'Kd'].divide(ratio)
     proper_dihedrals = pep_dihedrals.append(fib_dihedrals, sort = False, ignore_index = True)
-    
+
+    # Here all the dihedrals are present (i can read 836 and 715)
+    #print(proper_dihedrals.to_string())
+
     # TUTTI I DIEDRI VENGONO DIVISI PER DUE, CHE SIANO DOPPI (NATIVA E FIBRILLA) O SINGOLI (SOLO NELLA NATIVA)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
     
     # proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
     
     # Actually the thing is on merged dihedrals
+    # In this function is necessary to use the native smog_to_gro_dictionary since is the full dictionary
     proper_dihedrals[";ai"].replace(smog_to_gro_dict, inplace = True)
     proper_dihedrals["aj"].replace(smog_to_gro_dict, inplace = True)
     proper_dihedrals["ak"].replace(smog_to_gro_dict, inplace = True)
