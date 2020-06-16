@@ -7,8 +7,7 @@ import pandas as pd
 # The following three functions are used to read the atoms information from the topology
 
 def read_pep_atoms():
-    pep_atoms = pd.read_csv('../../magros_test/commons/input/pep_atoms', sep = '\s+', header = None)
-    #pep_atoms = pd.read_csv('input/pep_atoms', sep = '\s+', header = None)
+    pep_atoms = pd.read_csv('input/pep_atoms', sep = '\s+', header = None)
     # header=0 because it counts ; as a column. Therefore, I don't care about the header and I'll recreate one from
     # scratch.
     pep_atoms["charge"] = ""
@@ -26,8 +25,7 @@ def read_pep_atoms():
 
 
 def read_fib_atoms():
-    fib_atoms = pd.read_csv('../../magros_test/commons/input/fib_atoms', sep = '\s+', header = None)
-    #fib_atoms = pd.read_csv('input/fib_atoms', sep = '\s+', header = None)
+    fib_atoms = pd.read_csv('input/fib_atoms', sep = '\s+', header = None)
     # header=0 because it counts ; as a column.
     # Therefore, I don't care about the header and I'll recreate one from scratch.
     fib_atoms["charge"] = ""
@@ -57,8 +55,7 @@ def read_fib_atoms():
 def read_gro_atoms():
     # Reading the atoms section from gromos topology
     # Requires a manual clean to delete all the comment lines
-    gro_atoms = pd.read_csv('../../magros_test/commons/input/pep_gro_atoms', sep = "\s+", header = None)
-    #gro_atoms = pd.read_csv('input/pep_gro_atoms', sep = "\s+", header = None)
+    gro_atoms = pd.read_csv('input/pep_gro_atoms', sep = "\s+", header = None)
     gro_atoms.columns = ["; nr", "type", "resnr", "residue", "atom", "cgnr", 'charge', 'mass']
     gro_atoms["atom_nmr"] = gro_atoms["atom"].apply(str) + '_' + gro_atoms["resnr"].apply(str)
     gro_atoms['res_atom'] = gro_atoms['residue'] + '_' + gro_atoms['atom']
@@ -68,8 +65,7 @@ def read_gro_atoms():
 
 def read_pep_dihedrals():
     # Reading the peptide dihedrals
-    pep_dihedrals = pd.read_csv('../../magros_test/commons/input/pep_dihedrals', sep = "\s+", header = None)
-    #pep_dihedrals = pd.read_csv('input/pep_dihedrals', sep = "\s+", header = None)
+    pep_dihedrals = pd.read_csv('input/pep_dihedrals', sep = "\s+", header = None)
     pep_dihedrals.columns = [";ai", "aj", "ak", "al", "func", "phi0", "Kd", "mult"]
     pep_dihedrals['mult'] = pep_dihedrals['mult'].fillna(value = '')
     # dihedrals = dihedrals.replace(np.nan, '', regex=True)
@@ -79,31 +75,28 @@ def read_pep_dihedrals():
 
 def read_fib_dihedrals():
     # Reading the fib_atomstide dihedrals
-    fib_dihedrals = pd.read_csv('../../magros_test/commons/input/fib_dihedrals', sep = "\s+", header = None)
-    #fib_dihedrals = pd.read_csv('input/fib_dihedrals', sep = "\s+", header = None)
+    fib_dihedrals = pd.read_csv('input/fib_dihedrals', sep = "\s+", header = None)
     fib_dihedrals.columns = [";ai", "aj", "ak", "al", "func", "phi0", "Kd", "mult"]
+    
+    # NaN are replaced with and empty line.
     fib_dihedrals['mult'] = fib_dihedrals['mult'].fillna(value = '')
 
     # AtomID renumber to match the native structure
-    fib_dihedrals[';ai'] = fib_dihedrals[';ai']+178
-    fib_dihedrals['aj'] = fib_dihedrals['aj']+178
-    fib_dihedrals['ak'] = fib_dihedrals['ak']+178
-    fib_dihedrals['al'] = fib_dihedrals['al']+178
-    
-    # NaN are replaced with and empty line.
+    fib_dihedrals[';ai'] = fib_dihedrals[';ai']-539+178
+    fib_dihedrals['aj'] = fib_dihedrals['aj']-539+178
+    fib_dihedrals['ak'] = fib_dihedrals['ak']-539+178
+    fib_dihedrals['al'] = fib_dihedrals['al']-539+178
     return fib_dihedrals
 
 def read_pep_pairs():
     # Reading the peptide pairs
-    pep_pairs = pd.read_csv('../../magros_test/commons/input/pep_pairs', sep = "\s+", header = None)
-    #pep_pairs = pd.read_csv('input/pep_pairs', sep = "\s+", header = None)
+    pep_pairs = pd.read_csv('input/pep_pairs', sep = "\s+", header = None)
     pep_pairs.columns = [";ai", "aj", "type", "A", "B"]
     return pep_pairs
 
 def read_fib_pairs():
     # Reading the fib_atomstide pairs
-    fib_pairs = pd.read_csv('../../magros_test/commons/input/fib_pairs', sep = "\s+", header = None)
-    #fib_pairs = pd.read_csv('input/fib_pairs', sep = "\s+", header = None)
+    fib_pairs = pd.read_csv('input/fib_pairs', sep = "\s+", header = None)
     fib_pairs.columns = [";ai", "aj", "type", "A", "B"]
     fib_pairs[';ai'] = fib_pairs[';ai']+178
     fib_pairs['aj'] = fib_pairs['aj']+178

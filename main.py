@@ -48,7 +48,7 @@ write_gromos_topology(gromos_top)
 
 print('Writing the proper dihedrals from SMOG to GROMOS')
 
-propers_to_gro = smog_to_gromos_dihedrals(read_pep_dihedrals(), read_fib_dihedrals(), fib_smog_to_gro_dict)
+propers_to_gro = smog_to_gromos_dihedrals(read_pep_dihedrals(), read_fib_dihedrals(), pep_smog_to_gro_dict)
 write_smog_to_gromos_dihedrals(propers_to_gro)
 
 print('SMOG to GROMOS topology files ready!')
