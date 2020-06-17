@@ -81,7 +81,7 @@ def read_fib_dihedrals():
     # NaN are replaced with and empty line.
     fib_dihedrals['mult'] = fib_dihedrals['mult'].fillna(value = '')
 
-    # AtomID renumber to match the native structure
+    # AtomID renumber to match the native structure cos i use atomnumber
     fib_dihedrals[';ai'] = fib_dihedrals[';ai']-539+178
     fib_dihedrals['aj'] = fib_dihedrals['aj']-539+178
     fib_dihedrals['ak'] = fib_dihedrals['ak']-539+178
