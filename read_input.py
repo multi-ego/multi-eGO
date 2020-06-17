@@ -40,8 +40,8 @@ def read_fib_atoms():
     # In B2m model, there are not N or C terminal in the model, therefore it is necessary to change the atomid and resid
     # Unfortunately SMOG always renumber everything and so i renumber using python
     # The first residue of the fibril is 23 and the first atom is 179
-    fib_atoms['; nr'] = fib_atoms['; nr']+178
-    fib_atoms['cgnr'] = fib_atoms['cgnr']+178
+    #fib_atoms['; nr'] = fib_atoms['; nr']+178
+    #fib_atoms['cgnr'] = fib_atoms['cgnr']+178
     fib_atoms['resnr'] = fib_atoms['resnr']+22
 
     # Likewise, the same procedure will be applied also in dihedrals and pairs
@@ -98,7 +98,7 @@ def read_fib_pairs():
     # Reading the fib_atomstide pairs
     fib_pairs = pd.read_csv('input/fib_pairs', sep = "\s+", header = None)
     fib_pairs.columns = [";ai", "aj", "type", "A", "B"]
-    fib_pairs[';ai'] = fib_pairs[';ai']+178
-    fib_pairs['aj'] = fib_pairs['aj']+178
+    #fib_pairs[';ai'] = fib_pairs[';ai']+178
+    #fib_pairs['aj'] = fib_pairs['aj']+178
 
     return fib_pairs

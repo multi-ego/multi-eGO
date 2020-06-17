@@ -129,7 +129,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs["aj"].replace(dict_fib_atomtypes, inplace = True)
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
-
+    
     # fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
     # fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
 
