@@ -182,10 +182,10 @@
    182       NB_1     23    PHE      O    182
    183       NB_1     23    PHE     CB    183
    184       NB_1     23    PHE     CG    184
-   185       NB_1     23    PHE    CD1    185
-   186       NB_1     23    PHE    CD2    186
-   187       NB_1     23    PHE    CE1    187
-   188       NB_1     23    PHE    CE2    188
+   185       NB_1     23    PHE    CD2    185
+   186       NB_1     23    PHE    CD1    186
+   187       NB_1     23    PHE    CE2    187
+   188       NB_1     23    PHE    CE1    188
    189       NB_1     23    PHE     CZ    189
    190       NB_1     24    LEU      N    190
    191       NB_1     24    LEU     CA    191
@@ -455,10 +455,10 @@
    455       NB_1     57    PHE      O    455
    456       NB_1     57    PHE     CB    456
    457       NB_1     57    PHE     CG    457
-   458       NB_1     57    PHE    CD1    458
-   459       NB_1     57    PHE    CD2    459
-   460       NB_1     57    PHE    CE1    460
-   461       NB_1     57    PHE    CE2    461
+   458       NB_1     57    PHE    CD2    458
+   459       NB_1     57    PHE    CD1    459
+   460       NB_1     57    PHE    CE2    460
+   461       NB_1     57    PHE    CE1    461
    462       NB_1     57    PHE     CZ    462
    463       NB_1     58    SER      N    463
    464       NB_1     58    SER     CA    464
@@ -509,10 +509,10 @@
    509       NB_1     63    PHE      O    509
    510       NB_1     63    PHE     CB    510
    511       NB_1     63    PHE     CG    511
-   512       NB_1     63    PHE    CD1    512
-   513       NB_1     63    PHE    CD2    513
-   514       NB_1     63    PHE    CE1    514
-   515       NB_1     63    PHE    CE2    515
+   512       NB_1     63    PHE    CD2    512
+   513       NB_1     63    PHE    CD1    513
+   514       NB_1     63    PHE    CE2    514
+   515       NB_1     63    PHE    CE1    515
    516       NB_1     63    PHE     CZ    516
    517       NB_1     64    TYR      N    517
    518       NB_1     64    TYR     CA    518
@@ -520,10 +520,10 @@
    520       NB_1     64    TYR      O    520
    521       NB_1     64    TYR     CB    521
    522       NB_1     64    TYR     CG    522
-   523       NB_1     64    TYR    CD1    523
-   524       NB_1     64    TYR    CD2    524
-   525       NB_1     64    TYR    CE1    525
-   526       NB_1     64    TYR    CE2    526
+   523       NB_1     64    TYR    CD2    523
+   524       NB_1     64    TYR    CD1    524
+   525       NB_1     64    TYR    CE2    525
+   526       NB_1     64    TYR    CE1    526
    527       NB_1     64    TYR     CZ    527
    528       NB_1     64    TYR     OH    528
    529       NB_1     65    LEU      N    529
@@ -588,10 +588,10 @@
    588       NB_1     71    PHE      O    588
    589       NB_1     71    PHE     CB    589
    590       NB_1     71    PHE     CG    590
-   591       NB_1     71    PHE    CD1    591
-   592       NB_1     71    PHE    CD2    592
-   593       NB_1     71    PHE    CE1    593
-   594       NB_1     71    PHE    CE2    594
+   591       NB_1     71    PHE    CD2    591
+   592       NB_1     71    PHE    CD1    592
+   593       NB_1     71    PHE    CE2    593
+   594       NB_1     71    PHE    CE1    594
    595       NB_1     71    PHE     CZ    595
    596       NB_1     72    THR      N    596
    597       NB_1     72    THR     CA    597
@@ -826,3 +826,12 @@
    826       NB_1     99    ASP     CG    826
    827       NB_1     99    ASP    OD1    827
    828       NB_1     99    ASP    OD2    828
+   829       NB_1    100    MET      O    829
+   830       NB_1    100    MET      N    830
+   831       NB_1    100    MET     CA    831
+   832       NB_1    100    MET      C    832
+   833       NB_1    100    MET     CB    833
+   834       NB_1    100    MET     CG    834
+   835       NB_1    100    MET     SD    835
+   836       NB_1    100    MET     CE    836
+   837       NB_1    100    MET    OXT    837
