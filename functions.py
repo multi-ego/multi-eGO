@@ -72,7 +72,7 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     print(f'\n'
         f'\tDihedral Ratio: {ratio}'
         f'\n')
-    pep_dihedrals['Kd'] = pep_dihedrals['Kd'] / ratio
+    pep_dihedrals['Kd'] = pep_dihedrals['Kd'] * ratio
     #pep_dihedrals.loc[:, 'Kd'] = pep_dihedrals.loc[:, 'Kd'].divide(ratio)
     proper_dihedrals = pep_dihedrals.append(fib_dihedrals, sort = False, ignore_index = True)
 
@@ -129,7 +129,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs["aj"].replace(dict_fib_atomtypes, inplace = True)
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
-    
+
     # fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
     # fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
 
@@ -161,7 +161,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     # One last step about merging the pairs
     pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
 
-    # Cleaning the duplicates (the logic has already been explained above
+    # Cleaning the duplicates (the logic has already been explained above)
     inv_pairs = pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
     inv_pairs.columns = ['ai', 'aj', 'type', 'A', 'B']
     pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
