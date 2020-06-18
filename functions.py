@@ -66,6 +66,9 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     fib_dihedrals = fib_dihedrals.loc[fib_dihedrals['func'] == 1]
 
     # The Kds are different between the fibril and the native, therefore here is how to rebalance like the pairs
+    # However in the case of dihedrals it is necessary to multiply instead of divide because the way of SMOG
+    # computes dihedrals
+    
     Kd_pep = pep_dihedrals['Kd']
     Kd_fib = fib_dihedrals['Kd']
     ratio = Kd_pep[0] / Kd_fib[0]
