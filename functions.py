@@ -165,7 +165,9 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     # If acidic the following pep_pairs will be removed
     # Remove the lines by searching in the two colums 
     
-    
+    # Filter the informations from gromos atomtype and make a list of the atomtypes to remove
+    # e.g. OD1_39 -> remove line
+    # This step should be done before append the two pairs otherwise some fibril contribution will be lost
 
     # One last step about merging the pairs
     pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
