@@ -1,4 +1,5 @@
 [ dihedrals ]
+; made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; ai   aj   ak   al  func              phi               kd mult
    1    2    7    8     9  1.566281216e+02  4.990940149e-01    1
    1    2    7    8     9  4.698843647e+02  2.495470074e-01    3

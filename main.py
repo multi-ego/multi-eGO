@@ -58,7 +58,8 @@ print('')
 
 print('Merge ffnonbonded.itp preparation')
 
-merge_pairs = ffnonbonded_merge_pairs(read_pep_pairs(), read_fib_pairs(), dict_pep_atomtypes, dict_fib_atomtypes)
+merge_pairs, acid_pairs = ffnonbonded_merge_pairs(read_pep_pairs(), read_fib_pairs(), dict_pep_atomtypes, dict_fib_atomtypes)
 write_merge_ffnonbonded(atomtypes, merge_pairs)
+write_acid_ffnonbonded(atomtypes, acid_pairs)
 
-print('Merge ffnonbonded.itp created')
+print('Merge ffnonbonded.itp created for both neutral and acidic pH')
