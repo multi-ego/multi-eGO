@@ -168,45 +168,11 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     for_acid_pairs = pep_pairs.copy()
-    #for_del_pairs = pep_pairs.copy()
     acid_pep_pairs = for_acid_pairs[~for_acid_pairs['aj'].isin(acid_atp)]
-    #del_acid_pep_pairs = for_del_pairs[for_acid_pairs['aj'].isin(acid_atp)]
-
-    #print(pep_pairs.count()) # 5912
-    #print(for_acid_pairs.count()) # 5912
-    #print(del_acid_pep_pairs.count()) # 318
-    #print(acid_pep_pairs.count()) # 5594
-
-    #print(pep_pairs[['ai', 'aj']].to_string(index = False))
-    #print(for_acid_pairs.to_string())
-    #print(del_acid_pep_pairs.to_string())
-    #print(acid_pep_pairs[['ai', 'aj']].to_string(index = False))
-    
-        # pep_pairs 5912 rows
-        # acid_pep_pairs 5594 rows
-        # 318 pairs lost at acid pH = the same of del_acid_pep_pairs
-
 
     # One last step about merging the pairs for both neutral and acid pH
     pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
     acid_pairs = acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
-    #del_acid_pairs = del_acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
-
-
-    #print(pairs.count()) # 41856 5912
-    #print(acid_pairs.count()) # 41538 5594
-    #print(del_acid_pairs.count()) # 36262 ok 318 
-
-
-    #print(pairs[['ai', 'aj']].to_string(index = False)) # 41856
-    #print(acid_pairs[['ai', 'aj']].to_string(index = False)) # 41538
-    #print(del_acid_pairs[['ai', 'aj']].to_string(index = False)) # 36262 ok 
-
-
-        # pairs 41856
-        # acid_pairs 41538
-        # still 318 pairs lost = the same of del_acid_pep_pairs
-
 
     # Cleaning the duplicates (the logic has already been explained above)
     inv_pairs = pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
@@ -215,45 +181,18 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     inv_acid = acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
     inv_acid.columns = ['ai', 'aj', 'type', 'A', 'B']
 
-    #inv_del = del_acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
-    #inv_del.columns = ['ai', 'aj', 'type', 'A', 'B']
-
-    ####
-
-
     pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
     acid_full = acid_pairs.append(inv_acid, sort = False, ignore_index = True)
-    #del_full = del_acid_pairs.append(inv_del, sort = False, ignore_index = True) # ok e il doppio
 
-    #print(pairs_full.count()) # 83712 11824
-    #print(acid_full.count()) # 83076 11188
-    #print(del_full.count()) # 72524 636
-
-    #print(del_full[['ai', 'aj']].to_string(index = False))
-
-
-
-    ####
-
-    ##### fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
-    
-    # INSERT -> MAP 
-    #print(pairs_full)
-    
+    # Removing all the double pairs but inverted
+    # It is necessary to use a dictionary since the script can't understand the residue
+    # numbers from the pairs
     pairs_full['n_ai'] = pairs_full['ai']
     pairs_full['n_aj'] = pairs_full['aj']
     pairs_full["n_ai"].replace(resnr_pairs, inplace = True)
     pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
     pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
     pairs_full = pairs_full.dropna()
-
-    #print(pairs_full.to_string())
-            # WRONG COMMANDS
-            #n_ai = pairs_full.ai.str.extract('(\\d+)')
-            #n_aj = pairs_full.aj.str.extract('(\\d+)')
-            #pairs_full['n_ai'] = n_ai
-            #pairs_full['n_aj'] = n_aj
-    
     acid_full['n_ai'] = acid_full['ai']
     acid_full['n_aj'] = acid_full['aj']
     acid_full["n_ai"].replace(resnr_pairs, inplace = True)
@@ -261,67 +200,16 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full['cond'] = np.where((acid_full['n_ai'] >= acid_full['n_aj']), acid_full['ai'], np.nan)
     acid_full = acid_full.dropna()
 
-    #del_full['n_ai'] = del_full['ai']
-    #del_full['n_aj'] = del_full['aj']
-    #del_full["n_ai"].replace(resnr_pairs, inplace = True)
-    #del_full["n_aj"].replace(resnr_pairs, inplace = True)
-    #del_full['cond'] = np.where((del_full['n_ai'] >= del_full['n_aj']), del_full['ai'], np.nan)
-    #del_full = del_full.dropna()
-
-    #print(pairs_full.count()) # 55583 6095
-    #print(acid_full.count()) # 55236 5748
-    #print(del_full.count()) # 49835 347
-
-    #print(pairs_full[['ai', 'aj']].to_string(index = False)) # 55583
-    #print(acid_full[['ai', 'aj']].to_string(index = False)) # 55236
-    #print(del_full[['ai', 'aj']].to_string(index = False)) # 49835
-
-    ###
-
     pairs_full = pairs_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
     # Sorting the pairs
     pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-    # Duplicates removal
-    # Merging columns in order to drop the duplicates
-    # pairs_full['ai'] = pairs_full['ai'].apply(str) + ':' + pairs_full['aj'].apply(str) # questo come funzionava prima
     # Cleaning the remaining duplicates
     pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
     acid_full = acid_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
     acid_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
     acid_full = acid_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    #del_full = del_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
-    #del_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-    #del_full = del_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    #print(pairs_full.count()) # 11939 6095
-    #print(acid_full.count()) # 11592 5748
-    #print(del_full.count()) # 6218 347
-
-    #print(acid_full.to_string())
-    #print(del_full[['ai', 'aj']].to_string(index = False))
-
-
-    #cose = pd.concat([del_acid_pairs,del_full]).drop_duplicates(keep=False)
-
-    #print(cose[['ai', 'aj']].to_string(index = False))
-    #print(cose.count())
-
-    ###
-
-    # Column separation
-    ai_aj = pairs_full['ai'].str.split(":", n = 1, expand = True)
-    # QUESTI DUE COMANDI SONO DOPO IL SET COPY WARNING
-    pairs_full.loc[:, 'ai'] = ai_aj.loc[:, 0]
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
-
-    ai_aj = acid_full['ai'].str.split(":", n = 1, expand = True)
-    acid_full.loc[:, 'ai'] = ai_aj.loc[:, 0]    
     acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
-
-    #ai_aj = del_full['ai'].str.split(":", n = 1, expand = True)
-    #del_full.loc[:, 'ai'] = ai_aj.loc[:, 0]    
-    #del_full.columns = [';ai', 'aj', 'type', 'A', 'B']
 
     return pairs_full, acid_full
