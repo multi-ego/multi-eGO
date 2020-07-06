@@ -188,13 +188,13 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     # One last step about merging the pairs for both neutral and acid pH
-    pairs = pep_pairs.copy()#.append(fib_pairs, sort = False, ignore_index = True)
-    acid_pairs = acid_pep_pairs.copy()#.append(fib_pairs, sort = False, ignore_index = True)
+    pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
+    acid_pairs = acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
     #del_acid_pairs = del_acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
 
 
-    #print(pairs.count()) # 41856 5912
-    #print(acid_pairs.count()) # 41538 5594
+    print(pairs.count()) # 41856 5912
+    print(acid_pairs.count()) # 41538 5594
     #print(del_acid_pairs.count()) # 36262 ok 318 
 
 
@@ -225,8 +225,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full = acid_pairs.append(inv_acid, sort = False, ignore_index = True)
     #del_full = del_acid_pairs.append(inv_del, sort = False, ignore_index = True) # ok e il doppio
 
-    #print(pairs_full.count()) # 83712 11824
-    #print(acid_full.count()) # 83076 11188
+    print(pairs_full.count()) # 83712 11824
+    print(acid_full.count()) # 83076 11188
     #print(del_full.count()) # 72524 636
 
     #print(del_full[['ai', 'aj']].to_string(index = False))
@@ -268,8 +268,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     #del_full['cond'] = np.where((del_full['n_ai'] >= del_full['n_aj']), del_full['ai'], np.nan)
     #del_full = del_full.dropna()
 
-    #print(pairs_full.count()) # 55583 6095
-    #print(acid_full.count()) # 55236 5748
+    print(pairs_full.count()) # 55583 6095
+    print(acid_full.count()) # 55236 5748
     #print(del_full.count()) # 49835 347
 
     #print(pairs_full[['ai', 'aj']].to_string(index = False)) # 55583
@@ -295,8 +295,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     #del_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
     #del_full = del_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    #print(pairs_full.count()) # 11939 6095
-    #print(acid_full.count()) # 11592 5748
+    print(pairs_full.count()) # 11939 6095
+    print(acid_full.count()) # 11592 5748
     #print(del_full.count()) # 6218 347
 
     #print(acid_full.to_string())
