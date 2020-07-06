@@ -17,7 +17,12 @@ from read_input import read_gro_atoms
     # res_atom_dict -> residue_atom:chemical_type TYR_N:N
 
 gro_atoms = read_gro_atoms()
-dict_gro_atomtypes = gro_atoms.set_index('; nr')['res_atom'].to_dict() # This one will be used in BOOOOOH
+
+# This one will be used in dihedrals
+dict_gro_atomtypes = gro_atoms.set_index('; nr')['res_atom'].to_dict()
+
+# This one will be used in pairs (for resnr comparison)
+resnr_pairs = gro_atoms.set_index('atom_nmr')['resnr'].to_dict()
 
 # Those ones will be used in make_atomtypes_and_dict
 gromos_mass = gro_atoms[['type', 'mass']].drop_duplicates(subset=['type'], keep='first').copy()

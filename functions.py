@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs
 
 
     # This script includes all the functions used to create a FF
@@ -159,24 +159,28 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs = fib_pairs.assign(A = A_notation)
     fib_pairs = fib_pairs.assign(B = B_notation)
 
-
-    # If acidic the following pep_pairs will be removed
-    # Remove the lines by searching in the two colums 
-    
-    # Filter the informations from gromos atomtype and make a list of the atomtypes to remove
-    # e.g. OD1_39 -> remove line
-    # This step should be done before append the two pairs otherwise some fibril contribution will be lost
-    # The list of atoms will be made in atomtypes_definitions.py
+        # If acidic the following pep_pairs will be removed
+        # Remove the lines by searching in the two colums 
+        # Filter the informations from gromos atomtype and make a list of the atomtypes to remove
+        # e.g. OD1_39 -> remove line
+        # This step should be done before append the two pairs otherwise some fibril contribution will be lost
+        # The list of atoms will be made in atomtypes_definitions.py
 
 
     for_acid_pairs = pep_pairs.copy()
-    del_acid_pep_pairs = for_acid_pairs[for_acid_pairs['aj'].isin(acid_atp)]
+    #for_del_pairs = pep_pairs.copy()
     acid_pep_pairs = for_acid_pairs[~for_acid_pairs['aj'].isin(acid_atp)]
+    #del_acid_pep_pairs = for_del_pairs[for_acid_pairs['aj'].isin(acid_atp)]
 
     #print(pep_pairs.count()) # 5912
     #print(for_acid_pairs.count()) # 5912
     #print(del_acid_pep_pairs.count()) # 318
     #print(acid_pep_pairs.count()) # 5594
+
+    #print(pep_pairs[['ai', 'aj']].to_string(index = False))
+    #print(for_acid_pairs.to_string())
+    #print(del_acid_pep_pairs.to_string())
+    #print(acid_pep_pairs[['ai', 'aj']].to_string(index = False))
     
         # pep_pairs 5912 rows
         # acid_pep_pairs 5594 rows
@@ -184,15 +188,21 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     # One last step about merging the pairs for both neutral and acid pH
-    pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
-    acid_pairs = acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
-    del_acid_pairs = del_acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
+    pairs = pep_pairs.copy()#.append(fib_pairs, sort = False, ignore_index = True)
+    acid_pairs = acid_pep_pairs.copy()#.append(fib_pairs, sort = False, ignore_index = True)
+    #del_acid_pairs = del_acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
 
 
-    #print(pairs.count()) # 41856
-    #print(acid_pairs.count()) # 41538
-    #print(del_acid_pairs.count()) # 36262 ok 
-        
+    #print(pairs.count()) # 41856 5912
+    #print(acid_pairs.count()) # 41538 5594
+    #print(del_acid_pairs.count()) # 36262 ok 318 
+
+
+    #print(pairs[['ai', 'aj']].to_string(index = False)) # 41856
+    #print(acid_pairs[['ai', 'aj']].to_string(index = False)) # 41538
+    #print(del_acid_pairs[['ai', 'aj']].to_string(index = False)) # 36262 ok 
+
+
         # pairs 41856
         # acid_pairs 41538
         # still 318 pairs lost = the same of del_acid_pep_pairs
@@ -205,49 +215,66 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     inv_acid = acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
     inv_acid.columns = ['ai', 'aj', 'type', 'A', 'B']
 
-    inv_del = del_acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
-    inv_del.columns = ['ai', 'aj', 'type', 'A', 'B']
+    #inv_del = del_acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
+    #inv_del.columns = ['ai', 'aj', 'type', 'A', 'B']
 
     ####
 
 
     pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
-
     acid_full = acid_pairs.append(inv_acid, sort = False, ignore_index = True)
+    #del_full = del_acid_pairs.append(inv_del, sort = False, ignore_index = True) # ok e il doppio
 
-    del_full = del_acid_pairs.append(inv_del, sort = False, ignore_index = True) # ok e il doppio
+    #print(pairs_full.count()) # 83712 11824
+    #print(acid_full.count()) # 83076 11188
+    #print(del_full.count()) # 72524 636
 
-    #print(pairs_full.count()) # 83712
-    #print(acid_full.count()) # 83076
-    #print(del_full.count()) # 72524
+    #print(del_full[['ai', 'aj']].to_string(index = False))
+
 
 
     ####
 
-    n_ai = pairs_full.ai.str.extract('(\\d+)')
-    n_aj = pairs_full.aj.str.extract('(\\d+)')
-    pairs_full['n_ai'] = n_ai
-    pairs_full['n_aj'] = n_aj
+    ##### fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
+    
+    # INSERT -> MAP 
+    #print(pairs_full)
+    
+    pairs_full['n_ai'] = pairs_full['ai']
+    pairs_full['n_aj'] = pairs_full['aj']
+    pairs_full["n_ai"].replace(resnr_pairs, inplace = True)
+    pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
     pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
     pairs_full = pairs_full.dropna()
 
-    n_ai = acid_full.ai.str.extract('(\\d+)')
-    n_aj = acid_full.aj.str.extract('(\\d+)')
-    acid_full['n_ai'] = n_ai
-    acid_full['n_aj'] = n_aj
+    #print(pairs_full.to_string())
+            # WRONG COMMANDS
+            #n_ai = pairs_full.ai.str.extract('(\\d+)')
+            #n_aj = pairs_full.aj.str.extract('(\\d+)')
+            #pairs_full['n_ai'] = n_ai
+            #pairs_full['n_aj'] = n_aj
+    
+    acid_full['n_ai'] = acid_full['ai']
+    acid_full['n_aj'] = acid_full['aj']
+    acid_full["n_ai"].replace(resnr_pairs, inplace = True)
+    acid_full["n_aj"].replace(resnr_pairs, inplace = True)
     acid_full['cond'] = np.where((acid_full['n_ai'] >= acid_full['n_aj']), acid_full['ai'], np.nan)
     acid_full = acid_full.dropna()
 
-    n_ai = del_full.ai.str.extract('(\\d+)')
-    n_aj = del_full.aj.str.extract('(\\d+)')
-    del_full['n_ai'] = n_ai
-    del_full['n_aj'] = n_aj
-    del_full['cond'] = np.where((del_full['n_ai'] >= del_full['n_aj']), del_full['ai'], np.nan)
-    del_full = del_full.dropna()
+    #del_full['n_ai'] = del_full['ai']
+    #del_full['n_aj'] = del_full['aj']
+    #del_full["n_ai"].replace(resnr_pairs, inplace = True)
+    #del_full["n_aj"].replace(resnr_pairs, inplace = True)
+    #del_full['cond'] = np.where((del_full['n_ai'] >= del_full['n_aj']), del_full['ai'], np.nan)
+    #del_full = del_full.dropna()
 
-    #print(pairs_full.count()) # 55583
-    #print(acid_full.count()) # 55236
-    #print(del_full.count()) # 49835
+    #print(pairs_full.count()) # 55583 6095
+    #print(acid_full.count()) # 55236 5748
+    #print(del_full.count()) # 49835 347
+
+    #print(pairs_full[['ai', 'aj']].to_string(index = False)) # 55583
+    #print(acid_full[['ai', 'aj']].to_string(index = False)) # 55236
+    #print(del_full[['ai', 'aj']].to_string(index = False)) # 49835
 
     ###
 
@@ -264,21 +291,22 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
     acid_full = acid_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    del_full = del_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
-    del_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-    del_full = del_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    #del_full = del_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
+    #del_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
+    #del_full = del_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    #print(pairs_full.count()) # 11939
-    #print(acid_full.count()) # 11592
-    #print(del_full.count()) # 6218
+    #print(pairs_full.count()) # 11939 6095
+    #print(acid_full.count()) # 11592 5748
+    #print(del_full.count()) # 6218 347
 
     #print(acid_full.to_string())
-    #print(del_full.to_string())
+    #print(del_full[['ai', 'aj']].to_string(index = False))
 
 
-    cose = pd.concat([acid_full,del_full]).drop_duplicates(keep=False)
+    #cose = pd.concat([del_acid_pairs,del_full]).drop_duplicates(keep=False)
 
-    print(cose.count())
+    #print(cose[['ai', 'aj']].to_string(index = False))
+    #print(cose.count())
 
     ###
 
@@ -292,8 +320,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full.loc[:, 'ai'] = ai_aj.loc[:, 0]    
     acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
 
-    ai_aj = del_full['ai'].str.split(":", n = 1, expand = True)
-    del_full.loc[:, 'ai'] = ai_aj.loc[:, 0]    
-    del_full.columns = [';ai', 'aj', 'type', 'A', 'B']
+    #ai_aj = del_full['ai'].str.split(":", n = 1, expand = True)
+    #del_full.loc[:, 'ai'] = ai_aj.loc[:, 0]    
+    #del_full.columns = [';ai', 'aj', 'type', 'A', 'B']
 
     return pairs_full, acid_full
