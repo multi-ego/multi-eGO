@@ -1,3 +1,4 @@
+from atomtypes_definitions import n
 head = "; made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 
 
@@ -33,6 +34,8 @@ def write_smog_to_gromos_dihedrals(propers_to_gro):
     file.write("\n")
     file.write(str(head))
     file.write("\n")
+    file.write(f'; Temperature Ratio: {n} / 70')
+    file.write("\n")
     file.write(str(propers_to_gro.to_string(index = False)))
     file.close()
 
@@ -41,6 +44,8 @@ def write_merge_ffnonbonded(atomtypes, merge_pairs):
     file = open("output/ffnonbonded.itp", "w")
     file.write("[ atomtypes ]\n")
     file.write(str(head))
+    file.write("\n")
+    file.write(f'; Temperature Ratio: {n} / 70')
     file.write("\n")
     file.write(str(atomtypes.to_string(index = False)))
     file.write("\n")
@@ -55,6 +60,8 @@ def write_acid_ffnonbonded(atomtypes, acid_pairs):
     file.write("[ atomtypes ]")
     file.write("\n")
     file.write(str(head))
+    file.write("\n")
+    file.write(f'; Temperature Ratio: {n} / 70')
     file.write("\n")
     file.write("; ACID PAIRS")
     file.write("\n")

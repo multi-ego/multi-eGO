@@ -1,5 +1,6 @@
 [ atomtypes ]
 ; made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
+; Temperature Ratio: 298 / 70
 ; ACID PAIRS
   ; type  at.num  mass    charge ptype           c6           c12
      N_1       7    15  0.000000     A  0.00000e+00  4.639000e-05

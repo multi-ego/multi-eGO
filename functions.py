@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs, t_ratio, n
 
 
     # This script includes all the functions used to create a FF
@@ -85,8 +85,12 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     # TUTTI I DIEDRI VENGONO DIVISI PER DUE, CHE SIANO DOPPI (NATIVA E FIBRILLA) O SINGOLI (SOLO NELLA NATIVA)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
     
-    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (298 / 70)
-    
+    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * t_ratio
+
+    print(f'\n'
+    f'\tTemperature Ratio: {n} / 70'
+    f'\n')
+
     # Actually the thing is on merged dihedrals
     # In this function is necessary to use the native smog_to_gro_dictionary since is the full dictionary
     proper_dihedrals[";ai"].replace(smog_to_gro_dict, inplace = True)
@@ -122,8 +126,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pep_pairs.to_string(index = False)
     pep_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    pep_pairs['A'] = pep_pairs['A'] * (298 / 70)
-    pep_pairs['B'] = pep_pairs['B'] * (298 / 70)
+    pep_pairs['A'] = pep_pairs['A'] * t_ratio
+    pep_pairs['B'] = pep_pairs['B'] * t_ratio
 
     # Fibril input handling
     fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
@@ -131,8 +135,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    fib_pairs['A'] = fib_pairs['A'] * (298 / 70)
-    fib_pairs['B'] = fib_pairs['B'] * (298 / 70)
+    fib_pairs['A'] = fib_pairs['A'] * t_ratio
+    fib_pairs['B'] = fib_pairs['B'] * t_ratio
 
     # Calcolo di epsilon per peptide e fibrilla
     pep_epsilon = (pep_pairs['A'] ** 2) / (4 * (pep_pairs['B']))
