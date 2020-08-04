@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs, t_ratio, n
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs, t_ratio, temperatura
 
 
     # This script includes all the functions used to create a FF
@@ -88,7 +88,7 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * t_ratio
 
     print(f'\n'
-    f'\tTemperature Ratio: {n} / 70'
+    f'\tTemperature Ratio: {temperatura} / 70'
     f'\n')
 
     # Actually the thing is on merged dihedrals
@@ -172,7 +172,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     for_acid_pairs = pep_pairs.copy()
-    acid_pep_pairs = for_acid_pairs[~for_acid_pairs['aj'].isin(acid_atp)]
+    acid_pep_pairs = for_acid_pairs[~for_acid_pairs['ai'].isin(acid_atp)]
+    acid_pep_pairs = acid_pep_pairs[~acid_pep_pairs['aj'].isin(acid_atp)]
 
     # One last step about merging the pairs for both neutral and acid pH
     pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
@@ -197,6 +198,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
     pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
     pairs_full = pairs_full.dropna()
+
     acid_full['n_ai'] = acid_full['ai']
     acid_full['n_aj'] = acid_full['aj']
     acid_full["n_ai"].replace(resnr_pairs, inplace = True)

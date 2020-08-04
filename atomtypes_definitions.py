@@ -16,8 +16,8 @@ from read_input import read_gro_atoms
     # gromos_mass -> atom_type:mass N:15.0067
     # res_atom_dict -> residue_atom:chemical_type TYR_N:N
 
-n = 296
-t_ratio = n / 70
+temperatura = 296
+t_ratio = temperatura / 70
 
 gro_atoms = read_gro_atoms()
 
