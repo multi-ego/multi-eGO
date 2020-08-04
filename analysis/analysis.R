@@ -5,10 +5,10 @@
 
 library(tidyverse)
 library(reshape2)
-library(hexbin)
-library(gridExtra)
+#library(hexbin)
+#library(gridExtra)
 library(grid)
-library(ggforce)
+#library(ggforce)
 
 nclust <- read.table(file = "analysis/histo-time.dat", header = FALSE, dec = ".")
 

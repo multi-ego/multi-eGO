@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs, t_ratio, n
 
 
     # This script includes all the functions used to create a FF
@@ -85,8 +85,12 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
     # TUTTI I DIEDRI VENGONO DIVISI PER DUE, CHE SIANO DOPPI (NATIVA E FIBRILLA) O SINGOLI (SOLO NELLA NATIVA)
     proper_dihedrals.loc[:, 'Kd'] = proper_dihedrals.loc[:, 'Kd'].divide(2)
     
-    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * (300 / 70)
-    
+    proper_dihedrals['Kd'] = proper_dihedrals['Kd'] * t_ratio
+
+    print(f'\n'
+    f'\tTemperature Ratio: {n} / 70'
+    f'\n')
+
     # Actually the thing is on merged dihedrals
     # In this function is necessary to use the native smog_to_gro_dictionary since is the full dictionary
     proper_dihedrals[";ai"].replace(smog_to_gro_dict, inplace = True)
@@ -112,8 +116,6 @@ def smog_to_gromos_dihedrals(pep_dihedrals, fib_dihedrals, smog_to_gro_dict): # 
 
 
 def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_atomtypes):
-    # pep_pairs = inp_pep_pairs.copy()
-    # fib_pairs = inp_fib_pairs.copy()
     # This script allow to merge the pairs of peptide and fibril.
     # The main difference between the other two pairs function is that peptide C6 and C12 are reweighted.
     # This is because SMOG normalize the LJ potential based on the total number of contacts.
@@ -124,8 +126,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pep_pairs.to_string(index = False)
     pep_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    pep_pairs['A'] = pep_pairs['A'] * (300 / 70)
-    pep_pairs['B'] = pep_pairs['B'] * (300 / 70)
+    pep_pairs['A'] = pep_pairs['A'] * t_ratio
+    pep_pairs['B'] = pep_pairs['B'] * t_ratio
 
     # Fibril input handling
     fib_pairs[';ai'].replace(dict_fib_atomtypes, inplace = True)
@@ -133,8 +135,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs.to_string(index = False)
     fib_pairs.columns = ["ai", "aj", "type", "A", "B"]
 
-    fib_pairs['A'] = fib_pairs['A'] * (300 / 70)
-    fib_pairs['B'] = fib_pairs['B'] * (300 / 70)
+    fib_pairs['A'] = fib_pairs['A'] * t_ratio
+    fib_pairs['B'] = fib_pairs['B'] * t_ratio
 
     # Calcolo di epsilon per peptide e fibrilla
     pep_epsilon = (pep_pairs['A'] ** 2) / (4 * (pep_pairs['B']))
@@ -161,40 +163,57 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     fib_pairs = fib_pairs.assign(A = A_notation)
     fib_pairs = fib_pairs.assign(B = B_notation)
 
+        # If acidic the following pep_pairs will be removed
+        # Remove the lines by searching in the two colums 
+        # Filter the informations from gromos atomtype and make a list of the atomtypes to remove
+        # e.g. OD1_39 -> remove line
+        # This step should be done before append the two pairs otherwise some fibril contribution will be lost
+        # The list of atoms will be made in atomtypes_definitions.py
 
-    # If acidic the following pep_pairs will be removed
-    # Remove the lines by searching in the two colums 
-    
-    
 
-    # One last step about merging the pairs
+    for_acid_pairs = pep_pairs.copy()
+    acid_pep_pairs = for_acid_pairs[~for_acid_pairs['aj'].isin(acid_atp)]
+
+    # One last step about merging the pairs for both neutral and acid pH
     pairs = pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
+    acid_pairs = acid_pep_pairs.append(fib_pairs, sort = False, ignore_index = True)
 
     # Cleaning the duplicates (the logic has already been explained above)
     inv_pairs = pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
     inv_pairs.columns = ['ai', 'aj', 'type', 'A', 'B']
+
+    inv_acid = acid_pairs[['aj', 'ai', 'type', 'A', 'B']].copy()
+    inv_acid.columns = ['ai', 'aj', 'type', 'A', 'B']
+
     pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
-    n_ai = pairs_full.ai.str.extract('(\d+)')
-    n_aj = pairs_full.aj.str.extract('(\d+)')
-    pairs_full['n_ai'] = n_ai
-    pairs_full['n_aj'] = n_aj
+    acid_full = acid_pairs.append(inv_acid, sort = False, ignore_index = True)
+
+    # Removing all the double pairs but inverted
+    # It is necessary to use a dictionary since the script can't understand the residue
+    # numbers from the pairs
+    pairs_full['n_ai'] = pairs_full['ai']
+    pairs_full['n_aj'] = pairs_full['aj']
+    pairs_full["n_ai"].replace(resnr_pairs, inplace = True)
+    pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
     pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
     pairs_full = pairs_full.dropna()
+    acid_full['n_ai'] = acid_full['ai']
+    acid_full['n_aj'] = acid_full['aj']
+    acid_full["n_ai"].replace(resnr_pairs, inplace = True)
+    acid_full["n_aj"].replace(resnr_pairs, inplace = True)
+    acid_full['cond'] = np.where((acid_full['n_ai'] >= acid_full['n_aj']), acid_full['ai'], np.nan)
+    acid_full = acid_full.dropna()
+
     pairs_full = pairs_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
     # Sorting the pairs
     pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-    # Duplicates removal
-    # Merging columns in order to drop the duplicates
-    # pairs_full['ai'] = pairs_full['ai'].apply(str) + ':' + pairs_full['aj'].apply(str) # questo come funzionava prima
     # Cleaning the remaining duplicates
     pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    # Column separation
-    ai_aj = pairs_full['ai'].str.split(":", n = 1, expand = True)
-    # QUESTI DUE COMANDI SONO DOPO IL SET COPY WARNING
-    pairs_full.loc[:, 'ai'] = ai_aj.loc[:, 0]
+    acid_full = acid_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
+    acid_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
+    acid_full = acid_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    # QUESTI DUE COMANDI SONO QUELLI PRIMA DEL COPY WARNING
-    # clean_pairs['ai'] = ai_aj[0]
-    # clean_pairs['aj'] = ai_aj[1]
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
-    return pairs_full
+    acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
+
+    return pairs_full, acid_full

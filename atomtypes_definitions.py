@@ -16,8 +16,16 @@ from read_input import read_gro_atoms
     # gromos_mass -> atom_type:mass N:15.0067
     # res_atom_dict -> residue_atom:chemical_type TYR_N:N
 
+n = 296
+t_ratio = n / 70
+
 gro_atoms = read_gro_atoms()
-dict_gro_atomtypes = gro_atoms.set_index('; nr')['res_atom'].to_dict() # This one will be used in BOOOOOH
+
+# This one will be used in dihedrals
+dict_gro_atomtypes = gro_atoms.set_index('; nr')['res_atom'].to_dict()
+
+# This one will be used in pairs (for resnr comparison)
+resnr_pairs = gro_atoms.set_index('atom_nmr')['resnr'].to_dict()
 
 # Those ones will be used in make_atomtypes_and_dict
 gromos_mass = gro_atoms[['type', 'mass']].drop_duplicates(subset=['type'], keep='first').copy()
@@ -49,3 +57,44 @@ gromos_atp = pd.DataFrame(
 
 gromos_atp.to_dict()
 gromos_atp.set_index('name', inplace=True)
+
+
+# List of atoms which change the charge at pH 2/2.5
+# ASP - OD1, OD2, CG
+# GLU - OE1, OE2, CD
+# HIS - ND1, CE1, NE2, CD2, CG
+
+#print(gro_atoms)
+
+# Selection of the aminoacids and the charged atoms
+
+acid_ASP = gro_atoms[(gro_atoms['residue'] == "ASP") & ((gro_atoms['atom'] == "OD1") | (gro_atoms['atom'] == "OD2") | (gro_atoms['atom'] == "CG"))]
+acid_GLU = gro_atoms[(gro_atoms['residue'] == "GLU") & ((gro_atoms['atom'] == "OE1") | (gro_atoms['atom'] == "OE2") | (gro_atoms['atom'] == "CD"))]
+acid_HIS = gro_atoms[(gro_atoms['residue'] == "HIS") & ((gro_atoms['atom'] == "ND1") | (gro_atoms['atom'] == "CE1") | (gro_atoms['atom'] == "NE2") | (gro_atoms['atom'] == "CD2") | (gro_atoms['atom'] == "CG"))]
+
+# Append the three dataframes
+
+frames = [acid_ASP, acid_GLU, acid_HIS]
+acid_atp = pd.concat(frames, ignore_index = True)
+
+        # ASP 21 +
+        # GLU 24 +
+        # HIS 20 =
+        # TOT 65 
+        # acid_aa 65 rows yay!
+
+#acid_atp = acid_atp.drop(['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'res_atom'], axis = 1)
+
+
+# prova passando da df a list
+
+acid_atp = acid_atp['atom_nmr'].tolist()
+
+#print(acid_atp)
+
+#print(acid_ASP.count())
+#print(acid_GLU.count())
+#print(acid_HIS.count())
+
+#print(acid_atp.to_string())
+#print(acid_atp.count())
