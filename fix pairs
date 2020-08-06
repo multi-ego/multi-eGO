@@ -1,0 +1,20 @@
+ # Removing all the double pairs but inverted
+    # It is necessary to use a dictionary since the script can't understand the residue
+    # numbers from the pairs
+    #pairs_full['n_ai'] = pairs_full['ai']
+    #pairs_full['n_aj'] = pairs_full['aj']
+    #pairs_full["n_ai"].replace(resnr_pairs, inplace = True)
+    #pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
+    # Sorting the pairs
+    pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
+    # Cleaning the remaining duplicates
+    pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    #for sulle righe
+    pairs_full['check_string'] = pairs_full.apply(lambda row: ''.join(sorted([row['ai'], row['aj']])), axis = 1)
+    pairs_full.drop_duplicates('check_string')
+    #for row_i in pairs_full.itertuples():
+    #    for row_j in pairs_full.itertuples():
+    #        if(pairs_full[row_i.index,'ai'] == pairs_full.row_j.index['aj'] and row_i['aj'] == row_j['ai'] and row_i['ai'] and not row_i['aj']): pairs_full.drop(row_j)  
+             #se riga con colonna invertita == riga rimuovo riga colonna invertita
+    pairs_full = pairs_full.drop(['check_string'], axis = 1)
+    pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
