@@ -1,0 +1,22 @@
+# This file was created Wed Aug  5 17:06:23 2020
+# Created by:
+#                    :-) GROMACS - gmx clustsize, 2019.5 (-:
+# 
+# Executable:   /opt/gromacs-2019.5/bin/gmx_mpi
+# Data prefix:  /opt/gromacs-2019.5
+# Working dir:  /media/data/emanuele/B2m/MAGROS_FF/MAGROS/analysis_bash_jupyter
+# Command line:
+#   gmx_mpi clustsize -f 2000_pep-1mM.gro -s prod_2000-1mM.tpr -mol -hct -nice 0 -cut 0.4
+# gmx clustsize is part of G R O M A C S:
+#
+# GROtesk MACabre and Sinister
+#
+@    title "Cluster size distribution"
+@    xaxis  label "Cluster size"
+@    yaxis  label "()"
+@TYPE xy
+    0     0.000
+    1  1973.000
+    2    12.000
+    3     1.000
+    4     0.000
