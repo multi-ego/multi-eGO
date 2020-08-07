@@ -199,10 +199,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pairs_full[cols] = np.sort(pairs_full[cols].values, axis=1)
     pairs_full = pairs_full.drop_duplicates()
 
-
-
-            ### ACID FF
-
+    ### ACID FF
     # Sorting the pairs
     acid_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
     # Cleaning the duplicates
@@ -212,39 +209,6 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full[cols] = np.sort(acid_full[cols].values, axis=1)
     acid_full = acid_full.drop_duplicates()
 
-
-
-
-            # Removing all the double pairs but inverted
-            # It is necessary to use a dictionary since the script can't understand the residue
-            # numbers from the pairs
-            ##pairs_full['n_ai'] = pairs_full['ai']
-            ##pairs_full['n_aj'] = pairs_full['aj']
-            ##pairs_full["n_ai"].replace(resnr_pairs, inplace = True)
-            ##pairs_full["n_aj"].replace(resnr_pairs, inplace = True)
-            ##pairs_full['cond'] = np.where((pairs_full['n_ai'] >= pairs_full['n_aj']), pairs_full['ai'], np.nan)
-            ##pairs_full = pairs_full.dropna()
-
-
-        # DA IMPLEMENTARE ANCHE SU ACID_FULL
-
-
-            ##acid_full['n_ai'] = acid_full['ai']
-            ##acid_full['n_aj'] = acid_full['aj']
-            ##acid_full["n_ai"].replace(resnr_pairs, inplace = True)
-            ##acid_full["n_aj"].replace(resnr_pairs, inplace = True)
-            ##acid_full['cond'] = np.where((acid_full['n_ai'] >= acid_full['n_aj']), acid_full['ai'], np.nan)
-            ##acid_full = acid_full.dropna()
-
-            #pairs_full = pairs_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
-            # Sorting the pairs
-            ##pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-            # Cleaning the remaining duplicates
-            ##pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-            #acid_full = acid_full.drop(['cond', 'n_ai', 'n_aj'], axis = 1)
-            #acid_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
-            #acid_full = acid_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
     acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
