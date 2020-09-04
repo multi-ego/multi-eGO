@@ -2,7 +2,7 @@
 # for-loopcmd.sh
 
 # the two arrays are based on the maxclust.ndx -> check which clust is the one you want
-array=("10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "33") # 33 is not fibril
+array=('10' "11" "12" "13" "14" "15" "16" "17" "18" "19" "33") # 33 is not fibril
 array2=("A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "Z") # Z is not fibril
 
 
