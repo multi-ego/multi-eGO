@@ -129,3 +129,7 @@ dmypy.json
 .pyre/
 .vscode/settings.json
 MAGROS.code-workspace
+
+
+/analysis_bash_jupyter/backup_rdf
+/analysis_bash_jupyter/rdf
