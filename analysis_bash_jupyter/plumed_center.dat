@@ -1,0 +1,2015 @@
+# check pdb or trajectory to select an aminoacid centered to the fibril
+C: CENTER ATOMS=32131-32215
+#C: CENTER ATOMS=32168-32175
+
+# define the fibril dimension
+fibril: GROUP ATOMS=1-85000
+
+# Create a group for each chain in the index 
+chain_1: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain1
+chain_2: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain2
+chain_3: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain3
+chain_4: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain4
+chain_5: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain5
+chain_6: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain6
+chain_7: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain7
+chain_8: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain8
+chain_9: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain9
+chain_10: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain10
+chain_11: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain11
+chain_12: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain12
+chain_13: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain13
+chain_14: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain14
+chain_15: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain15
+chain_16: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain16
+chain_17: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain17
+chain_18: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain18
+chain_19: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain19
+chain_20: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain20
+chain_21: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain21
+chain_22: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain22
+chain_23: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain23
+chain_24: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain24
+chain_25: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain25
+chain_26: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain26
+chain_27: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain27
+chain_28: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain28
+chain_29: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain29
+chain_30: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain30
+chain_31: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain31
+chain_32: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain32
+chain_33: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain33
+chain_34: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain34
+chain_35: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain35
+chain_36: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain36
+chain_37: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain37
+chain_38: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain38
+chain_39: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain39
+chain_40: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain40
+chain_41: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain41
+chain_42: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain42
+chain_43: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain43
+chain_44: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain44
+chain_45: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain45
+chain_46: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain46
+chain_47: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain47
+chain_48: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain48
+chain_49: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain49
+chain_50: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain50
+chain_51: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain51
+chain_52: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain52
+chain_53: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain53
+chain_54: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain54
+chain_55: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain55
+chain_56: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain56
+chain_57: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain57
+chain_58: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain58
+chain_59: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain59
+chain_60: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain60
+chain_61: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain61
+chain_62: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain62
+chain_63: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain63
+chain_64: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain64
+chain_65: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain65
+chain_66: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain66
+chain_67: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain67
+chain_68: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain68
+chain_69: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain69
+chain_70: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain70
+chain_71: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain71
+chain_72: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain72
+chain_73: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain73
+chain_74: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain74
+chain_75: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain75
+chain_76: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain76
+chain_77: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain77
+chain_78: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain78
+chain_79: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain79
+chain_80: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain80
+chain_81: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain81
+chain_82: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain82
+chain_83: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain83
+chain_84: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain84
+chain_85: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain85
+chain_86: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain86
+chain_87: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain87
+chain_88: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain88
+chain_89: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain89
+chain_90: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain90
+chain_91: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain91
+chain_92: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain92
+chain_93: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain93
+chain_94: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain94
+chain_95: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain95
+chain_96: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain96
+chain_97: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain97
+chain_98: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain98
+chain_99: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain99
+chain_100: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain100
+chain_101: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain101
+chain_102: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain102
+chain_103: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain103
+chain_104: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain104
+chain_105: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain105
+chain_106: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain106
+chain_107: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain107
+chain_108: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain108
+chain_109: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain109
+chain_110: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain110
+chain_111: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain111
+chain_112: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain112
+chain_113: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain113
+chain_114: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain114
+chain_115: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain115
+chain_116: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain116
+chain_117: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain117
+chain_118: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain118
+chain_119: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain119
+chain_120: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain120
+chain_121: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain121
+chain_122: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain122
+chain_123: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain123
+chain_124: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain124
+chain_125: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain125
+chain_126: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain126
+chain_127: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain127
+chain_128: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain128
+chain_129: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain129
+chain_130: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain130
+chain_131: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain131
+chain_132: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain132
+chain_133: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain133
+chain_134: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain134
+chain_135: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain135
+chain_136: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain136
+chain_137: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain137
+chain_138: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain138
+chain_139: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain139
+chain_140: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain140
+chain_141: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain141
+chain_142: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain142
+chain_143: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain143
+chain_144: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain144
+chain_145: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain145
+chain_146: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain146
+chain_147: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain147
+chain_148: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain148
+chain_149: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain149
+chain_150: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain150
+chain_151: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain151
+chain_152: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain152
+chain_153: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain153
+chain_154: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain154
+chain_155: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain155
+chain_156: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain156
+chain_157: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain157
+chain_158: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain158
+chain_159: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain159
+chain_160: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain160
+chain_161: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain161
+chain_162: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain162
+chain_163: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain163
+chain_164: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain164
+chain_165: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain165
+chain_166: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain166
+chain_167: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain167
+chain_168: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain168
+chain_169: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain169
+chain_170: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain170
+chain_171: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain171
+chain_172: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain172
+chain_173: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain173
+chain_174: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain174
+chain_175: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain175
+chain_176: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain176
+chain_177: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain177
+chain_178: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain178
+chain_179: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain179
+chain_180: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain180
+chain_181: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain181
+chain_182: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain182
+chain_183: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain183
+chain_184: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain184
+chain_185: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain185
+chain_186: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain186
+chain_187: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain187
+chain_188: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain188
+chain_189: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain189
+chain_190: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain190
+chain_191: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain191
+chain_192: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain192
+chain_193: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain193
+chain_194: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain194
+chain_195: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain195
+chain_196: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain196
+chain_197: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain197
+chain_198: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain198
+chain_199: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain199
+chain_200: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain200
+chain_201: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain201
+chain_202: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain202
+chain_203: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain203
+chain_204: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain204
+chain_205: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain205
+chain_206: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain206
+chain_207: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain207
+chain_208: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain208
+chain_209: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain209
+chain_210: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain210
+chain_211: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain211
+chain_212: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain212
+chain_213: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain213
+chain_214: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain214
+chain_215: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain215
+chain_216: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain216
+chain_217: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain217
+chain_218: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain218
+chain_219: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain219
+chain_220: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain220
+chain_221: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain221
+chain_222: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain222
+chain_223: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain223
+chain_224: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain224
+chain_225: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain225
+chain_226: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain226
+chain_227: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain227
+chain_228: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain228
+chain_229: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain229
+chain_230: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain230
+chain_231: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain231
+chain_232: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain232
+chain_233: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain233
+chain_234: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain234
+chain_235: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain235
+chain_236: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain236
+chain_237: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain237
+chain_238: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain238
+chain_239: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain239
+chain_240: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain240
+chain_241: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain241
+chain_242: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain242
+chain_243: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain243
+chain_244: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain244
+chain_245: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain245
+chain_246: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain246
+chain_247: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain247
+chain_248: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain248
+chain_249: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain249
+chain_250: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain250
+chain_251: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain251
+chain_252: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain252
+chain_253: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain253
+chain_254: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain254
+chain_255: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain255
+chain_256: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain256
+chain_257: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain257
+chain_258: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain258
+chain_259: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain259
+chain_260: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain260
+chain_261: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain261
+chain_262: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain262
+chain_263: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain263
+chain_264: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain264
+chain_265: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain265
+chain_266: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain266
+chain_267: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain267
+chain_268: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain268
+chain_269: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain269
+chain_270: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain270
+chain_271: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain271
+chain_272: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain272
+chain_273: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain273
+chain_274: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain274
+chain_275: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain275
+chain_276: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain276
+chain_277: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain277
+chain_278: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain278
+chain_279: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain279
+chain_280: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain280
+chain_281: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain281
+chain_282: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain282
+chain_283: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain283
+chain_284: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain284
+chain_285: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain285
+chain_286: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain286
+chain_287: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain287
+chain_288: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain288
+chain_289: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain289
+chain_290: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain290
+chain_291: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain291
+chain_292: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain292
+chain_293: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain293
+chain_294: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain294
+chain_295: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain295
+chain_296: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain296
+chain_297: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain297
+chain_298: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain298
+chain_299: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain299
+chain_300: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain300
+chain_301: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain301
+chain_302: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain302
+chain_303: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain303
+chain_304: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain304
+chain_305: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain305
+chain_306: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain306
+chain_307: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain307
+chain_308: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain308
+chain_309: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain309
+chain_310: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain310
+chain_311: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain311
+chain_312: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain312
+chain_313: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain313
+chain_314: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain314
+chain_315: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain315
+chain_316: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain316
+chain_317: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain317
+chain_318: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain318
+chain_319: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain319
+chain_320: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain320
+chain_321: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain321
+chain_322: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain322
+chain_323: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain323
+chain_324: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain324
+chain_325: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain325
+chain_326: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain326
+chain_327: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain327
+chain_328: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain328
+chain_329: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain329
+chain_330: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain330
+chain_331: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain331
+chain_332: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain332
+chain_333: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain333
+chain_334: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain334
+chain_335: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain335
+chain_336: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain336
+chain_337: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain337
+chain_338: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain338
+chain_339: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain339
+chain_340: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain340
+chain_341: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain341
+chain_342: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain342
+chain_343: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain343
+chain_344: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain344
+chain_345: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain345
+chain_346: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain346
+chain_347: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain347
+chain_348: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain348
+chain_349: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain349
+chain_350: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain350
+chain_351: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain351
+chain_352: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain352
+chain_353: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain353
+chain_354: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain354
+chain_355: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain355
+chain_356: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain356
+chain_357: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain357
+chain_358: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain358
+chain_359: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain359
+chain_360: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain360
+chain_361: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain361
+chain_362: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain362
+chain_363: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain363
+chain_364: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain364
+chain_365: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain365
+chain_366: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain366
+chain_367: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain367
+chain_368: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain368
+chain_369: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain369
+chain_370: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain370
+chain_371: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain371
+chain_372: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain372
+chain_373: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain373
+chain_374: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain374
+chain_375: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain375
+chain_376: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain376
+chain_377: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain377
+chain_378: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain378
+chain_379: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain379
+chain_380: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain380
+chain_381: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain381
+chain_382: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain382
+chain_383: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain383
+chain_384: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain384
+chain_385: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain385
+chain_386: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain386
+chain_387: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain387
+chain_388: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain388
+chain_389: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain389
+chain_390: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain390
+chain_391: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain391
+chain_392: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain392
+chain_393: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain393
+chain_394: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain394
+chain_395: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain395
+chain_396: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain396
+chain_397: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain397
+chain_398: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain398
+chain_399: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain399
+chain_400: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain400
+chain_401: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain401
+chain_402: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain402
+chain_403: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain403
+chain_404: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain404
+chain_405: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain405
+chain_406: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain406
+chain_407: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain407
+chain_408: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain408
+chain_409: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain409
+chain_410: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain410
+chain_411: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain411
+chain_412: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain412
+chain_413: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain413
+chain_414: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain414
+chain_415: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain415
+chain_416: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain416
+chain_417: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain417
+chain_418: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain418
+chain_419: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain419
+chain_420: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain420
+chain_421: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain421
+chain_422: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain422
+chain_423: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain423
+chain_424: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain424
+chain_425: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain425
+chain_426: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain426
+chain_427: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain427
+chain_428: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain428
+chain_429: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain429
+chain_430: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain430
+chain_431: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain431
+chain_432: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain432
+chain_433: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain433
+chain_434: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain434
+chain_435: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain435
+chain_436: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain436
+chain_437: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain437
+chain_438: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain438
+chain_439: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain439
+chain_440: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain440
+chain_441: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain441
+chain_442: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain442
+chain_443: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain443
+chain_444: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain444
+chain_445: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain445
+chain_446: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain446
+chain_447: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain447
+chain_448: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain448
+chain_449: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain449
+chain_450: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain450
+chain_451: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain451
+chain_452: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain452
+chain_453: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain453
+chain_454: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain454
+chain_455: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain455
+chain_456: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain456
+chain_457: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain457
+chain_458: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain458
+chain_459: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain459
+chain_460: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain460
+chain_461: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain461
+chain_462: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain462
+chain_463: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain463
+chain_464: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain464
+chain_465: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain465
+chain_466: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain466
+chain_467: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain467
+chain_468: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain468
+chain_469: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain469
+chain_470: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain470
+chain_471: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain471
+chain_472: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain472
+chain_473: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain473
+chain_474: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain474
+chain_475: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain475
+chain_476: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain476
+chain_477: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain477
+chain_478: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain478
+chain_479: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain479
+chain_480: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain480
+chain_481: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain481
+chain_482: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain482
+chain_483: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain483
+chain_484: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain484
+chain_485: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain485
+chain_486: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain486
+chain_487: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain487
+chain_488: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain488
+chain_489: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain489
+chain_490: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain490
+chain_491: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain491
+chain_492: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain492
+chain_493: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain493
+chain_494: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain494
+chain_495: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain495
+chain_496: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain496
+chain_497: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain497
+chain_498: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain498
+chain_499: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain499
+chain_500: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain500
+chain_501: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain501
+chain_502: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain502
+chain_503: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain503
+chain_504: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain504
+chain_505: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain505
+chain_506: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain506
+chain_507: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain507
+chain_508: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain508
+chain_509: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain509
+chain_510: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain510
+chain_511: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain511
+chain_512: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain512
+chain_513: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain513
+chain_514: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain514
+chain_515: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain515
+chain_516: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain516
+chain_517: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain517
+chain_518: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain518
+chain_519: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain519
+chain_520: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain520
+chain_521: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain521
+chain_522: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain522
+chain_523: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain523
+chain_524: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain524
+chain_525: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain525
+chain_526: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain526
+chain_527: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain527
+chain_528: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain528
+chain_529: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain529
+chain_530: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain530
+chain_531: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain531
+chain_532: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain532
+chain_533: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain533
+chain_534: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain534
+chain_535: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain535
+chain_536: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain536
+chain_537: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain537
+chain_538: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain538
+chain_539: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain539
+chain_540: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain540
+chain_541: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain541
+chain_542: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain542
+chain_543: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain543
+chain_544: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain544
+chain_545: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain545
+chain_546: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain546
+chain_547: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain547
+chain_548: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain548
+chain_549: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain549
+chain_550: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain550
+chain_551: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain551
+chain_552: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain552
+chain_553: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain553
+chain_554: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain554
+chain_555: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain555
+chain_556: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain556
+chain_557: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain557
+chain_558: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain558
+chain_559: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain559
+chain_560: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain560
+chain_561: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain561
+chain_562: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain562
+chain_563: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain563
+chain_564: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain564
+chain_565: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain565
+chain_566: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain566
+chain_567: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain567
+chain_568: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain568
+chain_569: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain569
+chain_570: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain570
+chain_571: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain571
+chain_572: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain572
+chain_573: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain573
+chain_574: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain574
+chain_575: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain575
+chain_576: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain576
+chain_577: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain577
+chain_578: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain578
+chain_579: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain579
+chain_580: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain580
+chain_581: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain581
+chain_582: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain582
+chain_583: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain583
+chain_584: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain584
+chain_585: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain585
+chain_586: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain586
+chain_587: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain587
+chain_588: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain588
+chain_589: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain589
+chain_590: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain590
+chain_591: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain591
+chain_592: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain592
+chain_593: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain593
+chain_594: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain594
+chain_595: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain595
+chain_596: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain596
+chain_597: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain597
+chain_598: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain598
+chain_599: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain599
+chain_600: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain600
+chain_601: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain601
+chain_602: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain602
+chain_603: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain603
+chain_604: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain604
+chain_605: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain605
+chain_606: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain606
+chain_607: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain607
+chain_608: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain608
+chain_609: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain609
+chain_610: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain610
+chain_611: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain611
+chain_612: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain612
+chain_613: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain613
+chain_614: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain614
+chain_615: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain615
+chain_616: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain616
+chain_617: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain617
+chain_618: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain618
+chain_619: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain619
+chain_620: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain620
+chain_621: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain621
+chain_622: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain622
+chain_623: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain623
+chain_624: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain624
+chain_625: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain625
+chain_626: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain626
+chain_627: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain627
+chain_628: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain628
+chain_629: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain629
+chain_630: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain630
+chain_631: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain631
+chain_632: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain632
+chain_633: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain633
+chain_634: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain634
+chain_635: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain635
+chain_636: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain636
+chain_637: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain637
+chain_638: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain638
+chain_639: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain639
+chain_640: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain640
+chain_641: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain641
+chain_642: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain642
+chain_643: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain643
+chain_644: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain644
+chain_645: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain645
+chain_646: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain646
+chain_647: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain647
+chain_648: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain648
+chain_649: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain649
+chain_650: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain650
+chain_651: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain651
+chain_652: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain652
+chain_653: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain653
+chain_654: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain654
+chain_655: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain655
+chain_656: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain656
+chain_657: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain657
+chain_658: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain658
+chain_659: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain659
+chain_660: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain660
+chain_661: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain661
+chain_662: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain662
+chain_663: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain663
+chain_664: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain664
+chain_665: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain665
+chain_666: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain666
+chain_667: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain667
+chain_668: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain668
+chain_669: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain669
+chain_670: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain670
+chain_671: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain671
+chain_672: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain672
+chain_673: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain673
+chain_674: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain674
+chain_675: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain675
+chain_676: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain676
+chain_677: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain677
+chain_678: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain678
+chain_679: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain679
+chain_680: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain680
+chain_681: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain681
+chain_682: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain682
+chain_683: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain683
+chain_684: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain684
+chain_685: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain685
+chain_686: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain686
+chain_687: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain687
+chain_688: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain688
+chain_689: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain689
+chain_690: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain690
+chain_691: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain691
+chain_692: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain692
+chain_693: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain693
+chain_694: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain694
+chain_695: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain695
+chain_696: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain696
+chain_697: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain697
+chain_698: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain698
+chain_699: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain699
+chain_700: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain700
+chain_701: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain701
+chain_702: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain702
+chain_703: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain703
+chain_704: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain704
+chain_705: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain705
+chain_706: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain706
+chain_707: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain707
+chain_708: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain708
+chain_709: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain709
+chain_710: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain710
+chain_711: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain711
+chain_712: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain712
+chain_713: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain713
+chain_714: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain714
+chain_715: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain715
+chain_716: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain716
+chain_717: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain717
+chain_718: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain718
+chain_719: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain719
+chain_720: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain720
+chain_721: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain721
+chain_722: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain722
+chain_723: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain723
+chain_724: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain724
+chain_725: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain725
+chain_726: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain726
+chain_727: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain727
+chain_728: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain728
+chain_729: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain729
+chain_730: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain730
+chain_731: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain731
+chain_732: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain732
+chain_733: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain733
+chain_734: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain734
+chain_735: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain735
+chain_736: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain736
+chain_737: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain737
+chain_738: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain738
+chain_739: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain739
+chain_740: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain740
+chain_741: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain741
+chain_742: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain742
+chain_743: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain743
+chain_744: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain744
+chain_745: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain745
+chain_746: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain746
+chain_747: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain747
+chain_748: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain748
+chain_749: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain749
+chain_750: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain750
+chain_751: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain751
+chain_752: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain752
+chain_753: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain753
+chain_754: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain754
+chain_755: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain755
+chain_756: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain756
+chain_757: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain757
+chain_758: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain758
+chain_759: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain759
+chain_760: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain760
+chain_761: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain761
+chain_762: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain762
+chain_763: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain763
+chain_764: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain764
+chain_765: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain765
+chain_766: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain766
+chain_767: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain767
+chain_768: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain768
+chain_769: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain769
+chain_770: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain770
+chain_771: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain771
+chain_772: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain772
+chain_773: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain773
+chain_774: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain774
+chain_775: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain775
+chain_776: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain776
+chain_777: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain777
+chain_778: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain778
+chain_779: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain779
+chain_780: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain780
+chain_781: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain781
+chain_782: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain782
+chain_783: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain783
+chain_784: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain784
+chain_785: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain785
+chain_786: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain786
+chain_787: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain787
+chain_788: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain788
+chain_789: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain789
+chain_790: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain790
+chain_791: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain791
+chain_792: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain792
+chain_793: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain793
+chain_794: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain794
+chain_795: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain795
+chain_796: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain796
+chain_797: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain797
+chain_798: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain798
+chain_799: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain799
+chain_800: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain800
+chain_801: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain801
+chain_802: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain802
+chain_803: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain803
+chain_804: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain804
+chain_805: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain805
+chain_806: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain806
+chain_807: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain807
+chain_808: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain808
+chain_809: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain809
+chain_810: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain810
+chain_811: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain811
+chain_812: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain812
+chain_813: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain813
+chain_814: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain814
+chain_815: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain815
+chain_816: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain816
+chain_817: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain817
+chain_818: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain818
+chain_819: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain819
+chain_820: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain820
+chain_821: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain821
+chain_822: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain822
+chain_823: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain823
+chain_824: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain824
+chain_825: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain825
+chain_826: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain826
+chain_827: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain827
+chain_828: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain828
+chain_829: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain829
+chain_830: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain830
+chain_831: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain831
+chain_832: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain832
+chain_833: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain833
+chain_834: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain834
+chain_835: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain835
+chain_836: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain836
+chain_837: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain837
+chain_838: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain838
+chain_839: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain839
+chain_840: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain840
+chain_841: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain841
+chain_842: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain842
+chain_843: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain843
+chain_844: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain844
+chain_845: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain845
+chain_846: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain846
+chain_847: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain847
+chain_848: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain848
+chain_849: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain849
+chain_850: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain850
+chain_851: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain851
+chain_852: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain852
+chain_853: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain853
+chain_854: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain854
+chain_855: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain855
+chain_856: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain856
+chain_857: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain857
+chain_858: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain858
+chain_859: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain859
+chain_860: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain860
+chain_861: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain861
+chain_862: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain862
+chain_863: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain863
+chain_864: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain864
+chain_865: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain865
+chain_866: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain866
+chain_867: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain867
+chain_868: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain868
+chain_869: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain869
+chain_870: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain870
+chain_871: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain871
+chain_872: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain872
+chain_873: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain873
+chain_874: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain874
+chain_875: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain875
+chain_876: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain876
+chain_877: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain877
+chain_878: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain878
+chain_879: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain879
+chain_880: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain880
+chain_881: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain881
+chain_882: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain882
+chain_883: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain883
+chain_884: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain884
+chain_885: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain885
+chain_886: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain886
+chain_887: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain887
+chain_888: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain888
+chain_889: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain889
+chain_890: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain890
+chain_891: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain891
+chain_892: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain892
+chain_893: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain893
+chain_894: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain894
+chain_895: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain895
+chain_896: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain896
+chain_897: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain897
+chain_898: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain898
+chain_899: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain899
+chain_900: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain900
+chain_901: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain901
+chain_902: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain902
+chain_903: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain903
+chain_904: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain904
+chain_905: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain905
+chain_906: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain906
+chain_907: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain907
+chain_908: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain908
+chain_909: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain909
+chain_910: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain910
+chain_911: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain911
+chain_912: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain912
+chain_913: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain913
+chain_914: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain914
+chain_915: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain915
+chain_916: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain916
+chain_917: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain917
+chain_918: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain918
+chain_919: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain919
+chain_920: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain920
+chain_921: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain921
+chain_922: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain922
+chain_923: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain923
+chain_924: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain924
+chain_925: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain925
+chain_926: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain926
+chain_927: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain927
+chain_928: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain928
+chain_929: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain929
+chain_930: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain930
+chain_931: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain931
+chain_932: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain932
+chain_933: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain933
+chain_934: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain934
+chain_935: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain935
+chain_936: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain936
+chain_937: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain937
+chain_938: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain938
+chain_939: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain939
+chain_940: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain940
+chain_941: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain941
+chain_942: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain942
+chain_943: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain943
+chain_944: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain944
+chain_945: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain945
+chain_946: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain946
+chain_947: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain947
+chain_948: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain948
+chain_949: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain949
+chain_950: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain950
+chain_951: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain951
+chain_952: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain952
+chain_953: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain953
+chain_954: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain954
+chain_955: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain955
+chain_956: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain956
+chain_957: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain957
+chain_958: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain958
+chain_959: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain959
+chain_960: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain960
+chain_961: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain961
+chain_962: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain962
+chain_963: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain963
+chain_964: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain964
+chain_965: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain965
+chain_966: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain966
+chain_967: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain967
+chain_968: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain968
+chain_969: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain969
+chain_970: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain970
+chain_971: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain971
+chain_972: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain972
+chain_973: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain973
+chain_974: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain974
+chain_975: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain975
+chain_976: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain976
+chain_977: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain977
+chain_978: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain978
+chain_979: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain979
+chain_980: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain980
+chain_981: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain981
+chain_982: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain982
+chain_983: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain983
+chain_984: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain984
+chain_985: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain985
+chain_986: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain986
+chain_987: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain987
+chain_988: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain988
+chain_989: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain989
+chain_990: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain990
+chain_991: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain991
+chain_992: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain992
+chain_993: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain993
+chain_994: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain994
+chain_995: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain995
+chain_996: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain996
+chain_997: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain997
+chain_998: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain998
+chain_999: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain999
+chain_1000: GROUP NDX_FILE=system-plumed.ndx NDX_GROUP=System_chain1000
+
+
+# centrare il centro della fibrilla
+WRAPAROUND ATOMS=fibril AROUND=C # funziona!
+WHOLEMOLECULES ...
+ENTITY0=chain_1
+ENTITY1=chain_2
+ENTITY2=chain_3
+ENTITY3=chain_4
+ENTITY4=chain_5
+ENTITY5=chain_6
+ENTITY6=chain_7
+ENTITY7=chain_8
+ENTITY8=chain_9
+ENTITY9=chain_10
+ENTITY10=chain_11
+ENTITY11=chain_12
+ENTITY12=chain_13
+ENTITY13=chain_14
+ENTITY14=chain_15
+ENTITY15=chain_16
+ENTITY16=chain_17
+ENTITY17=chain_18
+ENTITY18=chain_19
+ENTITY19=chain_20
+ENTITY20=chain_21
+ENTITY21=chain_22
+ENTITY22=chain_23
+ENTITY23=chain_24
+ENTITY24=chain_25
+ENTITY25=chain_26
+ENTITY26=chain_27
+ENTITY27=chain_28
+ENTITY28=chain_29
+ENTITY29=chain_30
+ENTITY30=chain_31
+ENTITY31=chain_32
+ENTITY32=chain_33
+ENTITY33=chain_34
+ENTITY34=chain_35
+ENTITY35=chain_36
+ENTITY36=chain_37
+ENTITY37=chain_38
+ENTITY38=chain_39
+ENTITY39=chain_40
+ENTITY40=chain_41
+ENTITY41=chain_42
+ENTITY42=chain_43
+ENTITY43=chain_44
+ENTITY44=chain_45
+ENTITY45=chain_46
+ENTITY46=chain_47
+ENTITY47=chain_48
+ENTITY48=chain_49
+ENTITY49=chain_50
+ENTITY50=chain_51
+ENTITY51=chain_52
+ENTITY52=chain_53
+ENTITY53=chain_54
+ENTITY54=chain_55
+ENTITY55=chain_56
+ENTITY56=chain_57
+ENTITY57=chain_58
+ENTITY58=chain_59
+ENTITY59=chain_60
+ENTITY60=chain_61
+ENTITY61=chain_62
+ENTITY62=chain_63
+ENTITY63=chain_64
+ENTITY64=chain_65
+ENTITY65=chain_66
+ENTITY66=chain_67
+ENTITY67=chain_68
+ENTITY68=chain_69
+ENTITY69=chain_70
+ENTITY70=chain_71
+ENTITY71=chain_72
+ENTITY72=chain_73
+ENTITY73=chain_74
+ENTITY74=chain_75
+ENTITY75=chain_76
+ENTITY76=chain_77
+ENTITY77=chain_78
+ENTITY78=chain_79
+ENTITY79=chain_80
+ENTITY80=chain_81
+ENTITY81=chain_82
+ENTITY82=chain_83
+ENTITY83=chain_84
+ENTITY84=chain_85
+ENTITY85=chain_86
+ENTITY86=chain_87
+ENTITY87=chain_88
+ENTITY88=chain_89
+ENTITY89=chain_90
+ENTITY90=chain_91
+ENTITY91=chain_92
+ENTITY92=chain_93
+ENTITY93=chain_94
+ENTITY94=chain_95
+ENTITY95=chain_96
+ENTITY96=chain_97
+ENTITY97=chain_98
+ENTITY98=chain_99
+ENTITY99=chain_100
+ENTITY100=chain_101
+ENTITY101=chain_102
+ENTITY102=chain_103
+ENTITY103=chain_104
+ENTITY104=chain_105
+ENTITY105=chain_106
+ENTITY106=chain_107
+ENTITY107=chain_108
+ENTITY108=chain_109
+ENTITY109=chain_110
+ENTITY110=chain_111
+ENTITY111=chain_112
+ENTITY112=chain_113
+ENTITY113=chain_114
+ENTITY114=chain_115
+ENTITY115=chain_116
+ENTITY116=chain_117
+ENTITY117=chain_118
+ENTITY118=chain_119
+ENTITY119=chain_120
+ENTITY120=chain_121
+ENTITY121=chain_122
+ENTITY122=chain_123
+ENTITY123=chain_124
+ENTITY124=chain_125
+ENTITY125=chain_126
+ENTITY126=chain_127
+ENTITY127=chain_128
+ENTITY128=chain_129
+ENTITY129=chain_130
+ENTITY130=chain_131
+ENTITY131=chain_132
+ENTITY132=chain_133
+ENTITY133=chain_134
+ENTITY134=chain_135
+ENTITY135=chain_136
+ENTITY136=chain_137
+ENTITY137=chain_138
+ENTITY138=chain_139
+ENTITY139=chain_140
+ENTITY140=chain_141
+ENTITY141=chain_142
+ENTITY142=chain_143
+ENTITY143=chain_144
+ENTITY144=chain_145
+ENTITY145=chain_146
+ENTITY146=chain_147
+ENTITY147=chain_148
+ENTITY148=chain_149
+ENTITY149=chain_150
+ENTITY150=chain_151
+ENTITY151=chain_152
+ENTITY152=chain_153
+ENTITY153=chain_154
+ENTITY154=chain_155
+ENTITY155=chain_156
+ENTITY156=chain_157
+ENTITY157=chain_158
+ENTITY158=chain_159
+ENTITY159=chain_160
+ENTITY160=chain_161
+ENTITY161=chain_162
+ENTITY162=chain_163
+ENTITY163=chain_164
+ENTITY164=chain_165
+ENTITY165=chain_166
+ENTITY166=chain_167
+ENTITY167=chain_168
+ENTITY168=chain_169
+ENTITY169=chain_170
+ENTITY170=chain_171
+ENTITY171=chain_172
+ENTITY172=chain_173
+ENTITY173=chain_174
+ENTITY174=chain_175
+ENTITY175=chain_176
+ENTITY176=chain_177
+ENTITY177=chain_178
+ENTITY178=chain_179
+ENTITY179=chain_180
+ENTITY180=chain_181
+ENTITY181=chain_182
+ENTITY182=chain_183
+ENTITY183=chain_184
+ENTITY184=chain_185
+ENTITY185=chain_186
+ENTITY186=chain_187
+ENTITY187=chain_188
+ENTITY188=chain_189
+ENTITY189=chain_190
+ENTITY190=chain_191
+ENTITY191=chain_192
+ENTITY192=chain_193
+ENTITY193=chain_194
+ENTITY194=chain_195
+ENTITY195=chain_196
+ENTITY196=chain_197
+ENTITY197=chain_198
+ENTITY198=chain_199
+ENTITY199=chain_200
+ENTITY200=chain_201
+ENTITY201=chain_202
+ENTITY202=chain_203
+ENTITY203=chain_204
+ENTITY204=chain_205
+ENTITY205=chain_206
+ENTITY206=chain_207
+ENTITY207=chain_208
+ENTITY208=chain_209
+ENTITY209=chain_210
+ENTITY210=chain_211
+ENTITY211=chain_212
+ENTITY212=chain_213
+ENTITY213=chain_214
+ENTITY214=chain_215
+ENTITY215=chain_216
+ENTITY216=chain_217
+ENTITY217=chain_218
+ENTITY218=chain_219
+ENTITY219=chain_220
+ENTITY220=chain_221
+ENTITY221=chain_222
+ENTITY222=chain_223
+ENTITY223=chain_224
+ENTITY224=chain_225
+ENTITY225=chain_226
+ENTITY226=chain_227
+ENTITY227=chain_228
+ENTITY228=chain_229
+ENTITY229=chain_230
+ENTITY230=chain_231
+ENTITY231=chain_232
+ENTITY232=chain_233
+ENTITY233=chain_234
+ENTITY234=chain_235
+ENTITY235=chain_236
+ENTITY236=chain_237
+ENTITY237=chain_238
+ENTITY238=chain_239
+ENTITY239=chain_240
+ENTITY240=chain_241
+ENTITY241=chain_242
+ENTITY242=chain_243
+ENTITY243=chain_244
+ENTITY244=chain_245
+ENTITY245=chain_246
+ENTITY246=chain_247
+ENTITY247=chain_248
+ENTITY248=chain_249
+ENTITY249=chain_250
+ENTITY250=chain_251
+ENTITY251=chain_252
+ENTITY252=chain_253
+ENTITY253=chain_254
+ENTITY254=chain_255
+ENTITY255=chain_256
+ENTITY256=chain_257
+ENTITY257=chain_258
+ENTITY258=chain_259
+ENTITY259=chain_260
+ENTITY260=chain_261
+ENTITY261=chain_262
+ENTITY262=chain_263
+ENTITY263=chain_264
+ENTITY264=chain_265
+ENTITY265=chain_266
+ENTITY266=chain_267
+ENTITY267=chain_268
+ENTITY268=chain_269
+ENTITY269=chain_270
+ENTITY270=chain_271
+ENTITY271=chain_272
+ENTITY272=chain_273
+ENTITY273=chain_274
+ENTITY274=chain_275
+ENTITY275=chain_276
+ENTITY276=chain_277
+ENTITY277=chain_278
+ENTITY278=chain_279
+ENTITY279=chain_280
+ENTITY280=chain_281
+ENTITY281=chain_282
+ENTITY282=chain_283
+ENTITY283=chain_284
+ENTITY284=chain_285
+ENTITY285=chain_286
+ENTITY286=chain_287
+ENTITY287=chain_288
+ENTITY288=chain_289
+ENTITY289=chain_290
+ENTITY290=chain_291
+ENTITY291=chain_292
+ENTITY292=chain_293
+ENTITY293=chain_294
+ENTITY294=chain_295
+ENTITY295=chain_296
+ENTITY296=chain_297
+ENTITY297=chain_298
+ENTITY298=chain_299
+ENTITY299=chain_300
+ENTITY300=chain_301
+ENTITY301=chain_302
+ENTITY302=chain_303
+ENTITY303=chain_304
+ENTITY304=chain_305
+ENTITY305=chain_306
+ENTITY306=chain_307
+ENTITY307=chain_308
+ENTITY308=chain_309
+ENTITY309=chain_310
+ENTITY310=chain_311
+ENTITY311=chain_312
+ENTITY312=chain_313
+ENTITY313=chain_314
+ENTITY314=chain_315
+ENTITY315=chain_316
+ENTITY316=chain_317
+ENTITY317=chain_318
+ENTITY318=chain_319
+ENTITY319=chain_320
+ENTITY320=chain_321
+ENTITY321=chain_322
+ENTITY322=chain_323
+ENTITY323=chain_324
+ENTITY324=chain_325
+ENTITY325=chain_326
+ENTITY326=chain_327
+ENTITY327=chain_328
+ENTITY328=chain_329
+ENTITY329=chain_330
+ENTITY330=chain_331
+ENTITY331=chain_332
+ENTITY332=chain_333
+ENTITY333=chain_334
+ENTITY334=chain_335
+ENTITY335=chain_336
+ENTITY336=chain_337
+ENTITY337=chain_338
+ENTITY338=chain_339
+ENTITY339=chain_340
+ENTITY340=chain_341
+ENTITY341=chain_342
+ENTITY342=chain_343
+ENTITY343=chain_344
+ENTITY344=chain_345
+ENTITY345=chain_346
+ENTITY346=chain_347
+ENTITY347=chain_348
+ENTITY348=chain_349
+ENTITY349=chain_350
+ENTITY350=chain_351
+ENTITY351=chain_352
+ENTITY352=chain_353
+ENTITY353=chain_354
+ENTITY354=chain_355
+ENTITY355=chain_356
+ENTITY356=chain_357
+ENTITY357=chain_358
+ENTITY358=chain_359
+ENTITY359=chain_360
+ENTITY360=chain_361
+ENTITY361=chain_362
+ENTITY362=chain_363
+ENTITY363=chain_364
+ENTITY364=chain_365
+ENTITY365=chain_366
+ENTITY366=chain_367
+ENTITY367=chain_368
+ENTITY368=chain_369
+ENTITY369=chain_370
+ENTITY370=chain_371
+ENTITY371=chain_372
+ENTITY372=chain_373
+ENTITY373=chain_374
+ENTITY374=chain_375
+ENTITY375=chain_376
+ENTITY376=chain_377
+ENTITY377=chain_378
+ENTITY378=chain_379
+ENTITY379=chain_380
+ENTITY380=chain_381
+ENTITY381=chain_382
+ENTITY382=chain_383
+ENTITY383=chain_384
+ENTITY384=chain_385
+ENTITY385=chain_386
+ENTITY386=chain_387
+ENTITY387=chain_388
+ENTITY388=chain_389
+ENTITY389=chain_390
+ENTITY390=chain_391
+ENTITY391=chain_392
+ENTITY392=chain_393
+ENTITY393=chain_394
+ENTITY394=chain_395
+ENTITY395=chain_396
+ENTITY396=chain_397
+ENTITY397=chain_398
+ENTITY398=chain_399
+ENTITY399=chain_400
+ENTITY400=chain_401
+ENTITY401=chain_402
+ENTITY402=chain_403
+ENTITY403=chain_404
+ENTITY404=chain_405
+ENTITY405=chain_406
+ENTITY406=chain_407
+ENTITY407=chain_408
+ENTITY408=chain_409
+ENTITY409=chain_410
+ENTITY410=chain_411
+ENTITY411=chain_412
+ENTITY412=chain_413
+ENTITY413=chain_414
+ENTITY414=chain_415
+ENTITY415=chain_416
+ENTITY416=chain_417
+ENTITY417=chain_418
+ENTITY418=chain_419
+ENTITY419=chain_420
+ENTITY420=chain_421
+ENTITY421=chain_422
+ENTITY422=chain_423
+ENTITY423=chain_424
+ENTITY424=chain_425
+ENTITY425=chain_426
+ENTITY426=chain_427
+ENTITY427=chain_428
+ENTITY428=chain_429
+ENTITY429=chain_430
+ENTITY430=chain_431
+ENTITY431=chain_432
+ENTITY432=chain_433
+ENTITY433=chain_434
+ENTITY434=chain_435
+ENTITY435=chain_436
+ENTITY436=chain_437
+ENTITY437=chain_438
+ENTITY438=chain_439
+ENTITY439=chain_440
+ENTITY440=chain_441
+ENTITY441=chain_442
+ENTITY442=chain_443
+ENTITY443=chain_444
+ENTITY444=chain_445
+ENTITY445=chain_446
+ENTITY446=chain_447
+ENTITY447=chain_448
+ENTITY448=chain_449
+ENTITY449=chain_450
+ENTITY450=chain_451
+ENTITY451=chain_452
+ENTITY452=chain_453
+ENTITY453=chain_454
+ENTITY454=chain_455
+ENTITY455=chain_456
+ENTITY456=chain_457
+ENTITY457=chain_458
+ENTITY458=chain_459
+ENTITY459=chain_460
+ENTITY460=chain_461
+ENTITY461=chain_462
+ENTITY462=chain_463
+ENTITY463=chain_464
+ENTITY464=chain_465
+ENTITY465=chain_466
+ENTITY466=chain_467
+ENTITY467=chain_468
+ENTITY468=chain_469
+ENTITY469=chain_470
+ENTITY470=chain_471
+ENTITY471=chain_472
+ENTITY472=chain_473
+ENTITY473=chain_474
+ENTITY474=chain_475
+ENTITY475=chain_476
+ENTITY476=chain_477
+ENTITY477=chain_478
+ENTITY478=chain_479
+ENTITY479=chain_480
+ENTITY480=chain_481
+ENTITY481=chain_482
+ENTITY482=chain_483
+ENTITY483=chain_484
+ENTITY484=chain_485
+ENTITY485=chain_486
+ENTITY486=chain_487
+ENTITY487=chain_488
+ENTITY488=chain_489
+ENTITY489=chain_490
+ENTITY490=chain_491
+ENTITY491=chain_492
+ENTITY492=chain_493
+ENTITY493=chain_494
+ENTITY494=chain_495
+ENTITY495=chain_496
+ENTITY496=chain_497
+ENTITY497=chain_498
+ENTITY498=chain_499
+ENTITY499=chain_500
+ENTITY500=chain_501
+ENTITY501=chain_502
+ENTITY502=chain_503
+ENTITY503=chain_504
+ENTITY504=chain_505
+ENTITY505=chain_506
+ENTITY506=chain_507
+ENTITY507=chain_508
+ENTITY508=chain_509
+ENTITY509=chain_510
+ENTITY510=chain_511
+ENTITY511=chain_512
+ENTITY512=chain_513
+ENTITY513=chain_514
+ENTITY514=chain_515
+ENTITY515=chain_516
+ENTITY516=chain_517
+ENTITY517=chain_518
+ENTITY518=chain_519
+ENTITY519=chain_520
+ENTITY520=chain_521
+ENTITY521=chain_522
+ENTITY522=chain_523
+ENTITY523=chain_524
+ENTITY524=chain_525
+ENTITY525=chain_526
+ENTITY526=chain_527
+ENTITY527=chain_528
+ENTITY528=chain_529
+ENTITY529=chain_530
+ENTITY530=chain_531
+ENTITY531=chain_532
+ENTITY532=chain_533
+ENTITY533=chain_534
+ENTITY534=chain_535
+ENTITY535=chain_536
+ENTITY536=chain_537
+ENTITY537=chain_538
+ENTITY538=chain_539
+ENTITY539=chain_540
+ENTITY540=chain_541
+ENTITY541=chain_542
+ENTITY542=chain_543
+ENTITY543=chain_544
+ENTITY544=chain_545
+ENTITY545=chain_546
+ENTITY546=chain_547
+ENTITY547=chain_548
+ENTITY548=chain_549
+ENTITY549=chain_550
+ENTITY550=chain_551
+ENTITY551=chain_552
+ENTITY552=chain_553
+ENTITY553=chain_554
+ENTITY554=chain_555
+ENTITY555=chain_556
+ENTITY556=chain_557
+ENTITY557=chain_558
+ENTITY558=chain_559
+ENTITY559=chain_560
+ENTITY560=chain_561
+ENTITY561=chain_562
+ENTITY562=chain_563
+ENTITY563=chain_564
+ENTITY564=chain_565
+ENTITY565=chain_566
+ENTITY566=chain_567
+ENTITY567=chain_568
+ENTITY568=chain_569
+ENTITY569=chain_570
+ENTITY570=chain_571
+ENTITY571=chain_572
+ENTITY572=chain_573
+ENTITY573=chain_574
+ENTITY574=chain_575
+ENTITY575=chain_576
+ENTITY576=chain_577
+ENTITY577=chain_578
+ENTITY578=chain_579
+ENTITY579=chain_580
+ENTITY580=chain_581
+ENTITY581=chain_582
+ENTITY582=chain_583
+ENTITY583=chain_584
+ENTITY584=chain_585
+ENTITY585=chain_586
+ENTITY586=chain_587
+ENTITY587=chain_588
+ENTITY588=chain_589
+ENTITY589=chain_590
+ENTITY590=chain_591
+ENTITY591=chain_592
+ENTITY592=chain_593
+ENTITY593=chain_594
+ENTITY594=chain_595
+ENTITY595=chain_596
+ENTITY596=chain_597
+ENTITY597=chain_598
+ENTITY598=chain_599
+ENTITY599=chain_600
+ENTITY600=chain_601
+ENTITY601=chain_602
+ENTITY602=chain_603
+ENTITY603=chain_604
+ENTITY604=chain_605
+ENTITY605=chain_606
+ENTITY606=chain_607
+ENTITY607=chain_608
+ENTITY608=chain_609
+ENTITY609=chain_610
+ENTITY610=chain_611
+ENTITY611=chain_612
+ENTITY612=chain_613
+ENTITY613=chain_614
+ENTITY614=chain_615
+ENTITY615=chain_616
+ENTITY616=chain_617
+ENTITY617=chain_618
+ENTITY618=chain_619
+ENTITY619=chain_620
+ENTITY620=chain_621
+ENTITY621=chain_622
+ENTITY622=chain_623
+ENTITY623=chain_624
+ENTITY624=chain_625
+ENTITY625=chain_626
+ENTITY626=chain_627
+ENTITY627=chain_628
+ENTITY628=chain_629
+ENTITY629=chain_630
+ENTITY630=chain_631
+ENTITY631=chain_632
+ENTITY632=chain_633
+ENTITY633=chain_634
+ENTITY634=chain_635
+ENTITY635=chain_636
+ENTITY636=chain_637
+ENTITY637=chain_638
+ENTITY638=chain_639
+ENTITY639=chain_640
+ENTITY640=chain_641
+ENTITY641=chain_642
+ENTITY642=chain_643
+ENTITY643=chain_644
+ENTITY644=chain_645
+ENTITY645=chain_646
+ENTITY646=chain_647
+ENTITY647=chain_648
+ENTITY648=chain_649
+ENTITY649=chain_650
+ENTITY650=chain_651
+ENTITY651=chain_652
+ENTITY652=chain_653
+ENTITY653=chain_654
+ENTITY654=chain_655
+ENTITY655=chain_656
+ENTITY656=chain_657
+ENTITY657=chain_658
+ENTITY658=chain_659
+ENTITY659=chain_660
+ENTITY660=chain_661
+ENTITY661=chain_662
+ENTITY662=chain_663
+ENTITY663=chain_664
+ENTITY664=chain_665
+ENTITY665=chain_666
+ENTITY666=chain_667
+ENTITY667=chain_668
+ENTITY668=chain_669
+ENTITY669=chain_670
+ENTITY670=chain_671
+ENTITY671=chain_672
+ENTITY672=chain_673
+ENTITY673=chain_674
+ENTITY674=chain_675
+ENTITY675=chain_676
+ENTITY676=chain_677
+ENTITY677=chain_678
+ENTITY678=chain_679
+ENTITY679=chain_680
+ENTITY680=chain_681
+ENTITY681=chain_682
+ENTITY682=chain_683
+ENTITY683=chain_684
+ENTITY684=chain_685
+ENTITY685=chain_686
+ENTITY686=chain_687
+ENTITY687=chain_688
+ENTITY688=chain_689
+ENTITY689=chain_690
+ENTITY690=chain_691
+ENTITY691=chain_692
+ENTITY692=chain_693
+ENTITY693=chain_694
+ENTITY694=chain_695
+ENTITY695=chain_696
+ENTITY696=chain_697
+ENTITY697=chain_698
+ENTITY698=chain_699
+ENTITY699=chain_700
+ENTITY700=chain_701
+ENTITY701=chain_702
+ENTITY702=chain_703
+ENTITY703=chain_704
+ENTITY704=chain_705
+ENTITY705=chain_706
+ENTITY706=chain_707
+ENTITY707=chain_708
+ENTITY708=chain_709
+ENTITY709=chain_710
+ENTITY710=chain_711
+ENTITY711=chain_712
+ENTITY712=chain_713
+ENTITY713=chain_714
+ENTITY714=chain_715
+ENTITY715=chain_716
+ENTITY716=chain_717
+ENTITY717=chain_718
+ENTITY718=chain_719
+ENTITY719=chain_720
+ENTITY720=chain_721
+ENTITY721=chain_722
+ENTITY722=chain_723
+ENTITY723=chain_724
+ENTITY724=chain_725
+ENTITY725=chain_726
+ENTITY726=chain_727
+ENTITY727=chain_728
+ENTITY728=chain_729
+ENTITY729=chain_730
+ENTITY730=chain_731
+ENTITY731=chain_732
+ENTITY732=chain_733
+ENTITY733=chain_734
+ENTITY734=chain_735
+ENTITY735=chain_736
+ENTITY736=chain_737
+ENTITY737=chain_738
+ENTITY738=chain_739
+ENTITY739=chain_740
+ENTITY740=chain_741
+ENTITY741=chain_742
+ENTITY742=chain_743
+ENTITY743=chain_744
+ENTITY744=chain_745
+ENTITY745=chain_746
+ENTITY746=chain_747
+ENTITY747=chain_748
+ENTITY748=chain_749
+ENTITY749=chain_750
+ENTITY750=chain_751
+ENTITY751=chain_752
+ENTITY752=chain_753
+ENTITY753=chain_754
+ENTITY754=chain_755
+ENTITY755=chain_756
+ENTITY756=chain_757
+ENTITY757=chain_758
+ENTITY758=chain_759
+ENTITY759=chain_760
+ENTITY760=chain_761
+ENTITY761=chain_762
+ENTITY762=chain_763
+ENTITY763=chain_764
+ENTITY764=chain_765
+ENTITY765=chain_766
+ENTITY766=chain_767
+ENTITY767=chain_768
+ENTITY768=chain_769
+ENTITY769=chain_770
+ENTITY770=chain_771
+ENTITY771=chain_772
+ENTITY772=chain_773
+ENTITY773=chain_774
+ENTITY774=chain_775
+ENTITY775=chain_776
+ENTITY776=chain_777
+ENTITY777=chain_778
+ENTITY778=chain_779
+ENTITY779=chain_780
+ENTITY780=chain_781
+ENTITY781=chain_782
+ENTITY782=chain_783
+ENTITY783=chain_784
+ENTITY784=chain_785
+ENTITY785=chain_786
+ENTITY786=chain_787
+ENTITY787=chain_788
+ENTITY788=chain_789
+ENTITY789=chain_790
+ENTITY790=chain_791
+ENTITY791=chain_792
+ENTITY792=chain_793
+ENTITY793=chain_794
+ENTITY794=chain_795
+ENTITY795=chain_796
+ENTITY796=chain_797
+ENTITY797=chain_798
+ENTITY798=chain_799
+ENTITY799=chain_800
+ENTITY800=chain_801
+ENTITY801=chain_802
+ENTITY802=chain_803
+ENTITY803=chain_804
+ENTITY804=chain_805
+ENTITY805=chain_806
+ENTITY806=chain_807
+ENTITY807=chain_808
+ENTITY808=chain_809
+ENTITY809=chain_810
+ENTITY810=chain_811
+ENTITY811=chain_812
+ENTITY812=chain_813
+ENTITY813=chain_814
+ENTITY814=chain_815
+ENTITY815=chain_816
+ENTITY816=chain_817
+ENTITY817=chain_818
+ENTITY818=chain_819
+ENTITY819=chain_820
+ENTITY820=chain_821
+ENTITY821=chain_822
+ENTITY822=chain_823
+ENTITY823=chain_824
+ENTITY824=chain_825
+ENTITY825=chain_826
+ENTITY826=chain_827
+ENTITY827=chain_828
+ENTITY828=chain_829
+ENTITY829=chain_830
+ENTITY830=chain_831
+ENTITY831=chain_832
+ENTITY832=chain_833
+ENTITY833=chain_834
+ENTITY834=chain_835
+ENTITY835=chain_836
+ENTITY836=chain_837
+ENTITY837=chain_838
+ENTITY838=chain_839
+ENTITY839=chain_840
+ENTITY840=chain_841
+ENTITY841=chain_842
+ENTITY842=chain_843
+ENTITY843=chain_844
+ENTITY844=chain_845
+ENTITY845=chain_846
+ENTITY846=chain_847
+ENTITY847=chain_848
+ENTITY848=chain_849
+ENTITY849=chain_850
+ENTITY850=chain_851
+ENTITY851=chain_852
+ENTITY852=chain_853
+ENTITY853=chain_854
+ENTITY854=chain_855
+ENTITY855=chain_856
+ENTITY856=chain_857
+ENTITY857=chain_858
+ENTITY858=chain_859
+ENTITY859=chain_860
+ENTITY860=chain_861
+ENTITY861=chain_862
+ENTITY862=chain_863
+ENTITY863=chain_864
+ENTITY864=chain_865
+ENTITY865=chain_866
+ENTITY866=chain_867
+ENTITY867=chain_868
+ENTITY868=chain_869
+ENTITY869=chain_870
+ENTITY870=chain_871
+ENTITY871=chain_872
+ENTITY872=chain_873
+ENTITY873=chain_874
+ENTITY874=chain_875
+ENTITY875=chain_876
+ENTITY876=chain_877
+ENTITY877=chain_878
+ENTITY878=chain_879
+ENTITY879=chain_880
+ENTITY880=chain_881
+ENTITY881=chain_882
+ENTITY882=chain_883
+ENTITY883=chain_884
+ENTITY884=chain_885
+ENTITY885=chain_886
+ENTITY886=chain_887
+ENTITY887=chain_888
+ENTITY888=chain_889
+ENTITY889=chain_890
+ENTITY890=chain_891
+ENTITY891=chain_892
+ENTITY892=chain_893
+ENTITY893=chain_894
+ENTITY894=chain_895
+ENTITY895=chain_896
+ENTITY896=chain_897
+ENTITY897=chain_898
+ENTITY898=chain_899
+ENTITY899=chain_900
+ENTITY900=chain_901
+ENTITY901=chain_902
+ENTITY902=chain_903
+ENTITY903=chain_904
+ENTITY904=chain_905
+ENTITY905=chain_906
+ENTITY906=chain_907
+ENTITY907=chain_908
+ENTITY908=chain_909
+ENTITY909=chain_910
+ENTITY910=chain_911
+ENTITY911=chain_912
+ENTITY912=chain_913
+ENTITY913=chain_914
+ENTITY914=chain_915
+ENTITY915=chain_916
+ENTITY916=chain_917
+ENTITY917=chain_918
+ENTITY918=chain_919
+ENTITY919=chain_920
+ENTITY920=chain_921
+ENTITY921=chain_922
+ENTITY922=chain_923
+ENTITY923=chain_924
+ENTITY924=chain_925
+ENTITY925=chain_926
+ENTITY926=chain_927
+ENTITY927=chain_928
+ENTITY928=chain_929
+ENTITY929=chain_930
+ENTITY930=chain_931
+ENTITY931=chain_932
+ENTITY932=chain_933
+ENTITY933=chain_934
+ENTITY934=chain_935
+ENTITY935=chain_936
+ENTITY936=chain_937
+ENTITY937=chain_938
+ENTITY938=chain_939
+ENTITY939=chain_940
+ENTITY940=chain_941
+ENTITY941=chain_942
+ENTITY942=chain_943
+ENTITY943=chain_944
+ENTITY944=chain_945
+ENTITY945=chain_946
+ENTITY946=chain_947
+ENTITY947=chain_948
+ENTITY948=chain_949
+ENTITY949=chain_950
+ENTITY950=chain_951
+ENTITY951=chain_952
+ENTITY952=chain_953
+ENTITY953=chain_954
+ENTITY954=chain_955
+ENTITY955=chain_956
+ENTITY956=chain_957
+ENTITY957=chain_958
+ENTITY958=chain_959
+ENTITY959=chain_960
+ENTITY960=chain_961
+ENTITY961=chain_962
+ENTITY962=chain_963
+ENTITY963=chain_964
+ENTITY964=chain_965
+ENTITY965=chain_966
+ENTITY966=chain_967
+ENTITY967=chain_968
+ENTITY968=chain_969
+ENTITY969=chain_970
+ENTITY970=chain_971
+ENTITY971=chain_972
+ENTITY972=chain_973
+ENTITY973=chain_974
+ENTITY974=chain_975
+ENTITY975=chain_976
+ENTITY976=chain_977
+ENTITY977=chain_978
+ENTITY978=chain_979
+ENTITY979=chain_980
+ENTITY980=chain_981
+ENTITY981=chain_982
+ENTITY982=chain_983
+ENTITY983=chain_984
+ENTITY984=chain_985
+ENTITY985=chain_986
+ENTITY986=chain_987
+ENTITY987=chain_988
+ENTITY988=chain_989
+ENTITY989=chain_990
+ENTITY990=chain_991
+ENTITY991=chain_992
+ENTITY992=chain_993
+ENTITY993=chain_994
+ENTITY994=chain_995
+ENTITY995=chain_996
+ENTITY996=chain_997
+ENTITY997=chain_998
+ENTITY998=chain_999
+ENTITY999=chain_1000
+...
+DUMPATOMS FILE=plumed_ndx.xtc ATOMS=fibril

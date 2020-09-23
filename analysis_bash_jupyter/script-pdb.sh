@@ -2,9 +2,9 @@
 # for-loopcmd.sh 
 
 # the two arrays are based on the maxclust.ndx -> check which clust is the one you want
-array=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "43")
-array2=("A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L" "M" "Z") 
- 
+array=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "43")
+array2=("A" "B" "C" "D" "E" "F" "G" "H" "I" "J" "K" "L" "Z")
+
 
 for ((i=0;i<${#array[@]}; ++i)); do
 	 echo -e ${array[i]} \n | gmx_mpi editconf -f prod_2000-1mM.tpr -n pdb.ndx -label ${array2[i]} -o clust${array[i]}.pdb
@@ -17,9 +17,10 @@ done
 
 rm numero*
 rm chain*
-rm clust*
+rm clust*.esp
 cut -f 1 --complement temp_label-chain.pdb > label-chain.pdb
-mv label-chain.pdb chain-label.pdb 
-
 rm temp_label-chain.pdb
+rm \#*
+mkdir clust_pdbs
+mv clust*.pdb clust_pdbs/
 exit
