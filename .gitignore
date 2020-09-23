@@ -133,3 +133,8 @@ MAGROS.code-workspace
 
 /analysis_bash_jupyter/backup_rdf
 /analysis_bash_jupyter/rdf
+/analysis_bash_jupyter/clust_pdbs
+/analysis
+/analysis_bash_jupyter/prod_2000-1mM.tpr
+/analysis_bash_jupyter/prod_2000-1mM.xtc
+/analysis_bash_jupyter/NOPBC_prod_2000-1mM-dt100.xtc
