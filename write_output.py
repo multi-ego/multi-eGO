@@ -1,4 +1,4 @@
-from atomtypes_definitions import temperatura
+from protein_configuration import temperatura
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 
 

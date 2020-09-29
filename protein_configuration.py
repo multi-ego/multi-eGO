@@ -30,3 +30,12 @@ fibril_residue_offset = 22 # 22 B2m residues to add to the fibril
 #fibril_atom_offset = # TTR
 fibril_atom_number = 540 # B2m 540 is the first residue of the fibril chain used to map the dihedrals
 fibril_atom_offset = 179 # B2m 179 is the same residue in the native structure
+
+# Due to the uneven temperature balance between SMOG and GROMOS FF it is necessary to apply a temperature
+# correction based on a ratio. Usually 70 K is the temperature of SMOG and the other one is obtained empirically
+# And by empirical i mean to make different simulations and then check the results
+
+#temperatura = 296 # TTR
+#t_ratio = temperatura / 70 # TTR
+temperatura = 296 # B2m
+t_ratio = temperatura / 70 # B2m

@@ -16,9 +16,6 @@ from read_input import read_gro_atoms
     # gromos_mass -> atom_type:mass N:15.0067
     # res_atom_dict -> residue_atom:chemical_type TYR_N:N
 
-temperatura = 296
-t_ratio = temperatura / 70
-
 gro_atoms = read_gro_atoms()
 
 # This one will be used in dihedrals

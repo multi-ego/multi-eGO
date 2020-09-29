@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs, t_ratio, temperatura
+from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs
+from protein_configuration import t_ratio, temperatura
 
 
     # This script includes all the functions used to create a FF
