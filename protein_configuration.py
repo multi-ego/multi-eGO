@@ -13,12 +13,15 @@
 #fibril_chain_length = 11 # 11 TTR
 fibril_chain_length = 64 # 64 B2m
 
+
+
 # The fibril offset is used in the case of B2m, where there is not a N or C terminus.
 # This way the first residue of the fibril has an offset of N residues compared to the native structure
 # In this case is 22: the first residue of the fibril is the 23th of the native
 
 #fibril_residue_offset = # TTR residues to add to the fibril
 fibril_residue_offset = 22 # 22 B2m residues to add to the fibril
+
 
 
 # Only one chain is used for dihedrals selection and the script will map the atom numbers based on the native structure
@@ -30,6 +33,8 @@ fibril_residue_offset = 22 # 22 B2m residues to add to the fibril
 #fibril_atom_offset = # TTR
 fibril_atom_number = 540 # B2m 540 is the first residue of the fibril chain used to map the dihedrals
 fibril_atom_offset = 179 # B2m 179 is the same residue in the native structure
+
+
 
 # Due to the uneven temperature balance between SMOG and GROMOS FF it is necessary to apply a temperature
 # correction based on a ratio. Usually 70 K is the temperature of SMOG and the other one is obtained empirically
