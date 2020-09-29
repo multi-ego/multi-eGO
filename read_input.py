@@ -1,4 +1,5 @@
 import pandas as pd
+from protein_configuration import fibril_chain_length, fibril_residue_offset, fibril_atom_number, fibril_atom_offset
 
 
 # This script includes all the functions used to read the input files.
@@ -33,8 +34,8 @@ def read_fib_atoms():
     fib_atoms.columns = ["; nr", "type", "resnr", "residue", "atom", "cgnr", "charge"]
     
     # THIS IS IMPORTANT TO CHANGE WHEN USING A DIFFERENT FIBRIL
-    fib_atoms['resnr'] = fib_atoms['resnr'] % 64 #64 for B2m and 11 for TTR #flag
-    fib_atoms['resnr'] = fib_atoms['resnr'].replace(0, 64) #flag
+    fib_atoms['resnr'] = fib_atoms['resnr'] % fibril_chain_length #64 for B2m and 11 for TTR #flag
+    fib_atoms['resnr'] = fib_atoms['resnr'].replace(0, fibril_chain_length) #flag
 
     # In B2m model, there are not N or C terminal in the model, therefore it is necessary to change the atomid and resid
     # Unfortunately SMOG always renumber everything and so i renumber using python
@@ -43,7 +44,7 @@ def read_fib_atoms():
 
     #fib_atoms['; nr'] = fib_atoms['; nr']+178 #flag
     #fib_atoms['cgnr'] = fib_atoms['cgnr']+178 #flag
-    fib_atoms['resnr'] = fib_atoms['resnr']+22 #flag
+    fib_atoms['resnr'] = fib_atoms['resnr'] + fibril_residue_offset #flag
 
     # Likewise, the same procedure will be applied also in dihedrals and pairs
     # STARE ATTENTO ALLA RINUMERAZIONE! -> DALLA FIBRILLA NON PARTONO DA 1 MA DA 23
@@ -83,10 +84,10 @@ def read_fib_dihedrals():
     fib_dihedrals['mult'] = fib_dihedrals['mult'].fillna(value = '')
 
     # AtomID renumber to match the native structure because I use atomnumber
-    fib_dihedrals[';ai'] = fib_dihedrals[';ai']-539+178 #flag
-    fib_dihedrals['aj'] = fib_dihedrals['aj']-539+178 #flag
-    fib_dihedrals['ak'] = fib_dihedrals['ak']-539+178 #flag
-    fib_dihedrals['al'] = fib_dihedrals['al']-539+178 #flag
+    fib_dihedrals[';ai'] = fib_dihedrals[';ai']-fibril_atom_number+fibril_atom_offset #flag
+    fib_dihedrals['aj'] = fib_dihedrals['aj']-fibril_atom_number+fibril_atom_offset #flag
+    fib_dihedrals['ak'] = fib_dihedrals['ak']-fibril_atom_number+fibril_atom_offset #flag
+    fib_dihedrals['al'] = fib_dihedrals['al']-fibril_atom_number+fibril_atom_offset #flag
     return fib_dihedrals
 
 def read_pep_pairs():
