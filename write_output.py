@@ -1,14 +1,22 @@
-from protein_configuration import temperatura
+import datetime
+from protein_configuration import temperatura, protein
+
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
+now = datetime.datetime.now()
 
 
 def write_atomtypes_atp(pep_atomtypes):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    file = open("output/atomtypes.atp", "w")
-    file.write("[ atomtypes ]")
-    file.write("\n")
+    directory = 'output_%s/atomtypes.atp' % (protein)
+    file = open(directory, "w")
     file.write(str(head))
+    file.write("\n")
+    file.write('; ' + str(protein))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atomtypes ]")
     file.write("\n")
     file.write(str(pep_atomtypes.to_string(index = False, header = False)))
     file.close()
@@ -17,10 +25,15 @@ def write_atomtypes_atp(pep_atomtypes):
 def write_gromos_topology(gromos_topology):
     # This function creates the atomtypes file to paste into the custom topology
     #file = open("../../magros_test/commons/output/topology_gromos", "w")
-    file = open("output/topology_gromos", "w")
-    file.write("[ atoms ]")
-    file.write("\n")
+    directory = "output_%s/topology_gromos" % (protein)
+    file = open(directory, "w")
     file.write(str(head))
+    file.write("\n")
+    file.write('; ' + str(protein))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atoms ]")
     file.write("\n")
     file.write(str(gromos_topology.to_string(index = False)))
     file.close()
@@ -29,8 +42,13 @@ def write_gromos_topology(gromos_topology):
 def write_smog_to_gromos_dihedrals(propers_to_gro):
     # This function creates the angles file to paste into the topology
     #file = open("../../magros_test/commons/output/smog_to_gromos_dihedrals", "w")
-    file = open("output/smog_to_gromos_dihedrals", "w")
+    directory = "output_%s/smog_to_gromos_dihedrals" % (protein)
+    file = open(directory, "w")
     file.write(str(head))
+    file.write("\n")
+    file.write('; ' + str(protein))
+    file.write("\n")
+    file.write('; ' + str(now))
     file.write("\n")
     file.write(f'; Temperature Ratio: {temperatura} / 70')
     file.write("\n")
@@ -41,8 +59,13 @@ def write_smog_to_gromos_dihedrals(propers_to_gro):
 
 def write_merge_ffnonbonded(atomtypes, merge_pairs):
     #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    file = open("output/ffnonbonded.itp", "w")
+    directory = "output_%s/ffnonbonded.itp" % (protein)
+    file = open(directory, "w")
     file.write(str(head))
+    file.write("\n")
+    file.write('; ' + str(protein))
+    file.write("\n")
+    file.write('; ' + str(now))
     file.write("\n")
     file.write(f'; Temperature Ratio: {temperatura} / 70')
     file.write("\n")
@@ -56,8 +79,13 @@ def write_merge_ffnonbonded(atomtypes, merge_pairs):
 
 def write_acid_ffnonbonded(atomtypes, acid_pairs):
     #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    file = open("output/acid_ffnonbonded.itp", "w")
+    directory = "output_%s/acid_ffnonbonded.itp" % (protein)
+    file = open(directory, "w")
     file.write(str(head))
+    file.write("\n")
+    file.write('; ' + str(protein))
+    file.write("\n")
+    file.write('; ' + str(now))
     file.write("\n")
     file.write(f'; Temperature Ratio: {temperatura} / 70')
     file.write("\n")
