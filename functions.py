@@ -229,8 +229,10 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
         pairs_full.loc[(pairs_full[';ai'] == i) & (pairs_full['aj'] == i), 'double'] = 'True'
 
+    doubles = pairs_full.loc[(pairs_full['double'] == 'True')]
+    print(doubles)
 
-    print(pairs_full[pairs_full.values == 'True'].to_string())
+    #print(pairs_full[pairs_full.values == 'True'].to_string())
     print(len(pairs_full[pairs_full.values == 'True']))
     #print(pairs_full[pairs_full.values == 'False'].to_string())
     #print(len(pairs_full[pairs_full.values == 'False']))    
@@ -243,8 +245,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     
     ##### DA IMPLEMENTARE #####
     
-    #[a_i - b_i for a_i, b_i in zip(a, b)]
-
+    # https://kanoki.org/2019/07/04/pandas-difference-between-two-dataframes/ 
     ########
 
     pairs_full = pairs_full.drop(['double'], axis=1)
