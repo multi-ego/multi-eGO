@@ -21,7 +21,7 @@ fibril_chain_length = 64 # 64 B2m
 # This way the first residue of the fibril has an offset of N residues compared to the native structure
 # In this case is 22: the first residue of the fibril is the 23th of the native
 
-#fibril_residue_offset = # TTR residues to add to the fibril
+#fibril_residue_offset = 0 # TTR peptide has the same length in both fibril and native
 fibril_residue_offset = 22 # 22 B2m residues to add to the fibril
 
 
@@ -31,8 +31,8 @@ fibril_residue_offset = 22 # 22 B2m residues to add to the fibril
 # fibril_atom_number is the atom number of the first atom of the chain used for dihedral selection
 # fibril_atom_offset is the first atom of the fibril in the native structure (just like the chain_residue offset)
 
-#fibril_atom_number = # TTR
-#fibril_atom_offset = # TTR
+#fibril_atom_number = 3061 # TTR is the first atom in dihedrals fibril selection which will be mapped as 
+#fibril_atom_offset = 1 # the first residue in the case of the native chain
 fibril_atom_number = 540 # B2m 540 is the first residue of the fibril chain used to map the dihedrals
 fibril_atom_offset = 179 # B2m 179 is the same residue in the native structure
 
@@ -42,7 +42,7 @@ fibril_atom_offset = 179 # B2m 179 is the same residue in the native structure
 # correction based on a ratio. Usually 70 K is the temperature of SMOG and the other one is obtained empirically
 # And by empirical i mean to make different simulations and then check the results
 
-#temperatura = 296 # TTR
+#temperatura = 300 # TTR
 #t_ratio = temperatura / 70 # TTR
 temperatura = 296 # B2m
 t_ratio = temperatura / 70 # B2m
