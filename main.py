@@ -64,3 +64,5 @@ write_merge_ffnonbonded(atomtypes, merge_pairs)
 write_acid_ffnonbonded(atomtypes, acid_pairs)
 
 print('Merge ffnonbonded.itp created for both neutral and acidic pH')
+
+print(' REMEMBER TO CHANGE THE MASSES IN THE ATOMTYPES.ATP AND FFNONBONDED.ITP, THE H ARE EXPLICIT')
