@@ -1,5 +1,17 @@
+import os
 import datetime
 from protein_configuration import temperatura, protein
+
+
+    # Create the folders which will be used by the script
+output_folder = 'output_%s' % (protein)
+try:
+    os.mkdir(output_folder)
+except OSError:
+    print (" Creation of the directory %s failed" % output_folder)
+else:
+    print ("Successfully created the directory %s" % output_folder)
+
 
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 now = datetime.datetime.now()
