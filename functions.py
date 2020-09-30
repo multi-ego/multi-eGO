@@ -211,7 +211,41 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full = acid_full.drop_duplicates()
 
 
+    # Here i should add the duplicates for the N terminal. 
+
+    # Crea lista atomtypes da dizionario
+
+
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
     acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
 
+    atp_values=list(dict_pep_atomtypes.values())
+  
+    pairs_full['double'] = ''
+    
+    for i in atp_values:
+
+        # Questo funziona e riesco a fargli dire quello che voglio.
+        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+        pairs_full.loc[(pairs_full[';ai'] == i) & (pairs_full['aj'] == i), 'double'] = 'True'
+
+
+    print(pairs_full[pairs_full.values == 'True'].to_string())
+    print(len(pairs_full[pairs_full.values == 'True']))
+    #print(pairs_full[pairs_full.values == 'False'].to_string())
+    #print(len(pairs_full[pairs_full.values == 'False']))    
+    print(len(pairs_full))
+
+    # Adesso sia in ai che in aj ci sono gli stessi valori, dunque si puo' vedere la differenza con il dataframe completo
+    # e sottrarre questi gia' doppi a quella completa
+    # restano quelli da raddoppiare
+
+    
+    ##### DA IMPLEMENTARE #####
+    
+    #[a_i - b_i for a_i, b_i in zip(a, b)]
+
+    ########
+
+    pairs_full = pairs_full.drop(['double'], axis=1)
     return pairs_full, acid_full
