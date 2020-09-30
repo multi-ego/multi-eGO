@@ -1,3 +1,4 @@
+from protein_configuration import protein
 from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
 from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded
@@ -63,3 +64,5 @@ write_merge_ffnonbonded(atomtypes, merge_pairs)
 write_acid_ffnonbonded(atomtypes, acid_pairs)
 
 print('Merge ffnonbonded.itp created for both neutral and acidic pH')
+
+print(' REMEMBER TO CHANGE THE MASSES IN THE ATOMTYPES.ATP AND FFNONBONDED.ITP, THE H ARE EXPLICIT')
