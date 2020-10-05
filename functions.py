@@ -223,7 +223,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     # In this section the B2m part of the N and C terminals are added
     # First, all the atomtypes values are obtained from the atomtypes dictionary
     atp_values=list(dict_pep_atomtypes.values())
-  
+
     # Here a condition has been set to see only when an atomtype has an interaction with itself
     pairs_full['double'] = ''
     
@@ -271,7 +271,62 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
     print(atp_toadd.to_string())
 
+
+    ### TO ADD APPEND
+
+
+    ### Acid Part
+    
+    acid_full['double'] = ''
+    
+    for i in atp_values:
+
+        # Questo funziona e riesco a fargli dire quello che voglio.
+        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+        acid_full.loc[(acid_full[';ai'] == i) & (acid_full['aj'] == i), 'double'] = 'True'
+    
+    # Create a subset of the main dataframe of the self interactions.
+    doubles = acid_full.loc[(acid_full['double'] == 'True')]
+    atp_doubles = list(doubles[';ai'])
+    # The list is used to obtain all the atomtypes which does not make a self interaction
+    atp_notdoubles = list(set(set(atp_values) - set(atp_doubles)))
+    acid_full = acid_full.drop(['double'], axis=1)
+
+    #print(len(atp_doubles)) # 539
+    #print(len(atp_values)) # 837
+    #print(len(atp_notdoubles)) # 298
+
+    # From the list of atomtypes to add, a new dataframe is created to append to the main one
+    atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
+    atp_toadd[';ai'] = atp_notdoubles
+    atp_toadd['aj'] = atp_notdoubles
+    atp_toadd['type'] = '1'  
+    
+    # Here i want to check every value for all the atom type and if they're similar
+    # make an average and paste into the main dataframe
+
+    # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
+    # I need a list to search in atp_toadd of all the atomtypes without the resid number
+    atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
+    atypes = atypes[0].drop_duplicates()
+    atypes = atypes.to_list()
+    # and also add an _ so it is read for a for loop
+    atypes2 = [x+'_' for x in atypes]
+
+    for a in atypes2:
+        # Carbon alfa
+        doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
+        media_A = pd.to_numeric(doubles_a['A']).mean()
+        media_B = pd.to_numeric(doubles_a['B']).mean()
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = media_A
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = media_B
+
+    print(atp_toadd.to_string())
     #print(pairs_full)
 
+
+
+
+    ### TO ADD APPEND ACID
 
     return pairs_full, acid_full
