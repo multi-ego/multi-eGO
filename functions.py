@@ -271,8 +271,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
     print(atp_toadd.to_string())
 
-
-    ### TO ADD APPEND
+    pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
 
 
     ### Acid Part
@@ -286,10 +285,10 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         acid_full.loc[(acid_full[';ai'] == i) & (acid_full['aj'] == i), 'double'] = 'True'
     
     # Create a subset of the main dataframe of the self interactions.
-    doubles = acid_full.loc[(acid_full['double'] == 'True')]
-    atp_doubles = list(doubles[';ai'])
+    acid_doubles = acid_full.loc[(acid_full['double'] == 'True')]
+    acid_atp_doubles = list(acid_doubles[';ai'])
     # The list is used to obtain all the atomtypes which does not make a self interaction
-    atp_notdoubles = list(set(set(atp_values) - set(atp_doubles)))
+    acid_atp_notdoubles = list(set(set(atp_values) - set(acid_atp_doubles)))
     acid_full = acid_full.drop(['double'], axis=1)
 
     #print(len(atp_doubles)) # 539
@@ -297,36 +296,33 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     #print(len(atp_notdoubles)) # 298
 
     # From the list of atomtypes to add, a new dataframe is created to append to the main one
-    atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
-    atp_toadd[';ai'] = atp_notdoubles
-    atp_toadd['aj'] = atp_notdoubles
-    atp_toadd['type'] = '1'  
+    acid_atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
+    acid_atp_toadd[';ai'] = acid_atp_notdoubles
+    acid_atp_toadd['aj'] = acid_atp_notdoubles
+    acid_atp_toadd['type'] = '1'  
     
     # Here i want to check every value for all the atom type and if they're similar
     # make an average and paste into the main dataframe
 
     # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
     # I need a list to search in atp_toadd of all the atomtypes without the resid number
-    atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
-    atypes = atypes[0].drop_duplicates()
-    atypes = atypes.to_list()
+    acid_atypes = acid_atp_toadd['aj'].str.split('_', n = 1, expand = True)
+    acid_atypes = acid_atypes[0].drop_duplicates()
+    acid_atypes = acid_atypes.to_list()
     # and also add an _ so it is read for a for loop
-    atypes2 = [x+'_' for x in atypes]
+    acid_atypes2 = [x+'_' for x in atypes]
 
-    for a in atypes2:
+    for a in acid_atypes2:
         # Carbon alfa
-        doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
-        media_A = pd.to_numeric(doubles_a['A']).mean()
-        media_B = pd.to_numeric(doubles_a['B']).mean()
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = media_A
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = media_B
+        acid_doubles_a = acid_doubles.loc[(acid_doubles[';ai'].str.contains(a)) & (acid_doubles['aj'].str.contains(a))]
+        acid_media_A = pd.to_numeric(acid_doubles_a['A']).mean()
+        acid_media_B = pd.to_numeric(acid_doubles_a['B']).mean()
+        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_media_A
+        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_media_B
 
-    print(atp_toadd.to_string())
+    print(acid_atp_toadd.to_string())
     #print(pairs_full)
 
-
-
-
-    ### TO ADD APPEND ACID
+    acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
 
     return pairs_full, acid_full
