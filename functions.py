@@ -211,16 +211,20 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_full = acid_full.drop_duplicates()
 
 
-    # Here i should add the duplicates for the N terminal. 
-
-    # Crea lista atomtypes da dizionario
-
-
+    # Renaming columns
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
     acid_full.columns = [';ai', 'aj', 'type', 'A', 'B']
 
+
+    ########
+    # if protein == 'B2m':
+
+
+    # In this section the B2m part of the N and C terminals are added
+    # First, all the atomtypes values are obtained from the atomtypes dictionary
     atp_values=list(dict_pep_atomtypes.values())
   
+    # Here a condition has been set to see only when an atomtype has an interaction with itself
     pairs_full['double'] = ''
     
     for i in atp_values:
@@ -228,33 +232,46 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         # Questo funziona e riesco a fargli dire quello che voglio.
         # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
         pairs_full.loc[(pairs_full[';ai'] == i) & (pairs_full['aj'] == i), 'double'] = 'True'
-
+    
+    # Create a subset of the main dataframe of the self interactions.
     doubles = pairs_full.loc[(pairs_full['double'] == 'True')]
-    print(doubles)
-
-    #print(pairs_full[pairs_full.values == 'True'].to_string())
-    print(doubles) # 539
-    #print(pairs_full[pairs_full.values == 'False'].to_string())
-    #print(len(pairs_full[pairs_full.values == 'False']))    
-    print(len(pairs_full)) # 10627
-
-    # Adesso sia in ai che in aj ci sono gli stessi valori, dunque si puo' vedere la differenza con il dataframe completo
-    # e sottrarre questi gia' doppi a quella completa
-    # restano quelli da raddoppiare
-
-    not_doubles = pairs_full.merge(doubles, how = 'outer', indicator = True).loc[lambda x : x['_merge'] == 'left_only']
-    
-    print(not_doubles) # 10088
-    
-    doubles_toadd = list(set(atp_values) - set(not_doubles[';ai'].values.tolist()))
-
-    print(len(doubles_toadd))
-
-
-    ##### DA IMPLEMENTARE #####
-    
-    # https://kanoki.org/2019/07/04/pandas-difference-between-two-dataframes/ 
-    ########
-
+    atp_doubles = list(doubles[';ai'])
+    # The list is used to obtain all the atomtypes which does not make a self interaction
+    atp_notdoubles = list(set(set(atp_values) - set(atp_doubles)))
     pairs_full = pairs_full.drop(['double'], axis=1)
+
+    #print(len(atp_doubles)) # 539
+    #print(len(atp_values)) # 837
+    #print(len(atp_notdoubles)) # 298
+
+    # From the list of atomtypes to add, a new dataframe is created to append to the main one
+    atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
+    atp_toadd[';ai'] = atp_notdoubles
+    atp_toadd['aj'] = atp_notdoubles
+    atp_toadd['type'] = '1'  
+    
+    # Here i want to check every value for all the atom type and if they're similar
+    # make an average and paste into the main dataframe
+
+    # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
+    # I need a list to search in atp_toadd of all the atomtypes without the resid number
+    atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
+    atypes = atypes[0].drop_duplicates()
+    atypes = atypes.to_list()
+    # and also add an _ so it is read for a for loop
+    atypes2 = [x+'_' for x in atypes]
+
+    for a in atypes2:
+        # Carbon alfa
+        doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
+        media_A = pd.to_numeric(doubles_a['A']).mean()
+        media_B = pd.to_numeric(doubles_a['B']).mean()
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = media_A
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = media_B
+
+    print(atp_toadd.to_string())
+
+    #print(pairs_full)
+
+
     return pairs_full, acid_full
