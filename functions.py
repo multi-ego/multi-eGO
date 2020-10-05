@@ -233,16 +233,24 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     print(doubles)
 
     #print(pairs_full[pairs_full.values == 'True'].to_string())
-    print(len(pairs_full[pairs_full.values == 'True']))
+    print(doubles) # 539
     #print(pairs_full[pairs_full.values == 'False'].to_string())
     #print(len(pairs_full[pairs_full.values == 'False']))    
-    print(len(pairs_full))
+    print(len(pairs_full)) # 10627
 
     # Adesso sia in ai che in aj ci sono gli stessi valori, dunque si puo' vedere la differenza con il dataframe completo
     # e sottrarre questi gia' doppi a quella completa
     # restano quelli da raddoppiare
 
+    not_doubles = pairs_full.merge(doubles, how = 'outer', indicator = True).loc[lambda x : x['_merge'] == 'left_only']
     
+    print(not_doubles) # 10088
+    
+    doubles_toadd = list(set(atp_values) - set(not_doubles[';ai'].values.tolist()))
+
+    print(len(doubles_toadd))
+
+
     ##### DA IMPLEMENTARE #####
     
     # https://kanoki.org/2019/07/04/pandas-difference-between-two-dataframes/ 
