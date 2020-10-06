@@ -258,6 +258,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
     atypes = atypes[0].drop_duplicates()
     atypes = atypes.to_list()
+
     # and also add an _ so it is read for a for loop
     atypes2 = [x+'_' for x in atypes]
 
@@ -269,7 +270,13 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = media_A
         atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = media_B
 
-    print(atp_toadd.to_string())
+    # Drop NaN: SD_1 SD_100 and OXT_100
+    atp_toadd.dropna(inplace = True)
+
+    A_notation = atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
+    atp_toadd = atp_toadd.assign(A = A_notation)
+    atp_toadd = atp_toadd.assign(B = B_notation)
 
     pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
 
@@ -309,6 +316,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     acid_atypes = acid_atp_toadd['aj'].str.split('_', n = 1, expand = True)
     acid_atypes = acid_atypes[0].drop_duplicates()
     acid_atypes = acid_atypes.to_list()
+
     # and also add an _ so it is read for a for loop
     acid_atypes2 = [x+'_' for x in atypes]
 
@@ -320,8 +328,13 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_media_A
         acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_media_B
 
-    print(acid_atp_toadd.to_string())
-    #print(pairs_full)
+    # Drop NaN: SD_1 SD_100 and OXT_100
+    acid_atp_toadd.dropna(inplace = True)
+
+    A_notation = acid_atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = acid_atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
+    acid_atp_toadd = acid_atp_toadd.assign(A = A_notation)
+    acid_atp_toadd = acid_atp_toadd.assign(B = B_notation)
 
     acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
 
