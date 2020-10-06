@@ -264,13 +264,20 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
     for a in atypes2:
         doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
+        print('\t', 'atomtype', '\t', a, '\n')
+
         # The average will be made based on the sigma and then the c6 and c12 will be recalculated
         sigma = ((pd.to_numeric(doubles_a['B'])) / (pd.to_numeric(doubles_a['A']))) ** (1/6)
-        media_sigma = sigma.mean()
 
-        #print('media_sigma0', '\t', media_sigma)
+        for s in sigma:
+            print('\t', 'Sigma: ("B"/"A") ** 1/6 =', s)
+
+        media_sigma = sigma.mean()
+        print('\n', '\t', 'Average Sigma for', a, ':', '\t', media_sigma)
+
         epsilon = (pd.to_numeric(doubles_a['A']) ** 2) / (4 * (pd.to_numeric(doubles_a['B'])))
 
+        print('\t', 'Epsilon of', a, epsilon.mean(), '\n')
         # Nuovi c6 e c12
         new_c6 = 4 * epsilon * (media_sigma ** 6)
         new_c12 = 4 * epsilon * (media_sigma ** 12)
@@ -286,6 +293,10 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         # Tanto sono tutti lo stesso numero
         atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = new_c6.mean()
         atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = new_c12.mean()
+
+        print('\t', 'New C6 of', a, ':', new_c6.mean())
+        print('\t', 'New C12 of', a, ':', new_c12.mean())
+        
 
         #print(atp_toadd.to_string())
 
