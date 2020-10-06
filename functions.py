@@ -263,12 +263,31 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     atypes2 = [x+'_' for x in atypes]
 
     for a in atypes2:
-        # Carbon alfa
         doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
-        media_A = pd.to_numeric(doubles_a['A']).mean()
-        media_B = pd.to_numeric(doubles_a['B']).mean()
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = media_A
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = media_B
+        # The average will be made based on the sigma and then the c6 and c12 will be recalculated
+        sigma = ((pd.to_numeric(doubles_a['B'])) / (pd.to_numeric(doubles_a['A']))) ** (1/6)
+        media_sigma = sigma.mean()
+
+        #print('media_sigma0', '\t', media_sigma)
+        epsilon = (pd.to_numeric(doubles_a['A']) ** 2) / (4 * (pd.to_numeric(doubles_a['B'])))
+
+        # Nuovi c6 e c12
+        new_c6 = 4 * epsilon * (media_sigma ** 6)
+        new_c12 = 4 * epsilon * (media_sigma ** 12)
+
+        #print('new_c6' , '\t', new_c6)
+        #print('new_c12' , '\t', new_c12)
+        
+        # check sugli epsilon
+        #std_epsilon = epsilon.std()
+        #print('stf_epsilon', '\t', std_epsilon)
+
+        # Here i used the mean value so that I have only one number and not a dataframe
+        # Tanto sono tutti lo stesso numero
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = new_c6.mean()
+        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = new_c12.mean()
+
+        #print(atp_toadd.to_string())
 
     # Drop NaN: SD_1 SD_100 and OXT_100
     atp_toadd.dropna(inplace = True)
@@ -278,8 +297,9 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     atp_toadd = atp_toadd.assign(A = A_notation)
     atp_toadd = atp_toadd.assign(B = B_notation)
 
-    pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
+    #print(atp_toadd.to_string())
 
+    pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
 
     ### Acid Part
     
@@ -323,10 +343,28 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     for a in acid_atypes2:
         # Carbon alfa
         acid_doubles_a = acid_doubles.loc[(acid_doubles[';ai'].str.contains(a)) & (acid_doubles['aj'].str.contains(a))]
-        acid_media_A = pd.to_numeric(acid_doubles_a['A']).mean()
-        acid_media_B = pd.to_numeric(acid_doubles_a['B']).mean()
-        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_media_A
-        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_media_B
+        # The average will be made based on the sigma and then the c6 and c12 will be recalculated
+        acid_sigma = ((pd.to_numeric(acid_doubles_a['B'])) / (pd.to_numeric(acid_doubles_a['A']))) ** (1/6)
+        acid_media_sigma = acid_sigma.mean()
+
+        #print('media_sigma0', '\t', media_sigma)
+        acid_epsilon = (pd.to_numeric(acid_doubles_a['A']) ** 2) / (4 * (pd.to_numeric(acid_doubles_a['B'])))
+
+        # Nuovi c6 e c12
+        acid_new_c6 = 4 * acid_epsilon * (acid_media_sigma ** 6)
+        acid_new_c12 = 4 * acid_epsilon * (acid_media_sigma ** 12)
+
+        #print('acid_new_c6' , '\t', acid_new_c6)
+        #print('acid_new_c12' , '\t', acid_new_c12)
+        
+        # check sugli epsilon
+        #acid_std_epsilon = acid_epsilon.std()
+        #print('acid_stf_epsilon', '\t', acid_std_epsilon)
+
+        # Here i used the mean value so that I have only one number and not a dataframe
+        # Tanto sono tutti lo stesso numero
+        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_new_c6.mean()
+        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_new_c12.mean()
 
     # Drop NaN: SD_1 SD_100 and OXT_100
     acid_atp_toadd.dropna(inplace = True)
