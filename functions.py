@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from atomtypes_definitions import gromos_res_atom_dict, gromos_atp, gromos_mass_dict, gromos_resatom_nmr_dict, acid_atp, resnr_pairs
-from protein_configuration import t_ratio, temperatura
+from protein_configuration import t_ratio, temperatura, protein
 
 
     # This script includes all the functions used to create a FF
@@ -217,174 +217,177 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     ########
-    # if protein == 'B2m':
-
-
-    # In this section the B2m part of the N and C terminals are added
-    # First, all the atomtypes values are obtained from the atomtypes dictionary
-    atp_values=list(dict_pep_atomtypes.values())
-
-    # Here a condition has been set to see only when an atomtype has an interaction with itself
-    pairs_full['double'] = ''
     
-    for i in atp_values:
+    if protein == 'B2m':
 
-        # Questo funziona e riesco a fargli dire quello che voglio.
-        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
-        pairs_full.loc[(pairs_full[';ai'] == i) & (pairs_full['aj'] == i), 'double'] = 'True'
-    
-    # Create a subset of the main dataframe of the self interactions.
-    doubles = pairs_full.loc[(pairs_full['double'] == 'True')]
-    atp_doubles = list(doubles[';ai'])
-    # The list is used to obtain all the atomtypes which does not make a self interaction
-    atp_notdoubles = list(set(set(atp_values) - set(atp_doubles)))
-    pairs_full = pairs_full.drop(['double'], axis=1)
 
-    #print(len(atp_doubles)) # 539
-    #print(len(atp_values)) # 837
-    #print(len(atp_notdoubles)) # 298
+        # In this section the B2m part of the N and C terminals are added
+        # First, all the atomtypes values are obtained from the atomtypes dictionary
+        atp_values=list(dict_pep_atomtypes.values())
 
-    # From the list of atomtypes to add, a new dataframe is created to append to the main one
-    atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
-    atp_toadd[';ai'] = atp_notdoubles
-    atp_toadd['aj'] = atp_notdoubles
-    atp_toadd['type'] = '1'  
-    
-    # Here i want to check every value for all the atom type and if they're similar
-    # make an average and paste into the main dataframe
-
-    # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
-    # I need a list to search in atp_toadd of all the atomtypes without the resid number
-    atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
-    atypes = atypes[0].drop_duplicates()
-    atypes = atypes.to_list()
-
-    # and also add an _ so it is read for a for loop
-    atypes2 = [x+'_' for x in atypes]
-
-    for a in atypes2:
-        doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
-        print('\t', 'atomtype', '\t', a, '\n')
-
-        # The average will be made based on the sigma and then the c6 and c12 will be recalculated
-        sigma = ((pd.to_numeric(doubles_a['B'])) / (pd.to_numeric(doubles_a['A']))) ** (1/6)
-
-        for s in sigma:
-            print('\t', 'Sigma: ("B"/"A") ** 1/6 =', s)
-
-        media_sigma = sigma.mean()
-        print('\n', '\t', 'Average Sigma for', a, ':', '\t', media_sigma)
-
-        epsilon = (pd.to_numeric(doubles_a['A']) ** 2) / (4 * (pd.to_numeric(doubles_a['B'])))
-
-        print('\t', 'Epsilon of', a, epsilon.mean(), '\n')
-        # Nuovi c6 e c12
-        new_c6 = 4 * epsilon * (media_sigma ** 6)
-        new_c12 = 4 * epsilon * (media_sigma ** 12)
-
-        #print('new_c6' , '\t', new_c6)
-        #print('new_c12' , '\t', new_c12)
+        # Here a condition has been set to see only when an atomtype has an interaction with itself
+        pairs_full['double'] = ''
         
-        # check sugli epsilon
-        #std_epsilon = epsilon.std()
-        #print('stf_epsilon', '\t', std_epsilon)
+        for i in atp_values:
 
-        # Here i used the mean value so that I have only one number and not a dataframe
-        # Tanto sono tutti lo stesso numero
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = new_c6.mean()
-        atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = new_c12.mean()
-
-        print('\t', 'New C6 of', a, ':', new_c6.mean())
-        print('\t', 'New C12 of', a, ':', new_c12.mean())
+            # Questo funziona e riesco a fargli dire quello che voglio.
+            # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+            pairs_full.loc[(pairs_full[';ai'] == i) & (pairs_full['aj'] == i), 'double'] = 'True'
         
+        # Create a subset of the main dataframe of the self interactions.
+        doubles = pairs_full.loc[(pairs_full['double'] == 'True')]
+        atp_doubles = list(doubles[';ai'])
+        # The list is used to obtain all the atomtypes which does not make a self interaction
+        atp_notdoubles = list(set(set(atp_values) - set(atp_doubles)))
+        pairs_full = pairs_full.drop(['double'], axis=1)
+
+        #print(len(atp_doubles)) # 539
+        #print(len(atp_values)) # 837
+        #print(len(atp_notdoubles)) # 298
+
+        # From the list of atomtypes to add, a new dataframe is created to append to the main one
+        atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
+        atp_toadd[';ai'] = atp_notdoubles
+        atp_toadd['aj'] = atp_notdoubles
+        atp_toadd['type'] = '1'  
+        
+        # Here i want to check every value for all the atom type and if they're similar
+        # make an average and paste into the main dataframe
+
+        # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
+        # I need a list to search in atp_toadd of all the atomtypes without the resid number
+        atypes = atp_toadd['aj'].str.split('_', n = 1, expand = True)
+        atypes = atypes[0].drop_duplicates()
+        atypes = atypes.to_list()
+
+        # and also add an _ so it is read for a for loop
+        atypes2 = [x+'_' for x in atypes]
+
+        for a in atypes2:
+            doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
+            print('\t', 'atomtype', '\t', a, '\n')
+
+            # The average will be made based on the sigma and then the c6 and c12 will be recalculated
+            sigma = ((pd.to_numeric(doubles_a['B'])) / (pd.to_numeric(doubles_a['A']))) ** (1/6)
+
+            for s in sigma:
+                print('\t', 'Sigma: ("B"/"A") ** 1/6 =', s)
+
+            media_sigma = sigma.mean()
+            print('\n', '\t', 'Average Sigma for', a, ':', '\t', media_sigma)
+
+            epsilon = (pd.to_numeric(doubles_a['A']) ** 2) / (4 * (pd.to_numeric(doubles_a['B'])))
+
+            print('\t', 'Epsilon of', a, epsilon.mean(), '\n')
+            # Nuovi c6 e c12
+            new_c6 = 4 * epsilon * (media_sigma ** 6)
+            new_c12 = 4 * epsilon * (media_sigma ** 12)
+
+            #print('new_c6' , '\t', new_c6)
+            #print('new_c12' , '\t', new_c12)
+            
+            # check sugli epsilon
+            #std_epsilon = epsilon.std()
+            #print('stf_epsilon', '\t', std_epsilon)
+
+            # Here i used the mean value so that I have only one number and not a dataframe
+            # Tanto sono tutti lo stesso numero
+            atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'A'] = new_c6.mean()
+            atp_toadd.loc[(atp_toadd[';ai'].str.contains(a)) & (atp_toadd['aj'].str.contains(a)), 'B'] = new_c12.mean()
+
+            print('\t', 'New C6 of', a, ':', new_c6.mean())
+            print('\t', 'New C12 of', a, ':', new_c12.mean())
+            
+
+            #print(atp_toadd.to_string())
+
+        # Drop NaN: SD_1 SD_100 and OXT_100
+        atp_toadd.dropna(inplace = True)
+
+        A_notation = atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
+        B_notation = atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
+        atp_toadd = atp_toadd.assign(A = A_notation)
+        atp_toadd = atp_toadd.assign(B = B_notation)
 
         #print(atp_toadd.to_string())
 
-    # Drop NaN: SD_1 SD_100 and OXT_100
-    atp_toadd.dropna(inplace = True)
+        pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
 
-    A_notation = atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
-    B_notation = atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
-    atp_toadd = atp_toadd.assign(A = A_notation)
-    atp_toadd = atp_toadd.assign(B = B_notation)
 
-    #print(atp_toadd.to_string())
-
-    pairs_full = pairs_full.append(atp_toadd, sort = False, ignore_index = True)
-
-    ### Acid Part
-    
-    acid_full['double'] = ''
-    
-    for i in atp_values:
-
-        # Questo funziona e riesco a fargli dire quello che voglio.
-        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
-        acid_full.loc[(acid_full[';ai'] == i) & (acid_full['aj'] == i), 'double'] = 'True'
-    
-    # Create a subset of the main dataframe of the self interactions.
-    acid_doubles = acid_full.loc[(acid_full['double'] == 'True')]
-    acid_atp_doubles = list(acid_doubles[';ai'])
-    # The list is used to obtain all the atomtypes which does not make a self interaction
-    acid_atp_notdoubles = list(set(set(atp_values) - set(acid_atp_doubles)))
-    acid_full = acid_full.drop(['double'], axis=1)
-
-    #print(len(atp_doubles)) # 539
-    #print(len(atp_values)) # 837
-    #print(len(atp_notdoubles)) # 298
-
-    # From the list of atomtypes to add, a new dataframe is created to append to the main one
-    acid_atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
-    acid_atp_toadd[';ai'] = acid_atp_notdoubles
-    acid_atp_toadd['aj'] = acid_atp_notdoubles
-    acid_atp_toadd['type'] = '1'  
-    
-    # Here i want to check every value for all the atom type and if they're similar
-    # make an average and paste into the main dataframe
-
-    # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
-    # I need a list to search in atp_toadd of all the atomtypes without the resid number
-    acid_atypes = acid_atp_toadd['aj'].str.split('_', n = 1, expand = True)
-    acid_atypes = acid_atypes[0].drop_duplicates()
-    acid_atypes = acid_atypes.to_list()
-
-    # and also add an _ so it is read for a for loop
-    acid_atypes2 = [x+'_' for x in atypes]
-
-    for a in acid_atypes2:
-        # Carbon alfa
-        acid_doubles_a = acid_doubles.loc[(acid_doubles[';ai'].str.contains(a)) & (acid_doubles['aj'].str.contains(a))]
-        # The average will be made based on the sigma and then the c6 and c12 will be recalculated
-        acid_sigma = ((pd.to_numeric(acid_doubles_a['B'])) / (pd.to_numeric(acid_doubles_a['A']))) ** (1/6)
-        acid_media_sigma = acid_sigma.mean()
-
-        #print('media_sigma0', '\t', media_sigma)
-        acid_epsilon = (pd.to_numeric(acid_doubles_a['A']) ** 2) / (4 * (pd.to_numeric(acid_doubles_a['B'])))
-
-        # Nuovi c6 e c12
-        acid_new_c6 = 4 * acid_epsilon * (acid_media_sigma ** 6)
-        acid_new_c12 = 4 * acid_epsilon * (acid_media_sigma ** 12)
-
-        #print('acid_new_c6' , '\t', acid_new_c6)
-        #print('acid_new_c12' , '\t', acid_new_c12)
+        ###########################
+        ### Acid Part
         
-        # check sugli epsilon
-        #acid_std_epsilon = acid_epsilon.std()
-        #print('acid_stf_epsilon', '\t', acid_std_epsilon)
+        acid_full['double'] = ''
+        
+        for i in atp_values:
 
-        # Here i used the mean value so that I have only one number and not a dataframe
-        # Tanto sono tutti lo stesso numero
-        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_new_c6.mean()
-        acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_new_c12.mean()
+            # Questo funziona e riesco a fargli dire quello che voglio.
+            # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+            acid_full.loc[(acid_full[';ai'] == i) & (acid_full['aj'] == i), 'double'] = 'True'
+        
+        # Create a subset of the main dataframe of the self interactions.
+        acid_doubles = acid_full.loc[(acid_full['double'] == 'True')]
+        acid_atp_doubles = list(acid_doubles[';ai'])
+        # The list is used to obtain all the atomtypes which does not make a self interaction
+        acid_atp_notdoubles = list(set(set(atp_values) - set(acid_atp_doubles)))
+        acid_full = acid_full.drop(['double'], axis=1)
 
-    # Drop NaN: SD_1 SD_100 and OXT_100
-    acid_atp_toadd.dropna(inplace = True)
+        #print(len(atp_doubles)) # 539
+        #print(len(atp_values)) # 837
+        #print(len(atp_notdoubles)) # 298
 
-    A_notation = acid_atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
-    B_notation = acid_atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
-    acid_atp_toadd = acid_atp_toadd.assign(A = A_notation)
-    acid_atp_toadd = acid_atp_toadd.assign(B = B_notation)
+        # From the list of atomtypes to add, a new dataframe is created to append to the main one
+        acid_atp_toadd = pd.DataFrame(columns = [';ai', 'aj', 'type', 'A', 'B'])
+        acid_atp_toadd[';ai'] = acid_atp_notdoubles
+        acid_atp_toadd['aj'] = acid_atp_notdoubles
+        acid_atp_toadd['type'] = '1'  
+        
+        # Here i want to check every value for all the atom type and if they're similar
+        # make an average and paste into the main dataframe
 
-    acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
+        # The atomtypes c6 and c12 are all the same, so it is possible to make and average to add them
+        # I need a list to search in atp_toadd of all the atomtypes without the resid number
+        acid_atypes = acid_atp_toadd['aj'].str.split('_', n = 1, expand = True)
+        acid_atypes = acid_atypes[0].drop_duplicates()
+        acid_atypes = acid_atypes.to_list()
+
+        # and also add an _ so it is read for a for loop
+        acid_atypes2 = [x+'_' for x in atypes]
+
+        for a in acid_atypes2:
+            # Carbon alfa
+            acid_doubles_a = acid_doubles.loc[(acid_doubles[';ai'].str.contains(a)) & (acid_doubles['aj'].str.contains(a))]
+            # The average will be made based on the sigma and then the c6 and c12 will be recalculated
+            acid_sigma = ((pd.to_numeric(acid_doubles_a['B'])) / (pd.to_numeric(acid_doubles_a['A']))) ** (1/6)
+            acid_media_sigma = acid_sigma.mean()
+
+            #print('media_sigma0', '\t', media_sigma)
+            acid_epsilon = (pd.to_numeric(acid_doubles_a['A']) ** 2) / (4 * (pd.to_numeric(acid_doubles_a['B'])))
+
+            # Nuovi c6 e c12
+            acid_new_c6 = 4 * acid_epsilon * (acid_media_sigma ** 6)
+            acid_new_c12 = 4 * acid_epsilon * (acid_media_sigma ** 12)
+
+            #print('acid_new_c6' , '\t', acid_new_c6)
+            #print('acid_new_c12' , '\t', acid_new_c12)
+            
+            # check sugli epsilon
+            #acid_std_epsilon = acid_epsilon.std()
+            #print('acid_stf_epsilon', '\t', acid_std_epsilon)
+
+            # Here i used the mean value so that I have only one number and not a dataframe
+            # Tanto sono tutti lo stesso numero
+            acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'A'] = acid_new_c6.mean()
+            acid_atp_toadd.loc[(acid_atp_toadd[';ai'].str.contains(a)) & (acid_atp_toadd['aj'].str.contains(a)), 'B'] = acid_new_c12.mean()
+
+        # Drop NaN: SD_1 SD_100 and OXT_100
+        acid_atp_toadd.dropna(inplace = True)
+
+        A_notation = acid_atp_toadd["A"].map(lambda x:'{:.9e}'.format(x))
+        B_notation = acid_atp_toadd["B"].map(lambda x:'{:.9e}'.format(x))
+        acid_atp_toadd = acid_atp_toadd.assign(A = A_notation)
+        acid_atp_toadd = acid_atp_toadd.assign(B = B_notation)
+
+        acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
 
     return pairs_full, acid_full
