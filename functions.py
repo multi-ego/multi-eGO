@@ -391,3 +391,4 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
 
     return pairs_full, acid_full
+    
