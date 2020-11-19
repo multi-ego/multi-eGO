@@ -1,11 +1,14 @@
-from pymol import cmd
+from Bio.PDB.PDBParser import PDBParser
+
+# Creation of PDBParser object
+
+parser = PDBParser(PERMISSIVE=1)
+
+structure_id = '1fat'
+filename = '1fat.pdb'
+structure = parser.get_structure(structure_id, filename)
+resolution = structure.header["keywords"]
 
 
-cmd.load("https://files.rcsb.org/download/2KB8.pdb")
-
-
-prova = cmd.select(name = 'prova', selection="name CA")
-
-for at1 in cmd.index("resi 10"):
-   for at2 in cmd.index("resi 11"):
-       cmd.distance(None, "%s`%d"%at1, "%s`%d"%at2)
+for atom in structure.get_atoms():
+    print(atom)
