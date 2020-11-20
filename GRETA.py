@@ -44,3 +44,10 @@ for atom1 in structure.get_atoms():
             LJ_pep.append(a_dictionary, ignore_index= True)  
 
             #print(LJ_pep)
+
+
+
+Bio.PDB.vectors.calc_dihedral(quartetti ottenuti dalla topologia)
+
+
+avrà sei colonne, quartetti func angolo e kd = 1
