@@ -20,7 +20,6 @@ structure = parser.get_structure(structure_id, filename)
 gro_dihedrals = pd.read_csv('GRETA/native/gro_dihedrals', sep = "\\s+", header = None)
 gro_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
 
-print(gro_dihedrals.to_string())
 # Reading PEP dihedrals
 
 
@@ -76,44 +75,30 @@ LJ_pep['epsilon'] = pdb_epsilon
 # DIHEDRALS
 ###########################
 
-#import pandas as pd
-#import numpy as np
-
-#df = pd.DataFrame({'c1': [10, 11, 12], 'c2': [100, 110, 120]})
-
-#for index, row in df.iterrows():
-#    print(row['c1'], row['c2'])
-
 atoms = structure.get_atoms()
-#print(atoms)
 
+vectors = []
 
-#v1 = atom1.get_vector()
+for atoms in structure.get_atoms():
+    v = atoms.get_vector()
+    vectors.append(v)
 
-v1 = []
-
-# E qui mi sono creato v1
-
-for ato in structure.get_atoms():
-    v = ato.get_vector()
-    v1.append(v)
+phi_dihedrals = []
 
 for index, row in gro_dihedrals.iterrows():
+    phi = calc_dihedral(vectors[row['ai'] - 1], vectors[row['aj'] - 1], vectors[row['ak'] - 1], vectors[row['al'] - 1])
+    phi_dihedrals.append(phi)
 
-    dihedral_coso = calc_dihedral(v1[row['ai'] - 1], v1[row['aj'] - 1], v1[row['ak'] - 1], v1[row['al'] - 1])
+gro_dihedrals['func'] = 9
+gro_dihedrals['phi'] = phi_dihedrals
+gro_dihedrals['kd'] = ''
+gro_dihedrals['mult'] = ''
 
 
-#print(v1)
-#print(len(v1))
 
-#print(v1[84])
+print(gro_dihedrals)
 
 
-#print(prova_dihe)
-
-#pdb_dihedrals = calc_dihedral(atom1.get_vector(), atom2.get_vector(), atom3.get_vector(), atom4.get_vector())
-
-#avrà sei colonne, quartetti func angolo e kd = 1
 
 
 # mi calcolo i vettori per ogni atomo e poi faccio un append su qualcosa. Poi semplicemente accedo ai valori che corrispondono a cose
