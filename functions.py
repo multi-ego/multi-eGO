@@ -263,6 +263,8 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     # and also add an _ so it is read for a for loop
     atypes2 = [x+'_' for x in atypes]
 
+    print(doubles.to_string())
+
     for a in atypes2:
         doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
         print('\t', 'atomtype', '\t', a, '\n')
