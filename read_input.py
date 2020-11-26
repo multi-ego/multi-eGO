@@ -1,4 +1,5 @@
 import pandas as pd
+from Bio.PDB.PDBParser import PDBParser
 from protein_configuration import fibril_chain_length, fibril_residue_offset, fibril_atom_number, fibril_atom_offset, protein
 
 
@@ -112,3 +113,29 @@ def read_fib_pairs():
     #fib_pairs['aj'] = fib_pairs['aj']+178 #flag
 
     return fib_pairs
+
+
+##############
+# GRETA
+##############
+
+
+def read_pdb():
+    native_parser = PDBParser(PERMISSIVE=1)
+    native_id = 'native'
+    native_filename = 'GRETA/native/pep.pdb'
+    native_structure = native_parser.get_structure(native_id, native_filename)
+
+    fibril_parser = PDBParser(PERMISSIVE=1)
+    fibril_id = 'fibril'
+    fibril_filename = 'GRETA/fibril/fibril.pdb'
+    fibril_structure = fibril_parser.get_structure(fibril_id, fibril_filename)
+
+    return native_structure, fibril_structure
+
+
+def read_gro_dihedrals():
+    native_dihedrals = pd.read_csv('GRETA/native/gro_dihedrals', sep = "\\s+", header = None)
+    native_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
+
+    return native_dihedrals
