@@ -1,8 +1,8 @@
 from protein_configuration import protein
-from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs
+from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs, read_pdbs, read_gro_bonds, read_gro_angles, read_gro_dihedrals
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
 from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded
-
+from GRETA2 import make_pairs, make_exclusion_list
 
 
     # Making a dictionary out of it to change the atomnumber to the atomtype
@@ -66,3 +66,25 @@ write_acid_ffnonbonded(atomtypes, acid_pairs)
 print('Merge ffnonbonded.itp created for both neutral and acidic pH')
 
 print(' REMEMBER TO CHANGE THE MASSES IN THE ATOMTYPES.ATP AND FFNONBONDED.ITP, THE H ARE EXPLICIT')
+
+print('GRETA TEST')
+
+native_pdb, fibril_pdb = read_pdbs()
+native_pdb_pairs = make_pairs(native_pdb, make_exclusion_list(native_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals()))
+#fibril_pdb_pairs = make_pairs(fibril_pdb, make_exclusion_list(fibril_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals()))
+
+
+
+
+
+
+#native_ex = make_exclusion_list(native_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals())
+#fibril_ex = make_exclusion_list(fibril_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals())
+
+#print(len(native_ex))
+#print(len(fibril_ex))
+
+#if native_ex == fibril_ex:
+#    print('same') # SAAAAAMEEEE!!!!
+#else:
+#    print('diverse')
