@@ -1,0 +1,158 @@
+;
+;	File 'topol.top' was generated
+;	By user: unknown (1000)
+;	On host: Laptop-Emanuele
+;	At date: Tue Dec  1 16:24:52 2020
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	                    :-) GROMACS - gmx pdb2gmx, 2020.3 (-:
+;	
+;	Executable:   /usr/local/gromacs/bin/gmx
+;	Data prefix:  /usr/local/gromacs
+;	Working dir:  /home/odinodeon/MAGROS/MAGROS/GRETA/fibril
+;	Command line:
+;	  gmx pdb2gmx -f clean_fibrillone.pdb -ignh -o conf.pdb
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "./gromos-pfix-mass-nolincs-noh-merge.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Protein_chain_A.itp"
+#include "topol_Protein_chain_B.itp"
+#include "topol_Protein_chain_C.itp"
+#include "topol_Protein_chain_D.itp"
+#include "topol_Protein_chain_E.itp"
+#include "topol_Protein_chain_F.itp"
+#include "topol_Protein_chain_G.itp"
+#include "topol_Protein_chain_H.itp"
+#include "topol_Protein_chain_A2.itp"
+#include "topol_Protein_chain_B2.itp"
+#include "topol_Protein_chain_C2.itp"
+#include "topol_Protein_chain_D2.itp"
+#include "topol_Protein_chain_E2.itp"
+#include "topol_Protein_chain_F2.itp"
+#include "topol_Protein_chain_G2.itp"
+#include "topol_Protein_chain_H2.itp"
+#include "topol_Protein_chain_A3.itp"
+#include "topol_Protein_chain_B3.itp"
+#include "topol_Protein_chain_C3.itp"
+#include "topol_Protein_chain_D3.itp"
+#include "topol_Protein_chain_E3.itp"
+#include "topol_Protein_chain_F3.itp"
+#include "topol_Protein_chain_G3.itp"
+#include "topol_Protein_chain_H3.itp"
+#include "topol_Protein_chain_A4.itp"
+#include "topol_Protein_chain_B4.itp"
+#include "topol_Protein_chain_C4.itp"
+#include "topol_Protein_chain_D4.itp"
+#include "topol_Protein_chain_E4.itp"
+#include "topol_Protein_chain_F4.itp"
+#include "topol_Protein_chain_G4.itp"
+#include "topol_Protein_chain_H4.itp"
+#include "topol_Protein_chain_A5.itp"
+#include "topol_Protein_chain_B5.itp"
+#include "topol_Protein_chain_C5.itp"
+#include "topol_Protein_chain_D5.itp"
+#include "topol_Protein_chain_E5.itp"
+#include "topol_Protein_chain_F5.itp"
+#include "topol_Protein_chain_G5.itp"
+#include "topol_Protein_chain_H5.itp"
+#include "topol_Protein_chain_A6.itp"
+#include "topol_Protein_chain_B6.itp"
+#include "topol_Protein_chain_C6.itp"
+#include "topol_Protein_chain_D6.itp"
+#include "topol_Protein_chain_E6.itp"
+#include "topol_Protein_chain_F6.itp"
+#include "topol_Protein_chain_G6.itp"
+#include "topol_Protein_chain_H6.itp"
+#include "topol_Protein_chain_A7.itp"
+#include "topol_Protein_chain_B7.itp"
+#include "topol_Protein_chain_C7.itp"
+#include "topol_Protein_chain_D7.itp"
+#include "topol_Protein_chain_E7.itp"
+#include "topol_Protein_chain_F7.itp"
+#include "topol_Protein_chain_G7.itp"
+#include "topol_Protein_chain_H7.itp"
+#include "topol_Protein_chain_A8.itp"
+#include "topol_Protein_chain_B8.itp"
+#include "topol_Protein_chain_C8.itp"
+#include "topol_Protein_chain_D8.itp"
+#include "topol_Protein_chain_E8.itp"
+#include "topol_Protein_chain_F8.itp"
+#include "topol_Protein_chain_G8.itp"
+#include "topol_Protein_chain_H8.itp"
+
+[ system ]
+; Name
+Protein
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_A     1
+Protein_chain_B     1
+Protein_chain_C     1
+Protein_chain_D     1
+Protein_chain_E     1
+Protein_chain_F     1
+Protein_chain_G     1
+Protein_chain_H     1
+Protein_chain_A2     1
+Protein_chain_B2     1
+Protein_chain_C2     1
+Protein_chain_D2     1
+Protein_chain_E2     1
+Protein_chain_F2     1
+Protein_chain_G2     1
+Protein_chain_H2     1
+Protein_chain_A3     1
+Protein_chain_B3     1
+Protein_chain_C3     1
+Protein_chain_D3     1
+Protein_chain_E3     1
+Protein_chain_F3     1
+Protein_chain_G3     1
+Protein_chain_H3     1
+Protein_chain_A4     1
+Protein_chain_B4     1
+Protein_chain_C4     1
+Protein_chain_D4     1
+Protein_chain_E4     1
+Protein_chain_F4     1
+Protein_chain_G4     1
+Protein_chain_H4     1
+Protein_chain_A5     1
+Protein_chain_B5     1
+Protein_chain_C5     1
+Protein_chain_D5     1
+Protein_chain_E5     1
+Protein_chain_F5     1
+Protein_chain_G5     1
+Protein_chain_H5     1
+Protein_chain_A6     1
+Protein_chain_B6     1
+Protein_chain_C6     1
+Protein_chain_D6     1
+Protein_chain_E6     1
+Protein_chain_F6     1
+Protein_chain_G6     1
+Protein_chain_H6     1
+Protein_chain_A7     1
+Protein_chain_B7     1
+Protein_chain_C7     1
+Protein_chain_D7     1
+Protein_chain_E7     1
+Protein_chain_F7     1
+Protein_chain_G7     1
+Protein_chain_H7     1
+Protein_chain_A8     1
+Protein_chain_B8     1
+Protein_chain_C8     1
+Protein_chain_D8     1
+Protein_chain_E8     1
+Protein_chain_F8     1
+Protein_chain_G8     1
+Protein_chain_H8     1

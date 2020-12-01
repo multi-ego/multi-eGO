@@ -156,3 +156,9 @@ def read_gro_dihedrals():
     native_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
 
     return native_dihedrals
+
+def read_gro_impropers():
+    native_dihedrals = pd.read_csv('GRETA/native/gro_impropers', sep = "\\s+", header = None)
+    native_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
+
+    return native_dihedrals

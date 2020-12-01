@@ -12,28 +12,21 @@ native_bonds =  read_gro_bonds()
 native_angles = read_gro_angles()
 native_dihedrals = read_gro_dihedrals()
 
-def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihedrals):
-    #structure_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
-    print(structure_pdb)
+def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihedrals, native_impropers):
     
-
     exclusion_list = []
-
     for index, row in native_bonds.iterrows():
         # For every bonds two atoms are defined and for every atom it is retrieved the atomtype
-        exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
-          
-
-    #print(exclusion_list) # OK solo bonded
-    #print(len(exclusion_list)) # 87
+        exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))   
+    
+    print('Exclusion List from bonds:               ', len(exclusion_list)) # 87
 
     for index, row in native_angles.iterrows():
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
-
-    #print(exclusion_list) 
-    #print(len(exclusion_list)) # 447
+    
+    print('Addition of angles to exclusion list:    ', len(exclusion_list)) # 447
 
 
     for index, row in native_dihedrals.iterrows():
@@ -44,86 +37,21 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
         exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
 
-    #print(exclusion_list) 
-    #print(len(exclusion_list)) # 861
+    print('Addition of dihedrals to exclusion list: ', len(exclusion_list)) # 861
 
-    exclusion_list = list(set(exclusion_list))
-
-    #print(exclusion_list) 
-    #print(len(exclusion_list)) # 286
-
-
-
-
-    # Creating empty lists to be filled
-    #bonds_ai = []
-    #bonds_aj = []
-    #for index, row in native_bonds.iterrows():
-    #    # For every bonds two atoms are defined and for every atom it is retrieved the atomtype
-    #    bonds_ai.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum))
-    #    bonds_aj.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
+    for index, row in native_impropers.iterrows():
+        exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
+        exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
+        exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
+        exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
+        exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
+        exclusion_list.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
     
-    ## Here a combination of every values between ai and aj is made
-    #bonds_combinations = list(product(bonds_ai, bonds_aj))
-    ## And the first exclusion list is created where more values will be added based on angles and dihedrals
-    #exclusion_list = bonds_combinations.copy()
-    #
-    ##print(f'exclusion_list: {len(exclusion_list)} \n bonds_combinations: {len(bonds_combinations)}')
-    #
-    ##print(exclusion_list)
-    #
-    #### ANGLES
-    #angles_ai = []
-    #angles_aj = []
-    #angles_ak = []
-    #for index, row in native_angles.iterrows():
-    #    angles_ai.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum))
-    #    angles_aj.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
-    #    angles_ak.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
-    #angles_combinations_ai_aj = list(product(angles_ai, angles_aj))
-    #angles_combinations_aj_ak = list(product(angles_aj, angles_ak))
-    #angles_combinations_ai_ak = list(product(angles_ai, angles_ak))
-    ##print(len(angles_combinations_ai_aj))
-    ##print(len(angles_combinations_aj_ak))
-    ##print(len(angles_combinations_ai_ak))
-    #exclusion_list.extend(x for x in angles_combinations_ai_aj if x not in exclusion_list)
-    #exclusion_list.extend(x for x in angles_combinations_aj_ak if x not in exclusion_list)
-    #exclusion_list.extend(x for x in angles_combinations_ai_ak if x not in exclusion_list)
-    #
-    #print(f'exclusion list after angles : {len(exclusion_list)}')
-    #
-    #### DIHEDRALS
-    #dihedrals_ai = []
-    #dihedrals_aj = []
-    #dihedrals_ak = []
-    #dihedrals_al = []
-    #
-    #for index, row in native_dihedrals.iterrows():
-    #    dihedrals_ai.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum))
-    #    dihedrals_aj.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
-    #    dihedrals_ak.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
-    #    dihedrals_al.append(str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
-    #dihedrals_combinations_ai_aj = list(product(dihedrals_ai, dihedrals_aj))
-    #dihedrals_combinations_aj_ak = list(product(dihedrals_aj, dihedrals_ak))
-    #dihedrals_combinations_ai_ak = list(product(dihedrals_ai, dihedrals_ak))
-    #dihedrals_combinations_ai_al = list(product(dihedrals_ai, dihedrals_al))
-    #dihedrals_combinations_aj_al = list(product(dihedrals_aj, dihedrals_al))
-    #dihedrals_combinations_ak_al = list(product(dihedrals_ak, dihedrals_al))
-    ##print(len(dihedrals_combinations_ai_aj))
-    ##print(len(dihedrals_combinations_aj_ak))
-    ##print(len(dihedrals_combinations_ai_ak))
-    ##print(len(dihedrals_combinations_ai_al))
-    ##print(len(dihedrals_combinations_aj_al))
-    ##print(len(dihedrals_combinations_ak_al))
-    #exclusion_list.extend(x for x in dihedrals_combinations_ai_aj if x not in exclusion_list)
-    #exclusion_list.extend(x for x in dihedrals_combinations_aj_ak if x not in exclusion_list)
-    #exclusion_list.extend(x for x in dihedrals_combinations_ai_ak if x not in exclusion_list)
-    #exclusion_list.extend(x for x in dihedrals_combinations_ai_al if x not in exclusion_list)
-    #exclusion_list.extend(x for x in dihedrals_combinations_aj_al if x not in exclusion_list)
-    #exclusion_list.extend(x for x in dihedrals_combinations_ak_al if x not in exclusion_list)
-    #
-    #print(f'exclusion list after dihedrals : {len(exclusion_list)}')
-    #print('Exclusion list has been created') # aggiungere se nativa o fibrilla
+    print('Addition of impropers to exclusion list: ', len(exclusion_list)) # 1119
+
+    # Keep only unique values
+    exclusion_list = list(set(exclusion_list))
+    print('Drop duplicates in the exclusion list:   ', len(exclusion_list)) # 350
     return exclusion_list
 
 
@@ -164,10 +92,6 @@ def make_pairs (structure_pdb, exclusion_list):
 
     # Combining all the atomtypes in the list to create a pair list corresponding to the distance array
     pairs_list = list(itertools.combinations(atomtype, 2))
-    # Removal of all the exclusions obtained from the bonded part
-    #set_clean_pairs = set(pairs_list) - set(exclusion_list)
-    # Those are the LJ to keep
-    #clean_pairs = list(set_clean_pairs)
 
     pairs_ai = []
     pairs_aj = []
@@ -178,94 +102,36 @@ def make_pairs (structure_pdb, exclusion_list):
         j = pairs_list[n][1]
         pairs_aj.append(j)
 
-    # I need to do the same for the clean pairs
-    # This is because I have to assign to the measures the full pairs list 
-    # and then delete using the clean list information
-    #check_list = []
-    # But the combinations are list of list and we need to separate them
-    #for n in range(0, len(clean_pairs)):
-    #    check_list.append(str(clean_pairs[n][0]) + '_' + str(clean_pairs[n][1]))
-
     # Creation of the dataframe containing the ffnonbonded.itp
-    structural_LJ = pd.DataFrame(columns = [';ai', 'aj', 'distance', 'sigma', 'epsilon', 'check'])
-    structural_LJ[';ai'] = pairs_ai
+    structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'check'])
+    structural_LJ['ai'] = pairs_ai
     structural_LJ['aj'] = pairs_aj
     structural_LJ['distance'] = self_distances
-    structural_LJ['check'] = structural_LJ[';ai'] + '_' + structural_LJ['aj']
-    
-    
-    
-    
-    
+    structural_LJ['check'] = structural_LJ['ai'] + '_' + structural_LJ['aj']
     # Here we keep only the one without the exclusions
-    #structural_LJ = structural_LJ[structural_LJ['check'].isin(check_list)]
     structural_LJ = structural_LJ[~structural_LJ['check'].isin(exclusion_list)]
-    
-    
-    
     # Keep only the atoms within 6 A
     structural_LJ = structural_LJ[structural_LJ.distance < 6]
-
     # Drop of the pairs which are included in bonds, angles and dihedrals.
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
     structural_LJ['epsilon'] = 1
 
-    #print('LJ pairs')
-    #print(len(structural_LJ))
-    #print(structural_LJ)
-
     # This part is to filter more the LJ like in smog: if two pairs are made by aminoacids closer than
     # 3 they'll be deleted. Therefore aminoacids 1, 2, 3 and 4 does not make any contacts.
-
     # Therefore I copy the LJ dataframe and apply some more filters
-
-    smog_ex_LJ = structural_LJ.copy()
-    smog_ex_LJ = smog_ex_LJ.rename(columns = {';ai': 'ai'})
-    # Condition to split the residue number
-    smog_ex_LJ[['type_ai', 'resnum_ai']] = smog_ex_LJ.ai.str.split("_", expand = True)
-    smog_ex_LJ[['type_aj', 'resnum_aj']] = smog_ex_LJ.aj.str.split("_", expand = True)
-    smog_ex_LJ['greater'] = ''
-    # Here I just want to check if all aj is greater or equal than ai in all columns
+    structural_LJ[['type_ai', 'resnum_ai']] = structural_LJ.ai.str.split("_", expand = True)
+    structural_LJ[['type_aj', 'resnum_aj']] = structural_LJ.aj.str.split("_", expand = True)
     # And to do that it is necessary to convert the two columns into integer
-    smog_ex_LJ = smog_ex_LJ.astype({"resnum_ai": int, "resnum_aj": int})
-    smog_ex_LJ.loc[(smog_ex_LJ['resnum_aj'] >= smog_ex_LJ['resnum_ai']), 'greater'] = 'True'
-
-    #print('LJ pairs SMOG exclusions')
-    #print(len(smog_ex_LJ))
-    #print(smog_ex_LJ) 
+    structural_LJ = structural_LJ.astype({"resnum_ai": int, "resnum_aj": int})
+    structural_LJ['diff'] = ''
+    structural_LJ.drop(structural_LJ[abs((structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])) < 4].index, inplace = True)
+    structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
     
-    smog_ex_LJ['diff'] = ''
-    
-    
-    if (smog_ex_LJ['greater'] == 'True').all():
-        #print('True')
-        smog_ex_LJ.drop(smog_ex_LJ[(smog_ex_LJ['resnum_aj'] - smog_ex_LJ['resnum_ai']) < 4].index, inplace = True)
-        smog_ex_LJ['diff'] = smog_ex_LJ['resnum_aj'] - smog_ex_LJ['resnum_ai']
-        #acid_full.loc[(acid_full[';ai'] == i) & (acid_full['aj'] == i), 'double'] = 'True'
-
-    else:
-        print('CHEEEECK')
-    
-    print(smog_ex_LJ.to_string()) 
-    print(len(smog_ex_LJ))
+    #print(structural_LJ.to_string()) 
+    print(len(structural_LJ))
     #print(exclusion_list)
 
-
-#((smog_ex_LJ['resnum_aj'] - smog_ex_LJ['resnum_ai']) < 3)
-
-    #if len(np.unique(smog_ex_LJ.greater)) == 1:
-    #    if smog_ex_LJ[['greater']] == 'True':
-    #        print('aj greater than ai')
-    #else:
-    #    print('CHECK')
-
-
-
-    
-
-
-
-    return structural_LJ, smog_ex_LJ
+    return structural_LJ
 
 
 
