@@ -124,7 +124,7 @@ def read_fib_pairs():
 def read_pdbs():
     
     native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True)
-    fibril_pdb = mda.Universe('GRETA/fibril/fibril.pdb', guess_bonds = True)
+    fibril_pdb = mda.Universe('GRETA/fibril/conf.pdb', guess_bonds = True)
 
     #native_parser = PDBParser(PERMISSIVE=1)
     #native_id = 'native'
