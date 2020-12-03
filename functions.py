@@ -204,7 +204,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pairs_full[cols] = np.sort(pairs_full[cols].values, axis=1)
     pairs_full = pairs_full.drop_duplicates()
 
-    check_SMOG = pairs_full[['ai', 'aj']].copy()
+    #check_SMOG = pairs_full[['ai', 'aj']].copy()
 
     ### ACID FF
     # Sorting the pairs
@@ -398,5 +398,5 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
         acid_full = acid_full.append(acid_atp_toadd, sort = False, ignore_index = True)
 
-    return pairs_full, acid_full, check_SMOG
+    return pairs_full, acid_full#, check_SMOG
     

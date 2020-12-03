@@ -58,7 +58,7 @@ def read_fib_atoms():
     return fib_atoms
 
     
-def read_gro_atoms():
+def read_gro_atoms(): # GRETA TO KEEP
     # Reading the atoms section from gromos topology
     # Requires a manual clean to delete all the comment lines
     directory = 'input_%s/pep_gro_atoms' % (protein)
