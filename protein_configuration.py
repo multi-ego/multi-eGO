@@ -46,3 +46,8 @@ temperatura = 300 # TTR
 t_ratio = temperatura / 70 # TTR
 #temperatura = 296 # B2m
 #t_ratio = temperatura / 70 # B2m
+
+
+########## GRETA
+distance_cutoff = 6
+distance_residue = 4

@@ -7,6 +7,7 @@ import pandas as pd
 import itertools
 from itertools import product, combinations
 from atomtypes_definitions import gromos_atp
+from protein_configuration import distance_cutoff, distance_residue
 
 #native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
 native_bonds =  read_gro_bonds()
@@ -186,7 +187,7 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
 
     print('\n\t Applying distance cutoff of 6A')
     # Keep only the atoms within 6 A
-    structural_LJ = structural_LJ[structural_LJ.distance < 6] # PROTEIN CONFIGURATION
+    structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
     print('\t Pairs below cutoff 6: ', len(structural_LJ))
 
     print('\t Applying residue number cutoff of 3')
@@ -201,9 +202,7 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     
     
     # Da riattivare successivamente, test tenendo solo exlcusion list bonded e non SB
-    structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < 4) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)
-    # DA METTERE SU PROTEIN CONFIGURATION
-    
+    structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
     print('\t All the pairs further than 3 aminoacids and not in the same chain: ', len(structural_LJ))
