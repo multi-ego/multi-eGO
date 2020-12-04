@@ -154,16 +154,6 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pep_pairs['A'] = pep_pairs['A'] / ratio
     pep_pairs['B'] = pep_pairs['B'] / ratio
 
-    # From now the function behaves like the others
-    A_notation = pep_pairs["A"].map(lambda x:'{:.9e}'.format(x))
-    B_notation = pep_pairs["B"].map(lambda x:'{:.9e}'.format(x))
-    pep_pairs = pep_pairs.assign(A = A_notation)
-    pep_pairs = pep_pairs.assign(B = B_notation)
-    A_notation = fib_pairs["A"].map(lambda x:'{:.9e}'.format(x))
-    B_notation = fib_pairs["B"].map(lambda x:'{:.9e}'.format(x))
-    fib_pairs = fib_pairs.assign(A = A_notation)
-    fib_pairs = fib_pairs.assign(B = B_notation)
-
         # If acidic the following pep_pairs will be removed
         # Remove the lines by searching in the two colums 
         # Filter the informations from gromos atomtype and make a list of the atomtypes to remove
@@ -193,7 +183,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
 
 
     # Sorting the pairs
-    pairs_full.sort_values(by = ['ai', 'aj', 'A'], inplace = True)
+    pairs_full.sort_values(by = ['ai', 'aj', 'B'], inplace = True) # sort su c12 e non su c6 MASTER
     # Cleaning the duplicates
     pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
@@ -215,6 +205,11 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     # Removing the reverse duplicates
     acid_full[cols] = np.sort(acid_full[cols].values, axis=1)
     acid_full = acid_full.drop_duplicates()
+
+    A_notation = pairs_full["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = pairs_full["B"].map(lambda x:'{:.9e}'.format(x))
+    pairs_full = pairs_full.assign(A = A_notation)
+    pairs_full = pairs_full.assign(B = B_notation)
 
 
     # Renaming columns
