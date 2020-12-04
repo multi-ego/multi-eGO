@@ -21,6 +21,9 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     ffnb_sb_type = []
     ffnb_residue = []
     ffnb_name = []
+    top_nr = []
+    top_resnr = []
+
     for atom in native_sel:
         # Also the chain ID is printed along because it might happen an interaction between two atoms of different 
         # chains but of the same residue which would be deleted based only by the eclusion list as example
@@ -36,6 +39,11 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
         name = str(atom.name)
         ffnb_name.append(name) # Questo per quando verranno definiti meglio 
                                # gli atomtypes
+        # This is for atoms section of topology
+        nr = (atom.index) + 1
+        top_nr.append(nr)
+        resnr = (atom.resnum)
+        top_resnr.append(resnr)
 
     
     fibril_sel = fibril_pdb.select_atoms('all')
@@ -63,10 +71,24 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem', 'residue', 'name'], inplace = True)
-    
+
+    topology_atoms = pd.DataFrame(columns = ['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB'])
+    topology_atoms['; nr'] = top_nr
+    topology_atoms['type'] = ffnb_sb_type
+    topology_atoms['resnr'] = top_resnr
+    topology_atoms['residue'] = ffnb_residue
+    topology_atoms['atom'] = ffnb_name
+    topology_atoms['cgnr'] = pep_gro_atoms['cgnr']
+    topology_atoms['charge'] = ''
+    topology_atoms['mass'] = ''
+    topology_atoms['typeB'] = ''
+    topology_atoms['chargeB'] = ''
+    topology_atoms['massB'] = ''
+
+
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp
+    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms
 
 def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihedrals, native_impropers):
     

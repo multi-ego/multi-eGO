@@ -131,13 +131,31 @@ def write_greta_atomtypes_atp(atomtypes_atp):
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
+def write_greta_topology_atoms(topology_atoms):
+    # This function is used to create the atomtypes.atp.
+    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
+    directory = 'GRETA/topology_atoms'
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff))
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atoms ]")
+    file.write("\n")
+    file.write(str(topology_atoms.to_string(index = False)))
+    file.close()
+
 def write_greta_LJ(atomtypes, greta_LJ):
     #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
     directory = "GRETA/ffnonbonded.itp"
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
-    file.write('; ' + 'distance cutoff: ' + str(distance_cutoff))
+    file.write('; Distance cutoff: ' + str(distance_cutoff))
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")

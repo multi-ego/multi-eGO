@@ -1,6 +1,6 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; TTR
-; 2020-12-04 19:07:27.474059
+; 2020-12-04 23:11:18.599066
 ; Temperature Ratio: 300 / 70
 [ atomtypes ]
  ; type  at.num  mass    charge ptype           c6           c12

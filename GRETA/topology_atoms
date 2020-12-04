@@ -1,5 +1,6 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
-; TTR
+; Distance cutoff: 4.75
+; Residue cutoff: 0
 ; 2020-12-04 23:11:18.599066
 [ atoms ]
  ; nr    type  resnr residue atom  cgnr charge mass typeB chargeB massB
@@ -27,7 +28,7 @@
    22    CB_3      3     ILE   CB    16                                
    23   CG1_3      3     ILE  CG1    16                                
    24   CG2_3      3     ILE  CG2    16                                
-   25   CD1_3      3     ILE  CD1    16                                
+   25    CD_3      3     ILE   CD    16                                
    26     C_3      3     ILE    C    17                                
    27     O_3      3     ILE    O    17                                
    28     N_4      4     ALA    N    18                                
@@ -81,10 +82,10 @@
    76   OH_10     10     TYR   OH    46                                
    77    C_10     10     TYR    C    47                                
    78    O_10     10     TYR    O    47                                
-   79    N_11     11    SERT    N    48                                
-   80   CA_11     11    SERT   CA    49                                
-   81   CB_11     11    SERT   CB    50                                
-   82   OG_11     11    SERT   OG    50                                
-   83    C_11     11    SERT    C    51                                
-   84    O_11     11    SERT    O    51                                
-   85  OXT_11     11    SERT  OXT    51                                
+   79    N_11     11     SER    N    48                                
+   80   CA_11     11     SER   CA    49                                
+   81   CB_11     11     SER   CB    50                                
+   82   OG_11     11     SER   OG    50                                
+   83    C_11     11     SER    C    51                                
+   84   O1_11     11     SER   O1    51                                
+   85   O2_11     11     SER   O2    51                                
