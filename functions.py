@@ -207,6 +207,10 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pairs_full = pairs_full.assign(A = A_notation)
     pairs_full = pairs_full.assign(B = B_notation)
 
+    A_notation = acid_full["A"].map(lambda x:'{:.9e}'.format(x))
+    B_notation = acid_full["B"].map(lambda x:'{:.9e}'.format(x))
+    acid_full = acid_full.assign(A = A_notation)
+    acid_full = acid_full.assign(B = B_notation)
 
     # Renaming columns
     pairs_full.columns = [';ai', 'aj', 'type', 'A', 'B']
@@ -260,7 +264,7 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
         # and also add an _ so it is read for a for loop
         atypes2 = [x+'_' for x in atypes]
 
-        #print(doubles.to_string())
+        print(doubles.to_string())
 
         for a in atypes2:
             doubles_a = doubles.loc[(doubles[';ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
