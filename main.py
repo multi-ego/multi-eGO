@@ -37,7 +37,7 @@ print('')
 print('Writing atomtype.atp')
 print('')
 
-#write_atomtypes_atp(atp)
+write_atomtypes_atp(atp)
 
     # Topology section
 
@@ -45,12 +45,12 @@ print('Writing the topology atomtypes section to paste into GROMOS.top')
 print('')
 
 gromos_top = gromos_topology(read_gro_atoms())
-#write_gromos_topology(gromos_top)
+write_gromos_topology(gromos_top)
 
 print('Writing the proper dihedrals from SMOG to GROMOS')
 
 propers_to_gro = smog_to_gromos_dihedrals(read_pep_dihedrals(), read_fib_dihedrals(), pep_smog_to_gro_dict)
-#write_smog_to_gromos_dihedrals(propers_to_gro)
+write_smog_to_gromos_dihedrals(propers_to_gro)
 
 print('SMOG to GROMOS topology files ready!')
 print('')
@@ -60,8 +60,8 @@ print('')
 print('Merge ffnonbonded.itp preparation')
 
 merge_pairs, acid_pairs = ffnonbonded_merge_pairs(read_pep_pairs(), read_fib_pairs(), dict_pep_atomtypes, dict_fib_atomtypes)
-#write_merge_ffnonbonded(atomtypes, merge_pairs)
-#write_acid_ffnonbonded(atomtypes, acid_pairs)
+write_merge_ffnonbonded(atomtypes, merge_pairs)
+write_acid_ffnonbonded(atomtypes, acid_pairs)
 
 print('Merge ffnonbonded.itp created for both neutral and acidic pH')
 
@@ -91,6 +91,8 @@ greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
+
+print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 #print(non_bonded.to_string())
 

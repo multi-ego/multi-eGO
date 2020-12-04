@@ -1,6 +1,6 @@
 import os
 import datetime
-from protein_configuration import temperatura, protein
+from protein_configuration import temperatura, protein, distance_residue, distance_cutoff
 
 
     # Create the folders which will be used by the script
@@ -137,11 +137,11 @@ def write_greta_LJ(atomtypes, greta_LJ):
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
-    file.write('; ' + 'GRETA TTR')
+    file.write('; ' + 'distance cutoff: ' + str(distance_cutoff))
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")
     file.write('; ' + str(now))
-    file.write("\n")
-    #file.write(f'; Temperature Ratio: {temperatura} / 70')
     file.write("\n")
     file.write("[ atomtypes ]\n")
     file.write(str(atomtypes.to_string(index = False)))

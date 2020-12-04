@@ -49,5 +49,5 @@ t_ratio = temperatura / 70 # TTR
 
 
 ########## GRETA
-distance_cutoff = 6
-distance_residue = 4
+distance_cutoff = 4.75
+distance_residue = 0

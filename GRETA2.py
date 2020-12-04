@@ -185,12 +185,12 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     print('\t Pairs in the same chain and included in the exclusion list :', len(mask))
     print('\t After exclusion list and chain selection', len(structural_LJ))
 
-    print('\n\t Applying distance cutoff of 6A')
+    print(f'\n\t Applying distance cutoff of {distance_cutoff}A')
     # Keep only the atoms within 6 A
     structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
     print('\t Pairs below cutoff 6: ', len(structural_LJ))
 
-    print('\t Applying residue number cutoff of 3')
+    print(f'\t Applying residue number cutoff of {distance_residue}')
     # This part is to filter more the LJ like in smog: if two pairs are made by aminoacids closer than
     # 3 they'll be deleted. Therefore aminoacids 1, 2, 3 and 4 does not make any contacts.
     # Therefore I copy the LJ dataframe and apply some more filters
@@ -224,12 +224,10 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
     structural_LJ = structural_LJ.drop_duplicates()
     print('\t Cleaning Complete ', len(structural_LJ))
-    print('\n\t Calculating sigma and epsilon')
     
+    print('\n\t Calculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['sigma'] = structural_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
-
-    structural_LJ['epsilon'] = 2.49 # PROTEIN CONFIGURATION
+    structural_LJ['epsilon'] = 2.49 # PROTEIN CONFIGURATION # 0.41 epsilon MAGROS
 
     print('\n\n\t Sigma and epsilon completed ', len(structural_LJ))
     
@@ -250,14 +248,23 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates()
 
-
-
     #check_GRETA = greta_LJ[['ai', 'aj']].copy()
-
     # Drop columns
     greta_LJ.insert(2, 'type', 1)
+    greta_LJ.insert(3, 'c12', '')
+    greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
+    greta_LJ.insert(3, 'c6', '')
+    greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
+    greta_LJ.insert(5, '', ';')
+    
+    # Drop columns
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
+    greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
+    greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
+    greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
+    print('\t GRETA FF COMPLETE: ', len(greta_LJ))
+
 
     return greta_LJ#, check_GRETA
 
