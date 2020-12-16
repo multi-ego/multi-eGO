@@ -7,7 +7,7 @@ import pandas as pd
 import itertools
 from itertools import product, combinations
 from atomtypes_definitions import gromos_atp
-from protein_configuration import distance_cutoff, distance_residue
+from protein_configuration import distance_cutoff, distance_residue, epsilon
 
 #native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
 native_bonds =  read_gro_bonds()
@@ -249,7 +249,7 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     
     print('\n\t Calculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = 2.49 # PROTEIN CONFIGURATION # 0.41 epsilon MAGROS
+    structural_LJ['epsilon'] = epsilon #2.49 # PROTEIN CONFIGURATION # 0.41 epsilon MAGROS
 
     print('\n\n\t Sigma and epsilon completed ', len(structural_LJ))
     
