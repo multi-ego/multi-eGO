@@ -16,6 +16,7 @@ native_dihedrals = read_gro_dihedrals()
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
 
+    print('\t Native atomtypes')
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes = []
     ffnb_sb_type = []
@@ -46,6 +47,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
         top_resnr.append(resnr)
 
     
+    print('\t Fibril atomtypes')
     fibril_sel = fibril_pdb.select_atoms('all')
     fibril_atomtypes = []
     for atom in fibril_sel:
@@ -55,7 +57,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
 
     # ffnonbonded making
     # Making a dictionary with atom number and type
-
+    print('\t FFnonbonded atomtypes section creation')
     ffnb_atomtype = pd.DataFrame(columns = ['; type', 'name', 'chem', 'residue', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
 
     ffnb_atomtype['; type'] = ffnb_sb_type
@@ -72,6 +74,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem', 'residue', 'name'], inplace = True)
 
+    print('\t Topology atomtypes section creation')
     topology_atoms = pd.DataFrame(columns = ['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB'])
     topology_atoms['; nr'] = top_nr
     topology_atoms['type'] = ffnb_sb_type
@@ -85,7 +88,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     topology_atoms['chargeB'] = ''
     topology_atoms['massB'] = ''
 
-
+    print('\t Atomtypes.atp file creation')
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms
@@ -97,14 +100,14 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
         # For every bonds two atoms are defined and for every atom it is retrieved the atomtype
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))   
     
-    print('Exclusion List from bonds:               ', len(exclusion_list)) # 87
+    print('\t Exclusion List from bonds:               ', len(exclusion_list)) # 87
 
     for index, row in native_angles.iterrows():
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))
     
-    print('Addition of angles to exclusion list:    ', len(exclusion_list)) # 447
+    print('\t Addition of angles to exclusion list:    ', len(exclusion_list)) # 447
 
 
     for index, row in native_dihedrals.iterrows():
@@ -115,7 +118,7 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
         exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
 
-    print('Addition of dihedrals to exclusion list: ', len(exclusion_list)) # 861
+    print('\t Addition of dihedrals to exclusion list: ', len(exclusion_list)) # 861
 
     for index, row in native_impropers.iterrows():
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
@@ -125,7 +128,7 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
         exclusion_list.append(str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['al'] - 1].name) + '_' + str(structure_pdb.atoms[row['al'] - 1].resnum))
     
-    print('Addition of impropers to exclusion list: ', len(exclusion_list)) # 1119
+    print('\t Addition of impropers to exclusion list: ', len(exclusion_list)) # 1119
 
     # Keep only unique values
     exclusion_list = list(set(exclusion_list))
@@ -278,30 +281,20 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(5, '', ';')
 
+
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     # SELF INTERACTIONS
-    atomtypes = set(greta_LJ['ai'])
+    
+    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'CA_1') & (greta_LJ.aj == 'CA_1')].index, inplace = True)
+    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'OH_10') & (greta_LJ.aj == 'OH_10')].index, inplace = True)
 
+    print('\n GRETA - Self interactions')
+    atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
     
-    
-    
-    #print(greta_LJ)
-    
-    ###########
-    #### RICORDATI DI CANCELLARE QUESTA RIGA
-    
-    #greta_LJ = greta_LJ.iloc[1:]
-
-###############################
-############################
-################################
-    #print(greta_LJ)
-
-
+    print('\t Checking how many atoms does not self interact')
     for i in atomtypes:
-
         # Questo funziona e riesco a fargli dire quello che voglio.
         # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
         greta_LJ.loc[(greta_LJ['ai'] == i) & (greta_LJ['aj'] == i), 'double'] = 'True'
@@ -313,10 +306,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     atp_notdoubles = list(set(set(atomtypes) - set(atp_doubles)))
 
     if len(atp_notdoubles) == 0:
-        print('All atoms interacts with themself')
+        print('\n\t All atoms interacts with themself')
         
     else:
-        print('There are', len(atp_notdoubles), 'self interactions to add:\n', atp_notdoubles)
+        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\t', atp_notdoubles)
 
         #print(doubles)
         #print(atp_doubles) # 84
@@ -347,15 +340,15 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
             #    print('\t','sigma of ', a, '= ', s)
             
             media_sigma = sigma.mean()
-            print('\n', '\t', 'Average Sigma for', a, ':', '\t', media_sigma)
+            print('\n\t\t', 'Average Sigma for', a, ':', '\t', media_sigma)
             
             
             # Nuovi c6 e c12
             new_c6 = 4 * epsilon_input * (media_sigma ** 6)
             new_c12 = 4 * epsilon_input * (media_sigma ** 12)
 
-            print('new c6 for ', a, '= ', new_c6)
-            print('new c12 for ', a, '= ', new_c12)
+            print('\t\t New c6 for ', a, '=\t', new_c6)
+            print('\t\t New c12 for ', a, '=\t', new_c12)
             pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6#.mean()
             pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12#.mean()
             pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
@@ -363,13 +356,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         
         pairs_toadd.insert(5, '', ';')
 
-        print(pairs_toadd)
-
         # Drop NaN: SD_1 SD_100 and OXT_100 -> in case of B2m
-
         pairs_toadd.dropna(inplace = True)
         greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
-        print('Self interactions added to greta_LJ')
+        print('\n\t Self interactions added to greta_LJ\n')
 
     # Drop columns
     greta_LJ.drop(columns = ['double'], inplace = True)

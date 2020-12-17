@@ -1,7 +1,7 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5
 ; Residue cutoff: 0
-; 2020-12-17 18:32:38.655305
+; 2020-12-17 23:15:46.237235
 [ atomtypes ]
  ; type  at.num  mass    charge ptype           c6           c12
     N_1       7    15  0.000000     A  0.00000e+00  4.639000e-05

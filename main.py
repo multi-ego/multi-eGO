@@ -75,6 +75,7 @@ print('\n\n\n\n GRETA TEST \n\n\n\n')
 print('GRETA - PDB reading')
 native_pdb, fibril_pdb = read_pdbs()
 
+print('GRETA - Making Atomtypes')
 native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms = make_pdb_atomtypes(native_pdb, fibril_pdb, read_gro_atoms())
 print('\n GRETA - Making the exclusion list from bonded')
 exclusion_list = make_exclusion_list(native_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals(), read_gro_impropers())
