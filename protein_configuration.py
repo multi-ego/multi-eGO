@@ -51,4 +51,4 @@ t_ratio = temperatura / 70 # TTR
 ########## GRETA
 distance_cutoff = 5
 distance_residue = 0
-epsilon_input = 0.385
+epsilon_input = 0.375

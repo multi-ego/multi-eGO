@@ -7,7 +7,7 @@ import pandas as pd
 import itertools
 from itertools import product, combinations
 from atomtypes_definitions import gromos_atp
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, protein
 
 #native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
 native_bonds =  read_gro_bonds()
@@ -271,16 +271,108 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ = greta_LJ.drop_duplicates()
 
     #check_GRETA = greta_LJ[['ai', 'aj']].copy()
-    # Drop columns
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
     greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(5, '', ';')
-    
-    # Drop columns
+
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
+
+    # SELF INTERACTIONS
+    atomtypes = set(greta_LJ['ai'])
+
+    greta_LJ['double'] = ''
+    
+    
+    
+    #print(greta_LJ)
+    
+    ###########
+    #### RICORDATI DI CANCELLARE QUESTA RIGA
+    
+    #greta_LJ = greta_LJ.iloc[1:]
+
+###############################
+############################
+################################
+    #print(greta_LJ)
+
+
+    for i in atomtypes:
+
+        # Questo funziona e riesco a fargli dire quello che voglio.
+        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+        greta_LJ.loc[(greta_LJ['ai'] == i) & (greta_LJ['aj'] == i), 'double'] = 'True'
+
+    # Create a subset of the main dataframe of the self interactions.
+    doubles = greta_LJ.loc[(greta_LJ['double'] == 'True')]
+    atp_doubles = list(doubles['ai'])
+    # The list is used to obtain all the atomtypes which does not make a self interaction
+    atp_notdoubles = list(set(set(atomtypes) - set(atp_doubles)))
+
+    if len(atp_notdoubles) == 0:
+        print('All atoms interacts with themself')
+        
+    else:
+        print('There are', len(atp_notdoubles), 'self interactions to add:\n', atp_notdoubles)
+
+        #print(doubles)
+        #print(atp_doubles) # 84
+        #print(atp_notdoubles) # 1 che in totale fanno 85, nel caso di TTR e' giusto
+                                # perche' la prima riga l'ho tolta
+
+        # From the list of atomtypes to add, a new dataframe is created to append to the main one
+        pairs_toadd = pd.DataFrame(columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
+        pairs_toadd['ai'] = atp_notdoubles
+        pairs_toadd['aj'] = atp_notdoubles
+        pairs_toadd['type'] = '1'
+
+        # Here i want to check every value for all the atom type and if they're similar
+        # make an average and paste into the main dataframe
+        # I am checking every doubles based on the atomtype (except the information of the residue number) and make an average of the sigma
+        # since all the epsilon are equal
+        atomtypes_toadd = pairs_toadd['ai'].str.split('_', n = 1, expand = True)
+        atomtypes_toadd = atomtypes_toadd[0].drop_duplicates()
+        atomtypes_toadd = atomtypes_toadd.to_list()
+        atomtypes_toadd = [x + '_' for x in atomtypes_toadd]
+
+        for a in atomtypes_toadd:
+            doubles_a = doubles.loc[(doubles['ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
+        
+            # All the epsilon are the same, therefore the average sigma will be added on the self interaction
+            sigma = doubles_a['sigma']
+            #for s in sigma:
+            #    print('\t','sigma of ', a, '= ', s)
+            
+            media_sigma = sigma.mean()
+            print('\n', '\t', 'Average Sigma for', a, ':', '\t', media_sigma)
+            
+            
+            # Nuovi c6 e c12
+            new_c6 = 4 * epsilon_input * (media_sigma ** 6)
+            new_c12 = 4 * epsilon_input * (media_sigma ** 12)
+
+            print('new c6 for ', a, '= ', new_c6)
+            print('new c12 for ', a, '= ', new_c12)
+            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6#.mean()
+            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12#.mean()
+            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
+            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_input
+        
+        pairs_toadd.insert(5, '', ';')
+
+        print(pairs_toadd)
+
+        # Drop NaN: SD_1 SD_100 and OXT_100 -> in case of B2m
+
+        pairs_toadd.dropna(inplace = True)
+        greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
+        print('Self interactions added to greta_LJ')
+
+    # Drop columns
+    greta_LJ.drop(columns = ['double'], inplace = True)
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
