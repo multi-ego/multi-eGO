@@ -1,5 +1,4 @@
 import pandas as pd
-#from Bio.PDB.PDBParser import PDBParser
 from protein_configuration import fibril_chain_length, fibril_residue_offset, fibril_atom_number, fibril_atom_offset, protein
 import MDAnalysis as mda
 

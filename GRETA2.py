@@ -132,7 +132,7 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
 
     # Keep only unique values
     exclusion_list = list(set(exclusion_list))
-    print('Drop duplicates in the exclusion list:   ', len(exclusion_list)) # 350
+    print('\t Drop duplicates in the exclusion list:   ', len(exclusion_list)) # 350
     return exclusion_list
 
 
@@ -282,12 +282,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     # SELF INTERACTIONS
-    
-    # To test self interactions using TTR
-    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'CA_1') & (greta_LJ.aj == 'CA_1')].index, inplace = True)
-    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'OH_10') & (greta_LJ.aj == 'OH_10')].index, inplace = True)
-    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'OH_1') & (greta_LJ.aj == 'OH_1')].index, inplace = True)
-
     print('\n GRETA - Self interactions')
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
