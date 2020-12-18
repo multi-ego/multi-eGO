@@ -13,6 +13,18 @@ else:
     print ("Successfully created the directory %s" % output_folder)
 
 
+
+##### GRETA
+    # Create the folders which will be used by the script
+output_folder = 'GRETA/output_%s' % (protein)
+try:
+    os.mkdir(output_folder)
+except OSError:
+    print (" Creation of the directory %s failed" % output_folder)
+else:
+    print ("Successfully created the directory %s" % output_folder)
+
+
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 now = datetime.datetime.now()
 
@@ -118,7 +130,7 @@ def write_acid_ffnonbonded(atomtypes, acid_pairs):
 def write_greta_atomtypes_atp(atomtypes_atp):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'GRETA/atomtypes.atp'
+    directory = 'GRETA/output_%s/atomtypes.atp' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -134,7 +146,7 @@ def write_greta_atomtypes_atp(atomtypes_atp):
 def write_greta_topology_atoms(topology_atoms):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'GRETA/topology_atoms'
+    directory = 'GRETA/output_%s/topology_atoms' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -151,7 +163,7 @@ def write_greta_topology_atoms(topology_atoms):
 
 def write_greta_LJ(atomtypes, greta_LJ):
     #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    directory = "GRETA/ffnonbonded.itp"
+    directory = "GRETA/output_%s/ffnonbonded.itp" %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")

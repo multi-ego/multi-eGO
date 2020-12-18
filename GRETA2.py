@@ -255,9 +255,6 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     structural_LJ['epsilon'] = epsilon_input #2.49 # PROTEIN CONFIGURATION # 0.41 epsilon MAGROS
 
     print('\n\n\t Sigma and epsilon completed ', len(structural_LJ))
-    
-
-
     return structural_LJ
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
@@ -286,8 +283,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 
     # SELF INTERACTIONS
     
+    # To test self interactions using TTR
     #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'CA_1') & (greta_LJ.aj == 'CA_1')].index, inplace = True)
     #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'OH_10') & (greta_LJ.aj == 'OH_10')].index, inplace = True)
+    #greta_LJ.drop(greta_LJ[(greta_LJ.ai == 'OH_1') & (greta_LJ.aj == 'OH_1')].index, inplace = True)
 
     print('\n GRETA - Self interactions')
     atomtypes = set(greta_LJ['ai'])
@@ -309,7 +308,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         print('\n\t All atoms interacts with themself')
         
     else:
-        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\t', atp_notdoubles)
+        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
 
         #print(doubles)
         #print(atp_doubles) # 84
@@ -336,28 +335,36 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         
             # All the epsilon are the same, therefore the average sigma will be added on the self interaction
             sigma = doubles_a['sigma']
-            #for s in sigma:
-            #    print('\t','sigma of ', a, '= ', s)
+                        #for s in sigma:
+            #    print('\t\t','sigma of ', a, '= ', s)
             
-            media_sigma = sigma.mean()
-            print('\n\t\t', 'Average Sigma for', a, ':', '\t', media_sigma)
-            
-            
-            # Nuovi c6 e c12
-            new_c6 = 4 * epsilon_input * (media_sigma ** 6)
-            new_c12 = 4 * epsilon_input * (media_sigma ** 12)
+            if len(sigma) == 1:
+                print('\n\t Only one self interacting pair has been found for', a, '==> Skip')
 
-            print('\t\t New c6 for ', a, '=\t', new_c6)
-            print('\t\t New c12 for ', a, '=\t', new_c12)
-            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6#.mean()
-            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12#.mean()
-            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
-            pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_input
+            elif len(sigma) == 0:
+                print('\n\t There are not self interactions for', a, '==> Skip')
+
+            else:
+                print('\n\t There are', len(sigma), 'of', a, 'contributing to the average of self interacting sigma')
+                media_sigma = sigma.mean()
+                print('\n\t\t', 'Average Sigma for', a, ':', '\t', media_sigma)
+                
+                
+                # Nuovi c6 e c12
+                new_c6 = 4 * epsilon_input * (media_sigma ** 6)
+                new_c12 = 4 * epsilon_input * (media_sigma ** 12)
+
+                print('\t\t New c6 for ', a, '=\t', new_c6)
+                print('\t\t New c12 for ', a, '=\t', new_c12)
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6#.mean()
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12#.mean()
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_input
         
         pairs_toadd.insert(5, '', ';')
 
         # Drop NaN: SD_1 SD_100 and OXT_100 -> in case of B2m
-        pairs_toadd.dropna(inplace = True)
+        #pairs_toadd.dropna(inplace = True)
         greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
         print('\n\t Self interactions added to greta_LJ\n')
 
@@ -370,7 +377,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
 
 
-    return greta_LJ#, check_GRETA
+    return greta_LJ
 
 
     
