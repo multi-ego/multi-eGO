@@ -102,6 +102,12 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
     
     print('\t Exclusion List from bonds:               ', len(exclusion_list)) # 87
 
+
+
+    print(exclusion_list)
+
+
+
     for index, row in native_angles.iterrows():
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['aj'] - 1].name) + '_' + str(structure_pdb.atoms[row['aj'] - 1].resnum))
         exclusion_list.append(str(structure_pdb.atoms[row['ai'] - 1].name) + '_' + str(structure_pdb.atoms[row['ai'] - 1].resnum) + '_' + str(structure_pdb.atoms[row['ak'] - 1].name) + '_' + str(structure_pdb.atoms[row['ak'] - 1].resnum))

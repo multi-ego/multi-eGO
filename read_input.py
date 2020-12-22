@@ -2,6 +2,8 @@ import pandas as pd
 from protein_configuration import fibril_chain_length, fibril_residue_offset, fibril_atom_number, fibril_atom_offset, protein
 import MDAnalysis as mda
 
+from gromologist import Top, Pdb
+
 
 # This script includes all the functions used to read the input files.
 
@@ -129,6 +131,11 @@ def read_pdbs():
 
     return native_pdb, fibril_pdb
 
+def read_top():
+    native_directory = 'GRETA/native_%s/topol_gromology.top' %(protein)
+    native_pdb = 'GRETA/native_%s/native.pdb' %(protein)
+    native_topology = Top(native_directory, gmx_dir='/opt/gromacs-2020.3/share/gromacs/top', pdb=native_pdb)
+    return native_topology
 
 def read_gro_bonds():
     native_directory = 'GRETA/native_%s/gro_bonds' %(protein)

@@ -1,6 +1,6 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; TTR
-; 2020-12-18 14:20:44.004099
+; 2020-12-22 11:55:45.111384
 [ atoms ]
  ; nr    type  resnr residue atom  cgnr charge mass typeB chargeB massB
     1     N_1      1     TYR    N     1                                
