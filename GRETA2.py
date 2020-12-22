@@ -364,7 +364,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         pairs_toadd.insert(5, '', ';')
 
         # Drop NaN: SD_1 SD_100 and OXT_100 -> in case of B2m
-        #pairs_toadd.dropna(inplace = True)
+        pairs_toadd.dropna(inplace = True)
         greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
         print('\n\t Self interactions added to greta_LJ\n')
 
