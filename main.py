@@ -1,7 +1,7 @@
 from protein_configuration import protein
 from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs, read_pdbs, read_gro_bonds, read_gro_angles, read_gro_dihedrals, read_gro_impropers, read_top
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
-from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms
+from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list
 from GRETA2 import make_pairs, make_exclusion_list, merge_GRETA, make_pdb_atomtypes
 
 
@@ -93,6 +93,7 @@ greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
+write_pairs_list(greta_ffnb)
 
 print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 

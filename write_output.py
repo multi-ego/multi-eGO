@@ -180,3 +180,18 @@ def write_greta_LJ(atomtypes, greta_LJ):
     file.write("[ nonbond_params ]\n")
     file.write(str(greta_LJ.to_string(index = False)))
     file.close()
+
+def write_pairs_list(greta_LJ):
+    directory = "GRETA/output_%s/pairs_list.txt" %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff))
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ nonbond_params ]\n")
+    file.write(str(greta_LJ.to_string(index = False)))
+    file.close()
