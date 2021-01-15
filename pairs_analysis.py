@@ -13,6 +13,7 @@ amino_dict = dict(zip(pdb_resids,(list(native_pdb.residues.resnames))))
 
 # Create the DataFrame of the pairs list
 pairs_list = pd.read_csv('GRETA/output_TTR/pairs_list.txt', sep='\\s+')
+#pairs_list = pd.read_csv('GRETA/output_TTR/pairs_list_magros.txt', sep='\\s+')
 pairs_list.insert(1, 'ai_resnumber', '')
 pairs_list.insert(1, 'ai_resname', '')
 pairs_list.insert(4, 'aj_resnumber', '')

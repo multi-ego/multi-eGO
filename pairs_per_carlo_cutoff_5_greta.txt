@@ -23,6 +23,7 @@ SER_8     12
 PRO_9      9
 TYR_1      3
 ALA_5      3
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by ALA_4: 78
 ILE_3    24
@@ -32,6 +33,8 @@ LEU_7    11
 PRO_9     9
 THR_2     3
 LEU_6     2
+
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by ALA_5: 67
 LEU_6    25
@@ -39,6 +42,7 @@ ALA_5    14
 ALA_4    14
 LEU_7    11
 ILE_3     3
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by LEU_6: 112
 LEU_7     42
@@ -47,6 +51,7 @@ ALA_5     25
 SER_8      5
 SER_11     3
 ALA_4      2
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by LEU_7: 131
 LEU_6     42
@@ -56,6 +61,7 @@ ALA_4     11
 ALA_5     11
 PRO_9      9
 SER_11     2
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by SER_8: 132
 PRO_9     29
@@ -65,6 +71,8 @@ SER_8     20
 TYR_10    19
 ILE_3     12
 LEU_6      5
+
+
 Name: an_with_who, dtype: int64
 Total amount of contacts made by PRO_9: 132
 TYR_10    33
