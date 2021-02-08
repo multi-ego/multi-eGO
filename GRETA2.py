@@ -243,10 +243,10 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     print('\t Pairs in the same chain and included in the exclusion list :', len(mask))
     print('\t After exclusion list and chain selection', len(structural_LJ))
 
-    print(f'\n\t Applying distance cutoff of {distance_cutoff}A')
+    print(f'\n\t Applying distance cutoff of {distance_cutoff} A')
     # Keep only the atoms within 6 A
     structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
-    print('\t Pairs below cutoff 6: ', len(structural_LJ))
+    print(f'\t Pairs below cutoff {distance_cutoff}: ', len(structural_LJ))
 
     print(f'\t Applying residue number cutoff of {distance_residue}')
     # This part is to filter more the LJ like in smog: if two pairs are made by aminoacids closer than
@@ -263,7 +263,7 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
-    print('\t All the pairs further than 3 aminoacids and not in the same chain: ', len(structural_LJ))
+    print(f'\t All the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
 
     print('\n\t Making the reverse duplicate dataframe')
     # Inverse pairs calvario
