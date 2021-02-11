@@ -1,5 +1,5 @@
          ai ai_resname  ai_resnumber      aj aj_resname  aj_resnumber  type        c6           c12     sigma  epsilon
-;14     CA_1        TYR             1     N_1        TYR             1     1  0.001472  2.082263e-06  0.335062     0.26 presente
+14     CA_1        TYR             1     N_1        TYR             1     1  0.001472  2.082263e-06  0.335062     0.26 presente
 56    CA_11        SER            11     N_1        TYR             1     1  0.008158  6.399290e-05  0.445750     0.26 meh
 76     CA_2        THR             2     N_1        TYR             1     1  0.013134  1.658690e-04  0.482571     0.26 meh
 207    CB_1        TYR             1     N_1        TYR             1     1  0.002516  6.084422e-06  0.366380     0.26 presente
@@ -12,7 +12,7 @@
 569  CE2_10        TYR            10     N_1        TYR             1     1  0.006144  3.629233e-05  0.425173     0.26 presente
 614    CG_1        TYR             1     N_1        TYR             1     1  0.002444  5.741165e-06  0.364612     0.26 presente
 665    CZ_1        TYR             1     N_1        TYR             1     1  0.010658  1.092315e-04  0.466061     0.26 presente
-;682     C_1        TYR             1     N_1        TYR             1     1  0.004377  1.842434e-05  0.401818     0.26 presente
+682     C_1        TYR             1     N_1        TYR             1     1  0.004377  1.842434e-05  0.401818     0.26 presente
 705    C_11        SER            11     N_1        TYR             1     1  0.000961  8.886414e-07  0.312110     0.26 presente
 ;780     N_1        TYR             1     N_1        TYR             1     1  0.005398  2.801401e-05  0.416098     0.26 presente
 781     N_1        TYR             1     N_2        THR             2     1  0.003202  9.861214e-06  0.381424     0.26 presente
