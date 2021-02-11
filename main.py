@@ -1,8 +1,9 @@
 from protein_configuration import protein
 from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs, read_pdbs, read_gro_bonds, read_gro_angles, read_gro_dihedrals, read_gro_impropers, read_top
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
-from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list
+from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list, write_acid_greta_LJ
 from GRETA2 import make_pairs, make_exclusion_list, merge_GRETA, make_pdb_atomtypes
+from atomtypes_definitions import acid_atp, acid_ASP, gro_atoms
 
 
     # Making a dictionary out of it to change the atomnumber to the atomtype
@@ -68,7 +69,9 @@ print('Merge ffnonbonded.itp created for both neutral and acidic pH')
 print(' REMEMBER TO CHANGE THE MASSES IN THE ATOMTYPES.ATP AND FFNONBONDED.ITP, THE H ARE EXPLICIT')
 
 
-
+#######################
+########## GRETA TEST
+#######################
 
 
 print('\n\n\n\n GRETA TEST \n\n\n\n')
@@ -88,13 +91,20 @@ print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
 greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 
-#print(ffnonbonded_atp)
-
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
 write_pairs_list(greta_ffnb)
 
+if len(acid_atp) != 0:
+    print('\n GRETA - Acid pH test')
+    acid_pdb_pairs = native_pdb_pairs.copy()
+    acid_pdb_pairs = acid_pdb_pairs(~acid_pdb_pairs['ai']).isin(acid_atp)
+    acid_pdb_pairs = acid_pdb_pairs(~acid_pdb_pairs['aj']).isin(acid_atp)
+    greta_acid_ffnb = merge_GRETA(acid_pdb_pairs, fibril_pdb_pairs)
+    write_acid_greta_LJ(ffnonbonded_atp, greta_acid_ffnb)
+
+#print(ffnonbonded_atp)
 print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 #print(non_bonded.to_string())

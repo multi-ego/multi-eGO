@@ -181,6 +181,26 @@ def write_greta_LJ(atomtypes, greta_LJ):
     file.write(str(greta_LJ.to_string(index = False)))
     file.close()
 
+def write_acid_greta_LJ(atomtypes, greta_LJ):
+    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
+    directory = "GRETA/output_%s/acid_ffnonbonded.itp" %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff), 'ACID')
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atomtypes ]\n")
+    file.write(str(atomtypes.to_string(index = False)))
+    file.write("\n")
+    file.write("\n")
+    file.write("[ nonbond_params ]\n")
+    file.write(str(greta_LJ.to_string(index = False)))
+    file.close()
+
 def write_pairs_list(greta_LJ):
     directory = "GRETA/output_%s/pairs_list.txt" %(protein)
     file = open(directory, "w")
