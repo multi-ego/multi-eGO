@@ -87,6 +87,9 @@ print('\n GRETA - Making native and fibril pairs')
 native_pdb_pairs = make_pairs(native_pdb, exclusion_list, native_atomtypes)
 fibril_pdb_pairs = make_pairs(fibril_pdb, exclusion_list, fibril_atomtypes)
 
+print(len(native_pdb_pairs))
+print(len(fibril_pdb_pairs))
+
 print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
 greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)

@@ -1,6 +1,6 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; TTR
-; 2021-02-11 12:19:57.651058
+; 2021-02-11 18:07:29.425575
 ; Temperature Ratio: 300 / 70
 [ dihedrals ]
 ; ai  aj  ak  al  func              phi               kd mult
