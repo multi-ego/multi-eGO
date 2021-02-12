@@ -97,7 +97,7 @@ greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
-write_pairs_list(greta_ffnb)
+
 
 if len(acid_atp) != 0:
     print('\n GRETA - Acid pH test')
@@ -109,6 +109,17 @@ if len(acid_atp) != 0:
 
 #print(ffnonbonded_atp)
 print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
+
+
+# Analysis outputs
+ff_name = 'native'
+write_pairs_list(native_pdb_pairs, ff_name)
+ff_name = 'fibril'
+write_pairs_list(fibril_pdb_pairs, ff_name)
+ff_name = 'merge'
+write_pairs_list(greta_ffnb, ff_name)
+
+
 
 #print(non_bonded.to_string())
 

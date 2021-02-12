@@ -73,6 +73,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem', 'residue', 'name'], inplace = True)
+    # Moltiplica per 3 l'N_1
 
     print('\t Topology atomtypes section creation')
     topology_atoms = pd.DataFrame(columns = ['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB'])
@@ -258,10 +259,8 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     structural_LJ = structural_LJ.astype({"resnum_ai": int, "resnum_aj": int})
     structural_LJ['diff'] = ''
     
-    
     # Da riattivare successivamente, test tenendo solo exlcusion list bonded e non SB
     structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
-    
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
     print(f'\t All the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
 
@@ -292,19 +291,10 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Merging native and fibril LJ pairs and cleaning all the duplicates among them
-    #greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
+    greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
-
-
-
-
-    # PROVA CON SOLO LA FIBRILLA
-    greta_LJ = fibril_pdb_pairs.copy()
-
-
-
-
-
+        # PROVA CON SOLO LA FIBRILLA
+        #greta_LJ = fibril_pdb_pairs.copy()
 
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)

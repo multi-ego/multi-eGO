@@ -201,8 +201,14 @@ def write_acid_greta_LJ(atomtypes, greta_LJ):
     file.write(str(greta_LJ.to_string(index = False)))
     file.close()
 
-def write_pairs_list(greta_LJ):
-    directory = "GRETA/output_%s/pairs_list.txt" %(protein)
+def write_pairs_list(pairs, ff_name):
+    pairs.rename(columns = {'; ai':'ai'}, inplace = True)
+    pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
+
+
+    print(pairs_analysis)
+
+    directory = "FF_greta_analysis/%s_%s_pairs_list_c%s_e%s.txt" %(protein, ff_name, distance_cutoff, distance_residue)
     file = open(directory, "w")
-    file.write(str(greta_LJ.to_string(index = False)))
+    file.write(str(pairs_analysis.to_string(index = False)))
     file.close()
