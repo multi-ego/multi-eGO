@@ -119,6 +119,7 @@ write_pairs_list(fibril_pdb_pairs, ff_name)
 ff_name = 'merge'
 write_pairs_list(greta_ffnb, ff_name)
 
+#gromologist
 
 
 #print(non_bonded.to_string())
