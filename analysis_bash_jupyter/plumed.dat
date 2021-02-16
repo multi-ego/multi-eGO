@@ -1,9 +1,0 @@
-# Gyration radious for each cluster
-
-# Select the different chains from the index
-
-clust_1113: GROUP NDX_FILE=pdb.ndx NDX_GROUP=clust_1113
-
-rg_: GYRATION TYPE=RADIUS ATOMS=clust_1113
-
-PRINT ARG=rg FILE=colvar

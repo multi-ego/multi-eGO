@@ -13,6 +13,15 @@ else:
     print ("Successfully created the directory %s" % output_folder)
 
 
+output_folder = 'FF_greta_analysis_%s' % (protein)
+try:
+    os.mkdir(output_folder)
+except OSError:
+    print (" Creation of the directory %s failed" % output_folder)
+else:
+    print ("Successfully created the directory %s" % output_folder)
+
+
 
 ##### GRETA
     # Create the folders which will be used by the script
@@ -134,7 +143,7 @@ def write_greta_atomtypes_atp(atomtypes_atp):
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
-    file.write('; ' + 'GRETA TTR')
+    file.write('; ' + f'GRETA {protein}')
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n")
@@ -204,11 +213,7 @@ def write_acid_greta_LJ(atomtypes, greta_LJ):
 def write_pairs_list(pairs, ff_name):
     pairs.rename(columns = {'; ai':'ai'}, inplace = True)
     pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
-
-
-    print(pairs_analysis)
-
-    directory = "FF_greta_analysis/%s_%s_pairs_list_c%s_e%s.txt" %(protein, ff_name, distance_cutoff, distance_residue)
+    directory = "FF_greta_analysis_%s/%s_%s_pairs_list_c%s_e%s.txt" %(protein, protein, ff_name, distance_cutoff, distance_residue)
     file = open(directory, "w")
     file.write(str(pairs_analysis.to_string(index = False)))
     file.close()
