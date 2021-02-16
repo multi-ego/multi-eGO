@@ -1,5 +1,8 @@
 import pandas as pd
 from protein_configuration import fibril_chain_length, fibril_residue_offset, fibril_atom_number, fibril_atom_offset, protein
+import MDAnalysis as mda
+
+from gromologist import Top, Pdb
 
 
 # This script includes all the functions used to read the input files.
@@ -56,7 +59,7 @@ def read_fib_atoms():
     return fib_atoms
 
     
-def read_gro_atoms():
+def read_gro_atoms(): # GRETA TO KEEP
     # Reading the atoms section from gromos topology
     # Requires a manual clean to delete all the comment lines
     directory = 'input_%s/pep_gro_atoms' % (protein)
@@ -112,3 +115,52 @@ def read_fib_pairs():
     #fib_pairs['aj'] = fib_pairs['aj']+178 #flag
 
     return fib_pairs
+
+
+##############
+# GRETA
+##############
+
+
+def read_pdbs():
+    
+    native_directory = 'GRETA/native_%s/native.pdb' %(protein)
+    fibril_directory = 'GRETA/fibril_%s/conf.pdb' %(protein)
+    native_pdb = mda.Universe(native_directory, guess_bonds = True)
+    fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
+
+    return native_pdb, fibril_pdb
+
+def read_top():
+    native_directory = 'GRETA/native_%s/topol_gromology.top' %(protein)
+    native_pdb = 'GRETA/native_%s/native.pdb' %(protein)
+    native_topology = Top(native_directory, gmx_dir='/opt/gromacs-2020.3/share/gromacs/top', pdb=native_pdb)
+    return native_topology
+
+def read_gro_bonds():
+    native_directory = 'GRETA/native_%s/gro_bonds' %(protein)
+    native_bonds = pd.read_csv(native_directory, sep = "\\s+", header = None)
+    native_bonds.columns = ["ai", "aj", "func", "def"]
+
+    return native_bonds
+
+def read_gro_angles():
+    native_directory = 'GRETA/native_%s/gro_angles' %(protein)
+    native_angles = pd.read_csv(native_directory, sep = "\\s+", header = None)
+    native_angles.columns = ["ai", "aj", "ak", "func", "def"]
+
+    return native_angles
+
+def read_gro_dihedrals():
+    native_directory = 'GRETA/native_%s/gro_dihedrals' %(protein)
+    native_dihedrals = pd.read_csv(native_directory, sep = "\\s+", header = None)
+    native_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
+
+    return native_dihedrals
+
+def read_gro_impropers():
+    native_directory = 'GRETA/native_%s/gro_impropers' %(protein)
+    native_dihedrals = pd.read_csv(native_directory, sep = "\\s+", header = None)
+    native_dihedrals.columns = ["ai", "aj", "ak", "al", "func", "def"]
+
+    return native_dihedrals

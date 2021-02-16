@@ -40,7 +40,7 @@ gromos_resatom_nmr_dict = gromos_resatom_nmr.set_index('res_atom')['; nr'].to_di
 
 
 
-# 
+# GRETA TO KEEP
 # THE C12 RATIO CHANGED a little bit.atomtypes
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT', 'S', 'NR', 'OM', 'NE', 'NL', 'NZ'],

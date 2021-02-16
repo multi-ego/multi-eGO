@@ -180,10 +180,14 @@ def ffnonbonded_merge_pairs(pep_pairs, fib_pairs, dict_pep_atomtypes, dict_fib_a
     pairs_full = pairs.append(inv_pairs, sort = False, ignore_index = True)
     acid_full = acid_pairs.append(inv_acid, sort = False, ignore_index = True)
 
+
+
     # Sorting the pairs
     pairs_full.sort_values(by = ['ai', 'aj', 'B'], inplace = True) # sort su c12 e non su c6 MASTER
     # Cleaning the duplicates
     pairs_full = pairs_full.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']

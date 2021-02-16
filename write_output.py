@@ -1,10 +1,31 @@
 import os
 import datetime
-from protein_configuration import temperatura, protein
+from protein_configuration import temperatura, protein, distance_residue, distance_cutoff
 
 
     # Create the folders which will be used by the script
 output_folder = 'output_%s' % (protein)
+try:
+    os.mkdir(output_folder)
+except OSError:
+    print (" Creation of the directory %s failed" % output_folder)
+else:
+    print ("Successfully created the directory %s" % output_folder)
+
+
+output_folder = 'FF_greta_analysis_%s' % (protein)
+try:
+    os.mkdir(output_folder)
+except OSError:
+    print (" Creation of the directory %s failed" % output_folder)
+else:
+    print ("Successfully created the directory %s" % output_folder)
+
+
+
+##### GRETA
+    # Create the folders which will be used by the script
+output_folder = 'GRETA/output_%s' % (protein)
 try:
     os.mkdir(output_folder)
 except OSError:
@@ -32,7 +53,6 @@ def write_atomtypes_atp(pep_atomtypes):
     file.write("\n")
     file.write(str(pep_atomtypes.to_string(index = False, header = False)))
     file.close()
-
 
 def write_gromos_topology(gromos_topology):
     # This function creates the atomtypes file to paste into the custom topology
@@ -109,4 +129,91 @@ def write_acid_ffnonbonded(atomtypes, acid_pairs):
     file.write("\n")
     file.write("[ nonbond_params ]\n")
     file.write(str(acid_pairs.to_string(index = False)))
+    file.close()
+
+
+##################
+#### GRETA
+
+
+def write_greta_atomtypes_atp(atomtypes_atp):
+    # This function is used to create the atomtypes.atp.
+    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
+    directory = 'GRETA/output_%s/atomtypes.atp' %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; ' + f'GRETA {protein}')
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atomtypes ]")
+    file.write("\n")
+    file.write(str(atomtypes_atp.to_string(index = False, header = False)))
+    file.close()
+
+def write_greta_topology_atoms(topology_atoms):
+    # This function is used to create the atomtypes.atp.
+    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
+    directory = 'GRETA/output_%s/topology_atoms' %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff))
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atoms ]")
+    file.write("\n")
+    file.write(str(topology_atoms.to_string(index = False)))
+    file.close()
+
+def write_greta_LJ(atomtypes, greta_LJ):
+    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
+    directory = "GRETA/output_%s/ffnonbonded.itp" %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff))
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atomtypes ]\n")
+    file.write(str(atomtypes.to_string(index = False)))
+    file.write("\n")
+    file.write("\n")
+    file.write("[ nonbond_params ]\n")
+    file.write(str(greta_LJ.to_string(index = False)))
+    file.close()
+
+def write_acid_greta_LJ(atomtypes, greta_LJ):
+    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
+    directory = "GRETA/output_%s/acid_ffnonbonded.itp" %(protein)
+    file = open(directory, "w")
+    file.write(str(head))
+    file.write("\n")
+    file.write('; Distance cutoff: ' + str(distance_cutoff), 'ACID')
+    file.write("\n")
+    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; ' + str(now))
+    file.write("\n")
+    file.write("[ atomtypes ]\n")
+    file.write(str(atomtypes.to_string(index = False)))
+    file.write("\n")
+    file.write("\n")
+    file.write("[ nonbond_params ]\n")
+    file.write(str(greta_LJ.to_string(index = False)))
+    file.close()
+
+def write_pairs_list(pairs, ff_name):
+    pairs.rename(columns = {'; ai':'ai'}, inplace = True)
+    pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
+    directory = "FF_greta_analysis_%s/%s_%s_pairs_list_c%s_e%s.txt" %(protein, protein, ff_name, distance_cutoff, distance_residue)
+    file = open(directory, "w")
+    file.write(str(pairs_analysis.to_string(index = False)))
     file.close()
