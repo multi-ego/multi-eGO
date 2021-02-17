@@ -196,7 +196,7 @@ def write_acid_greta_LJ(atomtypes, greta_LJ):
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff), 'ACID')
+    file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")

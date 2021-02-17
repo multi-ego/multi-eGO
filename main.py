@@ -102,8 +102,8 @@ write_greta_LJ(ffnonbonded_atp, greta_ffnb)
 if len(acid_atp) != 0:
     print('\n GRETA - Acid pH test')
     acid_pdb_pairs = native_pdb_pairs.copy()
-    acid_pdb_pairs = acid_pdb_pairs(~acid_pdb_pairs['ai']).isin(acid_atp)
-    acid_pdb_pairs = acid_pdb_pairs(~acid_pdb_pairs['aj']).isin(acid_atp)
+    acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.ai.isin(acid_atp)]
+    acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.aj.isin(acid_atp)]
     greta_acid_ffnb = merge_GRETA(acid_pdb_pairs, fibril_pdb_pairs)
     write_acid_greta_LJ(ffnonbonded_atp, greta_acid_ffnb)
 
@@ -112,15 +112,14 @@ print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and ato
 
 
 # Analysis outputs
+print('Writing Force Field Analysis pairs')
 ff_name = 'native'
 write_pairs_list(native_pdb_pairs, ff_name)
 ff_name = 'fibril'
 write_pairs_list(fibril_pdb_pairs, ff_name)
 ff_name = 'merge'
 write_pairs_list(greta_ffnb, ff_name)
-
-#gromologist
-
+print('GRETA complete! Carlo is happy')
 
 #print(non_bonded.to_string())
 

@@ -132,9 +132,10 @@ def read_pdbs():
     return native_pdb, fibril_pdb
 
 def read_top():
-    native_directory = 'GRETA/native_%s/topol_gromology.top' %(protein)
+    native_directory = 'GRETA/native_%s/topol.top' %(protein)
+    #native_directory = 'gromologist/examples/01_pentapeptide/topol.top'
     native_pdb = 'GRETA/native_%s/native.pdb' %(protein)
-    native_topology = Top(native_directory, gmx_dir='/opt/gromacs-2020.3/share/gromacs/top', pdb=native_pdb)
+    native_topology = Top(native_directory, gmx_dir='/home/emanuele/MAGROS/GRETA', pdb=native_pdb)
     return native_topology
 
 def read_gro_bonds():
