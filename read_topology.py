@@ -12,3 +12,6 @@ protein = topology.molecules[0]
 bonds = protein.list_bonds(by_types=True)
 print(bonds)
 
+
+
+#prova
