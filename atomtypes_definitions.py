@@ -16,6 +16,7 @@ from read_input import read_gro_atoms
     # gromos_mass -> atom_type:mass N:15.0067
     # res_atom_dict -> residue_atom:chemical_type TYR_N:N
 
+# GRETA TO REPLACE
 gro_atoms = read_gro_atoms()
 
 # This one will be used in dihedrals
@@ -63,14 +64,14 @@ gromos_atp.set_index('name', inplace=True)
 
 #print(gro_atoms)
 
-# Selection of the aminoacids and the charged atoms
 
+# GRETA TO KEEP
+# Selection of the aminoacids and the charged atoms
 acid_ASP = gro_atoms[(gro_atoms['residue'] == "ASP") & ((gro_atoms['atom'] == "OD1") | (gro_atoms['atom'] == "OD2") | (gro_atoms['atom'] == "CG"))]
 acid_GLU = gro_atoms[(gro_atoms['residue'] == "GLU") & ((gro_atoms['atom'] == "OE1") | (gro_atoms['atom'] == "OE2") | (gro_atoms['atom'] == "CD"))]
 acid_HIS = gro_atoms[(gro_atoms['residue'] == "HIS") & ((gro_atoms['atom'] == "ND1") | (gro_atoms['atom'] == "CE1") | (gro_atoms['atom'] == "NE2") | (gro_atoms['atom'] == "CD2") | (gro_atoms['atom'] == "CG"))]
 
 # Append the three dataframes
-
 frames = [acid_ASP, acid_GLU, acid_HIS]
 acid_atp = pd.concat(frames, ignore_index = True)
 
@@ -84,7 +85,6 @@ acid_atp = pd.concat(frames, ignore_index = True)
 
 
 # prova passando da df a list
-
 acid_atp = acid_atp['atom_nmr'].tolist()
 
 #print(acid_atp)

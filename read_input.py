@@ -136,6 +136,7 @@ def read_top():
     #native_directory = 'gromologist/examples/01_pentapeptide/topol.top'
     native_pdb = 'GRETA/native_%s/native.pdb' %(protein)
     native_topology = Top(native_directory, gmx_dir='/home/emanuele/MAGROS/GRETA', pdb=native_pdb)
+    
     return native_topology
 
 def read_gro_bonds():

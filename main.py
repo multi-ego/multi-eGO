@@ -3,7 +3,8 @@ from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
 from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list, write_acid_greta_LJ
 from GRETA2 import make_pairs, make_exclusion_list, merge_GRETA, make_pdb_atomtypes
-from atomtypes_definitions import acid_atp, acid_ASP, gro_atoms
+from atomtypes_definitions import acid_atp
+
 
 
     # Making a dictionary out of it to change the atomnumber to the atomtype
@@ -87,8 +88,8 @@ print('\n GRETA - Making native and fibril pairs')
 native_pdb_pairs = make_pairs(native_pdb, exclusion_list, native_atomtypes)
 fibril_pdb_pairs = make_pairs(fibril_pdb, exclusion_list, fibril_atomtypes)
 
-print(len(native_pdb_pairs))
-print(len(fibril_pdb_pairs))
+#print(len(native_pdb_pairs))
+#print(len(fibril_pdb_pairs))
 
 print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
