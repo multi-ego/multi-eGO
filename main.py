@@ -5,6 +5,8 @@ from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_
 from GRETA2 import make_pairs, make_exclusion_list, merge_GRETA, make_pdb_atomtypes
 from atomtypes_definitions import acid_atp
 
+from topology_definitions import exclusion_list_gromologist
+
 
 
     # Making a dictionary out of it to change the atomnumber to the atomtype
@@ -82,11 +84,14 @@ native_pdb, fibril_pdb = read_pdbs()
 print('GRETA - Making Atomtypes')
 native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms = make_pdb_atomtypes(native_pdb, fibril_pdb, read_gro_atoms())
 print('\n GRETA - Making the exclusion list from bonded')
-exclusion_list = make_exclusion_list(native_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals(), read_gro_impropers())
+#exclusion_list = make_exclusion_list(native_pdb, read_gro_bonds(), read_gro_angles(), read_gro_dihedrals(), read_gro_impropers())
 
+# GROMOLOGIST TEST
+#print(exclusion_list.sort() == exclusion_list_gromologist.sort()) # TRUEEEEEE !!!!
 print('\n GRETA - Making native and fibril pairs')
-native_pdb_pairs = make_pairs(native_pdb, exclusion_list, native_atomtypes)
-fibril_pdb_pairs = make_pairs(fibril_pdb, exclusion_list, fibril_atomtypes)
+# gromologist version, it works same ffnonbonded.itp
+native_pdb_pairs = make_pairs(native_pdb, native_atomtypes)
+fibril_pdb_pairs = make_pairs(fibril_pdb, fibril_atomtypes)
 
 #print(len(native_pdb_pairs))
 #print(len(fibril_pdb_pairs))

@@ -8,6 +8,7 @@ import itertools
 from itertools import product, combinations
 from atomtypes_definitions import gromos_atp
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, protein
+from topology_definitions import exclusion_list_gromologist
 
 #native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
 native_bonds =  read_gro_bonds()
@@ -172,7 +173,7 @@ def make_exclusion_list (structure_pdb, native_bonds, native_angles, native_dihe
 
 ################################ PAIRS
 
-def make_pairs (structure_pdb, exclusion_list, atomtype):
+def make_pairs (structure_pdb, atomtype):
 
     print('\n\t Measuring distances between all atom in the pdb')
     # Selection of all the atoms required to compute LJ
@@ -234,7 +235,7 @@ def make_pairs (structure_pdb, exclusion_list, atomtype):
     print('\t Tagging pairs included in bonded exclusion list')
     # Here we keep only the one without the exclusions
     structural_LJ['exclude'] = ''
-    structural_LJ.loc[(structural_LJ['check'].isin(exclusion_list)), 'exclude'] = 'Yes'
+    structural_LJ.loc[(structural_LJ['check'].isin(exclusion_list_gromologist)), 'exclude'] = 'Yes'
 
     to_exclude = structural_LJ.loc[structural_LJ['exclude'] == 'Yes']
     print('\t All pairs present in the bonded exclusion list: ', len(to_exclude))

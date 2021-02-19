@@ -66,6 +66,9 @@ gromos_atp.set_index('name', inplace=True)
 
 
 # GRETA TO KEEP
+
+print(gro_atoms)
+
 # Selection of the aminoacids and the charged atoms
 acid_ASP = gro_atoms[(gro_atoms['residue'] == "ASP") & ((gro_atoms['atom'] == "OD1") | (gro_atoms['atom'] == "OD2") | (gro_atoms['atom'] == "CG"))]
 acid_GLU = gro_atoms[(gro_atoms['residue'] == "GLU") & ((gro_atoms['atom'] == "OE1") | (gro_atoms['atom'] == "OE2") | (gro_atoms['atom'] == "CD"))]
