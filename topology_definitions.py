@@ -14,6 +14,18 @@ topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_
 
 print(topology_atoms)
 
+
+
+# Aggiungere gli idrogeni alla massa
+# check di type N_1 ... della topologia contro quella fatta dal pdb (ma dovrebbero essere uguali) 
+
+
+
+
+
+
+
+
 # Unfortunately those are strings which must be separated
 # BONDS
 atom_types, atom_resids = protein.list_bonds(by_resid=True)
