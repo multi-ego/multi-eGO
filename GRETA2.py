@@ -74,7 +74,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem', 'residue', 'name'], inplace = True)
-    # Moltiplica per 3 l'N_1
 
     print('\t Topology atomtypes section creation')
     topology_atoms = pd.DataFrame(columns = ['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB'])

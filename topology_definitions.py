@@ -8,6 +8,11 @@ topology = read_top()
 protein = topology.molecules[0]
 exclusion_list_gromologist = []
 
+# To import the [ atoms ] section of the topology
+atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein.list_atoms()
+topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass]), columns=['nr', 'type','resnr', 'residue', 'atom', 'mass'])
+
+print(topology_atoms)
 
 # Unfortunately those are strings which must be separated
 # BONDS
