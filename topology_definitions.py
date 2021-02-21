@@ -12,15 +12,17 @@ exclusion_list_gromologist = []
 atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein.list_atoms()
 topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass]), columns=['nr', 'type','resnr', 'residue', 'atom', 'mass'])
 
-print(topology_atoms)
 
 
-
-# Aggiungere gli idrogeni alla massa
 # check di type N_1 ... della topologia contro quella fatta dal pdb (ma dovrebbero essere uguali) 
 
 
 
+topology_atoms['mass'].astype(float)
+mask = ((topology_atoms['type'] == 'N') | (topology_atoms['type'] == 'OA')) | ((topology_atoms['residue'] == 'TYR') & ((topology_atoms['atom'] == 'CD1') | (topology_atoms['atom'] == 'CD2') | (topology_atoms['atom'] == 'CE1') | (topology_atoms['atom'] == 'CE2')))
+topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(1)
+
+print(topology_atoms.to_string())
 
 
 
