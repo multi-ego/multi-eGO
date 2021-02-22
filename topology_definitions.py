@@ -12,21 +12,39 @@ exclusion_list_gromologist = []
 atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein.list_atoms()
 topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass]), columns=['nr', 'type','resnr', 'residue', 'atom', 'mass'])
 
-
-
-# check di type N_1 ... della topologia contro quella fatta dal pdb (ma dovrebbero essere uguali) 
-
-
-
+# Changing the mass of the atoms section by adding the H
 topology_atoms['mass'].astype(float)
 mask = ((topology_atoms['type'] == 'N') | (topology_atoms['type'] == 'OA')) | ((topology_atoms['residue'] == 'TYR') & ((topology_atoms['atom'] == 'CD1') | (topology_atoms['atom'] == 'CD2') | (topology_atoms['atom'] == 'CE1') | (topology_atoms['atom'] == 'CE2')))
 topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(1)
+# Same thing here with the N terminal which is charged
+mask = (topology_atoms['resnr'] == '1') & (topology_atoms['atom'] == 'N')
+topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(2)
+# Structure based atomtype definition
+topology_atoms['sb_type'] = topology_atoms['atom'] + '_' + topology_atoms['resnr']
 
-print(topology_atoms.to_string())
 
+# ACID pH
+# Selection of the aminoacids and the charged atoms
+acid_ASP = topology_atoms[(topology_atoms['residue'] == "ASP") & ((topology_atoms['atom'] == "OD1") | (topology_atoms['atom'] == "OD2") | (topology_atoms['atom'] == "CG"))]
+acid_GLU = topology_atoms[(topology_atoms['residue'] == "GLU") & ((topology_atoms['atom'] == "OE1") | (topology_atoms['atom'] == "OE2") | (topology_atoms['atom'] == "CD"))]
+acid_HIS = topology_atoms[(topology_atoms['residue'] == "HIS") & ((topology_atoms['atom'] == "ND1") | (topology_atoms['atom'] == "CE1") | (topology_atoms['atom'] == "NE2") | (topology_atoms['atom'] == "CD2") | (topology_atoms['atom'] == "CG"))]
+frames = [acid_ASP, acid_GLU, acid_HIS]
+acid_atp = pd.concat(frames, ignore_index = True)
+acid_atp = acid_atp['sb_type'].tolist()
 
+# THE C12 RATIO CHANGED a little bit.atomtypes
+gromos_atp = pd.DataFrame(
+    {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT', 'S', 'NR', 'OM', 'NE', 'NL', 'NZ'],
+     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
+     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+     'c12': [1e-06, 3.011e-05, 4.639e-05, 4.937284e-06, 9.70225e-05,
+            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 1.2e-05, 1.3075456e-05,
+            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06]
+     }
+)
 
-
+gromos_atp.to_dict()
+gromos_atp.set_index('name', inplace=True)
 
 # Unfortunately those are strings which must be separated
 # BONDS

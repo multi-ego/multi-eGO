@@ -2,13 +2,13 @@ import MDAnalysis as mda
 from MDAnalysis.analysis import dihedrals, distances
 import numpy as np
 from MDAnalysis.analysis.dihedrals import Dihedral
+from pandas.core.frame import DataFrame
 from read_input import read_gro_bonds, read_gro_angles, read_gro_dihedrals
 import pandas as pd
 import itertools
 from itertools import product, combinations
-from atomtypes_definitions import gromos_atp
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, protein
-from topology_definitions import exclusion_list_gromologist
+from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp
 
 #native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
 native_bonds =  read_gro_bonds()
@@ -17,37 +17,35 @@ native_dihedrals = read_gro_dihedrals()
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
 
+
     print('\t Native atomtypes')
     native_sel = native_pdb.select_atoms('all')
-    native_atomtypes = []
-    ffnb_sb_type = []
-    ffnb_residue = []
-    ffnb_name = []
-    top_nr = []
-    top_resnr = []
+    native_atomtypes, ffnb_sb_type = [], []
 
     for atom in native_sel:
         # Also the chain ID is printed along because it might happen an interaction between two atoms of different 
         # chains but of the same residue which would be deleted based only by the eclusion list as example
         # CA_1 N_1 is in the exclusion list but in fibril might interact the CA_1 chain 1 with N_1 chain 2
+        
+        # Native atomtypes will be used to create the pairs list
         atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
         native_atomtypes.append(atp)
 
         # This part is for attaching to FFnonbonded.itp
+        # ffnb_sb_type is the first column
+        # check gromologist
         sb_type = str(atom.name) + '_' + str(atom.resnum)
         ffnb_sb_type.append(sb_type)
-        res_ffnb = str(atom.resname)
-        ffnb_residue.append(res_ffnb)
-        name = str(atom.name)
-        ffnb_name.append(name) # Questo per quando verranno definiti meglio 
-                               # gli atomtypes
-        # This is for atoms section of topology
-        nr = (atom.index) + 1
-        top_nr.append(nr)
-        resnr = (atom.resnum)
-        top_resnr.append(resnr)
 
+    check_topology = DataFrame(ffnb_sb_type, columns=['sb_type'])
+    check_topology['check'] = np.where(topology_atoms.sb_type == check_topology.sb_type, 'same', 'different')
     
+    if len(np.unique(check_topology.check)) == 1:
+        print('\n Atoms of topol.top and pdb have the same number')
+
+    else:
+        print('\n Check PDB and topology numeration')
+        
     print('\t Fibril atomtypes')
     fibril_sel = fibril_pdb.select_atoms('all')
     fibril_atomtypes = []
@@ -59,35 +57,28 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
     # ffnonbonded making
     # Making a dictionary with atom number and type
     print('\t FFnonbonded atomtypes section creation')
-    ffnb_atomtype = pd.DataFrame(columns = ['; type', 'name', 'chem', 'residue', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
-
-    ffnb_atomtype['; type'] = ffnb_sb_type
-    ffnb_atomtype['name'] = ffnb_name
-    ffnb_atomtype['chem'] = pep_gro_atoms['type']
-    ffnb_atomtype['residue'] = ffnb_residue
+    ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
+    ffnb_atomtype['; type'] = topology_atoms['sb_type']
+    ffnb_atomtype['chem'] = topology_atoms['type']
     ffnb_atomtype['at.num'] = ffnb_atomtype['chem'].map(gromos_atp['at.num'])
-    #ffnb_atomtype['mass'] = pep_gro_atoms['mass']
-    ffnb_atomtype['mass'] = ffnb_atomtype['chem'].map(gromos_atp['mass'])
+    ffnb_atomtype['mass'] = topology_atoms['mass']
     ffnb_atomtype['charge'] = '0.000000'
     ffnb_atomtype['ptype'] = 'A'
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
-    ffnb_atomtype.drop(columns = ['chem', 'residue', 'name'], inplace = True)
+    ffnb_atomtype.drop(columns = ['chem'], inplace = True)
 
     print('\t Topology atomtypes section creation')
-    topology_atoms = pd.DataFrame(columns = ['; nr', 'type', 'resnr', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB'])
-    topology_atoms['; nr'] = top_nr
-    topology_atoms['type'] = ffnb_sb_type
-    topology_atoms['resnr'] = top_resnr
-    topology_atoms['residue'] = ffnb_residue
-    topology_atoms['atom'] = ffnb_name
-    topology_atoms['cgnr'] = pep_gro_atoms['cgnr']
+    topology_atoms['type'] = topology_atoms['sb_type']
+    topology_atoms['cgnr'] = ''
     topology_atoms['charge'] = ''
     topology_atoms['mass'] = ''
     topology_atoms['typeB'] = ''
     topology_atoms['chargeB'] = ''
     topology_atoms['massB'] = ''
+    topology_atoms.rename(columns={'nr':'; nr'}, inplace=True)
+    topology_atoms.drop(columns=['sb_type'], inplace=True)
 
     print('\t Atomtypes.atp file creation')
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
@@ -96,7 +87,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
 
 ################################ PAIRS
 
-def make_pairs (structure_pdb, atomtype):
+def make_pairs (structure_pdb, atomtypes):
 
     print('\n\t Measuring distances between all atom in the pdb')
     # Selection of all the atoms required to compute LJ
@@ -119,9 +110,9 @@ def make_pairs (structure_pdb, atomtype):
     #    atomtype.append(atp)
 
     # Combining all the atomtypes in the list to create a pair list corresponding to the distance array
-    pairs_list = list(itertools.combinations(atomtype, 2))
-    pairs_ai = []
-    pairs_aj = []
+    pairs_list = list(itertools.combinations(atomtypes, 2))
+    pairs_ai, pairs_aj = [], []
+
     # But the combinations are list of list and we need to separate them
     for n in range(0, len(pairs_list)):
         i = pairs_list[n][0]
@@ -261,7 +252,8 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         print('\n\t All atoms interacts with themself')
         
     else:
-        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
+        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
+        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
 
         #print(doubles)
         #print(atp_doubles) # 84

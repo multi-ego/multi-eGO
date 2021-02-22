@@ -41,7 +41,7 @@ gromos_resatom_nmr_dict = gromos_resatom_nmr.set_index('res_atom')['; nr'].to_di
 
 
 
-# GRETA TO KEEP
+# GRETA moved to topology definitions
 # THE C12 RATIO CHANGED a little bit.atomtypes
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT', 'S', 'NR', 'OM', 'NE', 'NL', 'NZ'],
@@ -65,9 +65,7 @@ gromos_atp.set_index('name', inplace=True)
 #print(gro_atoms)
 
 
-# GRETA TO KEEP
-
-print(gro_atoms)
+#print(gro_atoms)
 
 # Selection of the aminoacids and the charged atoms
 acid_ASP = gro_atoms[(gro_atoms['residue'] == "ASP") & ((gro_atoms['atom'] == "OD1") | (gro_atoms['atom'] == "OD2") | (gro_atoms['atom'] == "CG"))]
@@ -90,7 +88,6 @@ acid_atp = pd.concat(frames, ignore_index = True)
 # prova passando da df a list
 acid_atp = acid_atp['atom_nmr'].tolist()
 
-#print(acid_atp)
 
 #print(acid_ASP.count())
 #print(acid_GLU.count())

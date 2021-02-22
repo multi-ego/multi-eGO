@@ -3,7 +3,7 @@ from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
 from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list, write_acid_greta_LJ
 from GRETA2 import make_pairs, merge_GRETA, make_pdb_atomtypes
-from atomtypes_definitions import acid_atp
+from topology_definitions import acid_atp
 
 
     # Making a dictionary out of it to change the atomnumber to the atomtype
@@ -97,9 +97,8 @@ write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
 
-
 if len(acid_atp) != 0:
-    print('\n GRETA - Acid pH test')
+    print('\n GRETA - Acid pH')
     acid_pdb_pairs = native_pdb_pairs.copy()
     acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.ai.isin(acid_atp)]
     acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.aj.isin(acid_atp)]
