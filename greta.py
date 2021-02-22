@@ -228,7 +228,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
     
-    print('\t Checking how many atoms does not self interact')
+    print('\t Checking how many atoms do not self interact')
     for i in atomtypes:
         # Questo funziona e riesco a fargli dire quello che voglio.
         # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
@@ -239,13 +239,14 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     atp_doubles = list(doubles['ai'])
     # The list is used to obtain all the atomtypes which does not make a self interaction
     atp_notdoubles = list(set(set(atomtypes) - set(atp_doubles)))
+    atp_notdoubles.sort()
 
     if len(atp_notdoubles) == 0:
         print('\n\t All atoms interacts with themself')
         
     else:
-        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
-        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
+        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
+        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
 
         #print(doubles)
         #print(atp_doubles) # 84
