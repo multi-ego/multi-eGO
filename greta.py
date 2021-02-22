@@ -1,21 +1,13 @@
-import MDAnalysis as mda
-from MDAnalysis.analysis import dihedrals, distances
+from MDAnalysis.analysis import distances
 import numpy as np
-from MDAnalysis.analysis.dihedrals import Dihedral
 from pandas.core.frame import DataFrame
-from read_input import read_gro_bonds, read_gro_angles, read_gro_dihedrals
 import pandas as pd
 import itertools
-from itertools import product, combinations
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, protein
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input
 from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp
 
-#native_pdb = mda.Universe('GRETA/native/pep.pdb', guess_bonds = True) # Da spostare su read pdb
-native_bonds =  read_gro_bonds()
-native_angles = read_gro_angles()
-native_dihedrals = read_gro_dihedrals()
 
-def make_pdb_atomtypes (native_pdb, fibril_pdb, pep_gro_atoms):
+def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
 
     print('\t Native atomtypes')

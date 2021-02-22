@@ -2,7 +2,7 @@
 # In this case there will be TTR and B2m parameters but it is possible to apply them
 # theoretically always
 
-protein = 'TTR'
+#protein = 'TTR'
 protein = 'B2m'
 
 # This first version includes all the #flag comments in the script

@@ -1,8 +1,7 @@
-from protein_configuration import protein
-from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs, read_pdbs, read_gro_bonds, read_gro_angles, read_gro_dihedrals, read_gro_impropers, read_top
+from read_input import read_pep_atoms, read_fib_atoms, read_gro_atoms, read_pep_dihedrals, read_fib_dihedrals, read_pep_pairs, read_fib_pairs, read_pdbs
 from functions import make_atomtypes_and_dict, smog_to_gromos_dihedrals, ffnonbonded_merge_pairs, gromos_topology
 from write_output import write_atomtypes_atp, write_gromos_topology, write_smog_to_gromos_dihedrals, write_merge_ffnonbonded, write_acid_ffnonbonded, write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list, write_acid_greta_LJ
-from GRETA2 import make_pairs, merge_GRETA, make_pdb_atomtypes
+from greta import make_pairs, merge_GRETA, make_pdb_atomtypes
 from topology_definitions import acid_atp
 
 
@@ -79,7 +78,7 @@ print('GRETA - PDB reading')
 native_pdb, fibril_pdb = read_pdbs()
 
 print('GRETA - Making Atomtypes')
-native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms = make_pdb_atomtypes(native_pdb, fibril_pdb, read_gro_atoms())
+native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms = make_pdb_atomtypes(native_pdb, fibril_pdb)
 
 print('\n GRETA - Making native and fibril pairs')
 # gromologist version, it works same ffnonbonded.itp
