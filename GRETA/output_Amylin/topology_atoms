@@ -1,279 +1,279 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5.5
 ; Residue cutoff: 3
-; 2021-02-23 17:52:01.239749
+; 2021-02-23 18:48:14.254139
 [ atoms ]
-; nr    type resnr residue atom mass cgnr charge typeB chargeB massB
-   1     N_1     1     LYS    N                                     
-   2    CA_1     1     LYS   CA                                     
-   3    CB_1     1     LYS   CB                                     
-   4    CG_1     1     LYS   CG                                     
-   5    CD_1     1     LYS   CD                                     
-   6    CE_1     1     LYS   CE                                     
-   7    NZ_1     1     LYS   NZ                                     
-   8     C_1     1     LYS    C                                     
-   9     O_1     1     LYS    O                                     
-  10     N_2     2     CYS    N                                     
-  11    CA_2     2     CYS   CA                                     
-  12    CB_2     2     CYS   CB                                     
-  13    SG_2     2     CYS   SG                                     
-  14     C_2     2     CYS    C                                     
-  15     O_2     2     CYS    O                                     
-  16     N_3     3     ASN    N                                     
-  17    CA_3     3     ASN   CA                                     
-  18    CB_3     3     ASN   CB                                     
-  19    CG_3     3     ASN   CG                                     
-  20   OD1_3     3     ASN  OD1                                     
-  21   ND2_3     3     ASN  ND2                                     
-  22     C_3     3     ASN    C                                     
-  23     O_3     3     ASN    O                                     
-  24     N_4     4     THR    N                                     
-  25    CA_4     4     THR   CA                                     
-  26    CB_4     4     THR   CB                                     
-  27   OG1_4     4     THR  OG1                                     
-  28   CG2_4     4     THR  CG2                                     
-  29     C_4     4     THR    C                                     
-  30     O_4     4     THR    O                                     
-  31     N_5     5     ALA    N                                     
-  32    CA_5     5     ALA   CA                                     
-  33    CB_5     5     ALA   CB                                     
-  34     C_5     5     ALA    C                                     
-  35     O_5     5     ALA    O                                     
-  36     N_6     6     THR    N                                     
-  37    CA_6     6     THR   CA                                     
-  38    CB_6     6     THR   CB                                     
-  39   OG1_6     6     THR  OG1                                     
-  40   CG2_6     6     THR  CG2                                     
-  41     C_6     6     THR    C                                     
-  42     O_6     6     THR    O                                     
-  43     N_7     7     CYS    N                                     
-  44    CA_7     7     CYS   CA                                     
-  45    CB_7     7     CYS   CB                                     
-  46    SG_7     7     CYS   SG                                     
-  47     C_7     7     CYS    C                                     
-  48     O_7     7     CYS    O                                     
-  49     N_8     8     ALA    N                                     
-  50    CA_8     8     ALA   CA                                     
-  51    CB_8     8     ALA   CB                                     
-  52     C_8     8     ALA    C                                     
-  53     O_8     8     ALA    O                                     
-  54     N_9     9     THR    N                                     
-  55    CA_9     9     THR   CA                                     
-  56    CB_9     9     THR   CB                                     
-  57   OG1_9     9     THR  OG1                                     
-  58   CG2_9     9     THR  CG2                                     
-  59     C_9     9     THR    C                                     
-  60     O_9     9     THR    O                                     
-  61    N_10    10     GLN    N                                     
-  62   CA_10    10     GLN   CA                                     
-  63   CB_10    10     GLN   CB                                     
-  64   CG_10    10     GLN   CG                                     
-  65   CD_10    10     GLN   CD                                     
-  66  OE1_10    10     GLN  OE1                                     
-  67  NE2_10    10     GLN  NE2                                     
-  68    C_10    10     GLN    C                                     
-  69    O_10    10     GLN    O                                     
-  70    N_11    11     ARG    N                                     
-  71   CA_11    11     ARG   CA                                     
-  72   CB_11    11     ARG   CB                                     
-  73   CG_11    11     ARG   CG                                     
-  74   CD_11    11     ARG   CD                                     
-  75   NE_11    11     ARG   NE                                     
-  76   CZ_11    11     ARG   CZ                                     
-  77  NH1_11    11     ARG  NH1                                     
-  78  NH2_11    11     ARG  NH2                                     
-  79    C_11    11     ARG    C                                     
-  80    O_11    11     ARG    O                                     
-  81    N_12    12     LEU    N                                     
-  82   CA_12    12     LEU   CA                                     
-  83   CB_12    12     LEU   CB                                     
-  84   CG_12    12     LEU   CG                                     
-  85  CD1_12    12     LEU  CD1                                     
-  86  CD2_12    12     LEU  CD2                                     
-  87    C_12    12     LEU    C                                     
-  88    O_12    12     LEU    O                                     
-  89    N_13    13     ALA    N                                     
-  90   CA_13    13     ALA   CA                                     
-  91   CB_13    13     ALA   CB                                     
-  92    C_13    13     ALA    C                                     
-  93    O_13    13     ALA    O                                     
-  94    N_14    14     ASN    N                                     
-  95   CA_14    14     ASN   CA                                     
-  96   CB_14    14     ASN   CB                                     
-  97   CG_14    14     ASN   CG                                     
-  98  OD1_14    14     ASN  OD1                                     
-  99  ND2_14    14     ASN  ND2                                     
- 100    C_14    14     ASN    C                                     
- 101    O_14    14     ASN    O                                     
- 102    N_15    15     PHE    N                                     
- 103   CA_15    15     PHE   CA                                     
- 104   CB_15    15     PHE   CB                                     
- 105   CG_15    15     PHE   CG                                     
- 106  CD1_15    15     PHE  CD1                                     
- 107  CD2_15    15     PHE  CD2                                     
- 108  CE1_15    15     PHE  CE1                                     
- 109  CE2_15    15     PHE  CE2                                     
- 110   CZ_15    15     PHE   CZ                                     
- 111    C_15    15     PHE    C                                     
- 112    O_15    15     PHE    O                                     
- 113    N_16    16     LEU    N                                     
- 114   CA_16    16     LEU   CA                                     
- 115   CB_16    16     LEU   CB                                     
- 116   CG_16    16     LEU   CG                                     
- 117  CD1_16    16     LEU  CD1                                     
- 118  CD2_16    16     LEU  CD2                                     
- 119    C_16    16     LEU    C                                     
- 120    O_16    16     LEU    O                                     
- 121    N_17    17     VAL    N                                     
- 122   CA_17    17     VAL   CA                                     
- 123   CB_17    17     VAL   CB                                     
- 124  CG1_17    17     VAL  CG1                                     
- 125  CG2_17    17     VAL  CG2                                     
- 126    C_17    17     VAL    C                                     
- 127    O_17    17     VAL    O                                     
- 128    N_18    18     HIS    N                                     
- 129   CA_18    18     HIS   CA                                     
- 130   CB_18    18     HIS   CB                                     
- 131   CG_18    18     HIS   CG                                     
- 132  ND1_18    18     HIS  ND1                                     
- 133  CD2_18    18     HIS  CD2                                     
- 134  CE1_18    18     HIS  CE1                                     
- 135  NE2_18    18     HIS  NE2                                     
- 136    C_18    18     HIS    C                                     
- 137    O_18    18     HIS    O                                     
- 138    N_19    19     SER    N                                     
- 139   CA_19    19     SER   CA                                     
- 140   CB_19    19     SER   CB                                     
- 141   OG_19    19     SER   OG                                     
- 142    C_19    19     SER    C                                     
- 143    O_19    19     SER    O                                     
- 144    N_20    20     SER    N                                     
- 145   CA_20    20     SER   CA                                     
- 146   CB_20    20     SER   CB                                     
- 147   OG_20    20     SER   OG                                     
- 148    C_20    20     SER    C                                     
- 149    O_20    20     SER    O                                     
- 150    N_21    21     ASN    N                                     
- 151   CA_21    21     ASN   CA                                     
- 152   CB_21    21     ASN   CB                                     
- 153   CG_21    21     ASN   CG                                     
- 154  OD1_21    21     ASN  OD1                                     
- 155  ND2_21    21     ASN  ND2                                     
- 156    C_21    21     ASN    C                                     
- 157    O_21    21     ASN    O                                     
- 158    N_22    22     ASN    N                                     
- 159   CA_22    22     ASN   CA                                     
- 160   CB_22    22     ASN   CB                                     
- 161   CG_22    22     ASN   CG                                     
- 162  OD1_22    22     ASN  OD1                                     
- 163  ND2_22    22     ASN  ND2                                     
- 164    C_22    22     ASN    C                                     
- 165    O_22    22     ASN    O                                     
- 166    N_23    23     PHE    N                                     
- 167   CA_23    23     PHE   CA                                     
- 168   CB_23    23     PHE   CB                                     
- 169   CG_23    23     PHE   CG                                     
- 170  CD1_23    23     PHE  CD1                                     
- 171  CD2_23    23     PHE  CD2                                     
- 172  CE1_23    23     PHE  CE1                                     
- 173  CE2_23    23     PHE  CE2                                     
- 174   CZ_23    23     PHE   CZ                                     
- 175    C_23    23     PHE    C                                     
- 176    O_23    23     PHE    O                                     
- 177    N_24    24     GLY    N                                     
- 178   CA_24    24     GLY   CA                                     
- 179    C_24    24     GLY    C                                     
- 180    O_24    24     GLY    O                                     
- 181    N_25    25     ALA    N                                     
- 182   CA_25    25     ALA   CA                                     
- 183   CB_25    25     ALA   CB                                     
- 184    C_25    25     ALA    C                                     
- 185    O_25    25     ALA    O                                     
- 186    N_26    26     ILE    N                                     
- 187   CA_26    26     ILE   CA                                     
- 188   CB_26    26     ILE   CB                                     
- 189  CG1_26    26     ILE  CG1                                     
- 190  CG2_26    26     ILE  CG2                                     
- 191   CD_26    26     ILE   CD                                     
- 192    C_26    26     ILE    C                                     
- 193    O_26    26     ILE    O                                     
- 194    N_27    27     LEU    N                                     
- 195   CA_27    27     LEU   CA                                     
- 196   CB_27    27     LEU   CB                                     
- 197   CG_27    27     LEU   CG                                     
- 198  CD1_27    27     LEU  CD1                                     
- 199  CD2_27    27     LEU  CD2                                     
- 200    C_27    27     LEU    C                                     
- 201    O_27    27     LEU    O                                     
- 202    N_28    28     SER    N                                     
- 203   CA_28    28     SER   CA                                     
- 204   CB_28    28     SER   CB                                     
- 205   OG_28    28     SER   OG                                     
- 206    C_28    28     SER    C                                     
- 207    O_28    28     SER    O                                     
- 208    N_29    29     SER    N                                     
- 209   CA_29    29     SER   CA                                     
- 210   CB_29    29     SER   CB                                     
- 211   OG_29    29     SER   OG                                     
- 212    C_29    29     SER    C                                     
- 213    O_29    29     SER    O                                     
- 214    N_30    30     THR    N                                     
- 215   CA_30    30     THR   CA                                     
- 216   CB_30    30     THR   CB                                     
- 217  OG1_30    30     THR  OG1                                     
- 218  CG2_30    30     THR  CG2                                     
- 219    C_30    30     THR    C                                     
- 220    O_30    30     THR    O                                     
- 221    N_31    31     ASN    N                                     
- 222   CA_31    31     ASN   CA                                     
- 223   CB_31    31     ASN   CB                                     
- 224   CG_31    31     ASN   CG                                     
- 225  OD1_31    31     ASN  OD1                                     
- 226  ND2_31    31     ASN  ND2                                     
- 227    C_31    31     ASN    C                                     
- 228    O_31    31     ASN    O                                     
- 229    N_32    32     VAL    N                                     
- 230   CA_32    32     VAL   CA                                     
- 231   CB_32    32     VAL   CB                                     
- 232  CG1_32    32     VAL  CG1                                     
- 233  CG2_32    32     VAL  CG2                                     
- 234    C_32    32     VAL    C                                     
- 235    O_32    32     VAL    O                                     
- 236    N_33    33     GLY    N                                     
- 237   CA_33    33     GLY   CA                                     
- 238    C_33    33     GLY    C                                     
- 239    O_33    33     GLY    O                                     
- 240    N_34    34     SER    N                                     
- 241   CA_34    34     SER   CA                                     
- 242   CB_34    34     SER   CB                                     
- 243   OG_34    34     SER   OG                                     
- 244    C_34    34     SER    C                                     
- 245    O_34    34     SER    O                                     
- 246    N_35    35     ASN    N                                     
- 247   CA_35    35     ASN   CA                                     
- 248   CB_35    35     ASN   CB                                     
- 249   CG_35    35     ASN   CG                                     
- 250  OD1_35    35     ASN  OD1                                     
- 251  ND2_35    35     ASN  ND2                                     
- 252    C_35    35     ASN    C                                     
- 253    O_35    35     ASN    O                                     
- 254    N_36    36     THR    N                                     
- 255   CA_36    36     THR   CA                                     
- 256   CB_36    36     THR   CB                                     
- 257  OG1_36    36     THR  OG1                                     
- 258  CG2_36    36     THR  CG2                                     
- 259    C_36    36     THR    C                                     
- 260    O_36    36     THR    O                                     
- 261    N_37    37     TYR    N                                     
- 262   CA_37    37     TYR   CA                                     
- 263   CB_37    37     TYR   CB                                     
- 264   CG_37    37     TYR   CG                                     
- 265  CD1_37    37     TYR  CD1                                     
- 266  CD2_37    37     TYR  CD2                                     
- 267  CE1_37    37     TYR  CE1                                     
- 268  CE2_37    37     TYR  CE2                                     
- 269   CZ_37    37     TYR   CZ                                     
- 270   OH_37    37     TYR   OH                                     
- 271    C_37    37     TYR    C                                     
- 272    O_37    37     TYR    O                                     
- 273    N_38    38     NH2    N                                     
+; nr    type resnr residue atom  cgnr charge mass typeB chargeB massB
+   1     N_1     1     LYS    N     1                                
+   2    CA_1     1     LYS   CA     1                                
+   3    CB_1     1     LYS   CB     1                                
+   4    CG_1     1     LYS   CG     1                                
+   5    CD_1     1     LYS   CD     1                                
+   6    CE_1     1     LYS   CE     1                                
+   7    NZ_1     1     LYS   NZ     1                                
+   8     C_1     1     LYS    C     1                                
+   9     O_1     1     LYS    O     1                                
+  10     N_2     2     CYS    N     1                                
+  11    CA_2     2     CYS   CA     1                                
+  12    CB_2     2     CYS   CB     1                                
+  13    SG_2     2     CYS   SG     1                                
+  14     C_2     2     CYS    C     1                                
+  15     O_2     2     CYS    O     1                                
+  16     N_3     3     ASN    N     1                                
+  17    CA_3     3     ASN   CA     1                                
+  18    CB_3     3     ASN   CB     1                                
+  19    CG_3     3     ASN   CG     1                                
+  20   OD1_3     3     ASN  OD1     1                                
+  21   ND2_3     3     ASN  ND2     1                                
+  22     C_3     3     ASN    C     1                                
+  23     O_3     3     ASN    O     1                                
+  24     N_4     4     THR    N     1                                
+  25    CA_4     4     THR   CA     1                                
+  26    CB_4     4     THR   CB     1                                
+  27   OG1_4     4     THR  OG1     1                                
+  28   CG2_4     4     THR  CG2     1                                
+  29     C_4     4     THR    C     1                                
+  30     O_4     4     THR    O     1                                
+  31     N_5     5     ALA    N     1                                
+  32    CA_5     5     ALA   CA     1                                
+  33    CB_5     5     ALA   CB     1                                
+  34     C_5     5     ALA    C     1                                
+  35     O_5     5     ALA    O     1                                
+  36     N_6     6     THR    N     1                                
+  37    CA_6     6     THR   CA     1                                
+  38    CB_6     6     THR   CB     1                                
+  39   OG1_6     6     THR  OG1     1                                
+  40   CG2_6     6     THR  CG2     1                                
+  41     C_6     6     THR    C     1                                
+  42     O_6     6     THR    O     1                                
+  43     N_7     7     CYS    N     1                                
+  44    CA_7     7     CYS   CA     1                                
+  45    CB_7     7     CYS   CB     1                                
+  46    SG_7     7     CYS   SG     1                                
+  47     C_7     7     CYS    C     1                                
+  48     O_7     7     CYS    O     1                                
+  49     N_8     8     ALA    N     1                                
+  50    CA_8     8     ALA   CA     1                                
+  51    CB_8     8     ALA   CB     1                                
+  52     C_8     8     ALA    C     1                                
+  53     O_8     8     ALA    O     1                                
+  54     N_9     9     THR    N     1                                
+  55    CA_9     9     THR   CA     1                                
+  56    CB_9     9     THR   CB     1                                
+  57   OG1_9     9     THR  OG1     1                                
+  58   CG2_9     9     THR  CG2     1                                
+  59     C_9     9     THR    C     1                                
+  60     O_9     9     THR    O     1                                
+  61    N_10    10     GLN    N     1                                
+  62   CA_10    10     GLN   CA     1                                
+  63   CB_10    10     GLN   CB     1                                
+  64   CG_10    10     GLN   CG     1                                
+  65   CD_10    10     GLN   CD     1                                
+  66  OE1_10    10     GLN  OE1     1                                
+  67  NE2_10    10     GLN  NE2     1                                
+  68    C_10    10     GLN    C     1                                
+  69    O_10    10     GLN    O     1                                
+  70    N_11    11     ARG    N     1                                
+  71   CA_11    11     ARG   CA     1                                
+  72   CB_11    11     ARG   CB     1                                
+  73   CG_11    11     ARG   CG     1                                
+  74   CD_11    11     ARG   CD     1                                
+  75   NE_11    11     ARG   NE     1                                
+  76   CZ_11    11     ARG   CZ     1                                
+  77  NH1_11    11     ARG  NH1     1                                
+  78  NH2_11    11     ARG  NH2     1                                
+  79    C_11    11     ARG    C     1                                
+  80    O_11    11     ARG    O     1                                
+  81    N_12    12     LEU    N     1                                
+  82   CA_12    12     LEU   CA     1                                
+  83   CB_12    12     LEU   CB     1                                
+  84   CG_12    12     LEU   CG     1                                
+  85  CD1_12    12     LEU  CD1     1                                
+  86  CD2_12    12     LEU  CD2     1                                
+  87    C_12    12     LEU    C     1                                
+  88    O_12    12     LEU    O     1                                
+  89    N_13    13     ALA    N     1                                
+  90   CA_13    13     ALA   CA     1                                
+  91   CB_13    13     ALA   CB     1                                
+  92    C_13    13     ALA    C     1                                
+  93    O_13    13     ALA    O     1                                
+  94    N_14    14     ASN    N     1                                
+  95   CA_14    14     ASN   CA     1                                
+  96   CB_14    14     ASN   CB     1                                
+  97   CG_14    14     ASN   CG     1                                
+  98  OD1_14    14     ASN  OD1     1                                
+  99  ND2_14    14     ASN  ND2     1                                
+ 100    C_14    14     ASN    C     1                                
+ 101    O_14    14     ASN    O     1                                
+ 102    N_15    15     PHE    N     1                                
+ 103   CA_15    15     PHE   CA     1                                
+ 104   CB_15    15     PHE   CB     1                                
+ 105   CG_15    15     PHE   CG     1                                
+ 106  CD1_15    15     PHE  CD1     1                                
+ 107  CD2_15    15     PHE  CD2     1                                
+ 108  CE1_15    15     PHE  CE1     1                                
+ 109  CE2_15    15     PHE  CE2     1                                
+ 110   CZ_15    15     PHE   CZ     1                                
+ 111    C_15    15     PHE    C     1                                
+ 112    O_15    15     PHE    O     1                                
+ 113    N_16    16     LEU    N     1                                
+ 114   CA_16    16     LEU   CA     1                                
+ 115   CB_16    16     LEU   CB     1                                
+ 116   CG_16    16     LEU   CG     1                                
+ 117  CD1_16    16     LEU  CD1     1                                
+ 118  CD2_16    16     LEU  CD2     1                                
+ 119    C_16    16     LEU    C     1                                
+ 120    O_16    16     LEU    O     1                                
+ 121    N_17    17     VAL    N     1                                
+ 122   CA_17    17     VAL   CA     1                                
+ 123   CB_17    17     VAL   CB     1                                
+ 124  CG1_17    17     VAL  CG1     1                                
+ 125  CG2_17    17     VAL  CG2     1                                
+ 126    C_17    17     VAL    C     1                                
+ 127    O_17    17     VAL    O     1                                
+ 128    N_18    18     HIS    N     1                                
+ 129   CA_18    18     HIS   CA     1                                
+ 130   CB_18    18     HIS   CB     1                                
+ 131   CG_18    18     HIS   CG     1                                
+ 132  ND1_18    18     HIS  ND1     1                                
+ 133  CD2_18    18     HIS  CD2     1                                
+ 134  CE1_18    18     HIS  CE1     1                                
+ 135  NE2_18    18     HIS  NE2     1                                
+ 136    C_18    18     HIS    C     1                                
+ 137    O_18    18     HIS    O     1                                
+ 138    N_19    19     SER    N     1                                
+ 139   CA_19    19     SER   CA     1                                
+ 140   CB_19    19     SER   CB     1                                
+ 141   OG_19    19     SER   OG     1                                
+ 142    C_19    19     SER    C     1                                
+ 143    O_19    19     SER    O     1                                
+ 144    N_20    20     SER    N     1                                
+ 145   CA_20    20     SER   CA     1                                
+ 146   CB_20    20     SER   CB     1                                
+ 147   OG_20    20     SER   OG     1                                
+ 148    C_20    20     SER    C     1                                
+ 149    O_20    20     SER    O     1                                
+ 150    N_21    21     ASN    N     1                                
+ 151   CA_21    21     ASN   CA     1                                
+ 152   CB_21    21     ASN   CB     1                                
+ 153   CG_21    21     ASN   CG     1                                
+ 154  OD1_21    21     ASN  OD1     1                                
+ 155  ND2_21    21     ASN  ND2     1                                
+ 156    C_21    21     ASN    C     1                                
+ 157    O_21    21     ASN    O     1                                
+ 158    N_22    22     ASN    N     1                                
+ 159   CA_22    22     ASN   CA     1                                
+ 160   CB_22    22     ASN   CB     1                                
+ 161   CG_22    22     ASN   CG     1                                
+ 162  OD1_22    22     ASN  OD1     1                                
+ 163  ND2_22    22     ASN  ND2     1                                
+ 164    C_22    22     ASN    C     1                                
+ 165    O_22    22     ASN    O     1                                
+ 166    N_23    23     PHE    N     1                                
+ 167   CA_23    23     PHE   CA     1                                
+ 168   CB_23    23     PHE   CB     1                                
+ 169   CG_23    23     PHE   CG     1                                
+ 170  CD1_23    23     PHE  CD1     1                                
+ 171  CD2_23    23     PHE  CD2     1                                
+ 172  CE1_23    23     PHE  CE1     1                                
+ 173  CE2_23    23     PHE  CE2     1                                
+ 174   CZ_23    23     PHE   CZ     1                                
+ 175    C_23    23     PHE    C     1                                
+ 176    O_23    23     PHE    O     1                                
+ 177    N_24    24     GLY    N     1                                
+ 178   CA_24    24     GLY   CA     1                                
+ 179    C_24    24     GLY    C     1                                
+ 180    O_24    24     GLY    O     1                                
+ 181    N_25    25     ALA    N     1                                
+ 182   CA_25    25     ALA   CA     1                                
+ 183   CB_25    25     ALA   CB     1                                
+ 184    C_25    25     ALA    C     1                                
+ 185    O_25    25     ALA    O     1                                
+ 186    N_26    26     ILE    N     1                                
+ 187   CA_26    26     ILE   CA     1                                
+ 188   CB_26    26     ILE   CB     1                                
+ 189  CG1_26    26     ILE  CG1     1                                
+ 190  CG2_26    26     ILE  CG2     1                                
+ 191   CD_26    26     ILE   CD     1                                
+ 192    C_26    26     ILE    C     1                                
+ 193    O_26    26     ILE    O     1                                
+ 194    N_27    27     LEU    N     1                                
+ 195   CA_27    27     LEU   CA     1                                
+ 196   CB_27    27     LEU   CB     1                                
+ 197   CG_27    27     LEU   CG     1                                
+ 198  CD1_27    27     LEU  CD1     1                                
+ 199  CD2_27    27     LEU  CD2     1                                
+ 200    C_27    27     LEU    C     1                                
+ 201    O_27    27     LEU    O     1                                
+ 202    N_28    28     SER    N     1                                
+ 203   CA_28    28     SER   CA     1                                
+ 204   CB_28    28     SER   CB     1                                
+ 205   OG_28    28     SER   OG     1                                
+ 206    C_28    28     SER    C     1                                
+ 207    O_28    28     SER    O     1                                
+ 208    N_29    29     SER    N     1                                
+ 209   CA_29    29     SER   CA     1                                
+ 210   CB_29    29     SER   CB     1                                
+ 211   OG_29    29     SER   OG     1                                
+ 212    C_29    29     SER    C     1                                
+ 213    O_29    29     SER    O     1                                
+ 214    N_30    30     THR    N     1                                
+ 215   CA_30    30     THR   CA     1                                
+ 216   CB_30    30     THR   CB     1                                
+ 217  OG1_30    30     THR  OG1     1                                
+ 218  CG2_30    30     THR  CG2     1                                
+ 219    C_30    30     THR    C     1                                
+ 220    O_30    30     THR    O     1                                
+ 221    N_31    31     ASN    N     1                                
+ 222   CA_31    31     ASN   CA     1                                
+ 223   CB_31    31     ASN   CB     1                                
+ 224   CG_31    31     ASN   CG     1                                
+ 225  OD1_31    31     ASN  OD1     1                                
+ 226  ND2_31    31     ASN  ND2     1                                
+ 227    C_31    31     ASN    C     1                                
+ 228    O_31    31     ASN    O     1                                
+ 229    N_32    32     VAL    N     1                                
+ 230   CA_32    32     VAL   CA     1                                
+ 231   CB_32    32     VAL   CB     1                                
+ 232  CG1_32    32     VAL  CG1     1                                
+ 233  CG2_32    32     VAL  CG2     1                                
+ 234    C_32    32     VAL    C     1                                
+ 235    O_32    32     VAL    O     1                                
+ 236    N_33    33     GLY    N     1                                
+ 237   CA_33    33     GLY   CA     1                                
+ 238    C_33    33     GLY    C     1                                
+ 239    O_33    33     GLY    O     1                                
+ 240    N_34    34     SER    N     1                                
+ 241   CA_34    34     SER   CA     1                                
+ 242   CB_34    34     SER   CB     1                                
+ 243   OG_34    34     SER   OG     1                                
+ 244    C_34    34     SER    C     1                                
+ 245    O_34    34     SER    O     1                                
+ 246    N_35    35     ASN    N     1                                
+ 247   CA_35    35     ASN   CA     1                                
+ 248   CB_35    35     ASN   CB     1                                
+ 249   CG_35    35     ASN   CG     1                                
+ 250  OD1_35    35     ASN  OD1     1                                
+ 251  ND2_35    35     ASN  ND2     1                                
+ 252    C_35    35     ASN    C     1                                
+ 253    O_35    35     ASN    O     1                                
+ 254    N_36    36     THR    N     1                                
+ 255   CA_36    36     THR   CA     1                                
+ 256   CB_36    36     THR   CB     1                                
+ 257  OG1_36    36     THR  OG1     1                                
+ 258  CG2_36    36     THR  CG2     1                                
+ 259    C_36    36     THR    C     1                                
+ 260    O_36    36     THR    O     1                                
+ 261    N_37    37     TYR    N     1                                
+ 262   CA_37    37     TYR   CA     1                                
+ 263   CB_37    37     TYR   CB     1                                
+ 264   CG_37    37     TYR   CG     1                                
+ 265  CD1_37    37     TYR  CD1     1                                
+ 266  CD2_37    37     TYR  CD2     1                                
+ 267  CE1_37    37     TYR  CE1     1                                
+ 268  CE2_37    37     TYR  CE2     1                                
+ 269   CZ_37    37     TYR   CZ     1                                
+ 270   OH_37    37     TYR   OH     1                                
+ 271    C_37    37     TYR    C     1                                
+ 272    O_37    37     TYR    O     1                                
+ 273    N_38    38     NH2    N     1                                

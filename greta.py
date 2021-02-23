@@ -63,8 +63,8 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
     print('\t Topology atomtypes section creation')
     topology_atoms['type'] = topology_atoms['sb_type']
-    topology_atoms['cgnr'] = ''
-    topology_atoms['charge'] = ''
+    topology_atoms.insert(5, 'cgnr', 1)
+    topology_atoms.insert(6, 'charge', '')
     topology_atoms['mass'] = ''
     topology_atoms['typeB'] = ''
     topology_atoms['chargeB'] = ''
