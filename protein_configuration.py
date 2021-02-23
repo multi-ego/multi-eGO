@@ -3,7 +3,8 @@
 # theoretically always
 
 #protein = 'TTR'
-protein = 'B2m'
+protein = 'Amylin'
+#protein = 'B2m'
 
 # This first version includes all the #flag comments in the script
 

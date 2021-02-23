@@ -245,8 +245,8 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         print('\n\t All atoms interacts with themself')
         
     else:
-        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
-        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
+        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
+        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
 
         #print(doubles)
         #print(atp_doubles) # 84
@@ -321,7 +321,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     
 ########################## DIHEDRALS
 
-def sb_dihedrals (structure_pdb):
+#def sb_dihedrals (structure_pdb):
     phi_dihedrals = []
     for index, row in native_dihedrals.iterrows():
         # Here are selected only the atom numbers for every dihedral from the pdb structure
