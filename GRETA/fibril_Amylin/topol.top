@@ -2,7 +2,7 @@
 ;	File 'topol.top' was generated
 ;	By user: emanuele (1004)
 ;	On host: milano
-;	At date: Mon Mar  1 15:45:00 2021
+;	At date: Tue Feb 23 17:21:53 2021
 ;
 ;	This is a standalone topology file
 ;
@@ -13,7 +13,7 @@
 ;	Data prefix:  /opt/gromacs-2020.3
 ;	Working dir:  /home/emanuele/MAGROS/GRETA/fibril_Amylin
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f 6zrf_fibrillone.pdb -ignh -ter
+;	  gmx_mpi pdb2gmx -f 6zrf.pdb -ignh -ter
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
@@ -33,16 +33,6 @@
 #include "topol_Protein_chain_H.itp"
 #include "topol_Protein_chain_J.itp"
 #include "topol_Protein_chain_L.itp"
-#include "topol_Protein_chain_M.itp"
-#include "topol_Protein_chain_N.itp"
-#include "topol_Protein_chain_O.itp"
-#include "topol_Protein_chain_P.itp"
-#include "topol_Protein_chain_Q.itp"
-#include "topol_Protein_chain_R.itp"
-#include "topol_Protein_chain_S.itp"
-#include "topol_Protein_chain_T.itp"
-#include "topol_Protein_chain_U.itp"
-#include "topol_Protein_chain_V.itp"
 
 [ system ]
 ; Name
@@ -62,13 +52,3 @@ Protein_chain_F     1
 Protein_chain_H     1
 Protein_chain_J     1
 Protein_chain_L     1
-Protein_chain_M     1
-Protein_chain_N     1
-Protein_chain_O     1
-Protein_chain_P     1
-Protein_chain_Q     1
-Protein_chain_R     1
-Protein_chain_S     1
-Protein_chain_T     1
-Protein_chain_U     1
-Protein_chain_V     1

@@ -2,7 +2,7 @@
 ;	File 'topol_Protein_chain_B.itp' was generated
 ;	By user: emanuele (1004)
 ;	On host: milano
-;	At date: Mon Mar  1 15:45:13 2021
+;	At date: Tue Feb 23 17:22:07 2021
 ;
 ;	This is a include topology file
 ;
@@ -13,7 +13,7 @@
 ;	Data prefix:  /opt/gromacs-2020.3
 ;	Working dir:  /home/emanuele/MAGROS/GRETA/fibril_Amylin
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f 6zrf_fibrillone.pdb -ignh -ter
+;	  gmx_mpi pdb2gmx -f 6zrf.pdb -ignh -ter
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
