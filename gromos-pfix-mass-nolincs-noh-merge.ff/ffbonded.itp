@@ -34,13 +34,13 @@
 #define gb_8        0.1330  8.8700e+06
 ; H  -  S       750     
 ;
-#define gb_9        0.1330  1.0600e+07
+#define gb_9        0.1330  2.0000e+06
 ; C  -  NT, NL  900     
 ;
 #define gb_10       0.1330  2.0000e+06
 ; C, CR1  -  N, NR, CR1, C (peptide, 5-ring)       1000    
 ;
-#define gb_11       0.1340  1.0500e+07
+#define gb_11       0.1340  2.0000e+06
 ; C  -  N, NZ, NE       900     
 ;
 #define gb_12       0.1340  1.1700e+07
@@ -100,10 +100,10 @@
 #define gb_30       0.1780  2.7200e+06
 ; FE  -  C (Heme)
 ;
-#define gb_31       0.1780  5.9400e+06
+#define gb_31       0.1780  1.8000e+06
 ; CH3  -   S    900     
 ;
-#define gb_32       0.1830  5.6200e+06
+#define gb_32       0.1830  8.0000e+05
 ; CH2  -   S    900     
 ;
 #define gb_33       0.1870  3.5900e+06
@@ -115,7 +115,7 @@
 #define gb_35        0.200  0.6280e+06
 ; NR (heme)  -  FE   120
 ;
-#define gb_36       0.2040  5.0300e+06
+#define gb_36       0.2040  1.8000e+06
 ; S  -   S      1000    
 ;
 #define gb_37        0.221  0.5400e+06
@@ -504,15 +504,39 @@
 #define gd_41     0.000       3.77          6
 ; -CHn-NT-	0.9
 ;
-#define gd_42    180.000        3.5         2
-; Backbone dihedral angle -N-CA-C-N-    0.84
+#define gd_42    124.88475    4.72459    2 
+; Backbone dihedral angle -N-CA-C-N- 
+; 
+#define gd_43    96.06985     4.98118    2 
+; Backbone dihedral angle -C-N-CA-C- 
+; 
+#define gd_44    -77.28473    0.79937    7 
+; Backbone dihedral angle -C-N-CA-C- 
+; 
+#define gd_45    64.88094     1.50198    4 
+; Backbone dihedral angle -N-CA-C-N- 
+; 
+#define gd_46    124.88475    4.72459    2
+; Backbone dihedral angle -N-CA-C-N-  PRO 
 ;
-#define gd_43     0.000        2.8          3
-; Backbone dihedral angle -C-N-CA-C-    0.67
+#define gd_47      96.06985     4.98118    2
+; Backbone dihedral angle -C-N-CA-C-  PRO  
 ;
-#define gd_44   180.000        0.7          6
-;  Backbone dihedral angle -C-N-CA-C-   0.17
+#define gd_48   -77.28473    0.79937    7 
+;  Backbone dihedral angle -C-N-CA-C- PRO  
 ;
-#define gd_45     0.000        0.4          6
-;  Backbone dihedral angle -N-CA-C-N-   0.096
+#define gd_49     64.88094     1.50198    4
+;  Backbone dihedral angle -N-CA-C-N- PRO 
+;
+#define gd_50    124.88475    4.72459    2
+; Backbone dihedral angle -N-CA-C-N- GLY
+;
+#define gd_51     96.06985     4.98118    2
+; Backbone dihedral angle -C-N-CA-C- GLY
+;
+#define gd_52   -77.28473    0.79937    7
+;  Backbone dihedral angle -C-N-CA-C- GLY
+;
+#define gd_53     64.88094     1.50198    4
+;  Backbone dihedral angle -N-CA-C-N- GLY 
 ;

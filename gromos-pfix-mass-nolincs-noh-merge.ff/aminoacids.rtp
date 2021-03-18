@@ -699,10 +699,10 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44   
-   -C     N    CA     C     gd_43
-    N    CA     C    +N     gd_45   
-    N    CA     C    +N     gd_42   
+   -C     N    CA     C     gd_52   
+   -C     N    CA     C     gd_51
+    N    CA     C    +N     gd_53   
+    N    CA     C    +N     gd_50   
 
 [ HISA ]
  [ atoms ]
@@ -1416,12 +1416,12 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44   
-   -C     N    CA     C     gd_43
+   -C     N    CA     C     gd_48   
+   -C     N    CA     C     gd_47
    CA     N    CD    CG     gd_39   
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45   
-    N    CA     C    +N     gd_42   
+    N    CA     C    +N     gd_49   
+    N    CA     C    +N     gd_46   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD     N     gd_34   
 
