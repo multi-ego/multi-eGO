@@ -2,7 +2,7 @@
 ;	File 'topol.top' was generated
 ;	By user: emanuele (1004)
 ;	On host: milano
-;	At date: Fri Nov 20 16:01:47 2020
+;	At date: Thu Mar 18 12:00:41 2021
 ;
 ;	This is a standalone topology file
 ;
@@ -11,7 +11,7 @@
 ;	
 ;	Executable:   /opt/gromacs-2020.3/bin/gmx_mpi
 ;	Data prefix:  /opt/gromacs-2020.3
-;	Working dir:  /home/emanuele/MAGROS/GRETA/native
+;	Working dir:  /home/emanuele/MAGROS/native_TTR
 ;	Command line:
 ;	  gmx_mpi pdb2gmx -f peptide-coot.pdb -ignh
 ;	Force field was read from current directory or a relative path - path added.
@@ -522,12 +522,12 @@ Protein_chain_A     3
    54    55    58    60     1    gd_42
    54    55    58    60     1    gd_45
    55    58    60    61     1    gd_14
-   58    60    61    65     1    gd_43
-   58    60    61    65     1    gd_44
+   58    60    61    65     1    gd_47
+   58    60    61    65     1    gd_48
    61    60    64    63     1    gd_39
    60    61    62    63     1    gd_34
-   60    61    65    67     1    gd_42
-   60    61    65    67     1    gd_45
+   60    61    65    67     1    gd_46
+   60    61    65    67     1    gd_49
    61    62    63    64     1    gd_34
    62    63    64    60     1    gd_34
    61    65    67    68     1    gd_14
