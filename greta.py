@@ -198,10 +198,10 @@ def make_pairs (structure_pdb, atomtypes):
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Merging native and fibril LJ pairs and cleaning all the duplicates among them
-    greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
+    #greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
         # PROVA CON SOLO LA FIBRILLA
-        #greta_LJ = fibril_pdb_pairs.copy()
+    greta_LJ = fibril_pdb_pairs.copy()
 
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
