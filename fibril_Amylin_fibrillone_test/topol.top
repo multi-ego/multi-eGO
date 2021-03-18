@@ -1,0 +1,74 @@
+;
+;	File 'topol.top' was generated
+;	By user: emanuele (1004)
+;	On host: milano
+;	At date: Mon Mar  1 15:45:00 2021
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	                :-) GROMACS - gmx pdb2gmx, 2020.3-MODIFIED (-:
+;	
+;	Executable:   /opt/gromacs-2020.3/bin/gmx_mpi
+;	Data prefix:  /opt/gromacs-2020.3
+;	Working dir:  /home/emanuele/MAGROS/GRETA/fibril_Amylin
+;	Command line:
+;	  gmx_mpi pdb2gmx -f 6zrf_fibrillone.pdb -ignh -ter
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "./gromos-pfix-mass-nolincs-noh-merge.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Protein_chain_A.itp"
+#include "topol_Protein_chain_C.itp"
+#include "topol_Protein_chain_E.itp"
+#include "topol_Protein_chain_G.itp"
+#include "topol_Protein_chain_I.itp"
+#include "topol_Protein_chain_K.itp"
+#include "topol_Protein_chain_B.itp"
+#include "topol_Protein_chain_D.itp"
+#include "topol_Protein_chain_F.itp"
+#include "topol_Protein_chain_H.itp"
+#include "topol_Protein_chain_J.itp"
+#include "topol_Protein_chain_L.itp"
+#include "topol_Protein_chain_M.itp"
+#include "topol_Protein_chain_N.itp"
+#include "topol_Protein_chain_O.itp"
+#include "topol_Protein_chain_P.itp"
+#include "topol_Protein_chain_Q.itp"
+#include "topol_Protein_chain_R.itp"
+#include "topol_Protein_chain_S.itp"
+#include "topol_Protein_chain_T.itp"
+#include "topol_Protein_chain_U.itp"
+#include "topol_Protein_chain_V.itp"
+
+[ system ]
+; Name
+ISLET AMYLOID POLYPEPTIDE; 5 PEPTIDE
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_A     1
+Protein_chain_C     1
+Protein_chain_E     1
+Protein_chain_G     1
+Protein_chain_I     1
+Protein_chain_K     1
+Protein_chain_B     1
+Protein_chain_D     1
+Protein_chain_F     1
+Protein_chain_H     1
+Protein_chain_J     1
+Protein_chain_L     1
+Protein_chain_M     1
+Protein_chain_N     1
+Protein_chain_O     1
+Protein_chain_P     1
+Protein_chain_Q     1
+Protein_chain_R     1
+Protein_chain_S     1
+Protein_chain_T     1
+Protein_chain_U     1
+Protein_chain_V     1
