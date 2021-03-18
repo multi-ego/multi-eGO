@@ -2,8 +2,8 @@
 # In this case there will be TTR and B2m parameters but it is possible to apply them
 # theoretically always
 
-#protein = 'TTR'
-protein = 'Amylin'
+protein = 'TTR'
+#protein = 'Amylin'
 #protein = 'B2m'
 
 # This first version includes all the #flag comments in the script
@@ -52,4 +52,4 @@ t_ratio = temperatura / 70 # TTR
 ########## GRETA
 distance_cutoff = 5.5
 distance_residue = 3
-epsilon_input = 0.600
+epsilon_input = 0.285
