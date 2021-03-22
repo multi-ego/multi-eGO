@@ -1,9 +1,10 @@
+from read_input import read_native_pairs
 from MDAnalysis.analysis import distances
 import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp
 from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp
 
 
@@ -308,13 +309,21 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 
     # Drop columns
     greta_LJ.drop(columns = ['double'], inplace = True)
-    greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
 
+    print(greta_LJ)
+    
+    if idp == True:
+        # Here i join ai and aj of greta_LJ to compare with 
+        print('Addition of reweighted native pairs')
+        native_pairs = read_native_pairs()
+        native_pairs = native_pairs[native_pairs.ratio > 0.09]
+        print(native_pairs)
 
+    greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     return greta_LJ
 
 
