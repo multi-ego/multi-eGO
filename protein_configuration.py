@@ -9,3 +9,5 @@ protein = 'TTR'
 distance_cutoff = 5.5
 distance_residue = 3
 epsilon_input = 0.285
+
+idp = True
