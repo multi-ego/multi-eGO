@@ -167,3 +167,8 @@ exclusion_list_gromologist = [item for sublist in exclusion_list_gromologist for
 
 exclusion_list_gromologist = list(set(exclusion_list_gromologist))
 #print(len(exclusion_list_gromologist)) # 514
+
+
+
+
+# native reweight for TTR. This dictionary will rename the amber topology to gromos topology
