@@ -5,7 +5,7 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold
-from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp
+from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp, gro_to_amb_dict
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -307,7 +307,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
         native_pairs = read_native_pairs()
         native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
-        #print(len(native_pairs))
+        print(native_pairs)
+        native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
+        native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
+        print(native_pairs)
         native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
         # I keep only the one which are NOT included in pairs_check
         native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]

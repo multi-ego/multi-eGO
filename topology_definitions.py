@@ -172,3 +172,4 @@ exclusion_list_gromologist = list(set(exclusion_list_gromologist))
 
 
 # native reweight for TTR. This dictionary will rename the amber topology to gromos topology
+gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
