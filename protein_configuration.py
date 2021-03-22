@@ -10,4 +10,7 @@ distance_cutoff = 5.5
 distance_residue = 3
 epsilon_input = 0.285
 
+# This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
+# It will make a list of pairs to reweight their epsilon and add to the full force field
 idp = True
+ratio_treshold = 0.09

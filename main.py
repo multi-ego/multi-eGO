@@ -13,6 +13,8 @@ native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_ato
 
 print('\n GRETA - Making native and fibril pairs')
 # gromologist version, it works same ffnonbonded.itp
+
+# Add idp condition to avoid the useless reading of the native
 native_pdb_pairs = make_pairs(native_pdb, native_atomtypes)
 fibril_pdb_pairs = make_pairs(fibril_pdb, fibril_atomtypes)
 

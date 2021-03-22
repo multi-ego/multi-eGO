@@ -4,7 +4,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold
 from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp
 
 
@@ -89,19 +89,8 @@ def make_pairs (structure_pdb, atomtypes):
     # The output is a combination array 
     self_distances = distances.self_distance_array(atom_sel.positions)
     print('\t Number of distances measured :', len(self_distances))
-
-    print('\n\t Preparing the atomtype array')
     
-    # Making a list of the atomtypes of the protein
-    # Da spostare su atomtypes_definitions
-    #atomtype = []
-    #for atom in atom_sel:
-    #    # Also the chain ID is printed along because it might happen an interaction between two atoms of different 
-    #    # chains but of the same residue which would be deleted based only by the eclusion list as example
-    #    # CA_1 N_1 is in the exclusion list but in fibril might interact the CA_1 chain 1 with N_1 chain 2
-    #    atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
-    #    atomtype.append(atp)
-
+    print('\n\t Preparing the atomtype array')
     # Combining all the atomtypes in the list to create a pair list corresponding to the distance array
     pairs_list = list(itertools.combinations(atomtypes, 2))
     pairs_ai, pairs_aj = [], []
@@ -199,10 +188,11 @@ def make_pairs (structure_pdb, atomtypes):
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Merging native and fibril LJ pairs and cleaning all the duplicates among them
-    #greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
-
-        # PROVA CON SOLO LA FIBRILLA
-    greta_LJ = fibril_pdb_pairs.copy()
+    if idp == True:
+        # PROVA CON SOLO LA FIBRILLA forse il copy non e' necessario
+        greta_LJ = fibril_pdb_pairs.copy()
+    else:
+        greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
@@ -228,7 +218,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     print('\n GRETA - Self interactions')
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
-    
+
     print('\t Checking how many atoms do not self interact')
     for i in atomtypes:
         # Questo funziona e riesco a fargli dire quello che voglio.
@@ -309,21 +299,45 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 
     # Drop columns
     greta_LJ.drop(columns = ['double'], inplace = True)
+    #print(greta_LJ)
+    
+    if idp == True:
+        print('Addition of reweighted native pairs')
+        # Here i join ai and aj of greta_LJ to compare with the monomer pairs
+        pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
+        native_pairs = read_native_pairs()
+        native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
+        #print(len(native_pairs))
+        native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
+        # I keep only the one which are NOT included in pairs_check
+        native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+        #print(len(native_pairs))
+        native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
+        native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+        #print(len(native_pairs))
+        
+        # Seems that all the native contacts are not included in the fibril, which is perfect!
+        # Add sigma, add epsilon reweighted, add c6 and c12
+        native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
+        native_pairs['epsilon'] = native_pairs['ratio'] * epsilon_input
+        native_pairs['c12'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 12)   
+        native_pairs['c6'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 6)
+        native_pairs['type'] = 1
+        native_pairs.drop(columns = ['counts', 'ratio', 'distance', 'pairs_check'], inplace = True)
+        
+        native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
+        native_pairs.insert(5, '', ';')
+        #print(native_pairs)
+        #print(greta_LJ)
+        greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
+
+    greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
+    #print(greta_LJ)
 
-    print(greta_LJ)
-    
-    if idp == True:
-        # Here i join ai and aj of greta_LJ to compare with 
-        print('Addition of reweighted native pairs')
-        native_pairs = read_native_pairs()
-        native_pairs = native_pairs[native_pairs.ratio > 0.09]
-        print(native_pairs)
-
-    greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     return greta_LJ
 
 
