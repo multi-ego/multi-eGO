@@ -322,7 +322,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         # Seems that all the native contacts are not included in the fibril, which is perfect!
         # Add sigma, add epsilon reweighted, add c6 and c12
         native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
-        native_pairs['epsilon'] = native_pairs['ratio'] * epsilon_input
+        native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
         native_pairs['c12'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 12)   
         native_pairs['c6'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 6)
         native_pairs['type'] = 1
