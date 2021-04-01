@@ -1,7 +1,7 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5.5
 ; Residue cutoff: 3
-; 2021-03-28 21:10:08.742699
+; 2021-03-31 13:57:34.603593
 [ atoms ]
 ; nr    type resnr residue atom  cgnr charge mass typeB chargeB massB
    1     N_1     1     TYR    N     1                                

@@ -8,7 +8,7 @@ protein = 'TTR'
 
 distance_cutoff = 5.5
 distance_residue = 3
-epsilon_input = 0.320
+epsilon_input = 0.295
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
 # It will make a list of pairs to reweight their epsilon and add to the full force field
