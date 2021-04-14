@@ -4,7 +4,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein
 from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp, gro_to_amb_dict
 
 
@@ -193,6 +193,17 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         greta_LJ = fibril_pdb_pairs.copy()
     else:
         greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
+
+
+
+
+
+    # Harp test, we don't have the fibril structure
+    if protein == 'harp':
+        greta_LJ = native_pdb_pairs.copy()
+
+
+
 
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)

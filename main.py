@@ -2,6 +2,7 @@ from read_input import read_pdbs
 from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_pairs_list, write_acid_greta_LJ
 from greta import make_pairs, merge_GRETA, make_pdb_atomtypes
 from topology_definitions import acid_atp
+from protein_configuration import protein
 
 
 print('\n\n\n\n GRETA\n\n\n\n')
