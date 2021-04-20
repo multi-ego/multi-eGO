@@ -348,8 +348,17 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
         native_pairs.insert(5, '', ';')
         #print(native_pairs)
-        #print(greta_LJ)
+        print(greta_LJ)
         greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
+
+    # Sorting the pairs
+    greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    # Cleaning the duplicates
+    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
+    greta_LJ = greta_LJ.drop_duplicates()
 
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
