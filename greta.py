@@ -318,19 +318,16 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
         native_pairs = read_native_pairs()
         native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
-        print(native_pairs)
         native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
         native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
-        print(native_pairs)
         native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
         # I keep only the one which are NOT included in pairs_check
         native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
-        #print(len(native_pairs))
         native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
         native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
-        #print(len(native_pairs))
         
         # Seems that all the native contacts are not included in the fibril, which is perfect!
+
         # Add sigma, add epsilon reweighted, add c6 and c12
         native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
         
@@ -347,18 +344,21 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         
         native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
         native_pairs.insert(5, '', ';')
-        #print(native_pairs)
-        print(greta_LJ)
         greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
 
-    # Sorting the pairs
-    greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
-    # Cleaning the duplicates
-    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    # Removing the reverse duplicates
-    cols = ['ai', 'aj']
-    greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-    greta_LJ = greta_LJ.drop_duplicates()
+        # This sort and drop step is repeated since it might happen that native contacts might be duplicated with the fibril ones
+        # This step has been added after the harp2 FF but ofc for harp2 FF we checked that all contacts were unique (comment above!)
+        # 886 contacts before the addition of this second drop, 886 contacts (sorted differently) after this addition
+
+        # Sorting the pairs
+        greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+        # Cleaning the duplicates
+        greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+        # Removing the reverse duplicates
+        cols = ['ai', 'aj']
+        greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
+        greta_LJ = greta_LJ.drop_duplicates()
+
 
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
