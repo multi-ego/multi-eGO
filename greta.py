@@ -174,11 +174,11 @@ def make_pairs (structure_pdb, atomtypes):
     # Sorting the pairs
     structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
     # Cleaning the duplicates
-    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    ##structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
-    cols = ['ai', 'aj']
-    structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-    structural_LJ = structural_LJ.drop_duplicates()
+    ##cols = ['ai', 'aj']
+    ##structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
+    ##structural_LJ = structural_LJ.drop_duplicates()
     print('\t Cleaning Complete ', len(structural_LJ))
     
     print('\n\t Calculating sigma and epsilon')
@@ -196,25 +196,70 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     else:
         greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
-
-
-
-
     # Harp test, we don't have the fibril structure
     if protein == 'harp':
         greta_LJ = native_pdb_pairs.copy()
 
-
-
-
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+
+    
+
+
+    # Alternative distances choice
+    check_pairs = set(greta_LJ['check'])
+    new_greta_LJ = []
+    for c in check_pairs:
+        filter = (greta_LJ['check'] == c)
+        contact_subset = greta_LJ[filter]
+        
+        contact_subset.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+        # Drop only the duplicates with the same distance due to the reverse copy of greta_LJ
+        # Which used to be deleted before merge
+        contact_subset = contact_subset.drop_duplicates(subset = ['distance'], keep = 'first')
+        contact_subset.insert(3, 'new_sigma', 1)
+        contact_subset.insert(3, 'new_distance', 1)
+        contact_subset['new_distance'] = 1/(((sum((1/contact_subset['distance'])**6))/len(contact_subset))**(1/6))
+        contact_subset['new_sigma'] = (contact_subset['new_distance']/10) / (2**(1/6))
+        #contact_subset = contact_subset.drop_duplicates(subset = ['check'], keep = 'first')
+        #cols = ['ai', 'aj']
+        #contact_subset[cols] = np.sort(contact_subset[cols].values, axis=1)
+        #contact_subset = contact_subset.drop_duplicates()
+        #print(contact_subset.to_string())
+        new_greta_LJ.append(contact_subset)
+    new_greta_LJ = pd.concat(new_greta_LJ, ignore_index=True)
+
+
+
+
+
+
+
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates()
+    new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
+    new_greta_LJ = new_greta_LJ.drop_duplicates()
+
+
+    if len(new_greta_LJ) == len(greta_LJ):
+        print('\n\n\n\n\n\n\n\n\n\n NEW_GRETA_LJ == GRETA_LJ \n\n\n\n\n\n\n\n\n\n\n\n\n')
+          
+        new_greta_LJ['sigma'] = new_greta_LJ['new_sigma']
+        new_greta_LJ = new_greta_LJ.drop(columns = ['new_distance', 'new_sigma'])
+        greta_LJ = new_greta_LJ.copy()
+    else:
+        print(len(new_greta_LJ))
+        print(len(greta_LJ))
+        exit()
+
+
+
 
     #check_GRETA = greta_LJ[['ai', 'aj']].copy()
     greta_LJ.insert(2, 'type', 1)
@@ -312,8 +357,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 
     # Drop columns
     greta_LJ.drop(columns = ['double'], inplace = True)
-    #print(greta_LJ)
-    
+
     if idp == True:
         print('Addition of reweighted native pairs')
         # Here i join ai and aj of greta_LJ to compare with the monomer pairs
