@@ -45,7 +45,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     for atom in fibril_sel:
         atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
         fibril_atomtypes.append(atp)
-    
 
     # ffnonbonded making
     # Making a dictionary with atom number and type
@@ -119,11 +118,10 @@ def make_pairs (structure_pdb, atomtypes):
     structural_LJ['check'] = structural_LJ['ai'] + '_' + structural_LJ['aj']
     same_chain = np.where(structural_LJ['chain_ai'] == structural_LJ['chain_aj'], 'Yes', 'No')
     structural_LJ['same_chain'] = same_chain
-    
+
     print('\t Tagging the chain association')
     are_same = structural_LJ.loc[structural_LJ['same_chain'] == 'Yes']
     not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
-    
     print('\t Pairs within the same chain: ', len(are_same))
     print('\t Pairs not in the same chain: ', len(not_same))
     print('\t Raw pairs list ', len(structural_LJ))
@@ -131,15 +129,20 @@ def make_pairs (structure_pdb, atomtypes):
     print('\t Tagging pairs included in bonded exclusion list')
     # Here we keep only the one without the exclusions
     structural_LJ['exclude'] = ''
-    structural_LJ.loc[(structural_LJ['check'].isin(exclusion_list_gromologist)), 'exclude'] = 'Yes'
+    #structural_LJ.loc[(structural_LJ['check'].isin(exclusion_list_gromologist)), 'exclude'] = 'Yes'
 
-    to_exclude = structural_LJ.loc[structural_LJ['exclude'] == 'Yes']
-    print('\t All pairs present in the bonded exclusion list: ', len(to_exclude))
+    #to_exclude = structural_LJ.loc[structural_LJ['exclude'] == 'Yes']
+    
+    not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
+    #print(to_exclude)
+    #print('\t All pairs present in the bonded exclusion list: ', len(to_exclude))
 
-    mask = (structural_LJ.exclude == 'Yes') & (structural_LJ.same_chain == 'Yes')
-    structural_LJ = structural_LJ[~mask]
-    print('\t Pairs in the same chain and included in the exclusion list :', len(mask))
-    print('\t After exclusion list and chain selection', len(structural_LJ))
+    #mask = (structural_LJ.exclude == 'Yes') & (structural_LJ.same_chain == 'Yes')
+    #mask = (structural_LJ.exclude == 'Yes')
+    #structural_LJ = structural_LJ[~mask]
+    #print(mask)
+    #print('\t Pairs in the same chain and included in the exclusion list :', len(mask))
+    #print('\t After exclusion list and chain selection', len(structural_LJ))
 
     print(f'\n\t Applying distance cutoff of {distance_cutoff} A')
     # Keep only the atoms within 6 A
@@ -155,7 +158,6 @@ def make_pairs (structure_pdb, atomtypes):
     # And to do that it is necessary to convert the two columns into integer
     structural_LJ = structural_LJ.astype({"resnum_ai": int, "resnum_aj": int})
     structural_LJ['diff'] = ''
-    
     # Da riattivare successivamente, test tenendo solo exlcusion list bonded e non SB
     structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
