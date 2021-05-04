@@ -413,7 +413,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
     #print(greta_LJ)
 
-    return greta_LJ
+    return greta_LJ#, native_pairs
 
 
     

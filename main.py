@@ -25,6 +25,7 @@ fibril_pdb_pairs = make_pairs(fibril_pdb, fibril_atomtypes)
 print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
 greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
+#greta_ffnb, native_new = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
@@ -46,6 +47,7 @@ print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and ato
 print('Writing Force Field Analysis pairs')
 ff_name = 'native'
 write_pairs_list(native_pdb_pairs, ff_name)
+#write_pairs_list(native_new, ff_name)
 ff_name = 'fibril'
 write_pairs_list(fibril_pdb_pairs, ff_name)
 ff_name = 'merge'
