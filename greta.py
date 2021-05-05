@@ -59,6 +59,15 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
+    #residue_list = topology_atoms['residue'].to_list()
+    #if 'PRO' in residue_list:
+    #    print('There are prolines in the structure. The c12 of N should be the half')
+    #    proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
+    #    print(proline_n)
+    #    ffnb_atomtype['c12'] = ffnb_atomtype.apply(lambda x: x[''])
+    #else:
+    #    print('There not are prolines in the structure. The c12 of N should be the half')
+
     # This will be needed for exclusion and pairs to paste in topology
     type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
     
@@ -208,7 +217,11 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
 
     # Alternative sigma distances choice
-    check_pairs = set(greta_LJ['check'])
+    check_pairs = greta_LJ['check'].to_list()
+    check_pairs = list(dict.fromkeys(check_pairs))
+    print(len(greta_LJ['check']))
+    print(len(check_pairs))
+
     new_greta_LJ = []
     for c in check_pairs:
         filter = (greta_LJ['check'] == c)
@@ -417,12 +430,20 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['c12_ai'] = pairs['ai']
     pairs['c12_aj'] = pairs['aj']
 
+    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
     pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
     pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
     pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
     pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
+    pairs = pairs[pairs['ai'] != pairs['aj']]
 
+    # Here we keep only the one without the exclusions
+    pairs['exclude'] = ''
+    pairs.loc[(pairs['check'].isin(exclusion_list_gromologist)), 'exclude'] = 'Yes' 
+    mask = pairs.exclude == 'Yes'
+    pairs = pairs[~mask]
+    
     pairs['ai'] = pairs['ai'].map(atnum_type_dict)
     pairs['aj'] = pairs['aj'].map(atnum_type_dict)
     pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
@@ -430,11 +451,10 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['func'] = 1
     pairs['c6'] = 0.00000e+00
     pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-    #pairs['c12_ai'] = pairs['c12_ai'].astype(float)
-    #pairs['c12_aj'] = pairs['c12_aj'].astype(float)
     pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj'], inplace = True)
+
+    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)
     
     exclusion = pairs[['ai', 'aj']].copy()
     

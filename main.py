@@ -1,5 +1,5 @@
 from read_input import read_pdbs
-from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_exclusion, write_greta_topology_pairs, write_pairs_list, write_acid_greta_LJ
+from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs, write_pairs_list, write_acid_greta_LJ
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes
 from topology_definitions import acid_atp
 from protein_configuration import protein, idp
@@ -36,8 +36,7 @@ write_greta_LJ(ffnonbonded_atp, greta_ffnb)
 
 print('\n GRETA - Pairs and Exclusion section preparation')
 topology_pairs, topology_exclusion = make_pairs_exclusion_topology(greta_ffnb, type_c12_dict)
-write_greta_topology_pairs(topology_pairs)
-write_greta_topology_exclusion(topology_exclusion)
+write_greta_topology_pairs(topology_pairs, topology_exclusion)
 print('\n GRETA - Pairs and Exclusion section written')
 
 

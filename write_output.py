@@ -58,34 +58,7 @@ def write_greta_topology_atoms(topology_atoms):
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-
-def write_greta_topology(topology_atoms, topology_pairs, topology_exclusion):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/topology_greta' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atoms ]")
-    file.write("\n")
-    file.write(str(topology_atoms.to_string(index = False)))
-    file.write("\n")
-    file.write("[ pairs ]")
-    file.write("\n")
-    file.write(str(topology_pairs.to_string(index = False)))
-    file.write("\n")
-    file.write("[ exclusion ]")
-    file.write("\n")
-    file.write(str(topology_exclusion.to_string(index = False)))
-    file.close()
-
-def write_greta_topology_pairs(pairs_topology):
+def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
     directory = 'output_%s/pairs_topology' %(protein)
@@ -98,26 +71,11 @@ def write_greta_topology_pairs(pairs_topology):
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n")
-    file.write("[ atoms ]")
+    file.write("[ pairs ]")
     file.write("\n")
     file.write(str(pairs_topology.to_string(index = False)))
-    file.close()
-
-
-def write_greta_topology_exclusion(exclusion_topology):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/exclusion_topology' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
     file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atoms ]")
+    file.write("[ exclusions ]")
     file.write("\n")
     file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
