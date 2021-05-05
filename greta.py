@@ -58,6 +58,10 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['ptype'] = 'A'
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
+    
+    # This will be needed for exclusion and pairs to paste in topology
+    type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
+    
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
 
@@ -75,7 +79,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     print('\t Atomtypes.atp file creation')
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms
+    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict
 
 ################################ PAIRS
 
@@ -203,16 +207,12 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
 
-    
-
-
-    # Alternative distances choice
+    # Alternative sigma distances choice
     check_pairs = set(greta_LJ['check'])
     new_greta_LJ = []
     for c in check_pairs:
         filter = (greta_LJ['check'] == c)
-        contact_subset = greta_LJ[filter]
-        
+        contact_subset = greta_LJ[filter]  
         contact_subset.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
         # Drop only the duplicates with the same distance due to the reverse copy of greta_LJ
         # Which used to be deleted before merge
@@ -221,19 +221,9 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         contact_subset.insert(3, 'new_distance', 1)
         contact_subset['new_distance'] = 1/(((sum((1/contact_subset['distance'])**6))/len(contact_subset))**(1/6))
         contact_subset['new_sigma'] = (contact_subset['new_distance']/10) / (2**(1/6))
-        #contact_subset = contact_subset.drop_duplicates(subset = ['check'], keep = 'first')
-        #cols = ['ai', 'aj']
-        #contact_subset[cols] = np.sort(contact_subset[cols].values, axis=1)
-        #contact_subset = contact_subset.drop_duplicates()
-        #print(contact_subset.to_string())
         new_greta_LJ.append(contact_subset)
+
     new_greta_LJ = pd.concat(new_greta_LJ, ignore_index=True)
-
-
-
-
-
-
 
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -246,20 +236,16 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
     new_greta_LJ = new_greta_LJ.drop_duplicates()
 
-
     if len(new_greta_LJ) == len(greta_LJ):
-        print('\n\n\n\n\n\n\n\n\n\n NEW_GRETA_LJ == GRETA_LJ \n\n\n\n\n\n\n\n\n\n\n\n\n')
-          
+        #\n\n\n\n\n\n NEW_GRETA_LJ == GRETA_LJ \n\n\n\n\n\n\n\n\n\n\n\n\n') 
         new_greta_LJ['sigma'] = new_greta_LJ['new_sigma']
         new_greta_LJ = new_greta_LJ.drop(columns = ['new_distance', 'new_sigma'])
         greta_LJ = new_greta_LJ.copy()
     else:
         print(len(new_greta_LJ))
         print(len(greta_LJ))
+        print('New sigmas dont match with old ones')
         exit()
-
-
-
 
     #check_GRETA = greta_LJ[['ai', 'aj']].copy()
     greta_LJ.insert(2, 'type', 1)
@@ -268,8 +254,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(5, '', ';')
-
-
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     # SELF INTERACTIONS
@@ -411,11 +395,53 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
-    #print(greta_LJ)
 
-    return greta_LJ#, native_pairs
+    if idp == False:
+        return greta_LJ
+    else:
+        return greta_LJ, native_pairs
 
 
+def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
+    '''
+    This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
+    '''
+
+    greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
+    atnum_type_top = topology_atoms[['; nr', 'type']]
+    atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
+    atnum_type_dict = atnum_type_top.set_index('type')['nr'].to_dict()
+
+# Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
+    pairs = greta_merge[['ai', 'aj']].copy()
+    pairs['c12_ai'] = pairs['ai']
+    pairs['c12_aj'] = pairs['aj']
+
+    pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
+    pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
+    pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
+    pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
+    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
+
+    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
+    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+    pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
+    pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
+    pairs['func'] = 1
+    pairs['c6'] = 0.00000e+00
+    pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+    #pairs['c12_ai'] = pairs['c12_ai'].astype(float)
+    #pairs['c12_aj'] = pairs['c12_aj'].astype(float)
+    pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
+    pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj'], inplace = True)
+    
+    exclusion = pairs[['ai', 'aj']].copy()
+    
+    pairs = pairs.rename(columns = {'ai': '; ai'})
+    exclusion = exclusion.rename(columns = {'ai': '; ai'})
+
+    return pairs, exclusion
     
 ########################## DIHEDRALS
 
