@@ -15,3 +15,6 @@ epsilon_input = 0.6
 # It will make a list of pairs to reweight their epsilon and add to the full force field
 idp = True
 ratio_treshold = 0.09
+
+# Does the N_terminal have a protonation?
+N_terminal = True

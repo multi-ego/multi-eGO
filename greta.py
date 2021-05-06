@@ -4,8 +4,8 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein
-from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal
+from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num, atom_topology_resid
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -60,17 +60,20 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
     residue_list = topology_atoms['residue'].to_list()
+
     if 'PRO' in residue_list:
         print('There are prolines in the structure. The c12 of N should be the half')
-        print(ffnb_atomtype)
         proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
-        print(type(proline_n))
-        print(ffnb_atomtype)
-        ffnb_atomtype.loc[(ffnb_atomtype['; type'] == proline_n[0]), 'c12'] = ffnb_atomtype['c12']/2
-        print(ffnb_atomtype)
-
+        ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/2
     else:
         print('There not are prolines in the structure. The c12 of N should be the half')
+    
+
+    if N_terminal == True:
+        print('Changing the c12 value of N-terminal')
+        first_resid = 'N_'+str(atom_topology_resid[0])
+        ffnb_atomtype.loc[(ffnb_atomtype['; type'] == first_resid), 'c12'] = ffnb_atomtype['c12']*5 # Harp 2
+        
 
     # This will be needed for exclusion and pairs to paste in topology
     type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
