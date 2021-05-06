@@ -212,7 +212,7 @@ exclusion_list_gromologist = [item for sublist in exclusion_list_gromologist for
 #print(len(flat_exclusion_list_gromologist)) # 2238
 
 exclusion_list_gromologist = list(set(exclusion_list_gromologist))
-#print(len(exclusion_list_gromologist)) # 514
+#print(exclusion_list_gromologist) # 514
 
 
 

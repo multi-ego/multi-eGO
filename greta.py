@@ -5,7 +5,7 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein
-from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp, gro_to_amb_dict
+from topology_definitions import exclusion_list_gromologist, topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -425,12 +425,50 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
     atnum_type_dict = atnum_type_top.set_index('type')['nr'].to_dict()
 
+    atnum_topology_bonds = topology_bonds.copy()
+    atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
+    atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].map(atnum_type_dict)
+    atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].astype(int)
+    atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].astype(int)
+
+    bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
+    #print(bond_tuple)
+
+    ex, exclusion_bonds = [], []
+    for atom in atom_topology_num:
+        for t in bond_tuple:
+            if t[0] == atom:
+                first = t[1]
+                ex.append(t[1])
+            elif t[1] == atom:
+                first = t[0]
+                ex.append(t[0])
+            else: continue
+            for tt in bond_tuple:
+                if (tt[0] == first) & (tt[1] != atom):
+                    second = tt[1]
+                    ex.append(tt[1])
+                elif (tt[1] == first) & (tt[0] != atom):
+                    second = tt[0]
+                    ex.append(tt[0])
+                else: continue
+                for ttt in bond_tuple:
+                    if (ttt[0] == second) & (ttt[1] != first):
+                        ex.append(ttt[1])
+                    elif (ttt[1] == second) & (ttt[0] != first):
+                        ex.append(ttt[0])
+        for e in ex:
+            exclusion_bonds.append((str(str(atom) + '_' + str(e))))
+            exclusion_bonds.append((str(str(e) + '_' + str(atom))))
+        ex = []
+    
+
 # Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
     pairs = greta_merge[['ai', 'aj']].copy()
     pairs['c12_ai'] = pairs['ai']
     pairs['c12_aj'] = pairs['aj']
 
-    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
+    # Keeping based on resnum
     pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
     pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
     pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
@@ -438,14 +476,19 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
     pairs = pairs[pairs['ai'] != pairs['aj']]
 
+    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
+    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+    
+    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
+
     # Here we keep only the one without the exclusions
     pairs['exclude'] = ''
-    pairs.loc[(pairs['check'].isin(exclusion_list_gromologist)), 'exclude'] = 'Yes' 
+    pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
     mask = pairs.exclude == 'Yes'
     pairs = pairs[~mask]
     
-    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
-    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+
+
     pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
     pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
     pairs['func'] = 1
