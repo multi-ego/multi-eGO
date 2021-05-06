@@ -5,7 +5,7 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal
-from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num, atom_topology_resid
+from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num, first_resid
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -71,7 +71,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
     if N_terminal == True:
         print('Changing the c12 value of N-terminal')
-        first_resid = 'N_'+str(atom_topology_resid[0])
+        #first_resid = 'N_'+str(atom_topology_resid[0])
         ffnb_atomtype.loc[(ffnb_atomtype['; type'] == first_resid), 'c12'] = ffnb_atomtype['c12']*5 # Harp 2
         
 
@@ -409,6 +409,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
         greta_LJ = greta_LJ.drop_duplicates()
 
+
+    if N_terminal == True:
+        print('Removing N_1 N_1 pair')
+        greta_LJ.loc[(greta_LJ['ai'] == first_resid) & (greta_LJ['aj'] == first_resid), 'ai'] = ';'+greta_LJ['ai'] 
 
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))

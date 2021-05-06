@@ -22,6 +22,7 @@ topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(2)
 # Structure based atomtype definition
 topology_atoms['sb_type'] = topology_atoms['atom'] + '_' + topology_atoms['resnr']
 
+first_resid = 'N_'+str(atom_topology_resid[0])
 
 # ACID pH
 # Selection of the aminoacids and the charged atoms
