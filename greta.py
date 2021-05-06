@@ -59,14 +59,18 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
-    #residue_list = topology_atoms['residue'].to_list()
-    #if 'PRO' in residue_list:
-    #    print('There are prolines in the structure. The c12 of N should be the half')
-    #    proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
-    #    print(proline_n)
-    #    ffnb_atomtype['c12'] = ffnb_atomtype.apply(lambda x: x[''])
-    #else:
-    #    print('There not are prolines in the structure. The c12 of N should be the half')
+    residue_list = topology_atoms['residue'].to_list()
+    if 'PRO' in residue_list:
+        print('There are prolines in the structure. The c12 of N should be the half')
+        print(ffnb_atomtype)
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
+        print(type(proline_n))
+        print(ffnb_atomtype)
+        ffnb_atomtype.loc[(ffnb_atomtype['; type'] == proline_n[0]), 'c12'] = ffnb_atomtype['c12']/2
+        print(ffnb_atomtype)
+
+    else:
+        print('There not are prolines in the structure. The c12 of N should be the half')
 
     # This will be needed for exclusion and pairs to paste in topology
     type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
@@ -478,7 +482,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
 
     pairs['ai'] = pairs['ai'].map(atnum_type_dict)
     pairs['aj'] = pairs['aj'].map(atnum_type_dict)
-    
+
     pairs['check'] = pairs['ai'] + '_' + pairs['aj']
 
     # Here we keep only the one without the exclusions
