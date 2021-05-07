@@ -17,4 +17,5 @@ idp = True
 ratio_treshold = 0.09
 
 # Does the N_terminal have a protonation?
+# Taking off N_1 N_1 and raising c12 of N_1
 N_terminal = True
