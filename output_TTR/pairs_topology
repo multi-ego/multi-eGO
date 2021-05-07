@@ -1,7 +1,7 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5.5
 ; Residue cutoff: 3
-; 2021-05-07 14:17:25.843058
+; 2021-05-07 14:40:46.336989
 
 [ pairs ]
 ; ai  aj  func            c6           c12
