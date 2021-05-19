@@ -9,13 +9,21 @@ from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, to
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
+    '''
+    This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
+    '''
 
-
-    print('\t Native atomtypes')
+    print('\tBuilding native atomtypes')
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
     for atom in native_sel:
+        '''
+        This for loop reads the coordinates file and starts building the SB atomtypes.
+        The native atomtypes will be used for topology.top, atomtypes.atp and ffnonbonded.itp.
+        We define atps as atomname_resnumber:chainnumber, as we need this three informations to create atom pairs.
+        '''
+        # TODO add the exclusion
         # Also the chain ID is printed along because it might happen an interaction between two atoms of different 
         # chains but of the same residue which would be deleted based only by the eclusion list as example
         # CA_1 N_1 is in the exclusion list but in fibril might interact the CA_1 chain 1 with N_1 chain 2
@@ -33,13 +41,14 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     check_topology = DataFrame(ffnb_sb_type, columns=['sb_type'])
     check_topology['check'] = np.where(topology_atoms.sb_type == check_topology.sb_type, 'same', 'different')
     
+    # Just checking that the pdb and the topology have the same number of atoms
     if len(np.unique(check_topology.check)) == 1:
-        print('\n Atoms of topol.top and pdb have the same number')
-
+        print('\n\tAtoms of topol.top and pdb have the same number')
     else:
-        print('\n Check PDB and topology numeration')
+        print('\n\tCheck PDB and topology numeration')
+        exit()
         
-    print('\t Fibril atomtypes')
+    print('\tBuilding fibril atomtypes')
     fibril_sel = fibril_pdb.select_atoms('all')
     fibril_atomtypes = []
     for atom in fibril_sel:
@@ -48,7 +57,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
     # ffnonbonded making
     # Making a dictionary with atom number and type
-    print('\t FFnonbonded atomtypes section creation')
+    print('\tFFnonbonded atomtypes section creation')
     ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
     ffnb_atomtype['; type'] = topology_atoms['sb_type']
     ffnb_atomtype['chem'] = topology_atoms['type']
@@ -59,29 +68,32 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
+    # This will be used to check if there are prolines in the structure and half their N c12
     residue_list = topology_atoms['residue'].to_list()
 
     if 'PRO' in residue_list:
-        print('There are prolines in the structure. The c12 of N should be the half')
+        print('\tThere are prolines in the structure. The c12 of N should be the half')
         proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
         ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/2
     else:
-        print('There not are prolines in the structure. The c12 of N should be the half')
+        print('\tThere not are prolines in the structure. The c12 of N should be the half')
     
 
-    if N_terminal == True:
-        print('Changing the c12 value of N-terminal')
-        #first_resid = 'N_'+str(atom_topology_resid[0])
-        ffnb_atomtype.loc[(ffnb_atomtype['; type'] == first_resid), 'c12'] = ffnb_atomtype['c12']*5 # Harp 2
+    # The N terminal of the structure should be bigger than the others since it has an H more and charged
+    #if N_terminal == True:
+    #    print('\nChanging the c12 value of N-terminal')
+        # In this case we multiply by 5 since the c12 are already doubled
+    #    ffnb_atomtype.loc[(ffnb_atomtype['; type'] == first_resid), 'c12'] = ffnb_atomtype['c12']*5 # Harp 2
         
 
     # This will be needed for exclusion and pairs to paste in topology
+    # A dictionary with the c12 of each atom in the system
     type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
     
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
 
-    print('\t Topology atomtypes section creation')
+    print('\tTopology atomtypes section creation')
     topology_atoms['type'] = topology_atoms['sb_type']
     topology_atoms.insert(5, 'cgnr', 1)
     topology_atoms.insert(6, 'charge', '')
@@ -97,66 +109,76 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict
 
-################################ PAIRS
 
 def make_pairs (structure_pdb, atomtypes):
+    '''
+    This function measures all the distances between all atoms using MDAnalysis.
+    It works on both native and fibril in the same manner.
+    '''
 
-    print('\n\t Measuring distances between all atom in the pdb')
-    # Selection of all the atoms required to compute LJ
+    print('\n\tMeasuring distances between all atom in the pdb')
+    # Selecting all atoms in the system
     atom_sel = structure_pdb.select_atoms('all')
-    # Calculating all the distances between atoms
-    # The output is a combination array 
-    self_distances = distances.self_distance_array(atom_sel.positions)
-    print('\t Number of distances measured :', len(self_distances))
-    
-    print('\n\t Preparing the atomtype array')
-    # Combining all the atomtypes in the list to create a pair list corresponding to the distance array
-    pairs_list = list(itertools.combinations(atomtypes, 2))
-    pairs_ai, pairs_aj = [], []
 
-    # But the combinations are list of list and we need to separate them
+    # Calculating all the distances between atoms.
+    # The output is a combination array.
+    self_distances = distances.self_distance_array(atom_sel.positions)
+    print('\tNumber of distances measured :', len(self_distances))
+    
+    print('\n\tPreparing the atomtype array')
+    # The MDAnalysis contains only distances, so we rebuilt atom pairs in the same manner
+    # using the atomtypes list of native and fibril which will match with the distance array.
+    pairs_list = list(itertools.combinations(atomtypes, 2))
+
+    # But the combinations are list of list and we need to separate them.
+    pairs_ai, pairs_aj = [], []
     for n in range(0, len(pairs_list)):
         i = pairs_list[n][0]
         pairs_ai.append(i)
         j = pairs_list[n][1]
         pairs_aj.append(j)
-    print('\t Atomtype array ready')
+    print('\tAtomtype array ready')
 
-    print('\n\t Creating the pairs dataframes')
-    # Creation of the dataframe containing the ffnonbonded.itp
+    print('\n\tCreating the pairs dataframes')
+    # Creation of the dataframe containing the atom pairs and the distances.
+    # Also, it will be prepared for sigma and epsilon.
     structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'check'])
     structural_LJ['ai'] = pairs_ai
     structural_LJ['aj'] = pairs_aj
     structural_LJ['distance'] = self_distances
-    print('\t Raw pairs list ', len(structural_LJ))
+    raw_structural_LJ = len(structural_LJ)
+    print('\tRaw pairs list ', raw_structural_LJ)
     
-    print('\n\t Extracting chain label for every atom pair')
+    print(f'\n\tApplying distance cutoff of {distance_cutoff} A')
+    # Keep only the atoms within 6 A
+    structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
+    print(f'\tPairs below cutoff {distance_cutoff}: ', len(structural_LJ))
+    print(f'\tDeleted {raw_structural_LJ - len(structural_LJ)} pairs')
+
+    print('\n\tExtracting chain label for every atom pair')
+    # That is name_resname:resid made from the previous function.
+    # Extracting the resid information to check if the atom pair is on the same chain.
     structural_LJ[['ai', 'chain_ai']] = structural_LJ.ai.str.split(":", expand = True)
     structural_LJ[['aj', 'chain_aj']] = structural_LJ.aj.str.split(":", expand = True)
 
     # Create the check column for the exclusion list
+    # TODO we don't use this anymore, we might delete this part
     structural_LJ['check'] = structural_LJ['ai'] + '_' + structural_LJ['aj']
-    same_chain = np.where(structural_LJ['chain_ai'] == structural_LJ['chain_aj'], 'Yes', 'No')
-    structural_LJ['same_chain'] = same_chain
+    
+    structural_LJ['same_chain'] = np.where(structural_LJ['chain_ai'] == structural_LJ['chain_aj'], 'Yes', 'No')
+    
+    print('\tPairs within the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'Yes']))
+    print('\tPairs not in the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'No']))
+    print('\tRaw pairs list ', len(structural_LJ))
 
-    print('\t Tagging the chain association')
-    are_same = structural_LJ.loc[structural_LJ['same_chain'] == 'Yes']
-    not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
-    print('\t Pairs within the same chain: ', len(are_same))
-    print('\t Pairs not in the same chain: ', len(not_same))
-    print('\t Raw pairs list ', len(structural_LJ))
 
-    print('\t Tagging pairs included in bonded exclusion list')
+    # TODO we might delete this part, we don't use exclusion list anymore
+    #print('\tTagging pairs included in bonded exclusion list')
     # Here we keep only the one without the exclusions
     structural_LJ['exclude'] = ''
-    not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
+    #not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
 
-    print(f'\n\t Applying distance cutoff of {distance_cutoff} A')
-    # Keep only the atoms within 6 A
-    structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
-    print(f'\t Pairs below cutoff {distance_cutoff}: ', len(structural_LJ))
-
-    print(f'\t Applying residue number cutoff of {distance_residue}')
+    print(f'\tApplying residue number cutoff of {distance_residue}')
     # This part is to filter more the LJ like in smog: if two pairs are made by aminoacids closer than
     # 3 they'll be deleted. Therefore aminoacids 1, 2, 3 and 4 does not make any contacts.
     # Therefore I copy the LJ dataframe and apply some more filters
@@ -168,19 +190,19 @@ def make_pairs (structure_pdb, atomtypes):
     # Da riattivare successivamente, test tenendo solo exlcusion list bonded e non SB
     structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
-    print(f'\t All the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
+    print(f'\tAll the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
 
-    print('\n\t Making the reverse duplicate dataframe')
+    print('\n\tMaking the reverse duplicate dataframe')
     # Inverse pairs calvario
     inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
     inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
     structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
-    print('\t Doubled pairs list: ', len(structural_LJ))
-
+    print('\tDoubled pairs list: ', len(structural_LJ))
 
     if sigma_method == 'minimum':
-
-        print('\t Sorting and dropping all the duplicates')
+        # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+        # In the other method we average like NMR and so we don't dump the duplicates.
+        print('\tSorting and dropping all the duplicates')
         # Sorting the pairs
         structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
         # Cleaning the duplicates
@@ -189,22 +211,27 @@ def make_pairs (structure_pdb, atomtypes):
         cols = ['ai', 'aj']
         structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
         structural_LJ = structural_LJ.drop_duplicates()
-        print('\t Cleaning Complete ', len(structural_LJ))
+        print('\tCleaning Complete ', len(structural_LJ))
     
-    print('\n\t Calculating sigma and epsilon')
+    print('\n\tCalculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = epsilon_input #2.49 # PROTEIN CONFIGURATION # 0.41 epsilon MAGROS
+    # As declared in protein_configuration.py
+    structural_LJ['epsilon'] = epsilon_input
 
-    print('\n\n\t Sigma and epsilon completed ', len(structural_LJ))
+    print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
+
     return structural_LJ
 
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
-    # Merging native and fibril LJ pairs and cleaning all the duplicates among them
+    '''
+    This function merges the atom contacts from native and fibril. It also apply the NMR sigma.
+    '''
     if idp == True:
-        # PROVA CON SOLO LA FIBRILLA forse il copy non e' necessario
+        # Contacts are from a plain MD, so at this step we just import the fibril contacts.
         greta_LJ = fibril_pdb_pairs.copy()
     else:
+        # Merging native and fibril LJ pairs.
         greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
     # Harp test, we don't have the fibril structure
@@ -214,9 +241,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
 
-
     if sigma_method == 'NMR':
-
         # Alternative sigma distances choice
         check_pairs = greta_LJ['check'].to_list()
         check_pairs = list(dict.fromkeys(check_pairs))
@@ -261,7 +286,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
             print('New sigmas dont match with old ones')
             exit()
 
-    #check_GRETA = greta_LJ[['ai', 'aj']].copy()
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
     greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
@@ -271,14 +295,15 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     # SELF INTERACTIONS
+    # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
+    # So that the balance between native and fibril is less steep.
     print('\n GRETA - Self interactions')
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
 
-    print('\t Checking how many atoms do not self interact')
+    print('\tChecking how many atoms do not self interact')
     for i in atomtypes:
-        # Questo funziona e riesco a fargli dire quello che voglio.
-        # Cioe' flaggare solo i valori che hanno un loro corrispettivo: N_1 N_1, CA_1 CA_1 ...
+        # Selection of already known atoms which contacts with themself
         greta_LJ.loc[(greta_LJ['ai'] == i) & (greta_LJ['aj'] == i), 'double'] = 'True'
 
     # Create a subset of the main dataframe of the self interactions.
@@ -289,17 +314,10 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     atp_notdoubles.sort()
 
     if len(atp_notdoubles) == 0:
-        print('\n\t All atoms interacts with themself')
+        print('\n\tAll atoms interacts with themself')
         
     else:
-        print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t')
-        #print('\n\t There are', len(atp_notdoubles), 'self interactions to add:\n\n\t', atp_notdoubles, '\n')
-
-        #print(doubles)
-        #print(atp_doubles) # 84
-        #print(atp_notdoubles) # 1 che in totale fanno 85, nel caso di TTR e' giusto
-                                # perche' la prima riga l'ho tolta
-
+        print('\n\tThere are', len(atp_notdoubles), 'self interactions to add')
         # From the list of atomtypes to add, a new dataframe is created to append to the main one
         pairs_toadd = pd.DataFrame(columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
         pairs_toadd['ai'] = atp_notdoubles
@@ -316,71 +334,77 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         atomtypes_toadd = [x + '_' for x in atomtypes_toadd]
 
         for a in atomtypes_toadd:
+            # Selects the atom pairs from the double pairs 
             doubles_a = doubles.loc[(doubles['ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
-        
             # All the epsilon are the same, therefore the average sigma will be added on the self interaction
             sigma = doubles_a['sigma']
-                        #for s in sigma:
-            #    print('\t\t','sigma of ', a, '= ', s)
             
             if len(sigma) == 1:
+                # If there is only onw sigma for the averages it will be skipped
                 print('\n\t Only one self interacting pair has been found for', a, '==> Skip')
-
             elif len(sigma) == 0:
+                # If the missing atom pairs is not represented in the strcture there are not
+                # sigmas to average
                 print('\n\t There are not self interactions for', a, '==> Skip')
-
             else:
+                # If there are enough sigmas to make an average then it creates the missing atom pairs
                 print('\n\t There are', len(sigma), 'of', a, 'contributing to the average of self interacting sigma')
                 media_sigma = sigma.mean()
                 print('\n\t\t', 'Average Sigma for', a, ':', '\t', media_sigma)
                 
-                
-                # Nuovi c6 e c12
+                # Creation of new c6 and c12
                 new_c6 = 4 * epsilon_input * (media_sigma ** 6)
                 new_c12 = 4 * epsilon_input * (media_sigma ** 12)
 
                 print('\t\t New c6 for ', a, '=\t', new_c6)
                 print('\t\t New c12 for ', a, '=\t', new_c12)
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6#.mean()
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12#.mean()
+
+                # In the pairs to add dataframe all those new information are inserted
+
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_input
-        
-        pairs_toadd.insert(5, '', ';')
 
-        # Drop NaN: SD_1 SD_100 and OXT_100 -> in case of B2m
+        pairs_toadd.insert(5, '', ';')
         pairs_toadd.dropna(inplace = True)
+        # Appending the missing atom pairs to the main dataframe
         greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
         print('\n\t Self interactions added to greta_LJ\n')
 
-    # Drop columns
+    # Drop double, we don't need it anymore
     greta_LJ.drop(columns = ['double'], inplace = True)
 
     if idp == True:
+        #TODO Vedere se mettere questa parte all'inizio del merge
+        # Qui il sigma NMR non sta funzionando pero'
+        # Controlla con Carlo
+
+        # In the case of an IDP, it is possible to add dynamical informations based on a simulation
         print('Addition of reweighted native pairs')
         # Here i join ai and aj of greta_LJ to compare with the monomer pairs
         pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
         native_pairs = read_native_pairs()
+        # The ratio treshold considers only pairs occurring at a certain probability
         native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
+        # This dictionary was made to link amber and greta atomtypes
         native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
         native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
         native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
-        # I keep only the one which are NOT included in pairs_check
+        # I keep only the ones which are NOT included in pairs_check
+        # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
         native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
         native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
         native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
         
-        # Seems that all the native contacts are not included in the fibril, which is perfect!
-
         # Add sigma, add epsilon reweighted, add c6 and c12
+        # Sigma NMR? TODO
         native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
         
-        # Reweight 1
-        #native_pairs['epsilon'] = native_pairs['ratio'] * epsilon_input
-
-        # Reweight 2
+        # Epsilon reweight based on probability
         native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
         
+        # Calculating c6 and c12
         native_pairs['c12'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 12)   
         native_pairs['c6'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 6)
         native_pairs['type'] = 1
@@ -390,10 +414,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         native_pairs.insert(5, '', ';')
         greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
 
-        # This sort and drop step is repeated since it might happen that native contacts might be duplicated with the fibril ones
-        # This step has been added after the harp2 FF but ofc for harp2 FF we checked that all contacts were unique (comment above!)
-        # 886 contacts before the addition of this second drop, 886 contacts (sorted differently) after this addition
-
         # Sorting the pairs
         greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
         # Cleaning the duplicates
@@ -402,7 +422,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         cols = ['ai', 'aj']
         greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
         greta_LJ = greta_LJ.drop_duplicates()
-
 
     if N_terminal == True:
         print('Removing N_1 N_1 pair')
@@ -437,8 +456,8 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].astype(int)
 
     bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
-    #print(bond_tuple)
 
+    #TODO this should be in topology_definitions.py
     ex, exclusion_bonds = [], []
     for atom in atom_topology_num:
         for t in bond_tuple:
@@ -468,7 +487,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
         ex = []
     
 
-# Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
+    # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
     pairs = greta_merge[['ai', 'aj']].copy()
     pairs['c12_ai'] = pairs['ai']
     pairs['c12_aj'] = pairs['aj']
@@ -480,10 +499,8 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
     pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
     pairs = pairs[pairs['ai'] != pairs['aj']]
-
     pairs['ai'] = pairs['ai'].map(atnum_type_dict)
     pairs['aj'] = pairs['aj'].map(atnum_type_dict)
-
     pairs['check'] = pairs['ai'] + '_' + pairs['aj']
 
     # Here we keep only the one without the exclusions
@@ -491,9 +508,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
     mask = pairs.exclude == 'Yes'
     pairs = pairs[~mask]
-    
-
-
     pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
     pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
     pairs['func'] = 1
@@ -502,10 +516,8 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
 
-    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)
-    
+    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
     exclusion = pairs[['ai', 'aj']].copy()
-    
     pairs = pairs.rename(columns = {'ai': '; ai'})
     exclusion = exclusion.rename(columns = {'ai': '; ai'})
 

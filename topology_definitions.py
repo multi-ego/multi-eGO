@@ -16,16 +16,20 @@ topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_
 topology_atoms['mass'].astype(float)
 mask = ((topology_atoms['type'] == 'N') | (topology_atoms['type'] == 'OA')) | ((topology_atoms['residue'] == 'TYR') & ((topology_atoms['atom'] == 'CD1') | (topology_atoms['atom'] == 'CD2') | (topology_atoms['atom'] == 'CE1') | (topology_atoms['atom'] == 'CE2')))
 topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(1)
+
 # Same thing here with the N terminal which is charged
 mask = (topology_atoms['resnr'] == '1') & (topology_atoms['atom'] == 'N')
 topology_atoms['mass'][mask] = topology_atoms['mass'][mask].astype(float).add(2)
+
 # Structure based atomtype definition
 topology_atoms['sb_type'] = topology_atoms['atom'] + '_' + topology_atoms['resnr']
 
+# This is needed when we want to do some stuff only to the N terminal
 first_resid = 'N_'+str(atom_topology_resid[0])
 
 # ACID pH
-# Selection of the aminoacids and the charged atoms
+# Selection of the aminoacids and the charged atoms (used for B2m)
+# TODO add some options for precise pH setting
 acid_ASP = topology_atoms[(topology_atoms['residue'] == "ASP") & ((topology_atoms['atom'] == "OD1") | (topology_atoms['atom'] == "OD2") | (topology_atoms['atom'] == "CG"))]
 acid_GLU = topology_atoms[(topology_atoms['residue'] == "GLU") & ((topology_atoms['atom'] == "OE1") | (topology_atoms['atom'] == "OE2") | (topology_atoms['atom'] == "CD"))]
 acid_HIS = topology_atoms[(topology_atoms['residue'] == "HIS") & ((topology_atoms['atom'] == "ND1") | (topology_atoms['atom'] == "CE1") | (topology_atoms['atom'] == "NE2") | (topology_atoms['atom'] == "CD2") | (topology_atoms['atom'] == "CG"))]
@@ -33,18 +37,58 @@ frames = [acid_ASP, acid_GLU, acid_HIS]
 acid_atp = pd.concat(frames, ignore_index = True)
 acid_atp = acid_atp['sb_type'].tolist()
 
+# Harp 0
+#gromos_atp = pd.DataFrame(
+#    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
+#            'CH2', 'CH3', 'CH2r', 'NT', 'S',
+#            'NR', 'OM', 'NE', 'NL', 'NZ'],
+#     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
+#     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+#     'c12': [1e-06, 1.505529e-06, 2.319529e-06, 4.937284e-06, 9.70225e-05, # CH1
+#            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,
+#            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06]
+#     }
+#)
+
 # Harp 2
+#gromos_atp = pd.DataFrame(
+#    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
+#            'CH2', 'CH3', 'CH2r', 'NT', 'S',
+#            'NR', 'OM', 'NE', 'NL', 'NZ'],
+#     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
+#     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+#     'c12': [1e-06, 3.011058e-06, # H OA
+#     4.639058e-06, # H N
+#      4.937284e-06, 9.70225e-05, # CH1
+#            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 10.125e-06, # H NT
+#            1.3075456e-05,
+#            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06]
+#     }
+#)
+
+# Harp 2.5
+#gromos_atp = pd.DataFrame(
+#    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
+#            'CH2', 'CH3', 'CH2r', 'NT', 'S',
+#            'NR', 'OM', 'NE', 'NL', 'NZ'],
+#     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
+#     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+#     'c12': [1e-06, 3.7638225e-06, # H OA
+#     5.7988225e-06, # H N
+#      4.937284e-06, 9.70225e-05, # CH1
+#            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 12.65625e-06, # H NT
+#            1.3075456e-05,
+#            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06]
+#     }
+#)
+
+# Harp max (20)
 gromos_atp = pd.DataFrame(
-    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
-            'CH2', 'CH3', 'CH2r', 'NT', 'S',
-            'NR', 'OM', 'NE', 'NL', 'NZ'],
+    {'name': ['O', 'OA', 'N', 'C', 'CH1', 'CH2', 'CH3', 'CH2r', 'NT', 'S', 'NR', 'OM', 'NE', 'NL', 'NZ'],
      'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
      'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
-     'c12': [1e-06, 3.011058e-06, # H OA
-     4.639058e-06, # H N
-      4.937284e-06, 9.70225e-05, # CH1
-            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 10.125e-06, # H NT
-            1.3075456e-05,
+     'c12': [1e-06, 3.011e-05, 4.639e-05, 4.937284e-06, 9.70225e-05,
+            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 1.2e-05, 1.3075456e-05,
             3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06]
      }
 )
@@ -53,8 +97,8 @@ gromos_atp = pd.DataFrame(
 gromos_atp.to_dict()
 gromos_atp.set_index('name', inplace=True)
 
-# Unfortunately those are strings which must be separated
 # BONDS
+# This list will be used to build pairs and exclusions lists to attach in the topology
 atom_types, atom_resids = protein.list_bonds(by_resid=True)
 ai_type, aj_type, ai_resid, aj_resid = [], [], [], []
 
@@ -67,6 +111,11 @@ for ares in atom_resids:
     ares_split = ares.split(' ')
     ai_resid.append(ares_split[0])
     aj_resid.append(ares_split[1])
+
+
+
+# TODO put the exclusion list here instead of the function
+# TODO you also may consider to join the exclusions and pairs function within the atomtypes one
 
 topology_bonds = pd.DataFrame(np.column_stack([ai_type, ai_resid, aj_type, aj_resid]), columns=['ai_type', 'ai_resid','aj_type', 'aj_resid'])
 topology_bonds['ai'] = topology_bonds['ai_type'] + '_' + topology_bonds['ai_resid'].astype(str)
