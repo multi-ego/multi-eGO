@@ -210,7 +210,7 @@ def make_pairs (structure_pdb, atomtypes):
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-        structural_LJ = structural_LJ.drop_duplicates()
+        structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
         print('\tCleaning Complete ', len(structural_LJ))
     
     print('\n\tCalculating sigma and epsilon')
@@ -264,7 +264,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         new_greta_LJ = pd.concat(new_greta_LJ, ignore_index=True)
         new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
         new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
-        new_greta_LJ = new_greta_LJ.drop_duplicates()
+        new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -272,7 +272,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-    greta_LJ = greta_LJ.drop_duplicates()
+    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
     if sigma_method == 'NMR':
         if len(new_greta_LJ) == len(greta_LJ):
@@ -393,9 +393,11 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
         # I keep only the ones which are NOT included in pairs_check
         # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
-        native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+
+        # If in fibril keep only fibril #TODO
+        #native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
         native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
-        native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+        #native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
         
         # Add sigma, add epsilon reweighted, add c6 and c12
         # Sigma NMR? TODO
@@ -412,24 +414,23 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         
         native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
         native_pairs.insert(5, '', ';')
-        print(len(greta_LJ))
         greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
-        print(len(greta_LJ))
 
+
+        # If keep fibril comment all sorts
         # Sorting the pairs
         #print(greta_LJ.to_string())
         greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
         #print(greta_LJ.to_string())
         # Cleaning the duplicates
         greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        #print(greta_LJ.to_string())
-        print(len(greta_LJ))
 
 
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-        greta_LJ = greta_LJ.drop_duplicates()
+        greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
 
     if N_terminal == True:
         print('Removing N_1 N_1 pair')
@@ -530,21 +531,3 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     exclusion = exclusion.rename(columns = {'ai': '; ai'})
 
     return pairs, exclusion
-    
-########################## DIHEDRALS
-
-#def sb_dihedrals (structure_pdb):
-    phi_dihedrals = []
-    for index, row in native_dihedrals.iterrows():
-        # Here are selected only the atom numbers for every dihedral from the pdb structure
-        # ANCORA DA FINIRE PERCHE' I DIEDRI DA PDB NON STANNO CORRISPONDENDO
-        atom_selection = structure_pdb.atoms[row['ai'] - 1] + structure_pdb.atoms[row['aj'] - 1] + structure_pdb.atoms[row['ak'] - 1] + structure_pdb.atoms[row['al'] - 1]
-        phi = atom_selection.dihedral.value()
-        phi_dihedrals.append(phi)
-
-    native_dihedrals['func'] = 9
-    native_dihedrals['phi'] = phi_dihedrals
-    native_dihedrals['kd'] = ''
-    native_dihedrals['mult'] = ''  # manca questa
-    #print(native_dihedrals)
-    return native_dihedrals
