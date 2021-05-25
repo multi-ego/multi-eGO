@@ -5,8 +5,12 @@ from numpy.lib.function_base import average
 import pandas as pd
 import time
 import sys
+from protein_configuration import distance_residue
 
 distance_cutoff = 5.5
+print(f'Distance residue = {distance_residue}')
+print(f'Distance cut-off = {distance_cutoff}')
+
 reference_structure = sys.argv[1]
 reference_trajectory = sys.argv[2]
 #u = MDAnalysis.Universe('box_peptide_greta.gro', 'prod_peptide_greta.xtc')
@@ -64,7 +68,7 @@ print(len(monomer_pairs_df))
 monomer_pairs_df[['ai_name','ai_resnum']] = monomer_pairs_df.ai.str.split("_", expand=True)
 monomer_pairs_df[['aj_name','aj_resnum']] = monomer_pairs_df.aj.str.split("_", expand=True)
 monomer_pairs_df = monomer_pairs_df.astype({"ai_resnum": int, "aj_resnum": int})
-monomer_pairs_df.drop(monomer_pairs_df[abs(monomer_pairs_df['aj_resnum'] - monomer_pairs_df['ai_resnum']) < 3].index, inplace=True)
+monomer_pairs_df.drop(monomer_pairs_df[abs(monomer_pairs_df['aj_resnum'] - monomer_pairs_df['ai_resnum']) < distance_residue].index, inplace=True)
 print(len(monomer_pairs_df))
 print(monomer_pairs_df)
 

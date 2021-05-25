@@ -74,7 +74,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     if 'PRO' in residue_list:
         print('\tThere are prolines in the structure. The c12 of N should be the half')
         proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
-        ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/2
+        ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
     else:
         print('\tThere not are prolines in the structure. The c12 of N should be the half')
     
@@ -412,12 +412,20 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         
         native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
         native_pairs.insert(5, '', ';')
+        print(len(greta_LJ))
         greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
+        print(len(greta_LJ))
 
         # Sorting the pairs
+        #print(greta_LJ.to_string())
         greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+        #print(greta_LJ.to_string())
         # Cleaning the duplicates
         greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+        #print(greta_LJ.to_string())
+        print(len(greta_LJ))
+
+
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)

@@ -1,31 +1,30 @@
-   ai     aj     sigma   epsilon
-  O_8   N_11  0.342881  0.134616
-  O_8  CA_11  0.375150  0.111402
-  C_8   N_11  0.385171  0.110964
-  O_8  CB_11  0.350150  0.104871
-  O_8  OG_11  0.336143  0.103131
- OG_8   N_11  0.371566  0.091084
-  C_8  CA_11  0.439333  0.086805
-  C_8  CB_11  0.412621  0.082035
- OG_8  OG_11  0.362685  0.081068
-  C_8  OG_11  0.384721  0.080930
- CB_8  OG_11  0.373593  0.076292
-  O_8   C_11  0.412511  0.073800
- CB_8  CB_11  0.416804  0.069247
- CA_8  OG_11  0.398798  0.065887
- CB_8   N_11  0.409828  0.063527
- OG_8  CB_11  0.386437  0.061903
-  N_8  OG_11  0.388542  0.059002
- OG_8  CA_11  0.402765  0.057817
- CA_8  CB_11  0.437415  0.057096
- CA_8   N_11  0.433293  0.055951
-  O_5    N_8  0.364270  0.044723
-  N_8  CB_11  0.420757  0.044017
- CB_8  CA_11  0.444510  0.035453
-  O_4    N_7  0.342713  0.021453
-  O_8  O1_11  0.395769  0.020717
-  O_8  O2_11  0.395109  0.015942
- OH_1    N_4  0.414681  0.014401
-  C_5    N_8  0.386351  0.013583
-  O_3    N_6  0.369021  0.012840
-  O_5   CA_8  0.383756  0.003104
+distance greta, name  O and residue 8, name  N and residue 11
+distance greta, name  O and residue 8, name CA and residue 11
+distance greta, name  C and residue 8, name  N and residue 11
+distance greta, name  O and residue 8, name CB and residue 11
+distance greta, name  O and residue 8, name OG and residue 11
+distance greta, name OG and residue 8, name  N and residue 11
+distance greta, name  C and residue 8, name CA and residue 11
+distance greta, name  C and residue 8, name CB and residue 11
+distance greta, name OG and residue 8, name OG and residue 11
+distance greta, name  C and residue 8, name OG and residue 11
+distance greta, name CB and residue 8, name OG and residue 11
+distance greta, name  O and residue 8, name  C and residue 11
+distance greta, name CB and residue 8, name CB and residue 11
+distance greta, name CA and residue 8, name OG and residue 11
+distance greta, name CB and residue 8, name  N and residue 11
+distance greta, name OG and residue 8, name CB and residue 11
+distance greta, name  N and residue 8, name OG and residue 11
+distance greta, name OG and residue 8, name CA and residue 11
+distance greta, name CA and residue 8, name CB and residue 11
+distance greta, name CA and residue 8, name  N and residue 11
+distance greta, name  O and residue 5, name  N and residue 8  
+distance greta, name  N and residue 8, name CB and residue 11 
+distance greta, name CB and residue 8, name CA and residue 11 
+distance greta, name  O and residue 4, name  N and residue 7  
+distance greta, name  O and residue 8, name O1 and residue 11 
+distance greta, name  O and residue 8, name O2 and residue 11 
+distance greta, name OH and residue 1, name  N and residue 4  
+distance greta, name  C and residue 5, name  N and residue 8  
+distance greta, name  O and residue 3, name  N and residue 6  
+distance greta, name  O and residue 5, name CA and residue 8  
