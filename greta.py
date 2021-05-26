@@ -432,9 +432,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
 
-    if N_terminal == True:
-        print('Removing N_1 N_1 pair')
-        greta_LJ.loc[(greta_LJ['ai'] == first_resid) & (greta_LJ['aj'] == first_resid), 'ai'] = ';'+greta_LJ['ai'] 
 
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
