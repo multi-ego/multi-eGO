@@ -22,7 +22,7 @@ def read_top():
     return native_topology
 
 def read_native_pairs():
-    native_directory = 'native_%s/monomer_pairs_amber_ex3.txt' %(protein)
+    native_directory = 'native_%s/monomer_pairs_amber.txt' %(protein)
     native_pairs = pd.read_csv(native_directory, sep = '\\s+', header = None)
     native_pairs.columns = ['ai', 'aj', 'counts', 'ratio', 'distance']
 

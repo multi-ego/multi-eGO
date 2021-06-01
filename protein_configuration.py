@@ -8,7 +8,7 @@ protein = 'TTR'
 #protein = 'harp'
 
 distance_cutoff = 5.5
-distance_residue = 3
+distance_residue = 2
 epsilon_input = 0.310
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py

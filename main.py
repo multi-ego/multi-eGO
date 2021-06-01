@@ -20,6 +20,10 @@ fibril_pdb_pairs = make_pairs(fibril_pdb, fibril_atomtypes)
 print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
 
+
+#print(native_pdb_pairs)
+
+
 if idp == False:
     greta_ffnb = merge_GRETA(native_pdb_pairs, fibril_pdb_pairs)
 else:
