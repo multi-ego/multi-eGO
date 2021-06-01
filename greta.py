@@ -150,7 +150,7 @@ def make_pairs (structure_pdb, atomtypes):
     print('\tRaw pairs list ', raw_structural_LJ)
     
     print(f'\n\tApplying distance cutoff of {distance_cutoff} A')
-    # Keep only the atoms within 6 A
+    # Keep only the atoms within 5.5 
     structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
     print(f'\tPairs below cutoff {distance_cutoff}: ', len(structural_LJ))
     print(f'\tDeleted {raw_structural_LJ - len(structural_LJ)} pairs')
@@ -203,13 +203,20 @@ def make_pairs (structure_pdb, atomtypes):
         # Here we sort all the atom pairs based on the distance and we keep the closer ones.
         # In the other method we average like NMR and so we don't dump the duplicates.
         print('\tSorting and dropping all the duplicates')
+
         # Sorting the pairs
         structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+
         # Cleaning the duplicates
         structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+        print(structural_LJ.to_string())
+
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
+        
+        print(structural_LJ.to_string())
+
         structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
         print('\tCleaning Complete ', len(structural_LJ))
     
@@ -221,6 +228,18 @@ def make_pairs (structure_pdb, atomtypes):
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
 
     return structural_LJ
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
@@ -266,14 +285,32 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
         new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
+    # EXCLUSION 2
+
+
+
+
+
+
+
+
+
+
+
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    #print(greta_LJ.to_string())
+
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
+    #print(greta_LJ.to_string())
+
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
+
     if sigma_method == 'NMR':
         if len(new_greta_LJ) == len(greta_LJ):
             #\n\n\n\n\n\n NEW_GRETA_LJ == GRETA_LJ \n\n\n\n\n\n\n\n\n\n\n\n\n') 
