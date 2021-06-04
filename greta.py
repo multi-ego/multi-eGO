@@ -203,20 +203,13 @@ def make_pairs (structure_pdb, atomtypes):
         # Here we sort all the atom pairs based on the distance and we keep the closer ones.
         # In the other method we average like NMR and so we don't dump the duplicates.
         print('\tSorting and dropping all the duplicates')
-
         # Sorting the pairs
         structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-
         # Cleaning the duplicates
         structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        print(structural_LJ.to_string())
-
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-        
-        print(structural_LJ.to_string())
-
         structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
         print('\tCleaning Complete ', len(structural_LJ))
     
@@ -228,17 +221,6 @@ def make_pairs (structure_pdb, atomtypes):
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
 
     return structural_LJ
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -285,23 +267,8 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
         new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
-    # EXCLUSION 2
-
-
-
-
-
-
-
-
-
-
-
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    #print(greta_LJ.to_string())
-
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
@@ -431,10 +398,11 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         # I keep only the ones which are NOT included in pairs_check
         # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
 
-        # If in fibril keep only fibril #TODO
-        #native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
-        native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
-        #native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+        if sigma_method == 'NMR':
+            # If in fibril keep only fibril #TODO
+            native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
+            native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
+            native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
         
         # Add sigma, add epsilon reweighted, add c6 and c12
         # Sigma NMR? TODO
@@ -500,6 +468,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
 
     bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
 
+
     #TODO this should be in topology_definitions.py
     ex, exclusion_bonds = [], []
     for atom in atom_topology_num:
@@ -513,22 +482,47 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
             else: continue
             for tt in bond_tuple:
                 if (tt[0] == first) & (tt[1] != atom):
-                    second = tt[1]
                     ex.append(tt[1])
                 elif (tt[1] == first) & (tt[0] != atom):
-                    second = tt[0]
                     ex.append(tt[0])
-                else: continue
-                for ttt in bond_tuple:
-                    if (ttt[0] == second) & (ttt[1] != first):
-                        ex.append(ttt[1])
-                    elif (ttt[1] == second) & (ttt[0] != first):
-                        ex.append(ttt[0])
+                
+
         for e in ex:
             exclusion_bonds.append((str(str(atom) + '_' + str(e))))
             exclusion_bonds.append((str(str(e) + '_' + str(atom))))
         ex = []
+
     
+    # 3 bonds versione
+    ##TODO this should be in topology_definitions.py
+    #ex, exclusion_bonds = [], []
+    #for atom in atom_topology_num:
+    #    for t in bond_tuple:
+    #        if t[0] == atom:
+    #            first = t[1]
+    #            ex.append(t[1])
+    #        elif t[1] == atom:
+    #            first = t[0]
+    #            ex.append(t[0])
+    #        else: continue
+    #        for tt in bond_tuple:
+    #            if (tt[0] == first) & (tt[1] != atom):
+    #                second = tt[1]
+    #                ex.append(tt[1])
+    #            elif (tt[1] == first) & (tt[0] != atom):
+    #                second = tt[0]
+    #                ex.append(tt[0])
+    #            else: continue
+    #            for ttt in bond_tuple:
+    #                if (ttt[0] == second) & (ttt[1] != first):
+    #                    ex.append(ttt[1])
+    #                elif (ttt[1] == second) & (ttt[0] != first):
+    #                    ex.append(ttt[0])
+    #    for e in ex:
+    #        exclusion_bonds.append((str(str(atom) + '_' + str(e))))
+    #        exclusion_bonds.append((str(str(e) + '_' + str(atom))))
+    #    ex = []
+    #
 
     # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
     pairs = greta_merge[['ai', 'aj']].copy()

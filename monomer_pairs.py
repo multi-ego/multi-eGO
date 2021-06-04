@@ -5,9 +5,9 @@ from numpy.lib.function_base import average
 import pandas as pd
 import time
 import sys
-from protein_configuration import distance_residue
+from protein_configuration import distance_residue, distance_cutoff
 
-distance_cutoff = 5.5
+#distance_cutoff = 5.8
 print(f'Distance residue = {distance_residue}')
 print(f'Distance cut-off = {distance_cutoff}')
 
@@ -17,8 +17,8 @@ reference_trajectory = sys.argv[2]
 u = MDAnalysis.Universe(reference_structure, reference_trajectory)
 #peptides = u.select_atoms('resid 1:11 and not name H*') # ho dovuto selezionare il rage di aa perche senno non mi toglieva gli H
 peptides = u.select_atoms('all')
-print(u.residues)
-print(len(peptides))
+print('Residues: ', u.residues)
+print('Atoms: ', len(peptides))
 
 atomtypes = []
 for atom in peptides:
@@ -33,8 +33,8 @@ for n in range(0, len(pairs_list)):
     j = pairs_list[n][1]
     pairs_aj.append(j)
 
-print(len(pairs_list))
-print(len(u.trajectory))
+print('Pairs list: ',len(pairs_list))
+print('How many frames: ', len(u.trajectory))
 
 extended_ai, extended_aj, monomer_distances = [], [], []
 for frame in u.trajectory:
@@ -70,14 +70,14 @@ monomer_pairs_df[['aj_name','aj_resnum']] = monomer_pairs_df.aj.str.split("_", e
 monomer_pairs_df = monomer_pairs_df.astype({"ai_resnum": int, "aj_resnum": int})
 monomer_pairs_df.drop(monomer_pairs_df[abs(monomer_pairs_df['aj_resnum'] - monomer_pairs_df['ai_resnum']) < distance_residue].index, inplace=True)
 print(len(monomer_pairs_df))
-print(monomer_pairs_df)
+#print(monomer_pairs_df)
 
 
 count_ai, count_aj, count_distance, count_ratio, average_distance = [], [], [], [], []
 start_time, c_num =time.time(), 1
 for pair in pairs_list:
     # filtering the data frame based on the pairs values
-    #print(c_num, len(pairs_list))
+    print(c_num, len(pairs_list))
     count_ai.append(pair[0])
     count_aj.append(pair[1])
     # salvati il df che serve per la media delle distanze e del sigma
@@ -86,7 +86,7 @@ for pair in pairs_list:
     count_distance.append(len(counts_df))
     count_ratio.append(len(counts_df)/len(u.trajectory))
     c_num += 1
-    #print(f'{time.time() - start_time}')
+    print(f'{time.time() - start_time}')
 
 pairs_count = pd.DataFrame(columns=['ai', 'aj', 'count', 'ratio', 'average_distance'])
 pairs_count['ai'] = count_ai
