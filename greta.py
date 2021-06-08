@@ -1,11 +1,12 @@
+from operator import concat
 from read_input import read_native_pairs
 from MDAnalysis.analysis import distances
 import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method
-from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num, first_resid
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction
+from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -238,6 +239,9 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Harp test, we don't have the fibril structure
     if protein == 'harp':
         greta_LJ = native_pdb_pairs.copy()
+    
+    if protein == 'ALA_DP':
+        greta_LJ = native_pdb_pairs.copy()
 
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
@@ -453,24 +457,32 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
+    Here we define the GROMACS exclusion list and drop from the LJ list so that all the extra
+    contacts will be defined in pairs and exclusions as particular cases.
+    Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
 
     greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     atnum_type_top = topology_atoms[['; nr', 'type']]
     atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
-    atnum_type_dict = atnum_type_top.set_index('type')['nr'].to_dict()
 
+    # Dictionaries definitions to map values
+    atnum_type_dict = atnum_type_top.set_index('type')['nr'].to_dict()
+    type_atnum_dict = atnum_type_top.set_index('nr')['type'].to_dict()
+
+    # Bonds from topology
     atnum_topology_bonds = topology_bonds.copy()
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].map(atnum_type_dict)
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].astype(int)
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].astype(int)
-
     bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
 
 
     #TODO this should be in topology_definitions.py
-    ex, exclusion_bonds = [], []
+
+    # Building the exclusion bonded list
+    ex, ex14, p14, exclusion_bonds = [], [], [], []
     for atom in atom_topology_num:
         for t in bond_tuple:
             if t[0] == atom:
@@ -482,17 +494,89 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
             else: continue
             for tt in bond_tuple:
                 if (tt[0] == first) & (tt[1] != atom):
+                    second = tt[1]
                     ex.append(tt[1])
                 elif (tt[1] == first) & (tt[0] != atom):
+                    second = tt[0]
                     ex.append(tt[0])
-                
+                else: continue
+                for ttt in bond_tuple:
+                    if (ttt[0] == second) & (ttt[1] != first):
+                        ex.append(ttt[1])
+                        ex14.append(ttt[1])
 
+                    elif (ttt[1] == second) & (ttt[0] != first):
+                        ex.append(ttt[0])
+                        ex14.append(ttt[0])
         for e in ex:
             exclusion_bonds.append((str(str(atom) + '_' + str(e))))
             exclusion_bonds.append((str(str(e) + '_' + str(atom))))
         ex = []
-
+        for e in ex14:
+            p14.append((str(str(atom) + '_' + str(e))))
+            p14.append((str(str(e) + '_' + str(atom))))
+        ex14 = []
     
+
+    # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
+    pairs = greta_merge[['ai', 'aj']].copy()
+    pairs['c12_ai'] = pairs['ai']
+    pairs['c12_aj'] = pairs['aj']
+    pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
+    pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
+    pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
+    pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
+    
+    # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
+    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)] # Perche' non minore uguale???
+    
+    # We remove the contact with itself
+    pairs = pairs[pairs['ai'] != pairs['aj']]
+
+    # The exclusion list was made based on the atom number
+    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
+    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
+
+    # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
+    pairs['exclude'] = ''
+    pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
+    mask = pairs.exclude == 'Yes'
+    pairs = pairs[~mask]
+    pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
+    pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
+    pairs['func'] = 1
+    pairs['c6'] = 0.00000e+00
+    pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+    pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
+    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
+
+    # Exclusions 1-4 are fully reintroduced
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
+    pairs_14['exclusions'] = p14
+    pairs_14[['ai', 'aj']] = pairs_14.exclusions.str.split("_", expand = True)
+    pairs_14['c12_ai'] = pairs_14['ai']
+    pairs_14['c12_aj'] = pairs_14['aj']
+    pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_atnum_dict)
+    pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_atnum_dict)
+    pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_c12_dict)
+    pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_c12_dict)
+    pairs_14['func'] = 1
+    pairs_14['c6'] = 0.00000e+00
+    pairs_14['c6'] = pairs_14["c6"].map(lambda x:'{:.6e}'.format(x))
+    pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
+    pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj'], inplace = True)    
+
+    # Exclusions 1-4
+    pairs = pairs.append(pairs_14)
+    pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+    exclusion = pairs[['ai', 'aj']].copy()
+    pairs = pairs.rename(columns = {'ai': '; ai'})
+    exclusion = exclusion.rename(columns = {'ai': '; ai'})
+    
+    return pairs, exclusion
+
+
     # 3 bonds versione
     ##TODO this should be in topology_definitions.py
     #ex, exclusion_bonds = [], []
@@ -523,39 +607,3 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     #        exclusion_bonds.append((str(str(e) + '_' + str(atom))))
     #    ex = []
     #
-
-    # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
-    pairs = greta_merge[['ai', 'aj']].copy()
-    pairs['c12_ai'] = pairs['ai']
-    pairs['c12_aj'] = pairs['aj']
-
-    # Keeping based on resnum
-    pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
-    pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
-    pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
-    pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
-    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
-    pairs = pairs[pairs['ai'] != pairs['aj']]
-    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
-    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
-    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
-
-    # Here we keep only the one without the exclusions
-    pairs['exclude'] = ''
-    pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
-    mask = pairs.exclude == 'Yes'
-    pairs = pairs[~mask]
-    pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
-    pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
-    pairs['func'] = 1
-    pairs['c6'] = 0.00000e+00
-    pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-    pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
-    pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-
-    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
-    exclusion = pairs[['ai', 'aj']].copy()
-    pairs = pairs.rename(columns = {'ai': '; ai'})
-    exclusion = exclusion.rename(columns = {'ai': '; ai'})
-
-    return pairs, exclusion
