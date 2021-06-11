@@ -129,6 +129,8 @@ def make_pairs (structure_pdb, atomtypes):
     print('\n\tPreparing the atomtype array')
     # The MDAnalysis contains only distances, so we rebuilt atom pairs in the same manner
     # using the atomtypes list of native and fibril which will match with the distance array.
+
+    # TODO create directly the two separated lists
     pairs_list = list(itertools.combinations(atomtypes, 2))
 
     # But the combinations are list of list and we need to separate them.
@@ -151,7 +153,7 @@ def make_pairs (structure_pdb, atomtypes):
     print('\tRaw pairs list ', raw_structural_LJ)
     
     print(f'\n\tApplying distance cutoff of {distance_cutoff} A')
-    # Keep only the atoms within 5.5 
+    # Keep only the atoms within cutoff
     structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
     print(f'\tPairs below cutoff {distance_cutoff}: ', len(structural_LJ))
     print(f'\tDeleted {raw_structural_LJ - len(structural_LJ)} pairs')
@@ -528,7 +530,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
     
     # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
-    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)] # Perche' non minore uguale???
+    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
     
     # We remove the contact with itself
     pairs = pairs[pairs['ai'] != pairs['aj']]
@@ -569,7 +571,18 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
 
     # Exclusions 1-4
     pairs = pairs.append(pairs_14)
+
+    # Drop duplicates
+    pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
+    # Cleaning the duplicates
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    pairs[cols] = np.sort(pairs[cols].values, axis=1)
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+    pairs.sort_values(by = ['ai', 'aj'], inplace = True)
     exclusion = pairs[['ai', 'aj']].copy()
     pairs = pairs.rename(columns = {'ai': '; ai'})
     exclusion = exclusion.rename(columns = {'ai': '; ai'})

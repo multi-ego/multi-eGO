@@ -1,13 +1,15 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
-; GRETA ALA_DP
-; 2021-06-10 16:34:49.390431
+; GRETA PRO_DP
+; 2021-06-10 16:37:08.066505
 [ atomtypes ]
  CA_1   15.035
   C_1   12.011
   O_1  15.9994
   N_2  15.0067
  CA_2   13.019
- CB_2   15.035
+ CB_2   14.027
+ CG_2   14.027
+ CD_2   14.027
   C_2   12.011
   O_2  15.9994
   N_3  15.0067

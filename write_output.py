@@ -1,6 +1,6 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff
+from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction
 
 
     # Create the folders which will be used by the script
@@ -61,13 +61,17 @@ def write_greta_topology_atoms(topology_atoms):
 def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/pairs_topology' %(protein)
+    directory = 'output_%s/topology_pairs' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
     file.write('; Distance cutoff: ' + str(distance_cutoff))
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write("\n")
+    file.write('; LJ_reduction: ' + str(lj_reduction))
+    file.write("\n")
+    file.write('; Protein: ' + str(protein))
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n\n")

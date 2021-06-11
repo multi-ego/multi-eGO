@@ -2,7 +2,7 @@
 ;	File 'topol.top' was generated
 ;	By user: emanuele (1004)
 ;	On host: milano
-;	At date: Thu Jun 10 17:34:36 2021
+;	At date: Tue May  4 16:30:38 2021
 ;
 ;	This is a standalone topology file
 ;
@@ -18,7 +18,7 @@
 ;
 
 ; Include forcefield parameters
-#include "./gromos-primefull.ff/forcefield.itp"
+#include "./gromos-pfix-mass-nolincs-noh-merge.ff/forcefield.itp"
 
 [ moleculetype ]
 ; Name            nrexcl
@@ -536,13 +536,13 @@ Protein_chain_A     3
    54    55    58    60     1    gd_42
    54    55    58    60     1    gd_45
    56    55    58    60     1    gd_47
-   55    58    60    61     1    gd_56
-   58    60    61    65     1    gd_52
-   58    60    61    65     1    gd_55
+   55    58    60    61     1    gd_14
+   58    60    61    65     1    gd_43
+   58    60    61    65     1    gd_44
    61    60    64    63     1    gd_39
    60    61    62    63     1    gd_34
-   60    61    65    67     1    gd_53
-   60    61    65    67     1    gd_54
+   60    61    65    67     1    gd_42
+   60    61    65    67     1    gd_45
    61    62    63    64     1    gd_34
    62    63    64    60     1    gd_34
    61    65    67    68     1    gd_14

@@ -20,7 +20,7 @@ fibril_pdb_pairs = make_pairs(fibril_pdb, fibril_atomtypes)
 print('\n GRETA - native and fibril pairs creation completed')
 print('\n GRETA - Merging native and fibril pairs')
 
-
+# TODO correggi la massa dell'azoto in prolina
 #print(native_pdb_pairs)
 
 
