@@ -504,24 +504,26 @@
 #define gd_41     0.000       3.77          6
 ; -CHn-NT-	0.9
 ;
-#define gd_42    81.135      0.8461   4 
+; ALA_DP optimization 1 at 0.1.
+#define gd_42 58.5694 -0.5787 1 
 ; Backbone dihedral angle -N-CA-C-N- 
 ; 
-#define gd_43    72.483     -2.7316   4 
+#define gd_43 -23.1484 -1.9511 1 
 ; Backbone dihedral angle -C-N-CA-C- 
 ; 
-#define gd_44    -156.140   -2.1042   2 
+#define gd_44 75.8728 -2.4625 4 
 ; Backbone dihedral angle -C-N-CA-C- 
 ; 
-#define gd_45    -72.427    -2.6844   2 
+#define gd_45 160.0920 0.6854 3 
 ; Backbone dihedral angle -N-CA-C-N- 
 ; 
-#define gd_46    -34.706    -0.1453   1 
+#define gd_46 165.7768 0.9904 2 
 ; Phi prime angle -C-N-CA-CB 
 ; 
-#define gd_47    -47.934    -2.1164   2 
+#define gd_47 -137.4077 -1.3384 2 
 ; Psi prime angle -CB-CA-C-N 
 ; 
+; To be optimized
 #define gd_48    169.642     1.6529   2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
@@ -534,6 +536,7 @@
 #define gd_51    152.810     1.8354   1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
+; PRO_DP otpimization 0 at 0.1
 #define gd_52    -19.934     2.5124   1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
@@ -549,6 +552,7 @@
 #define gd_56    180.000     33.5     2
 ; Omega dihedral - PRO
 ;
+; Already present in the rdp file
 ;#define gd_57    0            0       2 
 ; Omega prime - PRO    O-C-N-CA
 ;

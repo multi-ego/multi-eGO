@@ -1,11 +1,13 @@
 from operator import concat
+
+from MDAnalysis.lib.util import parse_residue
 from read_input import read_native_pairs
 from MDAnalysis.analysis import distances
 import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep
 from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 
@@ -72,12 +74,12 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     # This will be used to check if there are prolines in the structure and half their N c12
     residue_list = topology_atoms['residue'].to_list()
 
-    #if 'PRO' in residue_list:
-    #    print('\tThere are prolines in the structure. The c12 of N should be the half')
-    #    proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
-    #    ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
-    #else:
-    #    print('\tThere not are prolines in the structure. The c12 of N should be the half')
+    if 'PRO' in residue_list:
+        print('\tThere are prolines in the structure. The c12 of N should be the half')
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
+        ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
+    else:
+        print('\tThere not are prolines in the structure. The c12 of N should be the half')
     
 
     # The N terminal of the structure should be bigger than the others since it has an H more and charged
@@ -239,12 +241,12 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
 
     # Harp test, we don't have the fibril structure
-    if protein == 'harp':
-        greta_LJ = native_pdb_pairs.copy()
-    
-    if protein == 'ALA_DP':
+    if greta_to_keep == 'native':
         greta_LJ = native_pdb_pairs.copy()
 
+    if greta_to_keep == 'fibril':
+        greta_LJ = fibril_pdb_pairs.copy()
+        
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
 
@@ -561,13 +563,25 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs_14['c12_aj'] = pairs_14['aj']
     pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_atnum_dict)
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_atnum_dict)
+
+    # Adding an atom column because we want to flag NOT N N interactions
+    pairs_14[['ai_type', 'ai_resid']] = pairs_14.c12_ai.str.split("_", expand = True)
+    pairs_14[['aj_type', 'aj_resid']] = pairs_14.c12_aj.str.split("_", expand = True)
+
+    # NOT 1_4 N N interactions will be dropped
+    pairs_14.loc [(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
+    pairs_14.drop(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
+
+    # Thus, onyl N with N LJ 1_4 interactions will be kept
+    # All the other 1_4 interactions will NOT interact with each others
     pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_c12_dict)
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_c12_dict)
     pairs_14['func'] = 1
     pairs_14['c6'] = 0.00000e+00
     pairs_14['c6'] = pairs_14["c6"].map(lambda x:'{:.6e}'.format(x))
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
-    pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj'], inplace = True)    
+
+    pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
     # Exclusions 1-4
     pairs = pairs.append(pairs_14)
