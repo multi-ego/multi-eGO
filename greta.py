@@ -74,12 +74,12 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     # This will be used to check if there are prolines in the structure and half their N c12
     residue_list = topology_atoms['residue'].to_list()
 
-    if 'PRO' in residue_list:
-        print('\tThere are prolines in the structure. The c12 of N should be the half')
-        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
-        ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
-    else:
-        print('\tThere not are prolines in the structure. The c12 of N should be the half')
+    #if 'PRO' in residue_list:
+    #    print('\tThere are prolines in the structure. The c12 of N should be the half')
+    #    proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
+    #    ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
+    #else:
+    #    print('\tThere not are prolines in the structure. The c12 of N should be the half')
     
 
     # The N terminal of the structure should be bigger than the others since it has an H more and charged
