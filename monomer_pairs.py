@@ -7,7 +7,6 @@ import time
 import sys
 from protein_configuration import distance_residue, distance_cutoff
 
-#distance_cutoff = 5.8
 print(f'Distance residue = {distance_residue}')
 print(f'Distance cut-off = {distance_cutoff}')
 
