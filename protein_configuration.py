@@ -12,7 +12,7 @@ protein = 'B2m'
 
 distance_cutoff = 5.5
 distance_residue = 2
-epsilon_input = 0.312
+epsilon_input = 0.335
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
 # It will make a list of pairs to reweight their epsilon and add to the full force field
@@ -35,6 +35,6 @@ sigma_method = 'minimum'
 lj_reduction = 0.15
 
 # If you want some tests by using only native or only fibril
-greta_to_keep = 'native'
+#greta_to_keep = 'native'
 #greta_to_keep = 'fibril'
-#greta_to_keep = 'all'
+greta_to_keep = 'all'
