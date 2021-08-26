@@ -1,7 +1,7 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5.5
 ; Residue cutoff: 2
-; 2021-06-24 11:03:28.979467
+; 2021-07-27 16:48:22.293816
 [ atomtypes ]
 ; type  at.num     mass    charge ptype           c6           c12
   CA_1       6   15.035  0.000000     A  0.00000e+00  2.664624e-05
@@ -17,5 +17,5 @@
 
 [ nonbond_params ]
 ; ai   aj type            c6           c12            sigma  epsilon
- C_1  N_3    1  4.355781e-03  1.607867e-05  ;  3.931250e-01    0.295
- N_3  O_1    1  4.970251e-03  2.093508e-05  ;  4.018673e-01    0.295
+ C_1  N_3    1  4.946396e-03  1.825883e-05  ;  3.931250e-01    0.335
+ N_3  O_1    1  5.644183e-03  2.377374e-05  ;  4.018673e-01    0.335

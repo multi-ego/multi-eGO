@@ -3,7 +3,7 @@
 ; Residue cutoff: 2
 ; LJ_reduction: 0.15
 ; Protein: ALA_DP
-; 2021-06-24 11:03:28.979467
+; 2021-07-27 16:48:22.293816
 
 [ pairs ]
 ; ai aj  func            c6           c12

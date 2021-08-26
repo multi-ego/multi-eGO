@@ -3,7 +3,7 @@
 ; Residue cutoff: 2
 ; LJ_reduction: 0.15
 ; Protein: TTR
-; 2021-07-05 14:10:00.799702
+; 2021-07-27 16:49:37.813155
 
 [ pairs ]
 ; ai  aj  func            c6           c12

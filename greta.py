@@ -569,7 +569,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs_14[['aj_type', 'aj_resid']] = pairs_14.c12_aj.str.split("_", expand = True)
 
     # NOT 1_4 N N interactions will be dropped
-    pairs_14.loc [(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
+    pairs_14.loc[(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
     pairs_14.drop(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
 
     # Thus, onyl N with N LJ 1_4 interactions will be kept
