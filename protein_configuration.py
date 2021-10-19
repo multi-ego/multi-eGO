@@ -2,6 +2,9 @@
 # In this case there will be TTR and B2m parameters but it is possible to apply them
 # theoretically always
 
+from numpy import multiply
+
+
 protein = 'TTR'
 #protein = 'ALA_DP'
 #protein = 'PRO_DP'
@@ -31,10 +34,17 @@ sigma_method = 'minimum'
 #sigma_method = 'NMR'
 
 
-# LJ 1-4 reduction
+# Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
+# The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
 lj_reduction = 0.15
+
+# In the case of LJ 1-4 made by two N
 doubleN = True
-doubleN = False # False for TTR publication
+#doubleN = False # False for TTR publication
+left_alpha = True
+#left_alpha = False # False for TTR publication
+#multiply_c16 = 1
+multiply_c16 = 2
 
 # If you want some tests by using only native or only fibril
 #greta_to_keep = 'native'

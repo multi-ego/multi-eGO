@@ -53,8 +53,6 @@ if N_terminal == True:
 write_greta_LJ(ffnonbonded_atp, greta_ffnb)
 
 
-
-
 print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 

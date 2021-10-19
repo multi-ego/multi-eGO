@@ -7,8 +7,8 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN
-from topology_definitions import topology_atoms, gromos_atp, gro_to_amb_dict, topology_bonds, atom_topology_num
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN, left_alpha, multiply_c16
+from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
@@ -16,6 +16,9 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
 
+
+
+    topology_atoms = raw_topology_atoms.copy()
     print('\tBuilding native atomtypes')
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
@@ -461,18 +464,23 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
 def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
-    Here we define the GROMACS exclusion list and drop from the LJ list so that all the extra
+    Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
     contacts will be defined in pairs and exclusions as particular cases.
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
 
+
+    topology_atoms = raw_topology_atoms.copy()
+
     greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
-    atnum_type_top = topology_atoms[['; nr', 'type']]
-    atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
+    #atnum_type_top = topology_atoms[['; nr', 'type']]
+    atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']]
+    #atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
+    atnum_type_top['resnr'] = atnum_type_top['resnr'].astype(int)
 
     # Dictionaries definitions to map values
-    atnum_type_dict = atnum_type_top.set_index('type')['nr'].to_dict()
-    type_atnum_dict = atnum_type_top.set_index('nr')['type'].to_dict()
+    atnum_type_dict = atnum_type_top.set_index('sb_type')['nr'].to_dict()
+    type_atnum_dict = atnum_type_top.set_index('nr')['sb_type'].to_dict()
 
     # Bonds from topology
     atnum_topology_bonds = topology_bonds.copy()
@@ -532,6 +540,9 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
     
     # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
+    # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
+    # Here we keep pairs between residues close in sequence but from different chains, thus close in space
+    # If we keep such pairs we cause severe frustration to the system and artifacts
     pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
     
     # We remove the contact with itself
@@ -555,31 +566,30 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
     pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
 
-    # Exclusions 1-4 are fully reintroduced
+    # Only 1-4 exclusions are fully reintroduced
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
     pairs_14['exclusions'] = p14
     pairs_14[['ai', 'aj']] = pairs_14.exclusions.str.split("_", expand = True)
+
+    # TODO migliora questo passaggio mettendo direttamente il map
+    # TODO sistemare direttamente c12_ax con type e poi chiamare la colonna quando serve con quel nome
     pairs_14['c12_ai'] = pairs_14['ai']
     pairs_14['c12_aj'] = pairs_14['aj']
     pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_atnum_dict)
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_atnum_dict)
 
-    # Adding an atom column because we want to flag NOT N N interactions
+    # Adding an atom column because we want to flag NOT N N interactions, this because the N should have an explicit H we removed
+    # TODO chiedere a Carlo perche stiamo considerando solo le interazioni con N e non con O ad esempio, o tutti gli altri
     pairs_14[['ai_type', 'ai_resid']] = pairs_14.c12_ai.str.split("_", expand = True)
     pairs_14[['aj_type', 'aj_resid']] = pairs_14.c12_aj.str.split("_", expand = True)
 
-    #pairs_14_la = pairs_14.copy()
-    #pairs_14_la.loc[((pairs_14_la['ai_type'] == 'O') & (pairs_14_la['aj_type'] == 'CB') | (pairs_14_la['ai_type'] == 'CB') & (pairs_14_la['aj_type'] == 'O')), 'c12_tozero'] = True
-#
-    #pairs_14_la.drop(pairs_14_la[pairs_14_la.c12_tozero != True].index, inplace=True)
-#
-    #print(pairs_14_la.to_string())
-
-
     # NOT 1_4 N X interactions will be dropped
+    # Only the pairs with an N involved are retained
     pairs_14.loc[(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
     pairs_14.drop(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
 
+    # TODO da mettere sotto
+    # Here we take a particular interest of the interaction between two N, because both should have an explicit H
     pairs_14.loc[(pairs_14['ai_type'] == 'N') & (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = True
 
     # Thus, only N with X LJ 1_4 interactions will be kept
@@ -591,9 +601,11 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs_14['c6'] = pairs_14["c6"].map(lambda x:'{:.6e}'.format(x))
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
     
-    # The N N interactions are still too close, so we double the thing
+    # The N N interactions are still too close, so we double the c12
     if doubleN == True:
         pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+
+
 
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
@@ -615,6 +627,52 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     pairs = pairs.rename(columns = {'ai': '; ai'})
     exclusion = exclusion.rename(columns = {'ai': '; ai'})
     
+
+    if left_alpha == True:
+        # Left alpha helix
+        # Here we introduce the c6 and the c12 between the O and the CB of the next residue
+        # to optimize the left alpha region in the Ramachandran
+
+        # Adding the c6 and c12 (I do it now because later is sbatti)
+        atnum_type_top['c6'] = atnum_type_top['type'].map(gromos_atp_c6['c6'])
+        atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
+
+        # Here we make a dictionary of the backbone oxygen as atom number
+        backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+        sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
+        # Left alphas do not occur in GLY and PRO
+        sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
+        sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
+
+        # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
+        left_alpha_ai, left_alpha_aj, left_alpha_c6, left_alpha_c12 = [], [], [], []
+        for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+            line_sidechain_cb = sidechain_cb.loc[sidechain_cb['resnr'] == (line_backbone_oxygen['resnr'])+1].squeeze(axis=None)
+            if not line_sidechain_cb.empty:
+                left_alpha_ai.append(line_backbone_oxygen['nr'])
+                left_alpha_aj.append(line_sidechain_cb['nr'])
+                left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c16)
+                left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+
+
+        left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+        left_alpha_pairs['ai'] = left_alpha_ai
+        left_alpha_pairs['aj'] = left_alpha_aj
+        left_alpha_pairs['c6'] = left_alpha_c6
+        left_alpha_pairs['c12'] = left_alpha_c12
+        left_alpha_pairs['c6'] = left_alpha_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+        left_alpha_pairs['c12'] = left_alpha_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+        left_alpha_pairs['func'] = 1
+
+        left_alpha_exclusions = left_alpha_pairs[['ai', 'aj']].copy()
+        left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
+        left_alpha_exclusions = left_alpha_exclusions.rename(columns = {'ai': '; ai'})
+
+
+        pairs = pairs.append(left_alpha_pairs)
+        exclusion = exclusion.append(left_alpha_exclusions)
+
+
     return pairs, exclusion
 
 
@@ -625,7 +683,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
     #    for t in bond_tuple:
     #        if t[0] == atom:
     #            first = t[1]
-    #            ex.append(t[1])
     #        elif t[1] == atom:
     #            first = t[0]
     #            ex.append(t[0])
