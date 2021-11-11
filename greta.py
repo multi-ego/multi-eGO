@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN, left_alpha, multiply_c16
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN, left_alpha, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 
@@ -77,9 +77,10 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     # This will be used to check if there are prolines in the structure and half their N c12
     residue_list = topology_atoms['residue'].to_list()
 
-    #if 'PRO' in residue_list:
-    #    print('\tThere are prolines in the structure. The c12 of N should be the half')
-    #    proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'sb_type'].to_list()
+    # This is used to remove the proline N interactions in Pairs and Exclusions
+    if 'PRO' in residue_list:
+        print('\tThere are prolines in the structure. The c12 of N should be the half')
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
     #    ffnb_atomtype.loc[(ffnb_atomtype['; type'].isin(proline_n)), 'c12'] = ffnb_atomtype['c12']/20
     #else:
     #    print('\tThere not are prolines in the structure. The c12 of N should be the half')
@@ -113,7 +114,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     print('\t Atomtypes.atp file creation')
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict
+    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
 def make_pairs (structure_pdb, atomtypes):
@@ -461,7 +462,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
         return greta_LJ, native_pairs
 
 
-def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
+def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -651,7 +652,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
             if not line_sidechain_cb.empty:
                 left_alpha_ai.append(line_backbone_oxygen['nr'])
                 left_alpha_aj.append(line_sidechain_cb['nr'])
-                left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c16)
+                left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
                 left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
 
@@ -671,6 +672,14 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict):
 
         pairs = pairs.append(left_alpha_pairs)
         exclusion = exclusion.append(left_alpha_exclusions)
+
+    # Removing the interactions with the prolin N
+
+    pairs = pairs[~pairs['; ai'].isin(proline_n)]
+    pairs = pairs[~pairs['aj'].isin(proline_n)]
+
+    exclusion = exclusion[~exclusion['; ai'].isin(proline_n)] 
+    exclusion = exclusion[~exclusion['aj'].isin(proline_n)]
 
 
     return pairs, exclusion

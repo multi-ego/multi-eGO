@@ -10,7 +10,7 @@ print('GRETA - PDB reading')
 native_pdb, fibril_pdb = read_pdbs()
 
 print('GRETA - Making Atomtypes')
-native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict = make_pdb_atomtypes(native_pdb, fibril_pdb)
+native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, fibril_pdb)
 
 print('\n GRETA - Making native and fibril pairs')
 
@@ -34,7 +34,7 @@ write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 
 print('\n GRETA - Pairs and Exclusion section preparation')
-topology_pairs, topology_exclusion = make_pairs_exclusion_topology(greta_ffnb, type_c12_dict)
+topology_pairs, topology_exclusion = make_pairs_exclusion_topology(greta_ffnb, type_c12_dict, proline_n)
 write_greta_topology_pairs(topology_pairs, topology_exclusion)
 print('\n GRETA - Pairs and Exclusion section written')
 
