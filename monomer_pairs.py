@@ -33,7 +33,7 @@ for n in range(0, len(pairs_list)):
     pairs_aj.append(j)
 
 print('Pairs list: ',len(pairs_list))
-print('How many frames: ', len(u.trajectory))
+print('Number of frames: ', len(u.trajectory))
 
 extended_ai, extended_aj, monomer_distances = [], [], []
 for frame in u.trajectory:

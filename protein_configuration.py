@@ -1,13 +1,14 @@
 # This little module includes the parameters of the protein to study
 # In this case there will be TTR and B2m parameters but it is possible to apply them
 # theoretically always
-protein = 'TTR'
+#protein = 'TTR'
 #protein = 'ALA_DP'
 #protein = 'PRO_DP'
 #protein = 'GLY_DP'
 #protein = 'Amylin'
 #protein = 'B2m'
 #protein = 'harp'
+protein = 'ABeta'
 
 distance_cutoff = 5.5
 distance_residue = 2
@@ -22,8 +23,8 @@ ratio_treshold = 0.09
 
 # Does the N_terminal have a protonation?
 # Taking off N_1 N_1 and raising c12 of N_1
-N_terminal = True # True for TTR
-#N_terminal = False
+#N_terminal = True # True for TTR
+N_terminal = False
  
 # NMR or minimum
 sigma_method = 'minimum'

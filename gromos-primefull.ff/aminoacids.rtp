@@ -76,8 +76,6 @@
    -C     N    CA     C     gd_43
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47   
 
 [ ARG ]
  [ atoms ]
@@ -137,8 +135,6 @@
    CB    CG    CD    NE     gd_34   
    CG    CD    NE    CZ     gd_39   
    CD    NE    CZ   NH1     gd_14   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
                                   
  [ ARGN ]
  [ atoms ]
@@ -245,8 +241,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND2     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ ASN1 ]
 [ atoms ]
@@ -341,8 +335,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   OD1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
  [ ASPH ]
  [ atoms ]
@@ -428,8 +420,6 @@
     N    CA    CB    SG     gd_34   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ CYSH ]
  [ atoms ]
@@ -595,8 +585,6 @@
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD   NE2     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ GLU ]
  [ atoms ]
@@ -648,8 +636,6 @@
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD   OE2     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ GLUH ]
  [ atoms ]
@@ -791,8 +777,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
   
 [ HISB ]
  [ atoms ]
@@ -854,8 +838,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
   
 [ HISH ]
  [ atoms ]
@@ -917,8 +899,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
   
 [ HIS1 ]
  [ atoms ]
@@ -984,8 +964,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
   
 [ HIS2 ]
  [ atoms ]
@@ -1051,8 +1029,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
   
 [ HYP ]
  [ atoms ]
@@ -1154,8 +1130,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB   CG1    CD     gd_34   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ LEU ]
  [ atoms ]
@@ -1203,8 +1177,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_34   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ LYS ]
  [ atoms ]
@@ -1255,8 +1227,6 @@
    CA    CB    CG    CD     gd_34   
    CB    CG    CD    CE     gd_34   
    CG    CD    CE    NZ     gd_34   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ LYSH ]
  [ atoms ]
@@ -1353,8 +1323,6 @@
     N    CA     C    +N     gd_42   
    CA    CB    CG    SD     gd_34   
    CB    CG    SD    CE     gd_26   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ PHE ]
  [ atoms ]
@@ -1420,8 +1388,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ PRO ]
  [ atoms ]
@@ -1510,8 +1476,6 @@
     N    CA    CB    OG     gd_34   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ THR ]
  [ atoms ]
@@ -1555,8 +1519,6 @@
     N    CA    CB   OG1     gd_34   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ TRP ]
  [ atoms ]
@@ -1643,8 +1605,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD2     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ TYR ]
  [ atoms ]
@@ -1715,8 +1675,6 @@
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_40   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47
 
 [ VAL ]
  [ atoms ]
@@ -1760,8 +1718,6 @@
     N    CA    CB   CG1     gd_34   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
-   -C     N    CA    CB     gd_46
-   CB    CA     C    +N     gd_47 
 
 [ DALA ]
  [ atoms ]
