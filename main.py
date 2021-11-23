@@ -43,7 +43,10 @@ if len(acid_atp) != 0:
     acid_pdb_pairs = native_pdb_pairs.copy()
     acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.ai.isin(acid_atp)]
     acid_pdb_pairs = acid_pdb_pairs[~acid_pdb_pairs.aj.isin(acid_atp)]
-    greta_acid_ffnb = merge_GRETA(acid_pdb_pairs, fibril_pdb_pairs)
+    if idp == False:
+        greta_acid_ffnb = merge_GRETA(acid_pdb_pairs, fibril_pdb_pairs)
+    else: #TODO the native acid are not saved for analysis
+        greta_acid_ffnb, native_acid_new = merge_GRETA(acid_pdb_pairs, fibril_pdb_pairs)
     write_acid_greta_LJ(ffnonbonded_atp, greta_acid_ffnb)
 
 

@@ -134,5 +134,8 @@ topology_bonds['ai'] = topology_bonds['ai_type'] + '_' + topology_bonds['ai_resi
 topology_bonds['aj'] = topology_bonds['aj_type'] + '_' + topology_bonds['aj_resid'].astype(str)
 topology_bonds.drop(['ai_type', 'ai_resid','aj_type', 'aj_resid'], axis=1, inplace=True)
 
-# native reweight for TTR. This dictionary will rename the amber topology to gromos topology
-gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
+# TODO make it more general (without the residue number)
+# native reweight for TTR and ABeta. This dictionary will rename the amber topology to gromos topology
+
+#gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
+gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}

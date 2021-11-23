@@ -78,6 +78,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     residue_list = topology_atoms['residue'].to_list()
 
     # This is used to remove the proline N interactions in Pairs and Exclusions
+    proline_n = []
     if 'PRO' in residue_list:
         print('\tThere are prolines in the structure. The c12 of N should be the half')
         proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
