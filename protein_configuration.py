@@ -30,13 +30,6 @@ N_terminal = False
 # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
 lj_reduction = 0.15
 
-
-# TODO questo da tenere sempre
-# In the case of LJ 1-4 made by two N
-doubleN = True
-#doubleN = False # False for TTR publication
-left_alpha = True
-#left_alpha = False # False for TTR publication
 # For left alpha we might want to increase the c6 values
 multiply_c6 = 1.5
 

@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, doubleN, left_alpha, multiply_c6
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 # TODO
@@ -515,8 +515,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
     
     # The N N interactions are still too close, so we double the c12
-    if doubleN == True:
-        pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
 
 
 
@@ -541,31 +540,30 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     exclusion = exclusion.rename(columns = {'ai': '; ai'})
     
 
-    if left_alpha == True:
-        # Left alpha helix
-        # Here we introduce the c6 and the c12 between the O and the CB of the next residue
-        # to optimize the left alpha region in the Ramachandran
+    # Left alpha helix
+    # Here we introduce the c6 and the c12 between the O and the CB of the next residue
+    # to optimize the left alpha region in the Ramachandran
 
-        # Adding the c6 and c12 (I do it now because later is sbatti)
-        atnum_type_top['c6'] = atnum_type_top['type'].map(gromos_atp_c6['c6'])
-        atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
+    # Adding the c6 and c12 (I do it now because later is sbatti)
+    atnum_type_top['c6'] = atnum_type_top['type'].map(gromos_atp_c6['c6'])
+    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
-        # Here we make a dictionary of the backbone oxygen as atom number
-        backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
-        sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
-        # Left alphas do not occur in GLY and PRO
-        sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
-        sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
+    # Here we make a dictionary of the backbone oxygen as atom number
+    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+    sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
+    # Left alphas do not occur in GLY and PRO
+    sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
+    sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
 
-        # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
-        left_alpha_ai, left_alpha_aj, left_alpha_c6, left_alpha_c12 = [], [], [], []
-        for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-            line_sidechain_cb = sidechain_cb.loc[sidechain_cb['resnr'] == (line_backbone_oxygen['resnr'])+1].squeeze(axis=None)
-            if not line_sidechain_cb.empty:
-                left_alpha_ai.append(line_backbone_oxygen['nr'])
-                left_alpha_aj.append(line_sidechain_cb['nr'])
-                left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
-                left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+    # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
+    left_alpha_ai, left_alpha_aj, left_alpha_c6, left_alpha_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['resnr'] == (line_backbone_oxygen['resnr'])+1].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            left_alpha_ai.append(line_backbone_oxygen['nr'])
+            left_alpha_aj.append(line_sidechain_cb['nr'])
+            left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
+            left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
 
         left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
