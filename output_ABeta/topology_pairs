@@ -3,7 +3,7 @@
 ; Residue cutoff: 2
 ; LJ_reduction: 0.15
 ; Protein: ABeta
-; 2021-11-23 10:18:29.898924
+; 2021-11-25 10:49:47.959862
 
 [ pairs ]
 ; ai  aj  func           c6          c12

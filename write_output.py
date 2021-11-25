@@ -1,6 +1,7 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction
+from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff
+from topology_definitions import acid_atp
 
 
     # Create the folders which will be used by the script
@@ -86,32 +87,19 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
 
 
 def write_greta_LJ(atomtypes, greta_LJ):
-    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    directory = "output_%s/ffnonbonded.itp" %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atomtypes ]\n")
-    file.write(str(atomtypes.to_string(index = False)))
-    file.write("\n")
-    file.write("\n")
-    file.write("[ nonbond_params ]\n")
-    file.write(str(greta_LJ.to_string(index = False)))
-    file.close()
+    if acid_ff == True & acid_atp !=0:
+        directory = "output_%s/acid_ffnonbonded.itp" %(protein)
+        file = open(directory, "w")
+        file.write(str(head))
+        file.write("\n")
+        file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
+    else:
+        directory = "output_%s/ffnonbonded.itp" %(protein)
+        file = open(directory, "w")
+        file.write(str(head))
+        file.write("\n")
+        file.write('; Distance cutoff: ' + str(distance_cutoff))
 
-def write_acid_greta_LJ(atomtypes, greta_LJ):
-    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    directory = "output_%s/acid_ffnonbonded.itp" %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")

@@ -10,7 +10,8 @@ import itertools
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN, left_alpha, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
-
+# TODO
+#def make_pdb_atomtypes (native_pdb, *fibril_pdb):
 def make_pdb_atomtypes (native_pdb, fibril_pdb):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
@@ -209,19 +210,17 @@ def make_pairs (structure_pdb, atomtypes):
     structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
     print('\tDoubled pairs list: ', len(structural_LJ))
 
-    if sigma_method == 'minimum':
-        # Here we sort all the atom pairs based on the distance and we keep the closer ones.
-        # In the other method we average like NMR and so we don't dump the duplicates.
-        print('\tSorting and dropping all the duplicates')
-        # Sorting the pairs
-        structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-        # Cleaning the duplicates
-        structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        # Removing the reverse duplicates
-        cols = ['ai', 'aj']
-        structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-        structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        print('\tCleaning Complete ', len(structural_LJ))
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    print('\tSorting and dropping all the duplicates')
+    # Sorting the pairs
+    structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+    # Cleaning the duplicates
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    print('\tCleaning Complete ', len(structural_LJ))
     
     print('\n\tCalculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
@@ -229,56 +228,47 @@ def make_pairs (structure_pdb, atomtypes):
     structural_LJ['epsilon'] = epsilon_input
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
+    structural_LJ.drop(columns = ['check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     return structural_LJ
 
 
+def make_idp_epsilon():
+    #TODO Vedere se mettere questa parte all'inizio del merge
+    # Controlla con Carlo
 
-def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
+    # In the case of an IDP, it is possible to add dynamical informations based on a simulation
+    print('Addition of reweighted native pairs')
+    # Here i join ai and aj of greta_LJ to compare with the monomer pairs
+    #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
+    
+    native_pairs = read_native_pairs()
+    # The ratio treshold considers only pairs occurring at a certain probability
+    native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
+    # This dictionary was made to link amber and greta atomtypes
+    native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
+    native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
+    native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
+    # I keep only the ones which are NOT included in pairs_check
+    # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
+    
+    # Add sigma, add epsilon reweighted, add c6 and c12
+    native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
+    
+    # Epsilon reweight based on probability
+    native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
+    native_pairs.drop(columns = ['counts', 'ratio', 'pairs_check'], inplace = True)
+
+    return native_pairs
+
+
+def merge_GRETA(greta_LJ):
     '''
-    This function merges the atom contacts from native and fibril. It also apply the NMR sigma.
+    This function merges the atom contacts from native and fibril.
     '''
-    if idp == True:
-        # Contacts are from a plain MD, so at this step we just import the fibril contacts.
-        greta_LJ = fibril_pdb_pairs.copy()
-    else:
-        # Merging native and fibril LJ pairs.
-        greta_LJ = native_pdb_pairs.append(fibril_pdb_pairs, sort = False, ignore_index = True)
-
-    # Harp test, we don't have the fibril structure
-    if greta_to_keep == 'native':
-        greta_LJ = native_pdb_pairs.copy()
-
-    if greta_to_keep == 'fibril':
-        greta_LJ = fibril_pdb_pairs.copy()
-        
+    
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-
-    if sigma_method == 'NMR':
-        # Alternative sigma distances choice
-        check_pairs = greta_LJ['check'].to_list()
-        check_pairs = list(dict.fromkeys(check_pairs))
-        #print(len(greta_LJ['check']))
-        #print(len(check_pairs))
-        new_greta_LJ = []
-        for c in check_pairs:
-            filter = (greta_LJ['check'] == c)
-            contact_subset = greta_LJ[filter]  
-            contact_subset.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-            # Drop only the duplicates with the same distance due to the reverse copy of greta_LJ
-            # Which used to be deleted before merge
-            contact_subset = contact_subset.drop_duplicates(subset = ['distance'], keep = 'first')
-            contact_subset.insert(3, 'new_sigma', 1)
-            contact_subset.insert(3, 'new_distance', 1)
-            contact_subset['new_distance'] = 1/(((sum((1/contact_subset['distance'])**6))/len(contact_subset))**(1/6))
-            contact_subset['new_sigma'] = (contact_subset['new_distance']/10) / (2**(1/6))
-            new_greta_LJ.append(contact_subset)
-        cols = ['ai', 'aj']
-        new_greta_LJ = pd.concat(new_greta_LJ, ignore_index=True)
-        new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        new_greta_LJ[cols] = np.sort(new_greta_LJ[cols].values, axis=1)
-        new_greta_LJ = new_greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -286,30 +276,15 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-    #print(greta_LJ.to_string())
 
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    
-
-    if sigma_method == 'NMR':
-        if len(new_greta_LJ) == len(greta_LJ):
-            #\n\n\n\n\n\n NEW_GRETA_LJ == GRETA_LJ \n\n\n\n\n\n\n\n\n\n\n\n\n') 
-            new_greta_LJ['sigma'] = new_greta_LJ['new_sigma']
-            new_greta_LJ = new_greta_LJ.drop(columns = ['new_distance', 'new_sigma'])
-            greta_LJ = new_greta_LJ.copy()
-        else:
-            print(len(new_greta_LJ))
-            print(len(greta_LJ))
-            print('New sigmas dont match with old ones')
-            exit()
-
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
     greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(5, '', ';')
-    greta_LJ.drop(columns = ['distance', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
+    greta_LJ.drop(columns = ['distance'], inplace = True)
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -392,64 +367,6 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     # Drop double, we don't need it anymore
     greta_LJ.drop(columns = ['double'], inplace = True)
 
-    if idp == True:
-        #TODO Vedere se mettere questa parte all'inizio del merge
-        # Qui il sigma NMR non sta funzionando pero'
-        # Controlla con Carlo
-
-        # In the case of an IDP, it is possible to add dynamical informations based on a simulation
-        print('Addition of reweighted native pairs')
-        # Here i join ai and aj of greta_LJ to compare with the monomer pairs
-        pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
-        native_pairs = read_native_pairs()
-        # The ratio treshold considers only pairs occurring at a certain probability
-        native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
-        # This dictionary was made to link amber and greta atomtypes
-        native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
-        native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
-        native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
-        # I keep only the ones which are NOT included in pairs_check
-        # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
-
-        if sigma_method == 'NMR':
-            # If in fibril keep only fibril #TODO
-            native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
-            native_pairs['pairs_check'] = native_pairs['aj'] + '_' + native_pairs['ai']
-            native_pairs = native_pairs[~native_pairs['pairs_check'].isin(pairs_check)]
-        
-        # Add sigma, add epsilon reweighted, add c6 and c12
-        # Sigma NMR? TODO
-        native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
-        
-        # Epsilon reweight based on probability
-        native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
-        
-        # Calculating c6 and c12
-        native_pairs['c12'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 12)   
-        native_pairs['c6'] = 4 * native_pairs['epsilon'] * (native_pairs['sigma'] ** 6)
-        native_pairs['type'] = 1
-        native_pairs.drop(columns = ['counts', 'ratio', 'distance', 'pairs_check'], inplace = True)
-        
-        native_pairs = native_pairs[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon']]
-        native_pairs.insert(5, '', ';')
-        greta_LJ = greta_LJ.append(native_pairs, ignore_index = True)
-
-
-        # If keep fibril comment all sorts
-        # Sorting the pairs
-        #print(greta_LJ.to_string())
-        greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
-        #print(greta_LJ.to_string())
-        # Cleaning the duplicates
-        greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-
-        # Removing the reverse duplicates
-        cols = ['ai', 'aj']
-        greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-        greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-
 
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
@@ -457,10 +374,7 @@ def merge_GRETA(native_pdb_pairs, fibril_pdb_pairs):
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
 
-    if idp == False:
-        return greta_LJ
-    else:
-        return greta_LJ, native_pairs
+    return greta_LJ
 
 
 def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
