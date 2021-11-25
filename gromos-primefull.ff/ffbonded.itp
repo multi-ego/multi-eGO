@@ -517,10 +517,10 @@
 #define gd_45 152.6994 0.7245 1
 ; Backbone dihedral angle -N-CA-C-N- 
 ; 
-;#define gd_46 165.7768 0.9904 2 
+#define gd_46 165.7768 0.9904 2 
 ; Phi prime angle -C-N-CA-CB 
 ; 
-;#define gd_47 -137.4077 -1.3384 2 
+#define gd_47 -137.4077 -1.3384 2 
 ; Psi prime angle -CB-CA-C-N 
 ;
 ; OPT form gly_step_k3

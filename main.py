@@ -1,5 +1,5 @@
 from read_input import read_pdbs
-from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs, write_pairs_list, write_acid_greta_LJ
+from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
 from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff

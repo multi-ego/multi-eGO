@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, idp, ratio_treshold, protein, N_terminal, sigma_method, lj_reduction, greta_to_keep, doubleN, left_alpha, multiply_c6
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, doubleN, left_alpha, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 # TODO
@@ -16,9 +16,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
-
-
-
     topology_atoms = raw_topology_atoms.copy()
     print('\tBuilding native atomtypes')
     native_sel = native_pdb.select_atoms('all')

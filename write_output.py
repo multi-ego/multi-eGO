@@ -87,7 +87,7 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
 
 
 def write_greta_LJ(atomtypes, greta_LJ):
-    if acid_ff == True & acid_atp !=0:
+    if acid_ff == True and acid_atp !=0:
         directory = "output_%s/acid_ffnonbonded.itp" %(protein)
         file = open(directory, "w")
         file.write(str(head))
