@@ -504,55 +504,55 @@
 #define gd_41     0.000       3.77          6
 ; -CHn-NT-	0.9
 ;
-; OPT from ala_step_4_1.0_c6_1.5_n
-#define gd_42 158.2201 1.9985 2 
+; ALA_DP opt 4.
+#define gd_42 19.8479 0.9519 1 
 ; Backbone dihedral angle -N-CA-C-N- 
 ; 
-#define gd_43 58.6863 1.9994 2
+#define gd_43 41.4249 1.2276 2
 ; Backbone dihedral angle -C-N-CA-C- 
 ; 
-#define gd_44 159.8008 1.9994 1
+#define gd_44 -67.0506 1.1376 4 
 ; Backbone dihedral angle -C-N-CA-C- 
 ; 
-#define gd_45 152.6994 0.7245 1
+#define gd_45 164.7278 1.1672 2
 ; Backbone dihedral angle -N-CA-C-N- 
 ; 
-#define gd_46 165.7768 0.9904 2 
+#define gd_46 -165.6898 1.3576 2
 ; Phi prime angle -C-N-CA-CB 
 ; 
-#define gd_47 -137.4077 -1.3384 2 
+#define gd_47 -154.8883 -0.0182 1 
 ; Psi prime angle -CB-CA-C-N 
-;
-; OPT form gly_step_k3
-#define gd_48 178.6948 2.9356 2
+; 
+; 
+; To be optimized
+#define gd_48    169.642     1.6529   2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49 179.1792 2.9958 1
+#define gd_49    6.777       2.8225   2
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_50 179.5213 2.9977 1
+#define gd_50    -167.947    2.8873   1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 177.4001 2.9892 2
+#define gd_51    152.810     1.8354   1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-; OPT from ala_step_4_loc
-#define gd_52 137.5088 1.9983 2
+; PRO_DP otpimization 0 at 0.1
+#define gd_52    -19.934     2.5124   1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_53 27.7126 1.9993 4
+#define gd_53    102.511     3.3095   2
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_54 28.0386 1.9975 4
+#define gd_54    144.024     3.2988   3
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_55 139.7280 1.9981 2
+#define gd_55    -105.625    1.794    3
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_56    180.000     33.5     2
 ; Omega dihedral - PRO
 ;
-; Already present in the rdp file
 ;#define gd_57    0            0       2 
 ; Omega prime - PRO    O-C-N-CA
 ;

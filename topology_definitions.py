@@ -139,4 +139,3 @@ topology_bonds.drop(['ai_type', 'ai_resid','aj_type', 'aj_resid'], axis=1, inpla
 
 
 gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
-#gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
