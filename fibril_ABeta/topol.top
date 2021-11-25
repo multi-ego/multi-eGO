@@ -1,0 +1,50 @@
+;
+;	File 'topol.top' was generated
+;	By user: emanuele (1003)
+;	On host: bologna
+;	At date: Tue Nov 23 16:55:49 2021
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.3-plumed-2.8.0-dev (-:
+;	
+;	Executable:   /opt/gromacs-2021.3/bin/gmx_mpi
+;	Data prefix:  /opt/gromacs-2021.3
+;	Working dir:  /home/emanuele/MAGROS/fibril_ABeta_f
+;	Command line:
+;	  gmx_mpi pdb2gmx -f fibril1.pdb -ignh
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "./gromos-primefull.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Protein_chain_R.itp"
+#include "topol_Protein_chain_A.itp"
+#include "topol_Protein_chain_B.itp"
+#include "topol_Protein_chain_C.itp"
+#include "topol_Protein_chain_D.itp"
+#include "topol_Protein_chain_E.itp"
+#include "topol_Protein_chain_F.itp"
+#include "topol_Protein_chain_G.itp"
+#include "topol_Protein_chain_H.itp"
+#include "topol_Protein_chain_I.itp"
+
+[ system ]
+; Name
+Protein
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_R     1
+Protein_chain_A     1
+Protein_chain_B     1
+Protein_chain_C     1
+Protein_chain_D     1
+Protein_chain_E     1
+Protein_chain_F     1
+Protein_chain_G     1
+Protein_chain_H     1
+Protein_chain_I     1

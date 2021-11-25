@@ -1,6 +1,7 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff
+from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff
+from topology_definitions import acid_atp
 
 
     # Create the folders which will be used by the script
@@ -58,9 +59,10 @@ def write_greta_topology_atoms(topology_atoms):
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_LJ(atomtypes, greta_LJ):
-    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    directory = "output_%s/ffnonbonded.itp" %(protein)
+def write_greta_topology_pairs(pairs_topology, exclusion_topology):
+    # This function is used to create the atomtypes.atp.
+    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
+    directory = 'output_%s/topology_pairs' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -68,23 +70,36 @@ def write_greta_LJ(atomtypes, greta_LJ):
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")
+    file.write('; LJ_reduction: ' + str(lj_reduction))
+    file.write("\n")
+    file.write('; Protein: ' + str(protein))
+    file.write("\n")
     file.write('; ' + str(now))
+    file.write("\n\n")
+    file.write("[ pairs ]")
     file.write("\n")
-    file.write("[ atomtypes ]\n")
-    file.write(str(atomtypes.to_string(index = False)))
+    file.write(str(pairs_topology.to_string(index = False)))
+    file.write("\n\n")
+    file.write("[ exclusions ]")
     file.write("\n")
-    file.write("\n")
-    file.write("[ nonbond_params ]\n")
-    file.write(str(greta_LJ.to_string(index = False)))
+    file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
 
-def write_acid_greta_LJ(atomtypes, greta_LJ):
-    #file = open("../../magros_test/commons/output/ffnonbonded.itp", "w")
-    directory = "output_%s/acid_ffnonbonded.itp" %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
+
+def write_greta_LJ(atomtypes, greta_LJ):
+    if acid_ff == True and acid_atp !=0:
+        directory = "output_%s/acid_ffnonbonded.itp" %(protein)
+        file = open(directory, "w")
+        file.write(str(head))
+        file.write("\n")
+        file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
+    else:
+        directory = "output_%s/ffnonbonded.itp" %(protein)
+        file = open(directory, "w")
+        file.write(str(head))
+        file.write("\n")
+        file.write('; Distance cutoff: ' + str(distance_cutoff))
+
     file.write("\n")
     file.write('; Residue cutoff: ' + str(distance_residue))
     file.write("\n")

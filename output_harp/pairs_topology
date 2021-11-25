@@ -1,0 +1,14 @@
+; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
+; Distance cutoff: 5.5
+; Residue cutoff: 3
+; 2021-05-17 18:10:03.694232
+
+[ pairs ]
+Empty DataFrame
+Columns: [; ai, aj, func, c6, c12]
+Index: []
+
+[ exclusions ]
+Empty DataFrame
+Columns: [; ai, aj]
+Index: []

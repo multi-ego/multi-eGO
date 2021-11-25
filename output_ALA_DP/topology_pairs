@@ -1,0 +1,20 @@
+; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
+; Distance cutoff: 5.5
+; Residue cutoff: 2
+; LJ_reduction: 0.15
+; Protein: ALA_DP
+; 2021-10-20 10:43:59.548165
+
+[ pairs ]
+; ai aj  func           c6          c12
+   4  8     1 0.000000e+00 2.284500e-07
+   4  9     1 0.000000e+00 6.958587e-07
+   6  9     1 0.000000e+00 1.179259e-06
+   3  6     1 9.326516e-03 5.162000e-06
+
+[ exclusions ]
+; ai aj
+   4  8
+   4  9
+   6  9
+   3  6
