@@ -363,6 +363,6 @@
 #define gd_55 139.7280 1.9981 2
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_56    180.000     33.5     2
+#define gd_56    180.000     31.0     2
 ; Omega dihedral - PRO
                                                                              
