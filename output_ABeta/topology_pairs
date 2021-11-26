@@ -2,8 +2,8 @@
 ; Distance cutoff: 5.5
 ; Residue cutoff: 2
 ; LJ_reduction: 0.15
-; Protein: ABeta
-; 2021-11-25 14:09:54.482609
+; Protein: ABetanative
+; 2021-11-26 10:09:48.058253
 
 [ pairs ]
 ; ai  aj  func           c6          c12

@@ -1,6 +1,6 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff
+from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep
 from topology_definitions import acid_atp
 
 
@@ -72,7 +72,7 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     file.write("\n")
     file.write('; LJ_reduction: ' + str(lj_reduction))
     file.write("\n")
-    file.write('; Protein: ' + str(protein))
+    file.write('; Protein: ' + str(protein) + str(greta_to_keep))
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n\n")
@@ -101,7 +101,7 @@ def write_greta_LJ(atomtypes, greta_LJ):
         file.write('; Distance cutoff: ' + str(distance_cutoff))
 
     file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
+    file.write('; Residue cutoff: ' + str(distance_residue) + str(greta_to_keep) + str(protein))
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n")

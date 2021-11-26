@@ -116,7 +116,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
-def make_pairs (structure_pdb, atomtypes):
+def make_pairs(structure_pdb, atomtypes):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
@@ -150,7 +150,7 @@ def make_pairs (structure_pdb, atomtypes):
     print('\n\tCreating the pairs dataframes')
     # Creation of the dataframe containing the atom pairs and the distances.
     # Also, it will be prepared for sigma and epsilon.
-    structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'check'])
+    structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon'])
     structural_LJ['ai'] = pairs_ai
     structural_LJ['aj'] = pairs_aj
     structural_LJ['distance'] = self_distances
@@ -168,25 +168,14 @@ def make_pairs (structure_pdb, atomtypes):
     # Extracting the resid information to check if the atom pair is on the same chain.
     structural_LJ[['ai', 'chain_ai']] = structural_LJ.ai.str.split(":", expand = True)
     structural_LJ[['aj', 'chain_aj']] = structural_LJ.aj.str.split(":", expand = True)
-
-    # Create the check column for the exclusion list
-    # TODO we don't use this anymore, we might delete this part
-    structural_LJ['check'] = structural_LJ['ai'] + '_' + structural_LJ['aj']
     
     structural_LJ['same_chain'] = np.where(structural_LJ['chain_ai'] == structural_LJ['chain_aj'], 'Yes', 'No')
     
     print('\tPairs within the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'Yes']))
     print('\tPairs not in the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'No']))
     print('\tRaw pairs list ', len(structural_LJ))
-
-
-    # TODO we might delete this part, we don't use exclusion list anymore
-    #print('\tTagging pairs included in bonded exclusion list')
-    # Here we keep only the one without the exclusions
-    structural_LJ['exclude'] = ''
-    #not_same = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
-
     print(f'\tApplying residue number cutoff of {distance_residue}')
+
     # This part is to filter more the LJ like in smog: if two pairs are made by aminoacids closer than
     # 3 they'll be deleted. Therefore aminoacids 1, 2, 3 and 4 does not make any contacts.
     # Therefore I copy the LJ dataframe and apply some more filters
@@ -200,24 +189,24 @@ def make_pairs (structure_pdb, atomtypes):
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
     print(f'\tAll the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
 
-    print('\n\tMaking the reverse duplicate dataframe')
-    # Inverse pairs calvario
-    inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
-    structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
-    print('\tDoubled pairs list: ', len(structural_LJ))
+    #print('\n\tMaking the reverse duplicate dataframe')
+    ## Inverse pairs calvario
+    #inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
+    #inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
+    #structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    #print('\tDoubled pairs list: ', len(structural_LJ))
 
-    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
-    print('\tSorting and dropping all the duplicates')
-    # Sorting the pairs
-    structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    # Cleaning the duplicates
-    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    # Removing the reverse duplicates
-    cols = ['ai', 'aj']
-    structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    print('\tCleaning Complete ', len(structural_LJ))
+    ## Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    #print('\tSorting and dropping all the duplicates')
+    ## Sorting the pairs
+    #structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+    ## Cleaning the duplicates
+    #structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    ## Removing the reverse duplicates
+    #cols = ['ai', 'aj']
+    #structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
+    #structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    #print('\tCleaning Complete ', len(structural_LJ))
     
     print('\n\tCalculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
@@ -225,7 +214,7 @@ def make_pairs (structure_pdb, atomtypes):
     structural_LJ['epsilon'] = epsilon_input
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
-    structural_LJ.drop(columns = ['check', 'chain_ai', 'chain_aj', 'same_chain', 'exclude', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
+    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
 
     return structural_LJ
 
@@ -245,16 +234,13 @@ def make_idp_epsilon():
     # This dictionary was made to link amber and greta atomtypes
     native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
     native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
-    native_pairs['pairs_check'] = native_pairs['ai'] + '_' + native_pairs['aj']
-    # I keep only the ones which are NOT included in pairs_check
-    # So if a contact was already defined with the fibril it will not be added again with a reduced epsilon
     
     # Add sigma, add epsilon reweighted, add c6 and c12
     native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
     
     # Epsilon reweight based on probability
-    native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
-    native_pairs.drop(columns = ['counts', 'ratio', 'pairs_check'], inplace = True)
+    native_pairs['epsilon'] = epsilon_input#*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
+    native_pairs.drop(columns = ['counts', 'ratio'], inplace = True)
 
     return native_pairs
 
@@ -264,17 +250,42 @@ def merge_GRETA(greta_LJ):
     This function merges the atom contacts from native and fibril.
     '''
     
+    
+    # Inverse pairs calvario
+    inv_LJ = greta_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon']
+    greta_LJ = greta_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    print('\tDoubled pairs list: ', len(greta_LJ))
+
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    print('\tSorting and dropping all the duplicates')
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    print('\tCleaning Complete ', len(greta_LJ))
+
+
+
+    ## Sorting the pairs
+    #greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+    ## Cleaning the duplicates
+    #greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    ## Removing the reverse duplicates
+    #cols = ['ai', 'aj']
+    #greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
+    #greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    
+    
+    
+    
+    
+    
+    
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
     greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
@@ -363,9 +374,8 @@ def merge_GRETA(greta_LJ):
 
     # Drop double, we don't need it anymore
     greta_LJ.drop(columns = ['double'], inplace = True)
-
-
     greta_LJ = greta_LJ.rename(columns = {'ai':'; ai'})
+    greta_LJ['epsilon'] = greta_LJ["epsilon"].map(lambda x:'{:.6f}'.format(x))
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
@@ -566,22 +576,22 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
 
-        left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-        left_alpha_pairs['ai'] = left_alpha_ai
-        left_alpha_pairs['aj'] = left_alpha_aj
-        left_alpha_pairs['c6'] = left_alpha_c6
-        left_alpha_pairs['c12'] = left_alpha_c12
-        left_alpha_pairs['c6'] = left_alpha_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-        left_alpha_pairs['c12'] = left_alpha_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-        left_alpha_pairs['func'] = 1
+    left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    left_alpha_pairs['ai'] = left_alpha_ai
+    left_alpha_pairs['aj'] = left_alpha_aj
+    left_alpha_pairs['c6'] = left_alpha_c6
+    left_alpha_pairs['c12'] = left_alpha_c12
+    left_alpha_pairs['c6'] = left_alpha_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+    left_alpha_pairs['c12'] = left_alpha_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+    left_alpha_pairs['func'] = 1
 
-        left_alpha_exclusions = left_alpha_pairs[['ai', 'aj']].copy()
-        left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
-        left_alpha_exclusions = left_alpha_exclusions.rename(columns = {'ai': '; ai'})
+    left_alpha_exclusions = left_alpha_pairs[['ai', 'aj']].copy()
+    left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
+    left_alpha_exclusions = left_alpha_exclusions.rename(columns = {'ai': '; ai'})
 
 
-        pairs = pairs.append(left_alpha_pairs)
-        exclusion = exclusion.append(left_alpha_exclusions)
+    pairs = pairs.append(left_alpha_pairs)
+    exclusion = exclusion.append(left_alpha_exclusions)
 
     # Removing the interactions with the prolin N
 
