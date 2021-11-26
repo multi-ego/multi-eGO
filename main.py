@@ -22,7 +22,7 @@ if greta_to_keep == 'native':
         greta_LJ = make_idp_epsilon()
     else:
         greta_LJ = make_pairs(native_pdb, native_atomtypes)
-        if acid_ff == True & acid_atp !=0:
+        if acid_ff == True and acid_atp !=0:
                 greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                 greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
 
@@ -37,7 +37,7 @@ elif greta_to_keep == 'all':
     else:
         # Merging native and fibril LJ pairs.
         greta_LJ = make_pairs(native_pdb, native_atomtypes)
-        if acid_ff == True & acid_atp !=0:
+        if acid_ff == True and acid_atp !=0:
                 greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                 greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
         greta_LJ.append(make_pairs(fibril_pdb, fibril_atomtypes), sort = False, ignore_index = True)

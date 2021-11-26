@@ -526,9 +526,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     
     # The N N interactions are still too close, so we double the c12
     pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
-
-
-
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
     # Exclusions 1-4
