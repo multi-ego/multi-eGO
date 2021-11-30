@@ -258,7 +258,8 @@ def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
     mdmat_plainMD['epsilon'] = ''
     mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  mdmat_plainMD['rc_probability'])] = 0
     mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] >  mdmat_plainMD['rc_probability'])] = epsilon_input*(1-((np.log(mdmat_plainMD['probability']))/(np.log(mdmat_plainMD['rc_probability']))))
-    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  ratio_treshold)] = 0
+    #mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  ratio_treshold)] = 0
+
 
     
     #print(mdmat_plainMD)
@@ -266,6 +267,7 @@ def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
     mdmat_plainMD.drop(columns = ['probability', 'rc_ai', 'rc_aj', 'rc_probability'], inplace = True)
 
     mdmat_plainMD.dropna(inplace=True)
+    mdmat_plainMD = mdmat_plainMD[mdmat_plainMD.epsilon != 0]
 
 
     return mdmat_plainMD
