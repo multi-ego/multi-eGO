@@ -5,7 +5,7 @@ from topology_definitions import acid_atp
 
 
     # Create the folders which will be used by the script
-output_folder = 'output_%s' % (protein)
+output_folder = 'outputs/output_%s' % (protein)
 try:
     os.mkdir(output_folder)
 except OSError:
@@ -28,7 +28,7 @@ now = datetime.datetime.now()
 def write_greta_atomtypes_atp(atomtypes_atp):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/atomtypes.atp' %(protein)
+    directory = 'outputs/output_%s/atomtypes.atp' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -44,7 +44,7 @@ def write_greta_atomtypes_atp(atomtypes_atp):
 def write_greta_topology_atoms(topology_atoms):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/topology_atoms' %(protein)
+    directory = 'outputs/output_%s/topology_atoms' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -62,7 +62,7 @@ def write_greta_topology_atoms(topology_atoms):
 def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     # This function is used to create the atomtypes.atp.
     #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/topology_pairs' %(protein)
+    directory = 'outputs/output_%s/topology_pairs' %(protein)
     file = open(directory, "w")
     file.write(str(head))
     file.write("\n")
@@ -88,13 +88,13 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
 
 def write_greta_LJ(atomtypes, greta_LJ):
     if acid_ff == True and acid_atp !=0:
-        directory = "output_%s/acid_ffnonbonded.itp" %(protein)
+        directory = "outputs/output_%s/acid_ffnonbonded.itp" %(protein)
         file = open(directory, "w")
         file.write(str(head))
         file.write("\n")
         file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
     else:
-        directory = "output_%s/ffnonbonded.itp" %(protein)
+        directory = "outputs/output_%s/ffnonbonded.itp" %(protein)
         file = open(directory, "w")
         file.write(str(head))
         file.write("\n")

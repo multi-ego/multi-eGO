@@ -33,6 +33,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
         # CA_1 N_1 is in the exclusion list but in fibril might interact the CA_1 chain 1 with N_1 chain 2
         
         # Native atomtypes will be used to create the pairs list
+        #TODO print another for check
         atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
         native_atomtypes.append(atp)
 
@@ -188,25 +189,6 @@ def make_pairs(structure_pdb, atomtypes):
     structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
     print(f'\tAll the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
-
-    #print('\n\tMaking the reverse duplicate dataframe')
-    ## Inverse pairs calvario
-    #inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
-    #inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
-    #structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
-    #print('\tDoubled pairs list: ', len(structural_LJ))
-
-    ## Here we sort all the atom pairs based on the distance and we keep the closer ones.
-    #print('\tSorting and dropping all the duplicates')
-    ## Sorting the pairs
-    #structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    ## Cleaning the duplicates
-    #structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    ## Removing the reverse duplicates
-    #cols = ['ai', 'aj']
-    #structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-    #structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    #print('\tCleaning Complete ', len(structural_LJ))
     
     print('\n\tCalculating sigma and epsilon')
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
@@ -219,7 +201,35 @@ def make_pairs(structure_pdb, atomtypes):
     return structural_LJ
 
 
-def make_idp_epsilon():
+#def make_idp_epsilon():
+#    #TODO Vedere se mettere questa parte all'inizio del merge
+#    # TODO metti nel main il read
+#    # Controlla con Carlo
+#
+#    # In the case of an IDP, it is possible to add dynamical informations based on a simulation
+#    print('Addition of reweighted native pairs')
+#    # Here i join ai and aj of greta_LJ to compare with the monomer pairs
+#    #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
+#    
+#    native_pairs = read_native_pairs()
+#    # The ratio treshold considers only pairs occurring at a certain probability
+#    native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
+#    # This dictionary was made to link amber and greta atomtypes
+#    native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
+#    native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
+#    
+#    # Add sigma, add epsilon reweighted, add c6 and c12
+#    native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
+#    
+#    # Epsilon reweight based on probability
+#    native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
+#    native_pairs.drop(columns = ['counts', 'ratio'], inplace = True)
+#
+#    return native_pairs
+
+
+
+def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
     #TODO Vedere se mettere questa parte all'inizio del merge
     # Controlla con Carlo
 
@@ -228,21 +238,37 @@ def make_idp_epsilon():
     # Here i join ai and aj of greta_LJ to compare with the monomer pairs
     #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
     
-    native_pairs = read_native_pairs()
+    #native_pairs = read_native_pairs()
+
     # The ratio treshold considers only pairs occurring at a certain probability
-    native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
     # This dictionary was made to link amber and greta atomtypes
-    native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
-    native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
+    mdmat_plainMD = mdmat_plainMD.replace({'ai':gro_to_amb_dict})
+    mdmat_plainMD = mdmat_plainMD.replace({'aj':gro_to_amb_dict})
+    mdmat_random_coil = mdmat_random_coil.replace({'ai':gro_to_amb_dict})
+    mdmat_random_coil = mdmat_random_coil.replace({'aj':gro_to_amb_dict})
     
     # Add sigma, add epsilon reweighted, add c6 and c12
-    native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
+    mdmat_plainMD['sigma'] = (mdmat_plainMD['distance']/10) / (2**(1/6))
     
-    # Epsilon reweight based on probability
-    native_pairs['epsilon'] = epsilon_input#*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
-    native_pairs.drop(columns = ['counts', 'ratio'], inplace = True)
+    plain_contacts = []
+    #for ai, aj in zip(mdmat_plainMD['ai'], mdmat_plainMD['aj']):
+    mdmat_plainMD[['rc_ai','rc_aj','rc_probability']] = mdmat_random_coil[['ai', 'aj','probability']].loc[(mdmat_random_coil['ai'] == mdmat_plainMD['ai']) | (mdmat_random_coil['aj'] == mdmat_plainMD['aj'])]
 
-    return native_pairs
+    # Epsilon reweight based on probability
+    mdmat_plainMD['epsilon'] = ''
+    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  mdmat_plainMD['rc_probability'])] = 0
+    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] >  mdmat_plainMD['rc_probability'])] = epsilon_input*(1-((np.log(mdmat_plainMD['probability']))/(np.log(mdmat_plainMD['rc_probability']))))
+    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  ratio_treshold)] = 0
+
+    
+    #print(mdmat_plainMD)
+
+    mdmat_plainMD.drop(columns = ['probability', 'rc_ai', 'rc_aj', 'rc_probability'], inplace = True)
+
+    mdmat_plainMD.dropna(inplace=True)
+
+
+    return mdmat_plainMD
 
 
 def merge_GRETA(greta_LJ):
@@ -268,23 +294,6 @@ def merge_GRETA(greta_LJ):
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     print('\tCleaning Complete ', len(greta_LJ))
-
-
-
-    ## Sorting the pairs
-    #greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    ## Cleaning the duplicates
-    #greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    ## Removing the reverse duplicates
-    #cols = ['ai', 'aj']
-    #greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-    #greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    
-    
-    
-    
-    
-    
     
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
@@ -379,6 +388,10 @@ def merge_GRETA(greta_LJ):
     greta_LJ['sigma'] = greta_LJ["sigma"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
+
+    #greta_LJ.sort_values(by = ['epsilon'], inplace = True, ascending=False)
+
+
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
 
     return greta_LJ

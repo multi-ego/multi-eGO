@@ -1,8 +1,11 @@
+from os import getresgid
 from read_input import read_pdbs
 from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
 from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff
+from mdmat import mdmat_plainMD, mdmat_random_coil
+
 
 
 print('\n\n\n\n GRETA\n\n\n\n')
@@ -14,12 +17,16 @@ native_pdb, fibril_pdb = read_pdbs()
 
 print('GRETA - Making Atomtypes')
 native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, fibril_pdb)
+native_atomtypes = (sorted(native_atomtypes))
 
 print('\n GRETA - Making native and fibril pairs')
 
 if greta_to_keep == 'native':
     if idp == True:
-        greta_LJ = make_idp_epsilon()
+        #greta_LJ = make_idp_epsilon()
+        greta_LJ = make_idp_epsilon(mdmat_plainMD, mdmat_random_coil)
+        check = set(greta_LJ['ai'].to_list() + greta_LJ['aj'].to_list())
+        check = (sorted(check))
     else:
         greta_LJ = make_pairs(native_pdb, native_atomtypes)
         if acid_ff == True and acid_atp !=0:
@@ -45,6 +52,14 @@ elif greta_to_keep == 'all':
 else:
     print('ERRORONE')
     exit()
+
+
+if native_atomtypes == check:
+    print('same')
+else:
+    print('Check names')
+    #exit()
+
     
 
 print('\n GRETA - native and fibril pairs creation completed')
