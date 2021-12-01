@@ -9,14 +9,13 @@ from protein_configuration import distance_residue
 columns=['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
 mdmat_plainMD = pd.read_csv('inputs/native_ABeta/plainMD_contacts.ndx', header=None, sep = '\s+')
 mdmat_plainMD.columns = columns
-mdmat_plainMD['ai'] = mdmat_plainMD['ai']+1
-mdmat_plainMD['aj'] = mdmat_plainMD['aj']+1
+#mdmat_plainMD['ai'] = mdmat_plainMD['ai']+1
+#mdmat_plainMD['aj'] = mdmat_plainMD['aj']+1
 mdmat_plainMD['distance'] = mdmat_plainMD['distance']*10
 
 plainMD_directory = '/home/emanuele/ABeta/markov'
 #plainMD_directory = 'inputs/native_%s/native.pdb' %(protein)
 reference_plainMD_structure = f'{plainMD_directory}/reduced-noh.gro'
-#reference_plainMD_trajectory = f'{plainMD_directory}/traj_red_noh.xtc'
 
 plainMD = MDAnalysis.Universe(reference_plainMD_structure)
 peptides = plainMD.select_atoms('all')
@@ -37,15 +36,19 @@ mdmat_plainMD.drop(columns=['residue_ai', 'residue_aj', 'type_ai', 'type_aj'], i
 # Reading Random Coil contacts
 mdmat_random_coil = pd.read_csv('inputs/native_ABeta/random_coil_contacts.ndx', header=None, sep = '\s+')
 mdmat_random_coil.columns = columns
-mdmat_random_coil['ai'] = mdmat_random_coil['ai']+1
-mdmat_random_coil['aj'] = mdmat_random_coil['aj']+1
+#mdmat_random_coil['ai'] = mdmat_random_coil['ai']+1
+#mdmat_random_coil['aj'] = mdmat_random_coil['aj']+1
 mdmat_random_coil['distance'] = mdmat_random_coil['distance']*10
 
+# kkkdkd
+probability_min_rc = mdmat_random_coil[mdmat_random_coil.probability != 0].min()['probability']
+mdmat_random_coil['probability'].loc[mdmat_random_coil['probability'] == 0] = probability_min_rc/2
 
 
 random_coil_directory = '/home/emanuele/ABeta/random_coil/monomer_test/native_278K'
+#plainMD_directory = 'inputs/native_%s/native.pdb' %(protein)
+
 reference_random_coil_structure = f'{random_coil_directory}/box_abeta_greta.gro'
-reference_random_coil_trajectory = f'{random_coil_directory}/prod_abeta_greta.xtc'
 random_coil = MDAnalysis.Universe(reference_random_coil_structure)
 peptides = random_coil.select_atoms('all')
 random_coil_atomtypes_dict = {}

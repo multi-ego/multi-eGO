@@ -117,7 +117,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
-def make_pairs(structure_pdb, atomtypes):
+def make_pairs(structure_pdb, mdmat_random_coil, atomtypes):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
@@ -191,12 +191,32 @@ def make_pairs(structure_pdb, atomtypes):
     print(f'\tAll the pairs further than {distance_residue} aminoacids and not in the same chain: ', len(structural_LJ))
     
     print('\n\tCalculating sigma and epsilon')
+    # sigma copied below
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
     # As declared in protein_configuration.py
-    structural_LJ['epsilon'] = epsilon_input
+    #structural_LJ['epsilon'] = epsilon_input
+
+
+
+    # Intermolecular contacts from fibril will be kept
+    structural_LJ['epsilon'].loc[structural_LJ['same_chain'] == 'No'] = epsilon_input
+    
+    new_colnames = []
+    for colname in mdmat_random_coil.columns:
+        new_colnames.append(f'rc_{colname}')
+    mdmat_random_coil.columns = new_colnames
+
+    # Merge the two dataframes by ai and aj which are also indexes now
+    structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
+    structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    mdmat_random_coil[['idx_ai', 'idx_aj']] = mdmat_random_coil[['rc_ai', 'rc_aj']]
+    mdmat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    structural_LJ = pd.concat([structural_LJ, mdmat_random_coil], axis=1, join='inner')
+    structural_LJ['epsilon'].loc[(structural_LJ['same_chain'] == 'Yes') & (structural_LJ['rc_probability'] == 1)] = 0
+    structural_LJ['epsilon'].loc[(structural_LJ['same_chain'] == 'Yes') & (structural_LJ['rc_probability'] < 1)] =  epsilon_input
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
-    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff'], inplace = True)
+    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability'], inplace = True)
 
     return structural_LJ
 
@@ -232,9 +252,12 @@ def make_pairs(structure_pdb, atomtypes):
 def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
     #TODO Vedere se mettere questa parte all'inizio del merge
     # Controlla con Carlo
-
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('Addition of reweighted native pairs')
+    new_colnames = []
+    for colname in mdmat_random_coil.columns:
+        new_colnames.append(f'rc_{colname}')
+    mdmat_random_coil.columns = new_colnames
     # Here i join ai and aj of greta_LJ to compare with the monomer pairs
     #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
     
@@ -244,33 +267,31 @@ def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
     # This dictionary was made to link amber and greta atomtypes
     mdmat_plainMD = mdmat_plainMD.replace({'ai':gro_to_amb_dict})
     mdmat_plainMD = mdmat_plainMD.replace({'aj':gro_to_amb_dict})
-    mdmat_random_coil = mdmat_random_coil.replace({'ai':gro_to_amb_dict})
-    mdmat_random_coil = mdmat_random_coil.replace({'aj':gro_to_amb_dict})
+    mdmat_random_coil = mdmat_random_coil.replace({'rc_ai':gro_to_amb_dict})
+    mdmat_random_coil = mdmat_random_coil.replace({'rc_aj':gro_to_amb_dict})
     
     # Add sigma, add epsilon reweighted, add c6 and c12
     mdmat_plainMD['sigma'] = (mdmat_plainMD['distance']/10) / (2**(1/6))
-    
-    plain_contacts = []
-    #for ai, aj in zip(mdmat_plainMD['ai'], mdmat_plainMD['aj']):
-    mdmat_plainMD[['rc_ai','rc_aj','rc_probability']] = mdmat_random_coil[['ai', 'aj','probability']].loc[(mdmat_random_coil['ai'] == mdmat_plainMD['ai']) | (mdmat_random_coil['aj'] == mdmat_plainMD['aj'])]
+
+    # Merge the two dataframes by ai and aj which are also indexes now
+    mdmat_plainMD[['idx_ai', 'idx_aj']] = mdmat_plainMD[['ai', 'aj']]
+    mdmat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    mdmat_random_coil[['idx_ai', 'idx_aj']] = mdmat_random_coil[['rc_ai', 'rc_aj']]
+    mdmat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    mdmat_merged = pd.concat([mdmat_plainMD, mdmat_random_coil], axis=1)
 
     # Epsilon reweight based on probability
-    mdmat_plainMD['epsilon'] = ''
-    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  mdmat_plainMD['rc_probability'])] = 0
-    mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] >  mdmat_plainMD['rc_probability'])] = epsilon_input*(1-((np.log(mdmat_plainMD['probability']))/(np.log(mdmat_plainMD['rc_probability']))))
-    #mdmat_plainMD['epsilon'].loc[(mdmat_plainMD['probability'] <=  ratio_treshold)] = 0
+    mdmat_merged['epsilon'] = ''
+    # To flag
+    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] <=  mdmat_merged['rc_probability'])] = 0 
+    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] >  mdmat_merged['rc_probability'])] = epsilon_input*(1-((np.log(mdmat_merged['probability']))/(np.log(mdmat_merged['rc_probability']))))
+    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] <=  ratio_treshold)] = 0
 
+    mdmat_merged.drop(columns = ['probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance'], inplace = True)
+    mdmat_merged.dropna(inplace=True)
+    mdmat_merged = mdmat_merged[mdmat_merged.epsilon != 0]
 
-    
-    #print(mdmat_plainMD)
-
-    mdmat_plainMD.drop(columns = ['probability', 'rc_ai', 'rc_aj', 'rc_probability'], inplace = True)
-
-    mdmat_plainMD.dropna(inplace=True)
-    mdmat_plainMD = mdmat_plainMD[mdmat_plainMD.epsilon != 0]
-
-
-    return mdmat_plainMD
+    return mdmat_merged
 
 
 def merge_GRETA(greta_LJ):
@@ -406,7 +427,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     contacts will be defined in pairs and exclusions as particular cases.
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
-
 
     topology_atoms = raw_topology_atoms.copy()
 

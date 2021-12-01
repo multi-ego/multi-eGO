@@ -3,7 +3,7 @@
 ; Residue cutoff: 2
 ; LJ_reduction: 0.15
 ; Protein: ABetanative
-; 2021-11-30 12:12:32.748823
+; 2021-12-01 14:31:49.909577
 
 [ pairs ]
 ; ai  aj  func           c6          c12

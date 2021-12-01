@@ -28,7 +28,7 @@ if greta_to_keep == 'native':
         check = set(greta_LJ['ai'].to_list() + greta_LJ['aj'].to_list())
         check = (sorted(check))
     else:
-        greta_LJ = make_pairs(native_pdb, native_atomtypes)
+        greta_LJ = make_pairs(native_pdb, mdmat_random_coil, native_atomtypes)
         if acid_ff == True and acid_atp !=0:
                 greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                 greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
@@ -54,11 +54,11 @@ else:
     exit()
 
 
-if native_atomtypes == check:
-    print('same')
-else:
-    print('Check names')
-    #exit()
+#if native_atomtypes == check:
+#    print('same')
+#else:
+#    print('Check names')
+#    #exit()
 
     
 
@@ -67,7 +67,6 @@ print('\n GRETA - Merging native and fibril pairs')
 
 # TODO correggi la massa dell'azoto in prolina
 greta_ffnb = merge_GRETA(greta_LJ)
-
 print('\n GRETA - Writing outputs')
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
