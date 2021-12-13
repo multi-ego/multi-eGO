@@ -12,14 +12,15 @@ protein = 'ABeta'
 
 distance_cutoff = 5.5
 distance_residue = 2
-epsilon_input = 0.200
+epsilon_input = 0.310
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
 # It will make a list of pairs to reweight their epsilon and add to the full force field
 # Add monomer_pairs.py in GRETA so that it can do everything automatically
-idp = False
+idp = True
 #idp = False
 ratio_treshold = 0.008
+residue_probability_treshold = 0.05
 
 # Does the N_terminal have a protonation?
 # Taking off N_1 N_1 and raising c12 of N_1

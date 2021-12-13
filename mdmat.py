@@ -1,17 +1,15 @@
 import pandas as pd
 import MDAnalysis
-from protein_configuration import distance_residue
+from protein_configuration import distance_residue, ratio_treshold
 
 
 #TODO integration in GRETA
 
 # Reading PlainMD contacts
 columns=['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-mdmat_plainMD = pd.read_csv('inputs/native_ABeta/plainMD_contacts.ndx', header=None, sep = '\s+')
-mdmat_plainMD.columns = columns
-#mdmat_plainMD['ai'] = mdmat_plainMD['ai']+1
-#mdmat_plainMD['aj'] = mdmat_plainMD['aj']+1
-mdmat_plainMD['distance'] = mdmat_plainMD['distance']*10
+atomic_mat_plainMD = pd.read_csv('inputs/native_ABeta/plainMD_contacts.ndx', header=None, sep = '\s+')
+atomic_mat_plainMD.columns = columns
+atomic_mat_plainMD['distance'] = atomic_mat_plainMD['distance']*10
 
 plainMD_directory = '/home/emanuele/ABeta/markov'
 #plainMD_directory = 'inputs/native_%s/native.pdb' %(protein)
@@ -23,27 +21,25 @@ plain_atomtypes_dict = {}
 for atom in peptides:
     plain_atomtypes_dict[atom.id] = str(atom.name) + '_' + str(atom.resnum)
 
-mdmat_plainMD = mdmat_plainMD.replace({'ai':plain_atomtypes_dict})
-mdmat_plainMD = mdmat_plainMD.replace({'aj':plain_atomtypes_dict})
-mdmat_plainMD[['type_ai', 'residue_ai']] = mdmat_plainMD.ai.str.split("_", expand = True)
-mdmat_plainMD[['type_aj', 'residue_aj']] = mdmat_plainMD.aj.str.split("_", expand = True)
-mdmat_plainMD['residue_ai'] = mdmat_plainMD['residue_ai'].astype(int)
-mdmat_plainMD['residue_aj'] = mdmat_plainMD['residue_aj'].astype(int)
-mdmat_plainMD.drop(mdmat_plainMD[abs(mdmat_plainMD['residue_aj'] - mdmat_plainMD['residue_ai']) < distance_residue].index, inplace=True)
-mdmat_plainMD.drop(columns=['residue_ai', 'residue_aj', 'type_ai', 'type_aj'], inplace=True)
+atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':plain_atomtypes_dict})
+atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':plain_atomtypes_dict})
+atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)
+atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
+atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
+atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
+atomic_mat_plainMD.drop(atomic_mat_plainMD[abs(atomic_mat_plainMD['residue_aj'] - atomic_mat_plainMD['residue_ai']) < distance_residue].index, inplace=True)
+#atomic_mat_plainMD.drop(columns=['residue_ai', 'residue_aj', 'type_ai', 'type_aj'], inplace=True)
+atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
+
+residue_mat_plainMD = pd.read_csv(f'inputs/native_ABeta/plainMD_mat.dat', header=None, sep = '\s+')
+residue_mat_plainMD.columns = ['ai', 'aj', 'distance', 'probability']
+#residue_mat_plainMD['distance'] = residue_mat_plainMD['distance']*10
 
 # Reading Random Coil contacts
-mdmat_random_coil = pd.read_csv('inputs/native_ABeta/random_coil_contacts.ndx', header=None, sep = '\s+')
-mdmat_random_coil.columns = columns
-#mdmat_random_coil['ai'] = mdmat_random_coil['ai']+1
-#mdmat_random_coil['aj'] = mdmat_random_coil['aj']+1
-mdmat_random_coil['distance'] = mdmat_random_coil['distance']*10
-
-# kkkdkd
-probability_min_rc = mdmat_random_coil[mdmat_random_coil.probability != 0].min()['probability']
-mdmat_random_coil['probability'].loc[mdmat_random_coil['probability'] == 0] = probability_min_rc/2
-
+atomic_mat_random_coil = pd.read_csv('inputs/native_ABeta/random_coil_contacts.ndx', header=None, sep = '\s+')
+atomic_mat_random_coil.columns = columns
+atomic_mat_random_coil['distance'] = atomic_mat_random_coil['distance']*10
 
 random_coil_directory = '/home/emanuele/ABeta/random_coil/monomer_test/native_278K'
 #plainMD_directory = 'inputs/native_%s/native.pdb' %(protein)
@@ -56,12 +52,26 @@ for atom in peptides:
     random_coil_atomtypes_dict[atom.id] = str(atom.name) + '_' + str(atom.resnum)
 
 
-mdmat_random_coil = mdmat_random_coil.replace({'ai':random_coil_atomtypes_dict})
-mdmat_random_coil = mdmat_random_coil.replace({'aj':random_coil_atomtypes_dict})
-mdmat_random_coil[['type_ai', 'residue_ai']] = mdmat_random_coil.ai.str.split("_", expand = True)
-mdmat_random_coil[['type_aj', 'residue_aj']] = mdmat_random_coil.aj.str.split("_", expand = True)
-mdmat_random_coil['residue_ai'] = mdmat_random_coil['residue_ai'].astype(int)
-mdmat_random_coil['residue_aj'] = mdmat_random_coil['residue_aj'].astype(int)
-mdmat_random_coil.drop(mdmat_random_coil[abs(mdmat_random_coil['residue_aj'] - mdmat_random_coil['residue_ai']) < distance_residue].index, inplace=True)
-mdmat_random_coil.drop(columns=['residue_ai', 'residue_aj', 'type_ai', 'type_aj'], inplace=True)
+atomic_mat_random_coil = atomic_mat_random_coil.replace({'ai':random_coil_atomtypes_dict})
+atomic_mat_random_coil = atomic_mat_random_coil.replace({'aj':random_coil_atomtypes_dict})
+atomic_mat_random_coil[['type_ai', 'residue_ai']] = atomic_mat_random_coil.ai.str.split("_", expand = True)
+atomic_mat_random_coil[['type_aj', 'residue_aj']] = atomic_mat_random_coil.aj.str.split("_", expand = True)
+atomic_mat_random_coil['residue_ai'] = atomic_mat_random_coil['residue_ai'].astype(int)
+atomic_mat_random_coil['residue_aj'] = atomic_mat_random_coil['residue_aj'].astype(int)
+atomic_mat_random_coil.drop(atomic_mat_random_coil[abs(atomic_mat_random_coil['residue_aj'] - atomic_mat_random_coil['residue_ai']) < distance_residue].index, inplace=True)
+#atomic_mat_random_coil.drop(columns=['residue_ai', 'residue_aj', 'type_ai', 'type_aj'], inplace=True)
+atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
+
+# kkkdkd
+probability_min_rc = atomic_mat_random_coil[atomic_mat_random_coil.probability != 0].min()['probability']
+
+
+# QUESTA CI PIACE
+atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] == 0] = probability_min_rc/1
+
+#atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (ratio_treshold/10)] = ratio_treshold/10
+
+
+
+#atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (probability_min_rc*10)] = probability_min_rc*10

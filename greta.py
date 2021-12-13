@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6, residue_probability_treshold
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 # TODO
@@ -117,7 +117,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
-def make_pairs(structure_pdb, mdmat_random_coil, atomtypes):
+def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
@@ -196,24 +196,31 @@ def make_pairs(structure_pdb, mdmat_random_coil, atomtypes):
     # As declared in protein_configuration.py
     #structural_LJ['epsilon'] = epsilon_input
 
-
-
-    # Intermolecular contacts from fibril will be kept
-    structural_LJ['epsilon'].loc[structural_LJ['same_chain'] == 'No'] = epsilon_input
-    
-    new_colnames = []
-    for colname in mdmat_random_coil.columns:
-        new_colnames.append(f'rc_{colname}')
-    mdmat_random_coil.columns = new_colnames
-
-    # Merge the two dataframes by ai and aj which are also indexes now
     structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
     structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace = True)
-    mdmat_random_coil[['idx_ai', 'idx_aj']] = mdmat_random_coil[['rc_ai', 'rc_aj']]
-    mdmat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
-    structural_LJ = pd.concat([structural_LJ, mdmat_random_coil], axis=1, join='inner')
-    structural_LJ['epsilon'].loc[(structural_LJ['same_chain'] == 'Yes') & (structural_LJ['rc_probability'] == 1)] = 0
-    structural_LJ['epsilon'].loc[(structural_LJ['same_chain'] == 'Yes') & (structural_LJ['rc_probability'] < 1)] =  epsilon_input
+
+
+    # Take the contact from different chains 
+    inter_mask = structural_LJ.same_chain == 'No'
+    structural_LJ_inter = structural_LJ[inter_mask]
+    # Intermolecular contacts from fibril will be kept
+    structural_LJ_inter['epsilon'] = epsilon_input
+
+    # Intramolecular contacts will be reweighted based on the Random coil simulation
+    structural_LJ_intra = structural_LJ[~inter_mask]
+
+    new_colnames = []
+    for colname in atomic_mat_random_coil.columns:
+        new_colnames.append(f'rc_{colname}')
+    atomic_mat_random_coil.columns = new_colnames
+
+    atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
+    atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    structural_LJ_intra = pd.concat([structural_LJ_intra, atomic_mat_random_coil], axis=1, join='inner')
+
+    structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
+    structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] < 1] =  epsilon_input
+    structural_LJ = structural_LJ_intra.append(structural_LJ_inter)
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
     structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability'], inplace = True)
@@ -249,15 +256,15 @@ def make_pairs(structure_pdb, mdmat_random_coil, atomtypes):
 
 
 
-def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
+def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_plainMD):
     #TODO Vedere se mettere questa parte all'inizio del merge
     # Controlla con Carlo
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('Addition of reweighted native pairs')
     new_colnames = []
-    for colname in mdmat_random_coil.columns:
+    for colname in atomic_mat_random_coil.columns:
         new_colnames.append(f'rc_{colname}')
-    mdmat_random_coil.columns = new_colnames
+    atomic_mat_random_coil.columns = new_colnames
     # Here i join ai and aj of greta_LJ to compare with the monomer pairs
     #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
     
@@ -265,33 +272,51 @@ def make_idp_epsilon(mdmat_plainMD, mdmat_random_coil):
 
     # The ratio treshold considers only pairs occurring at a certain probability
     # This dictionary was made to link amber and greta atomtypes
-    mdmat_plainMD = mdmat_plainMD.replace({'ai':gro_to_amb_dict})
-    mdmat_plainMD = mdmat_plainMD.replace({'aj':gro_to_amb_dict})
-    mdmat_random_coil = mdmat_random_coil.replace({'rc_ai':gro_to_amb_dict})
-    mdmat_random_coil = mdmat_random_coil.replace({'rc_aj':gro_to_amb_dict})
-    
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':gro_to_amb_dict})
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':gro_to_amb_dict})
+
+    residue_mat_plainMD = residue_mat_plainMD.replace({'ai':gro_to_amb_dict})
+    residue_mat_plainMD = residue_mat_plainMD.replace({'aj':gro_to_amb_dict})
+
+    atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_ai':gro_to_amb_dict})
+    atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_aj':gro_to_amb_dict})
+
     # Add sigma, add epsilon reweighted, add c6 and c12
-    mdmat_plainMD['sigma'] = (mdmat_plainMD['distance']/10) / (2**(1/6))
+    atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']/10) / (2**(1/6))
 
     # Merge the two dataframes by ai and aj which are also indexes now
-    mdmat_plainMD[['idx_ai', 'idx_aj']] = mdmat_plainMD[['ai', 'aj']]
-    mdmat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
-    mdmat_random_coil[['idx_ai', 'idx_aj']] = mdmat_random_coil[['rc_ai', 'rc_aj']]
-    mdmat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
-    mdmat_merged = pd.concat([mdmat_plainMD, mdmat_random_coil], axis=1)
+    atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
+    atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
+
+    atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
+    atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
+
+    atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
+    
+    for index, line_residue_mat_plainMD in residue_mat_plainMD.iterrows():
+        atomic_mat_merged.loc[(atomic_mat_merged['residue_ai'] == line_residue_mat_plainMD['ai']) & (atomic_mat_merged['residue_aj'] == line_residue_mat_plainMD['aj']), 'residue_probability'] = line_residue_mat_plainMD['probability']
+
+    #print(atomic_mat_merged[:100].to_string())
 
     # Epsilon reweight based on probability
-    mdmat_merged['epsilon'] = ''
+    atomic_mat_merged['epsilon'] = ''
     # To flag
-    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] <=  mdmat_merged['rc_probability'])] = 0 
-    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] >  mdmat_merged['rc_probability'])] = epsilon_input*(1-((np.log(mdmat_merged['probability']))/(np.log(mdmat_merged['rc_probability']))))
-    mdmat_merged['epsilon'].loc[(mdmat_merged['probability'] <=  ratio_treshold)] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  atomic_mat_merged['rc_probability'])] = 0 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+           
 
-    mdmat_merged.drop(columns = ['probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance'], inplace = True)
-    mdmat_merged.dropna(inplace=True)
-    mdmat_merged = mdmat_merged[mdmat_merged.epsilon != 0]
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  ratio_treshold)] = 0
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  0.01)] = 0
+    
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  residue_probability_treshold)] = 0
 
-    return mdmat_merged
+
+
+    atomic_mat_merged.drop(columns = ['rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance', 'residue_probability'], inplace = True)
+    atomic_mat_merged.dropna(inplace=True)
+    atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
+
+    return atomic_mat_merged
 
 
 def merge_GRETA(greta_LJ):
@@ -537,7 +562,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_atnum_dict)
 
     # Adding an atom column because we want to flag NOT N N interactions, this because the N should have an explicit H we removed
-    # TODO chiedere a Carlo perche stiamo considerando solo le interazioni con N e non con O ad esempio, o tutti gli altri
     pairs_14[['ai_type', 'ai_resid']] = pairs_14.c12_ai.str.split("_", expand = True)
     pairs_14[['aj_type', 'aj_resid']] = pairs_14.c12_aj.str.split("_", expand = True)
 
@@ -607,6 +631,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
             left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
+        
 
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     left_alpha_pairs['ai'] = left_alpha_ai
@@ -621,9 +646,45 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
     left_alpha_exclusions = left_alpha_exclusions.rename(columns = {'ai': '; ai'})
 
-
     pairs = pairs.append(left_alpha_pairs)
     exclusion = exclusion.append(left_alpha_exclusions)
+
+    # This one is to remove intramolecular contacts that are always formed in the Random Coil simulation
+    ex_rc_backbone_ai, ex_rc_backbone_aj, ex_rc_backbone_c6, ex_rc_backbone_c12 = [], [], [], []
+    backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
+    backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
+
+    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
+        line_backbone_carbonyl = backbone_carbonyl.loc[backbone_carbonyl['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
+        line_backbone_oxygen = backbone_oxygen.loc[backbone_oxygen['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
+        if not (line_backbone_carbonyl.empty and line_backbone_oxygen.empty):
+            ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
+            ex_rc_backbone_aj.append(line_backbone_carbonyl['nr'])
+            ex_rc_backbone_c6.append(0)
+            ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_carbonyl['c12']))
+            ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
+            ex_rc_backbone_aj.append(line_backbone_oxygen['nr'])
+            ex_rc_backbone_c6.append(0)
+            ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_oxygen['c12']))
+
+
+    ex_rc_backbone_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    ex_rc_backbone_pairs['ai'] = ex_rc_backbone_ai
+    ex_rc_backbone_pairs['aj'] = ex_rc_backbone_aj
+    ex_rc_backbone_pairs['c6'] = ex_rc_backbone_c6
+    ex_rc_backbone_pairs['c12'] = ex_rc_backbone_c12
+    ex_rc_backbone_pairs['c6'] = ex_rc_backbone_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+    ex_rc_backbone_pairs['c12'] = ex_rc_backbone_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+    ex_rc_backbone_pairs['func'] = 1
+
+    ex_rc_backbone_exclusions = ex_rc_backbone_pairs[['ai', 'aj']].copy()
+    ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
+    ex_rc_backbone_exclusions = ex_rc_backbone_exclusions.rename(columns = {'ai': '; ai'})
+
+    pairs = pairs.append(ex_rc_backbone_pairs)
+    exclusion = exclusion.append(ex_rc_backbone_exclusions)
+
+
 
     # Removing the interactions with the prolin N
 
