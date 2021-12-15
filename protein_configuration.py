@@ -12,7 +12,7 @@ protein = 'ABeta'
 
 distance_cutoff = 5.5
 distance_residue = 2
-epsilon_input = 0.310
+epsilon_input = 0.290
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
 # It will make a list of pairs to reweight their epsilon and add to the full force field
@@ -20,6 +20,9 @@ epsilon_input = 0.310
 idp = True
 #idp = False
 ratio_treshold = 0.008
+
+
+# Di questo ci piace 0.01
 residue_probability_treshold = 0.05
 
 # Does the N_terminal have a protonation?

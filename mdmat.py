@@ -23,6 +23,9 @@ for atom in peptides:
 
 atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':plain_atomtypes_dict})
 atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':plain_atomtypes_dict})
+
+
+
 atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)
 atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
 atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
@@ -71,7 +74,4 @@ probability_min_rc = atomic_mat_random_coil[atomic_mat_random_coil.probability !
 atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] == 0] = probability_min_rc/1
 
 #atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (ratio_treshold/10)] = ratio_treshold/10
-
-
-
 #atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (probability_min_rc*10)] = probability_min_rc*10
