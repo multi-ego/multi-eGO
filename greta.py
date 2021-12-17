@@ -9,7 +9,7 @@ import pandas as pd
 import itertools
 from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6, residue_probability_treshold
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
-from mdmat import probability_min_rc
+from mdmat import minimum
 
 # TODO
 #def make_pdb_atomtypes (native_pdb, *fibril_pdb):
@@ -300,16 +300,20 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_pla
     #print(atomic_mat_merged[:100].to_string())
 
     # Epsilon reweight based on probability
-    atomic_mat_merged['epsilon'] = ''
-    # To flag
+    atomic_mat_merged['epsilon'] = ''    
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  atomic_mat_merged['rc_probability'])] = 0 
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+
+    # Repulsive pairs test
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
+
+    # Attractive pairs
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
 
     # Paissoni Equation 2.1
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(probability_min_rc))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(minimum))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
 
 
-
+    # Treshold vari ed eventuali
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  ratio_treshold)] = 0
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  0.01)] = 0
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  residue_probability_treshold)] = 0
@@ -349,7 +353,7 @@ def merge_GRETA(greta_LJ):
     
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c12', '')
-    greta_LJ['c12'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12)
+    greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(5, '', ';')
