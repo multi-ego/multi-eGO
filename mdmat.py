@@ -6,9 +6,10 @@ from protein_configuration import distance_residue, ratio_treshold
 #TODO integration in GRETA
 
 # Reading PlainMD contacts
-columns=['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
 atomic_mat_plainMD = pd.read_csv('inputs/native_ABeta/plainMD_contacts.ndx', header=None, sep = '\s+')
-atomic_mat_plainMD.columns = columns
+atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
+atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
 atomic_mat_plainMD['distance'] = atomic_mat_plainMD['distance']*10
 
 plainMD_directory = '/home/emanuele/ABeta/markov'
@@ -35,13 +36,14 @@ atomic_mat_plainMD.drop(atomic_mat_plainMD[abs(atomic_mat_plainMD['residue_aj'] 
 atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
 
+
 residue_mat_plainMD = pd.read_csv(f'inputs/native_ABeta/plainMD_mat.dat', header=None, sep = '\s+')
 residue_mat_plainMD.columns = ['ai', 'aj', 'distance', 'probability']
 #residue_mat_plainMD['distance'] = residue_mat_plainMD['distance']*10
 
 # Reading Random Coil contacts
 atomic_mat_random_coil = pd.read_csv('inputs/native_ABeta/random_coil_contacts.ndx', header=None, sep = '\s+')
-atomic_mat_random_coil.columns = columns
+atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
 atomic_mat_random_coil['distance'] = atomic_mat_random_coil['distance']*10
 
 random_coil_directory = '/home/emanuele/ABeta/random_coil/monomer_test/native_278K'
@@ -68,10 +70,12 @@ atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
 # kkkdkd
 probability_min_rc = atomic_mat_random_coil[atomic_mat_random_coil.probability != 0].min()['probability']
-
+probability_min_plainMD = atomic_mat_plainMD[atomic_mat_plainMD.probability != 0].min()['probability']
+minimum = min([probability_min_rc, probability_min_plainMD])
 
 # QUESTA CI PIACE
-atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] == 0] = probability_min_rc/1
+atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] == 0] = minimum/1
+
 
 #atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (ratio_treshold/10)] = ratio_treshold/10
 #atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (probability_min_rc*10)] = probability_min_rc*10
