@@ -4,7 +4,7 @@ from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
 from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff
-from mdmat import atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_plainMD
+from mdmat import atomic_mat_plainMD, atomic_mat_random_coil
 
 
 
@@ -24,7 +24,7 @@ print('\n GRETA - Making native and fibril pairs')
 if greta_to_keep == 'native':
     if idp == True:
         #greta_LJ = make_idp_epsilon()
-        greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_plainMD)
+        greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil)
         check = set(greta_LJ['ai'].to_list() + greta_LJ['aj'].to_list())
         check = (sorted(check))
     else:

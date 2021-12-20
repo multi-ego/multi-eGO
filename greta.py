@@ -7,9 +7,8 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6, residue_probability_treshold
+from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
-from mdmat import minimum
 
 # TODO
 #def make_pdb_atomtypes (native_pdb, *fibril_pdb):
@@ -257,7 +256,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
 
 
 
-def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_plainMD):
+def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
     #TODO Vedere se mettere questa parte all'inizio del merge
     # Controlla con Carlo
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
@@ -283,7 +282,7 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_pla
     atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_aj':gro_to_amb_dict})
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']/10) / (2**(1/6))
+    atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']) / (2**(1/6))
 
     # Merge the two dataframes by ai and aj which are also indexes now
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
@@ -294,33 +293,31 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, residue_mat_pla
 
     atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
 
-    for index, line_residue_mat_plainMD in residue_mat_plainMD.iterrows():
-        atomic_mat_merged.loc[(atomic_mat_merged['residue_ai'] == line_residue_mat_plainMD['ai']) & (atomic_mat_merged['residue_aj'] == line_residue_mat_plainMD['aj']), 'residue_probability'] = line_residue_mat_plainMD['probability']
-
-    #print(atomic_mat_merged[:100].to_string())
-
     # Epsilon reweight based on probability
     atomic_mat_merged['epsilon'] = ''    
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  atomic_mat_merged['rc_probability'])] = 0 
+    ###atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] ==  atomic_mat_merged['rc_probability'])] = 0 
 
-    # Repulsive pairs test
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
-
+    # Paissoni Equation 2.0
     # Attractive pairs
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+    # Repulsive pairs test
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
+    atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
+    
     # Paissoni Equation 2.1
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(minimum))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    # Attractive
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    # Repulsive
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
 
     # Treshold vari ed eventuali
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <=  ratio_treshold)] = 0
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  0.01)] = 0
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['residue_probability'] <=  residue_probability_treshold)] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
+    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*epsilon_input] = 0
 
-
-
-    atomic_mat_merged.drop(columns = ['rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance', 'residue_probability'], inplace = True)
+    atomic_mat_merged.drop(columns = ['rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance'], inplace = True)
     atomic_mat_merged.dropna(inplace=True)
     atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
 
