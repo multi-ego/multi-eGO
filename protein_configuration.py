@@ -34,9 +34,9 @@ lj_reduction = 0.15
 multiply_c6 = 1.5
 
 # If you want some tests by using only native or only fibril
-greta_to_keep = 'native'
+#greta_to_keep = 'native'
 #greta_to_keep = 'fibril'
-#greta_to_keep = 'all'
+greta_to_keep = 'all'
 
 # Acid FFnonbondend it only works on the native pairs
 acid_ff = False

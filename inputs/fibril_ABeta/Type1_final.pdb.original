@@ -1,7 +1,107 @@
-TITLE     God Rules Over Mankind, Animals, Cosmos and Such
-REMARK    THIS IS A SIMULATION BOX
-CRYST1  186.112  186.112  186.112  90.00  90.00  90.00 P 1           1
-MODEL        1
+REMARK   3                                                                      
+REMARK   3 REFINEMENT.                                                          
+REMARK   3   PROGRAM     : PHENIX (1.18.2_3874: phenix.real_space_refine)       
+REMARK   3   AUTHORS     : Adams,Afonine,Bunkoczi,Burnley,Chen,Dar,Davis,       
+REMARK   3               : Draizen,Echols,Gildea,Gros,Grosse-Kunstleve,Headd,   
+REMARK   3               : Hintze,Hung,Ioerger,Liebschner,McCoy,McKee,Moriarty, 
+REMARK   3               : Oeffner,Poon,Read,Richardson,Richardson,Sacchettini, 
+REMARK   3               : Sauter,Sobolev,Storoni,Terwilliger,Williams,Zwart    
+REMARK   3                                                                      
+REMARK   3  SCATTERING TABLE: ELECTRON                                          
+REMARK   3                                                                      
+REMARK   3  REFINEMENT TARGET: REAL-SPACE (WEIGHTED MAP SUM AT ATOM CENTERS)    
+REMARK   3                                                                      
+REMARK   3  MODEL TO MAP FIT.                                                   
+REMARK   3    CC_mask  : 0.8871                                                 
+REMARK   3    CC_volume: 0.8653                                                 
+REMARK   3    CC_peaks : 0.3329                                                 
+REMARK   3                                                                      
+REMARK   3 GEOMETRY RESTRAINTS LIBRARY: GEOSTD + MONOMER LIBRARY + CDL V1.2     
+REMARK   3 DEVIATIONS FROM IDEAL VALUES.                                        
+REMARK   3   BOND      :  0.010   0.064   2550                                  
+REMARK   3   ANGLE     :  0.690   4.429   3430                                  
+REMARK   3   CHIRALITY :  0.068   0.177    390                                  
+REMARK   3   PLANARITY :  0.002   0.009    440                                  
+REMARK   3   DIHEDRAL  : 12.279  64.381    350                                  
+REMARK   3   MIN NONBONDED DISTANCE : 2.202                                     
+REMARK   3                                                                      
+REMARK   3 MOLPROBITY STATISTICS.                                               
+REMARK   3   ALL-ATOM CLASHSCORE : 5.37                                         
+REMARK   3   RAMACHANDRAN PLOT:                                                 
+REMARK   3     OUTLIERS :  0.00 %                                               
+REMARK   3     ALLOWED  :  3.12 %                                               
+REMARK   3     FAVORED  : 96.88 %                                               
+REMARK   3   ROTAMER OUTLIERS :  0.00 %                                         
+REMARK   3   CBETA DEVIATIONS :  0.00 %                                         
+REMARK   3   PEPTIDE PLANE:                                                     
+REMARK   3     CIS-PROLINE     : 0.00 %                                         
+REMARK   3     CIS-GENERAL     : 0.00 %                                         
+REMARK   3     TWISTED PROLINE : 0.00 %                                         
+REMARK   3     TWISTED GENERAL : 0.00 %                                         
+REMARK   3                                                                      
+REMARK   3 RAMA-Z (RAMACHANDRAN PLOT Z-SCORE):                                  
+REMARK   3 INTERPRETATION: BAD |RAMA-Z| > 3; SUSPICIOUS 2 < |RAMA-Z| < 3; GOOD  
+REMARK   3 SCORES FOR WHOLE/HELIX/SHEET/LOOP ARE SCALED INDEPENDENTLY;          
+REMARK   3 THEREFORE, THE VALUES ARE NOT RELATED IN A SIMPLE MANNER.            
+REMARK   3   WHOLE: -1.26 (0.41), RESIDUES: 320                                 
+REMARK   3   HELIX:  NONE (NONE), RESIDUES: 0                                   
+REMARK   3   SHEET:  NONE (NONE), RESIDUES: 0                                   
+REMARK   3   LOOP : -0.95 (0.31), RESIDUES: 320                                 
+REMARK   3                                                                      
+SHEET    1   1 1 GLU A  11  HIS A  14  0                                        
+SHEET    2   2 2 LYS A  16  PHE A  19  0                                        
+SHEET    4   4 4 ALA A  30  ILE A  32  0                                        
+SHEET    5   5 5 LEU A  34  VAL A  36  0                                        
+SHEET    6   6 6 VAL A  39  ILE A  41  0                                        
+SHEET    7   7 7 GLU B  11  HIS B  14  0                                        
+SHEET    8   8 8 LYS B  16  PHE B  19  0                                        
+SHEET   10  1010 ALA B  30  ILE B  32  0                                        
+SHEET   11  1111 LEU B  34  VAL B  36  0                                        
+SHEET   12  1212 VAL B  39  ILE B  41  0                                        
+SHEET   13  1313 GLU C  11  HIS C  14  0                                        
+SHEET   14  1414 LYS C  16  PHE C  19  0                                        
+SHEET   16  1616 ALA C  30  ILE C  32  0                                        
+SHEET   17  1717 LEU C  34  VAL C  36  0                                        
+SHEET   18  1818 VAL C  39  ILE C  41  0                                        
+SHEET   19  1919 GLU D  11  HIS D  14  0                                        
+SHEET   20  2020 LYS D  16  PHE D  19  0                                        
+SHEET   22  2222 ALA D  30  ILE D  32  0                                        
+SHEET   23  2323 LEU D  34  VAL D  36  0                                        
+SHEET   24  2424 VAL D  39  ILE D  41  0                                        
+SHEET   25  2525 GLU E  11  HIS E  14  0                                        
+SHEET   26  2626 LYS E  16  PHE E  19  0                                            
+SHEET   28  2828 ALA E  30  ILE E  32  0                                        
+SHEET   29  2929 LEU E  34  VAL E  36  0                                        
+SHEET   30  3030 VAL E  39  ILE E  41  0                                        
+SHEET   31  3131 GLU F  11  HIS F  14  0                                        
+SHEET   32  3232 LYS F  16  PHE F  19  0                                        
+SHEET   34  3434 ALA F  30  ILE F  32  0                                        
+SHEET   35  3535 LEU F  34  VAL F  36  0                                        
+SHEET   36  3636 VAL F  39  ILE F  41  0                                        
+SHEET   37  3737 GLU G  11  HIS G  14  0                                        
+SHEET   38  3838 LYS G  16  PHE G  19  0                                        
+SHEET   40  4040 ALA G  30  ILE G  32  0                                        
+SHEET   41  4141 LEU G  34  VAL G  36  0                                        
+SHEET   42  4242 VAL G  39  ILE G  41  0                                        
+SHEET   43  4343 GLU H  11  HIS H  14  0                                        
+SHEET   44  4444 LYS H  16  PHE H  19  0                                        
+SHEET   46  4646 ALA H  30  ILE H  32  0                                        
+SHEET   47  4747 LEU H  34  VAL H  36  0                                        
+SHEET   48  4848 VAL H  39  ILE H  41  0                                        
+SHEET   49  4949 GLU I  11  HIS I  14  0                                        
+SHEET   50  5050 LYS I  16  PHE I  19  0                                        
+SHEET   52  5252 ALA I  30  ILE I  32  0                                        
+SHEET   53  5353 LEU I  34  VAL I  36  0                                        
+SHEET   54  5454 VAL I  39  ILE I  41  0                                        
+SHEET   55  5555 GLU R  11  HIS R  14  0                                        
+SHEET   56  5656 LYS R  16  PHE R  19  0                                        
+SHEET   58  5858 ALA R  30  ILE R  32  0                                        
+SHEET   59  5959 LEU R  34  VAL R  36  0                                        
+SHEET   60  6060 VAL R  39  ILE R  41  0                                        
+CRYST1  186.112  186.112  186.112  90.00  90.00  90.00 P 1                      
+SCALE1      0.005373  0.000000  0.000000        0.00000                         
+SCALE2      0.000000  0.005373  0.000000        0.00000                         
+SCALE3      0.000000  0.000000  0.005373        0.00000                         
 ATOM      1  N   GLY R   9      63.074  91.221 121.844  1.00 71.85           N  
 ATOM      2  CA  GLY R   9      63.437  92.416 121.108  1.00 71.85           C  
 ATOM      3  C   GLY R   9      64.814  92.930 121.466  1.00 71.85           C  

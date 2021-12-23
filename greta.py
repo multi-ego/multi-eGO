@@ -196,9 +196,38 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # As declared in protein_configuration.py
     #structural_LJ['epsilon'] = epsilon_input
 
-    structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
-    structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    # Questo e' stato spostato dopo la rimozione dei duplicati
+    #structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
+    #structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
+
+    # To make a comparison based on the index, and thus remove the random coil contacts, the indices must be unique.
+    # Duplicated indices point that the fibril is repeated.
+    # In merge_pairs() we drop based on the distance by keeping the shortest. That step is added in here and
+    # TODO remove this part in merge_pairs() if redundant.
+    # It should be not because in merge_pairs() there might be some common contacts between native and fibril
+    # TODO as a function might be useful
+
+    # Inverse pairs calvario
+    inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon']
+    structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    print('\tDoubled pairs list: ', len(structural_LJ))
+
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    print('\tSorting and dropping all the duplicates')
+    # Sorting the pairs
+    structural_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+    # Cleaning the duplicates
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+
+    structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
+    structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace=True)
 
     # Take the contact from different chains 
     inter_mask = structural_LJ.same_chain == 'No'
@@ -209,21 +238,58 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # Intramolecular contacts will be reweighted based on the Random coil simulation
     structural_LJ_intra = structural_LJ[~inter_mask]
 
-    new_colnames = []
-    for colname in atomic_mat_random_coil.columns:
-        new_colnames.append(f'rc_{colname}')
-    atomic_mat_random_coil.columns = new_colnames
+
+    # Messa in mdmat.py
+    #new_colnames = []
+    #for colname in atomic_mat_random_coil.columns:
+    #    new_colnames.append(f'rc_{colname}')
+    #atomic_mat_random_coil.columns = new_colnames
 
     atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
+
+    # Using inner ho un dataframe vuoto, dunque vuol dire che i contatti tra nativa e fibrilla sono completamente diversi
+    # E' un caso generico da prevedere
     structural_LJ_intra = pd.concat([structural_LJ_intra, atomic_mat_random_coil], axis=1, join='inner')
 
+    # OLD
     structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
+
+    # Qui potrebbe esserci qualcosa da migliorare in quanto la probabilita' prossima all'1 viene comunque considerata
+    # Inoltre, essendo dei contatti intra molecolari alcuni potrebbero voler essere ridotti in qualche modo
+    # Nella simulazione riduciamo in base alla probabilita' della simulazione ma qui dovrebbero essere tutti 1 (native like)
+    # Essendo tutti 1, allora la formula nuova non funziona perche' il ln(1) da' 0 e dunque si azzera tutto
+    #structural_LJ_intra['epsilon'].loc[(1 >=  structural_LJ_intra['rc_probability'])] = epsilon_input*(1-((np.log(1))/(np.log(structural_LJ_intra['rc_probability']))))
+    # Dunque teniamo questa
     structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] < 1] =  epsilon_input
+    
+
+    # Paissoni Equation 2.0
+    # Attractive pairs
+    # Questa sotto l'ho commentata perche' la probabilita' delle fibrille dovrebbe essere sempre 1 (stessa di sopra commentata)
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+    # Repulsive pairs test
+    # In questo caso, la fibrilla avendo proababilita' 1 (max) non ci sono in teoria dei contatti repulsivi
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
+    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
+    # Treshold vari ed eventuali
+    # Il primo treshold l'ho commentato perche' in fibrilla le probabilita' sono sempre 1
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
+
+    # Questa qui si potrebbe tenere just in case ma non dovrebbero esserci degli epsilon bassi perche' in teoria sono sempre 1
+    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_input] = 0
+
+    # Questa la si puo' sempre tenere per sicurezza come quella sopra
+    structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
+
+    print(structural_LJ_inter)
+    print(structural_LJ_intra)
+
+    # Qui si riparte come la parte vecchia
     structural_LJ = structural_LJ_intra.append(structural_LJ_inter)
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
-    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability'], inplace = True)
+    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability', 'rc_residue_ai', 'rc_residue_aj'], inplace = True)
 
     return structural_LJ
 
@@ -261,10 +327,13 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
     # Controlla con Carlo
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('Addition of reweighted native pairs')
-    new_colnames = []
-    for colname in atomic_mat_random_coil.columns:
-        new_colnames.append(f'rc_{colname}')
-    atomic_mat_random_coil.columns = new_colnames
+    
+    # Messa in mdmat.py
+    #new_colnames = []
+    #for colname in atomic_mat_random_coil.columns:
+    #    new_colnames.append(f'rc_{colname}')
+    #atomic_mat_random_coil.columns = new_colnames
+    
     # Here i join ai and aj of greta_LJ to compare with the monomer pairs
     #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
     

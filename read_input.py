@@ -6,7 +6,7 @@ from gromologist import Top
 def read_pdbs():
     
     native_directory = 'inputs/native_%s/native.pdb' %(protein)
-    fibril_directory = 'inputs/fibril_%s/conf.pdb' %(protein)
+    fibril_directory = 'inputs/fibril_%s/fibril.pdb' %(protein)
     #fibril_directory = 'fibril_%s/proto_double.pdb' %(protein)
     native_pdb = mda.Universe(native_directory, guess_bonds = True)
     fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)

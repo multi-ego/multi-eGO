@@ -40,7 +40,7 @@ elif greta_to_keep == 'fibril':
 elif greta_to_keep == 'all':
     if idp == True:
         # Contacts are from a plain MD, so at this step we just import the fibril contacts.
-        greta_LJ = make_idp_epsilon().append(make_pairs(fibril_pdb, fibril_atomtypes), sort = False, ignore_index = True)
+        greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil).append(make_pairs(structure_pdb=fibril_pdb, atomic_mat_random_coil=atomic_mat_random_coil, atomtypes=fibril_atomtypes), sort = False, ignore_index = True)
     else:
         # Merging native and fibril LJ pairs.
         greta_LJ = make_pairs(native_pdb, native_atomtypes)

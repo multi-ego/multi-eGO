@@ -64,3 +64,8 @@ atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
 # QUESTA CI PIACE
 atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (ratio_treshold/10)] = ratio_treshold/10
+
+new_colnames = []
+for colname in atomic_mat_random_coil.columns:
+    new_colnames.append(f'rc_{colname}')
+atomic_mat_random_coil.columns = new_colnames
