@@ -282,8 +282,8 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # Questa la si puo' sempre tenere per sicurezza come quella sopra
     structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
 
-    print(structural_LJ_inter)
-    print(structural_LJ_intra)
+    #print(structural_LJ_inter)
+    #print(structural_LJ_intra)
 
     # Qui si riparte come la parte vecchia
     structural_LJ = structural_LJ_intra.append(structural_LJ_inter)
@@ -378,6 +378,7 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
     # Attractive
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
+    # TODO forse e' il caso di controllare se nei repulsive vengono inclusi dei contatti nella fibrilla
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
@@ -671,6 +672,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
+    print(pairs.to_string())
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))

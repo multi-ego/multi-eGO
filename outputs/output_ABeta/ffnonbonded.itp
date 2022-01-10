@@ -1,7 +1,7 @@
 ; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab
 ; Distance cutoff: 5.5 - aminoacid exclusion:2
 ; FF parameters ABeta-all - epsilon:0.31 - idp contacts treshold:0.001
-; 2021-12-23 14:43:27.179746
+; 2022-01-05 19:23:14.188616
 [ atomtypes ]
 ; type  at.num     mass   charge ptype          c6          c12
    N_1       7  17.0067 0.000000     A 0.00000e+00 2.319529e-06

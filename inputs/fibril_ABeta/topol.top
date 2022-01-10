@@ -2,7 +2,7 @@
 ;	File 'topol.top' was generated
 ;	By user: emanuele (1003)
 ;	On host: bologna
-;	At date: Wed Dec 22 18:41:59 2021
+;	At date: Thu Jan  6 16:39:22 2022
 ;
 ;	This is a standalone topology file
 ;
@@ -13,7 +13,7 @@
 ;	Data prefix:  /opt/gromacs-2021.4
 ;	Working dir:  /home/emanuele/MAGROS/inputs/fibril_ABeta
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f Type1_final.pdb
+;	  gmx_mpi pdb2gmx -f fibril1_long.pdb
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
@@ -31,10 +31,66 @@
 #include "topol_Protein_chain_G.itp"
 #include "topol_Protein_chain_H.itp"
 #include "topol_Protein_chain_I.itp"
+#include "topol_Protein_chain_J.itp"
+#include "topol_Protein_chain_K.itp"
+#include "topol_Protein_chain_L.itp"
+#include "topol_Protein_chain_M.itp"
+#include "topol_Protein_chain_P.itp"
+#include "topol_Protein_chain_Q.itp"
+#include "topol_Protein_chain_S.itp"
+#include "topol_Protein_chain_T.itp"
+#include "topol_Protein_chain_U.itp"
+#include "topol_Protein_chain_V.itp"
+#include "topol_Protein_chain_W.itp"
+#include "topol_Protein_chain_X.itp"
+#include "topol_Protein_chain_Y.itp"
+#include "topol_Protein_chain_Z.itp"
+#include "topol_Protein_chain_a.itp"
+#include "topol_Protein_chain_b.itp"
+#include "topol_Protein_chain_c.itp"
+#include "topol_Protein_chain_d.itp"
+#include "topol_Protein_chain_e.itp"
+#include "topol_Protein_chain_f.itp"
+#include "topol_Protein_chain_g.itp"
+#include "topol_Protein_chain_h.itp"
+#include "topol_Protein_chain_N.itp"
+#include "topol_Protein_chain_O.itp"
+#include "topol_Protein_chain_i.itp"
+#include "topol_Protein_chain_j.itp"
+#include "topol_Protein_chain_k.itp"
+#include "topol_Protein_chain_l.itp"
+#include "topol_Protein_chain_m.itp"
+#include "topol_Protein_chain_n.itp"
+#include "topol_Protein_chain_o.itp"
+#include "topol_Protein_chain_p.itp"
+#include "topol_Protein_chain_q.itp"
+#include "topol_Protein_chain_r.itp"
+#include "topol_Protein_chain_s.itp"
+#include "topol_Protein_chain_t.itp"
+#include "topol_Protein_chain_u.itp"
+#include "topol_Protein_chain_v.itp"
+#include "topol_Protein_chain_w.itp"
+#include "topol_Protein_chain_x.itp"
+#include "topol_Protein_chain_y.itp"
+#include "topol_Protein_chain_z.itp"
+#include "topol_Protein.itp"
+#include "topol_Protein2.itp"
+#include "topol_Protein3.itp"
+#include "topol_Protein4.itp"
+#include "topol_Protein5.itp"
+#include "topol_Protein6.itp"
+#include "topol_Protein7.itp"
+#include "topol_Protein8.itp"
+#include "topol_Protein9.itp"
+#include "topol_Protein10.itp"
+#include "topol_Protein11.itp"
+#include "topol_Protein12.itp"
+#include "topol_Protein13.itp"
+#include "topol_Protein14.itp"
 
 [ system ]
 ; Name
-Protein
+God Rules Over Mankind, Animals, Cosmos and Such
 
 [ molecules ]
 ; Compound        #mols
@@ -48,3 +104,59 @@ Protein_chain_F     1
 Protein_chain_G     1
 Protein_chain_H     1
 Protein_chain_I     1
+Protein_chain_J     1
+Protein_chain_K     1
+Protein_chain_L     1
+Protein_chain_M     1
+Protein_chain_P     1
+Protein_chain_Q     1
+Protein_chain_S     1
+Protein_chain_T     1
+Protein_chain_U     1
+Protein_chain_V     1
+Protein_chain_W     1
+Protein_chain_X     1
+Protein_chain_Y     1
+Protein_chain_Z     1
+Protein_chain_a     1
+Protein_chain_b     1
+Protein_chain_c     1
+Protein_chain_d     1
+Protein_chain_e     1
+Protein_chain_f     1
+Protein_chain_g     1
+Protein_chain_h     1
+Protein_chain_N     1
+Protein_chain_O     1
+Protein_chain_i     1
+Protein_chain_j     1
+Protein_chain_k     1
+Protein_chain_l     1
+Protein_chain_m     1
+Protein_chain_n     1
+Protein_chain_o     1
+Protein_chain_p     1
+Protein_chain_q     1
+Protein_chain_r     1
+Protein_chain_s     1
+Protein_chain_t     1
+Protein_chain_u     1
+Protein_chain_v     1
+Protein_chain_w     1
+Protein_chain_x     1
+Protein_chain_y     1
+Protein_chain_z     1
+Protein             1
+Protein2            1
+Protein3            1
+Protein4            1
+Protein5            1
+Protein6            1
+Protein7            1
+Protein8            1
+Protein9            1
+Protein10           1
+Protein11           1
+Protein12           1
+Protein13           1
+Protein14           1
