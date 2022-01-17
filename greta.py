@@ -263,28 +263,6 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # Dunque teniamo questa
     structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] < 1] =  epsilon_input
     
-
-    # Paissoni Equation 2.0
-    # Attractive pairs
-    # Questa sotto l'ho commentata perche' la probabilita' delle fibrille dovrebbe essere sempre 1 (stessa di sopra commentata)
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
-    # Repulsive pairs test
-    # In questo caso, la fibrilla avendo proababilita' 1 (max) non ci sono in teoria dei contatti repulsivi
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
-    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
-    # Treshold vari ed eventuali
-    # Il primo treshold l'ho commentato perche' in fibrilla le probabilita' sono sempre 1
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
-
-    # Questa qui si potrebbe tenere just in case ma non dovrebbero esserci degli epsilon bassi perche' in teoria sono sempre 1
-    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_input] = 0
-
-    # Questa la si puo' sempre tenere per sicurezza come quella sopra
-    structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
-
-    #print(structural_LJ_inter)
-    #print(structural_LJ_intra)
-
     # Qui si riparte come la parte vecchia
     structural_LJ = structural_LJ_intra.append(structural_LJ_inter)
 
@@ -292,34 +270,6 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability', 'rc_residue_ai', 'rc_residue_aj'], inplace = True)
 
     return structural_LJ
-
-
-#def make_idp_epsilon():
-#    #TODO Vedere se mettere questa parte all'inizio del merge
-#    # TODO metti nel main il read
-#    # Controlla con Carlo
-#
-#    # In the case of an IDP, it is possible to add dynamical informations based on a simulation
-#    print('Addition of reweighted native pairs')
-#    # Here i join ai and aj of greta_LJ to compare with the monomer pairs
-#    #pairs_check = (greta_LJ['ai'] + '_' + greta_LJ['aj']).to_list()
-#    
-#    native_pairs = read_native_pairs()
-#    # The ratio treshold considers only pairs occurring at a certain probability
-#    native_pairs = native_pairs[native_pairs.ratio > ratio_treshold]
-#    # This dictionary was made to link amber and greta atomtypes
-#    native_pairs = native_pairs.replace({'ai':gro_to_amb_dict})
-#    native_pairs = native_pairs.replace({'aj':gro_to_amb_dict})
-#    
-#    # Add sigma, add epsilon reweighted, add c6 and c12
-#    native_pairs['sigma'] = (native_pairs['distance']/10) / (2**(1/6))
-#    
-#    # Epsilon reweight based on probability
-#    native_pairs['epsilon'] = epsilon_input*(1-((np.log(native_pairs['ratio']))/(np.log(ratio_treshold))))
-#    native_pairs.drop(columns = ['counts', 'ratio'], inplace = True)
-#
-#    return native_pairs
-
 
 
 def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
@@ -398,8 +348,7 @@ def merge_GRETA(greta_LJ):
     '''
     This function merges the atom contacts from native and fibril.
     '''
-    
-    
+        
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon']].copy()
     inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon']
@@ -409,13 +358,13 @@ def merge_GRETA(greta_LJ):
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     print('\tSorting and dropping all the duplicates')
     # Sorting the pairs
-    greta_LJ.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
+    greta_LJ.sort_values(by = ['ai', 'aj', 'epsilon'], inplace = True)
     # Cleaning the duplicates
-    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
-    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     print('\tCleaning Complete ', len(greta_LJ))
     
     greta_LJ.insert(2, 'type', 1)
@@ -596,6 +545,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
     pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
+
     
     # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
     # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
@@ -672,7 +622,6 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
-    print(pairs.to_string())
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
