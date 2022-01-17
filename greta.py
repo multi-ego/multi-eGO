@@ -220,6 +220,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
      
     structural_LJ = structural_LJ_intra.append(structural_LJ_inter, sort = False, ignore_index = True)
 
+
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
     structural_LJ.drop(columns = ['distance', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability', 'rc_residue_ai', 'rc_residue_aj'], inplace = True)
 
@@ -285,7 +286,6 @@ def merge_GRETA(greta_LJ):
     '''
     This function merges the atom contacts from native and fibril.
     '''
-    
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon']].copy()
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
@@ -296,6 +296,7 @@ def merge_GRETA(greta_LJ):
     print('\tSorting and dropping all the duplicates')
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+
     # Cleaning the duplicates
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
@@ -481,6 +482,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
     pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
     pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
+
     
     # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
     # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
