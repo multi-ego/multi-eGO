@@ -215,11 +215,22 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # E' un caso generico da prevedere
     structural_LJ_intra = pd.concat([structural_LJ_intra, atomic_mat_random_coil], axis=1, join='inner')
 
-    structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
-    structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
+    # OLD prima di usare la formula
+    #structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
      
-    structural_LJ = structural_LJ_intra.append(structural_LJ_inter, sort = False, ignore_index = True)
+    # TODO applicare la formula per riscalare
+    # Paissoni Equation 2.0
+    # Attractive pairs
+    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_input*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
+    structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
+    # Too little epsilon will be removed
+    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_input] = 0
+    structural_LJ_intra.dropna(inplace=True)
 
+
+    # This is included in the old before using the formula
+    structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
+    structural_LJ = structural_LJ_intra.append(structural_LJ_inter, sort = False, ignore_index = True)
 
     print('\n\n\tSigma and epsilon completed ', len(structural_LJ))
     structural_LJ.drop(columns = ['distance', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_probability', 'rc_residue_ai', 'rc_residue_aj'], inplace = True)
