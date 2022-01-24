@@ -575,10 +575,7 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     pairs.sort_values(by = ['ai', 'aj'], inplace = True)
-    exclusion = pairs[['ai', 'aj']].copy()
     pairs = pairs.rename(columns = {'ai': '; ai'})
-    exclusion = exclusion.rename(columns = {'ai': '; ai'})
-    
 
     # Left alpha helix
     # Here we introduce the c6 and the c12 between the O and the CB of the next residue
@@ -616,12 +613,14 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     left_alpha_pairs['c12'] = left_alpha_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     left_alpha_pairs['func'] = 1
 
-    left_alpha_exclusions = left_alpha_pairs[['ai', 'aj']].copy()
     left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
-    left_alpha_exclusions = left_alpha_exclusions.rename(columns = {'ai': '; ai'})
-
     pairs = pairs.append(left_alpha_pairs)
-    exclusion = exclusion.append(left_alpha_exclusions)
+
+    # Drop duplicates
+    pairs.sort_values(by = ['; ai', 'aj', 'c6'], inplace = True)
+    # Cleaning the duplicates
+    pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'], keep = 'last')
+    pairs.sort_values(by = ['; ai', 'aj', 'c12'], inplace = True)
 
     # This one is to remove intramolecular contacts that are always formed in the Random Coil simulation
     ex_rc_backbone_ai, ex_rc_backbone_aj, ex_rc_backbone_c6, ex_rc_backbone_c12 = [], [], [], []
@@ -651,13 +650,11 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     ex_rc_backbone_pairs['c12'] = ex_rc_backbone_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     ex_rc_backbone_pairs['func'] = 1
 
-    ex_rc_backbone_exclusions = ex_rc_backbone_pairs[['ai', 'aj']].copy()
     ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
-    ex_rc_backbone_exclusions = ex_rc_backbone_exclusions.rename(columns = {'ai': '; ai'})
 
     pairs = pairs.append(ex_rc_backbone_pairs)
-    exclusion = exclusion.append(ex_rc_backbone_exclusions)
 
+    #pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'])
 
 
     # Removing the interactions with the prolin N
@@ -665,8 +662,10 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     pairs = pairs[~pairs['; ai'].isin(proline_n)]
     pairs = pairs[~pairs['aj'].isin(proline_n)]
 
-    exclusion = exclusion[~exclusion['; ai'].isin(proline_n)] 
-    exclusion = exclusion[~exclusion['aj'].isin(proline_n)]
+    exclusion = pairs[['; ai', 'aj']].copy()
+
+    #exclusion = exclusion[~exclusion['; ai'].isin(proline_n)] 
+    #exclusion = exclusion[~exclusion['aj'].isin(proline_n)]
 
 
     return pairs, exclusion
