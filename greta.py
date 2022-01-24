@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_input, ratio_treshold, lj_reduction, multiply_c6
+from protein_configuration import distance_cutoff, distance_residue, epsilon_md, epsilon_structure, ratio_treshold, lj_reduction, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 # TODO
@@ -178,7 +178,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     print('\n\tCalculating sigma and epsilon')
     # sigma copied below
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = epsilon_input 
+    structural_LJ['epsilon'] = epsilon_structure
 
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
@@ -221,10 +221,10 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # TODO applicare la formula per riscalare
     # Paissoni Equation 2.0
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_input*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
+    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
     structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
     # Too little epsilon will be removed
-    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_input] = 0
+    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_structure] = 0
     structural_LJ_intra.dropna(inplace=True)
 
 
@@ -267,24 +267,24 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
 
     # Paissoni Equation 2.0
     # Attractive pairs
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_input*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_md*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
     # Repulsive pairs test
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_md*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     
     # Paissoni Equation 2.1
     # Attractive
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_md/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
     # TODO forse e' il caso di controllare se nei repulsive vengono inclusi dei contatti nella fibrilla
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_input/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_md/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
-    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*epsilon_input] = 0
+    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*epsilon_md] = 0
 
     atomic_mat_merged.drop(columns = ['distance', 'rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_probability', 'rc_distance'], inplace = True)
     atomic_mat_merged.dropna(inplace=True)
@@ -382,8 +382,9 @@ def merge_GRETA(greta_LJ):
                 print('\n\t\t', 'Average Sigma for', a, ':', '\t', media_sigma)
                 
                 # Creation of new c6 and c12
-                new_c6 = 4 * epsilon_input * (media_sigma ** 6)
-                new_c12 = 4 * epsilon_input * (media_sigma ** 12)
+                # Epsilon structure because those are self
+                new_c6 = 4 * epsilon_structure * (media_sigma ** 6)
+                new_c12 = 4 * epsilon_structure * (media_sigma ** 12)
 
                 print('\t\t New c6 for ', a, '=\t', new_c6)
                 print('\t\t New c12 for ', a, '=\t', new_c12)
@@ -393,7 +394,7 @@ def merge_GRETA(greta_LJ):
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_input
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_structure
 
         pairs_toadd.insert(5, '', ';')
         pairs_toadd.dropna(inplace = True)

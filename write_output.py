@@ -1,6 +1,6 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep, ratio_treshold, epsilon_input
+from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep, ratio_treshold, epsilon_md, epsilon_structure
 from topology_definitions import acid_atp
 
 
@@ -101,7 +101,7 @@ def write_greta_LJ(atomtypes, greta_LJ):
         file.write(f'; Distance cutoff: {distance_cutoff} - aminoacid exclusion:{distance_residue}')
 
     file.write("\n")
-    file.write(f'; FF parameters {protein}-{greta_to_keep} - epsilon:{epsilon_input} - idp contacts treshold:{ratio_treshold}')
+    file.write(f'; FF parameters {protein}-{greta_to_keep} - epsilon:{epsilon_md, epsilon_structure} - idp contacts treshold:{ratio_treshold}')
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n")
