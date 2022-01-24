@@ -651,22 +651,21 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     ex_rc_backbone_pairs['func'] = 1
 
     ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
-
+    
     pairs = pairs.append(ex_rc_backbone_pairs)
 
-    #pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'])
-
+    # Removing the reverse duplicates
+    # In case this last step added a few
+    cols = ['; ai', 'aj']
+    pairs[cols] = np.sort(pairs[cols].values, axis=1)
+    pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'], keep = 'first')
+    pairs.sort_values(by = ['; ai', 'aj'], inplace = True)
 
     # Removing the interactions with the prolin N
-
     pairs = pairs[~pairs['; ai'].isin(proline_n)]
     pairs = pairs[~pairs['aj'].isin(proline_n)]
 
     exclusion = pairs[['; ai', 'aj']].copy()
-
-    #exclusion = exclusion[~exclusion['; ai'].isin(proline_n)] 
-    #exclusion = exclusion[~exclusion['aj'].isin(proline_n)]
-
 
     return pairs, exclusion
 
