@@ -4,7 +4,6 @@ from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
 from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff, make_random_coil
-from mdmat import atomic_mat_plainMD, atomic_mat_random_coil
 import pandas as pd
 
 print('\n\n\n\n GRETA\n\n\n\n')
@@ -26,8 +25,8 @@ if make_random_coil == True:
     greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n)
 
-
 else:
+    from mdmat import atomic_mat_plainMD, atomic_mat_random_coil
     if greta_to_keep == 'native':
         if idp == True:
             greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil)
