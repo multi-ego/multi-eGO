@@ -24,6 +24,8 @@ print('\n GRETA - Making native and fibril pairs')
 if make_random_coil == True:
     greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n)
+    write_greta_topology_pairs(topology_pairs, topology_exclusion)
+
 
 else:
     from mdmat import atomic_mat_plainMD, atomic_mat_random_coil
