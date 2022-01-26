@@ -110,7 +110,10 @@ def write_greta_LJ(atomtypes, greta_LJ):
     file.write("\n")
     file.write("\n")
     file.write("[ nonbond_params ]\n")
-    file.write(str(greta_LJ.to_string(index = False)))
+    if greta_LJ.empty:
+        file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
+    else:
+        file.write(str(greta_LJ.to_string(index = False)))
     file.close()
 
 def write_pairs_list(pairs, ff_name):

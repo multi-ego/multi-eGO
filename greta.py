@@ -417,7 +417,7 @@ def merge_GRETA(greta_LJ):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
+def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -427,7 +427,10 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
 
     topology_atoms = raw_topology_atoms.copy()
 
-    greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
+    if not greta_merge.empty:
+        greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
+    
+
     #atnum_type_top = topology_atoms[['; nr', 'type']]
     atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']]
     #atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
@@ -486,41 +489,47 @@ def make_pairs_exclusion_topology(greta_merge, type_c12_dict, proline_n):
     
 
     # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
-    pairs = greta_merge[['ai', 'aj']].copy()
-    pairs['c12_ai'] = pairs['ai']
-    pairs['c12_aj'] = pairs['aj']
-    pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
-    pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
-    pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
-    pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
+
+    if not greta_merge.empty:
+
+        pairs = greta_merge[['ai', 'aj']].copy()
+        pairs['c12_ai'] = pairs['ai']
+        pairs['c12_aj'] = pairs['aj']
+        pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
+        pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
+        pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
+        pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
 
     
-    # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
-    # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
-    # Here we keep pairs between residues close in sequence but from different chains, thus close in space
-    # If we keep such pairs we cause severe frustration to the system and artifacts
-    pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
-    
-    # We remove the contact with itself
-    pairs = pairs[pairs['ai'] != pairs['aj']]
+        # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
+        # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
+        # Here we keep pairs between residues close in sequence but from different chains, thus close in space
+        # If we keep such pairs we cause severe frustration to the system and artifacts
+        pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
 
-    # The exclusion list was made based on the atom number
-    pairs['ai'] = pairs['ai'].map(atnum_type_dict)
-    pairs['aj'] = pairs['aj'].map(atnum_type_dict)
-    pairs['check'] = pairs['ai'] + '_' + pairs['aj']
+        # We remove the contact with itself
+        pairs = pairs[pairs['ai'] != pairs['aj']]
 
-    # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
-    pairs['exclude'] = ''
-    pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
-    mask = pairs.exclude == 'Yes'
-    pairs = pairs[~mask]
-    pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
-    pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
-    pairs['func'] = 1
-    pairs['c6'] = 0.00000e+00
-    pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-    pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
-    pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
+        # The exclusion list was made based on the atom number
+        pairs['ai'] = pairs['ai'].map(atnum_type_dict)
+        pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+        pairs['check'] = pairs['ai'] + '_' + pairs['aj']
+
+        # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
+        pairs['exclude'] = ''
+        pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
+        mask = pairs.exclude == 'Yes'
+        pairs = pairs[~mask]
+        pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
+        pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
+        pairs['func'] = 1
+        pairs['c6'] = 0.00000e+00
+        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+        pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
+        pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
+
+    else:
+        pairs = pd.DataFrame()
 
     # Only 1-4 exclusions are fully reintroduced
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])

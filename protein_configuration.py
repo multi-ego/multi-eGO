@@ -42,3 +42,5 @@ greta_to_keep = 'all'
 
 # Acid FFnonbondend it only works on the native pairs
 acid_ff = False
+
+make_random_coil = False
