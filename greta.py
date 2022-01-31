@@ -225,7 +225,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     #structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = -(epsilon_md/np.log(0.1*ratio_treshold))*(np.log(0.999/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = -(epsilon_structure/np.log(0.1*ratio_treshold))*(np.log(0.999/structural_LJ_intra['rc_probability']))
     structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
     # Too little epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_structure] = 0
