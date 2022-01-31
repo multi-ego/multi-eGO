@@ -221,12 +221,15 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # TODO applicare la formula per riscalare
     # Paissoni Equation 2.0
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
+    #structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
+    #structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
+    # Paissoni Equation 2.1
+    # Attractive pairs
+    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = -(epsilon_md/np.log(0.1*ratio_treshold))*(np.log(0.999/structural_LJ_intra['rc_probability']))
     structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
     # Too little epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_structure] = 0
     structural_LJ_intra.dropna(inplace=True)
-
 
     # This is included in the old before using the formula
     structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
