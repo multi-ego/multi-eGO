@@ -13,8 +13,9 @@ protein = 'ABeta'
 distance_cutoff = 5.5
 distance_residue = 2
 # Structure is applied in make_pairs, namely the fibril
-epsilon_structure = 0.320
-epsilon_md = 0.320
+epsilon_input = 0.320
+epsilon_structure = epsilon_input 
+epsilon_md = epsilon_input
 
 # This option requires a long simulation using explicit solvent and a first run of monomer_pairs.py
 # It will make a list of pairs to reweight their epsilon and add to the full force field
