@@ -89,10 +89,10 @@ def write_greta_LJ(atomtypes, greta_LJ):
         file = open(directory, "w")
         file.write(str(head))
         file.write("\n")
-        file.write(f'; Distance cutoff: {distance_cutoff} - aminoacid exclusion:{distance_residue}')
+        file.write(f'; Distance cutoff: {distance_cutoff} - aminoacid exclusion: {distance_residue}')
 
     file.write("\n")
-    file.write(f'; FF parameters {protein}-{greta_to_keep} - epsilon:{epsilon_md, epsilon_structure} - idp contacts treshold:{ratio_treshold}')
+    file.write(f'; FF parameters {protein}-{greta_to_keep} - epsilon: {epsilon_md, epsilon_structure} - idp contacts treshold: {ratio_treshold}')
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n")
@@ -107,7 +107,8 @@ def write_greta_LJ(atomtypes, greta_LJ):
         file.write(str(greta_LJ.to_string(index = False)))
     file.close()
 
-    print('- FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
+    print('- FF Written.')
+    print('\tChange the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 def write_pairs_list(pairs, ff_name):
     pairs.rename(columns = {'; ai':'ai'}, inplace = True)
