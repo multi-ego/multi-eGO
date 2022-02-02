@@ -653,6 +653,13 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
 
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
+
+    # Here we want to sort so that ai is smaller than aj
+    inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
+    inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12']
+    pairs = pairs.append(inv_pairs, sort = False, ignore_index = True)
+    pairs = pairs[pairs['ai']<pairs['aj']]
+    
     pairs.sort_values(by = ['ai', 'aj'], inplace = True)
 
     pairs = pairs.rename(columns = {'ai': '; ai'})
