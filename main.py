@@ -6,16 +6,7 @@ from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff, make_random_coil
 import pandas as pd
 
-import warnings
-
-def fxn():
-    warnings.warn("deprecated", DeprecationWarning)
-
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    fxn()
-
-print('\n\nGRETA:')
+print('\n\nGRETA:\n')
 print('- PDB reading')
 
 # TODO togli la lettura della fibrilla nel caso fibrilla -> *ARG
@@ -78,4 +69,4 @@ else:
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_ffnb)
     write_greta_topology_pairs(topology_pairs, topology_exclusion)
 
-print('GRETA complete! Carlo is happy')
+print('\nGRETA complete! Carlo is happy\n')
