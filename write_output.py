@@ -63,7 +63,7 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     file.write("\n")
     file.write('; LJ_reduction: ' + str(lj_reduction))
     file.write("\n")
-    file.write('; Protein: ' + str(protein) + str(greta_to_keep))
+    file.write('; Protein: ' + str(protein) + '-' + str(greta_to_keep))
     file.write("\n")
     file.write('; ' + str(now))
     file.write("\n\n")
