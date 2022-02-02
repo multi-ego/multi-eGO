@@ -7,18 +7,16 @@ from topology_definitions import acid_atp
 output_folder = 'outputs/output_%s' % (protein)
 try:
     os.mkdir(output_folder)
-except OSError:
-    print (" Creation of the directory %s failed" % output_folder)
-else:
-    print ("Successfully created the directory %s" % output_folder)
+except OSError as error:
+    pass
+    #print(error)
 
 output_folder = 'FF_greta_analysis_%s' % (protein)
 try:
     os.mkdir(output_folder)
-except OSError:
-    print (" Creation of the directory %s failed" % output_folder)
-else:
-    print ("Successfully created the directory %s" % output_folder)
+except OSError as error:
+    pass
+    #print(error)
 
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 now = datetime.datetime.now()
@@ -77,6 +75,7 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     file.write("\n")
     file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
+    print('- Pairs and Exclusions written')
 
 def write_greta_LJ(atomtypes, greta_LJ):
     if acid_ff == True and acid_atp !=0:
@@ -107,6 +106,8 @@ def write_greta_LJ(atomtypes, greta_LJ):
     else:
         file.write(str(greta_LJ.to_string(index = False)))
     file.close()
+
+    print('- FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 def write_pairs_list(pairs, ff_name):
     pairs.rename(columns = {'; ai':'ai'}, inplace = True)

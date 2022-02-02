@@ -17,7 +17,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
     topology_atoms = raw_topology_atoms.copy()
-    print('\tBuilding native atomtypes')
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
@@ -43,13 +42,10 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     check_topology['check'] = np.where(topology_atoms.sb_type == check_topology.sb_type, 'same', 'different')
     
     # Just checking that the pdb and the topology have the same number of atoms
-    if len(np.unique(check_topology.check)) == 1:
-        print('\n\tAtoms of topol.top and pdb have the same number')
-    else:
-        print('\n\tCheck PDB and topology numeration')
+    if len(np.unique(check_topology.check)) != 1:
+        print('\n\tCheck PDB and topology because they have different numbers of atoms')
         exit()
         
-    print('\tBuilding fibril atomtypes')
     fibril_sel = fibril_pdb.select_atoms('all')
     fibril_atomtypes = []
     for atom in fibril_sel:
@@ -58,7 +54,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
 
     # ffnonbonded making
     # Making a dictionary with atom number and type
-    print('\tFFnonbonded atomtypes section creation')
     ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
     ffnb_atomtype['; type'] = topology_atoms['sb_type']
     ffnb_atomtype['chem'] = topology_atoms['type']
@@ -75,10 +70,8 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     # This is used to remove the proline N interactions in Pairs and Exclusions
     proline_n = []
     if 'PRO' in residue_list:
-        print('\tThere are prolines in the structure. The c12 of N should be the half')
         proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
     
-
     # This will be needed for exclusion and pairs to paste in topology
     # A dictionary with the c12 of each atom in the system
     type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
@@ -86,7 +79,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
 
-    print('\tTopology atomtypes section creation')
     topology_atoms['type'] = topology_atoms['sb_type']
     topology_atoms.insert(5, 'cgnr', 1)
     topology_atoms.insert(6, 'charge', '')
@@ -97,7 +89,6 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     topology_atoms.rename(columns={'nr':'; nr'}, inplace=True)
     topology_atoms.drop(columns=['sb_type'], inplace=True)
 
-    print('\t Atomtypes.atp file creation')
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
@@ -429,7 +420,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-    atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']]
+    atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']].copy()
     atnum_type_top['resnr'] = atnum_type_top['resnr'].astype(int)
 
     # Dictionaries definitions to map values
@@ -444,9 +435,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].astype(int)
     bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
 
-
     #TODO this should be in topology_definitions.py
-
     # Building the exclusion bonded list
     ex, ex14, p14, exclusion_bonds = [], [], [], []
     for atom in atom_topology_num:
@@ -485,7 +474,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     
 
     # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
-
     if not greta_merge.empty:
 
         pairs = greta_merge[['ai', 'aj']].copy()

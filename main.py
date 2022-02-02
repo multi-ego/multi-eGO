@@ -6,25 +6,33 @@ from topology_definitions import acid_atp, first_resid
 from protein_configuration import idp, N_terminal, greta_to_keep, acid_ff, make_random_coil
 import pandas as pd
 
-print('\n\n\n\n GRETA\n\n\n\n')
-print('GRETA - PDB reading')
+import warnings
+
+def fxn():
+    warnings.warn("deprecated", DeprecationWarning)
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    fxn()
+
+print('\n\nGRETA:')
+print('- PDB reading')
 
 # TODO togli la lettura della fibrilla nel caso fibrilla -> *ARG
 native_pdb, fibril_pdb = read_pdbs()
 
-print('GRETA - Making Atomtypes')
+print('- Generating Atomtypes')
 native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, fibril_pdb)
 
 # TODO correggi la massa dell'azoto in prolina
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 
-print('\n GRETA - Making native and fibril pairs')
+print('- Generating LJ Interactions')
 
 if make_random_coil == True:
     greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
     write_greta_LJ(ffnonbonded_atp, greta_ffnb)
-    print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n)
     write_greta_topology_pairs(topology_pairs, topology_exclusion)
 
@@ -60,19 +68,14 @@ else:
         print('ERRORONE')
         exit()
 
-    print('\n GRETA - native and fibril pairs creation completed')
-    print('\n GRETA - Merging native and fibril pairs')
+    print('- Merging LJ interactions')
     greta_ffnb = merge_GRETA(greta_LJ)
     if N_terminal == True:
-        print('Removing N_1 N_1 pair')
         greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
     write_greta_LJ(ffnonbonded_atp, greta_ffnb)
-    print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
-    print('\n GRETA - Pairs and Exclusion section preparation')
+    print('- Generating Pairs and Exclusions')
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_ffnb)
     write_greta_topology_pairs(topology_pairs, topology_exclusion)
-    print('\n GRETA - Pairs and Exclusion section written')
-
 
 print('GRETA complete! Carlo is happy')
