@@ -9,13 +9,13 @@ import pandas as pd
 print('\n\n\n\n GRETA\n\n\n\n')
 print('GRETA - PDB reading')
 
-
 # TODO togli la lettura della fibrilla nel caso fibrilla -> *ARG
 native_pdb, fibril_pdb = read_pdbs()
 
 print('GRETA - Making Atomtypes')
 native_atomtypes, fibril_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, fibril_pdb)
-print('\n GRETA - Writing outputs')
+
+# TODO correggi la massa dell'azoto in prolina
 write_greta_atomtypes_atp(atomtypes_atp)
 write_greta_topology_atoms(topology_atoms)
 
@@ -23,9 +23,10 @@ print('\n GRETA - Making native and fibril pairs')
 
 if make_random_coil == True:
     greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
+    write_greta_LJ(ffnonbonded_atp, greta_ffnb)
+    print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n)
     write_greta_topology_pairs(topology_pairs, topology_exclusion)
-
 
 else:
     from mdmat import atomic_mat_plainMD, atomic_mat_random_coil
@@ -61,21 +62,17 @@ else:
 
     print('\n GRETA - native and fibril pairs creation completed')
     print('\n GRETA - Merging native and fibril pairs')
-
-    # TODO correggi la massa dell'azoto in prolina
     greta_ffnb = merge_GRETA(greta_LJ)
+    if N_terminal == True:
+        print('Removing N_1 N_1 pair')
+        greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
+    write_greta_LJ(ffnonbonded_atp, greta_ffnb)
+    print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
     print('\n GRETA - Pairs and Exclusion section preparation')
     topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_ffnb)
     write_greta_topology_pairs(topology_pairs, topology_exclusion)
     print('\n GRETA - Pairs and Exclusion section written')
 
-if N_terminal == True:
-    print('Removing N_1 N_1 pair')
-    greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
-
-write_greta_LJ(ffnonbonded_atp, greta_ffnb)
-
-print('\n GRETA - FF Written. Change the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
 print('GRETA complete! Carlo is happy')
