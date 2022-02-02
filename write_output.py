@@ -3,8 +3,7 @@ import datetime
 from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep, ratio_treshold, epsilon_md, epsilon_structure
 from topology_definitions import acid_atp
 
-
-    # Create the folders which will be used by the script
+# Create the folders which will be used by the script
 output_folder = 'outputs/output_%s' % (protein)
 try:
     os.mkdir(output_folder)
@@ -12,7 +11,6 @@ except OSError:
     print (" Creation of the directory %s failed" % output_folder)
 else:
     print ("Successfully created the directory %s" % output_folder)
-
 
 output_folder = 'FF_greta_analysis_%s' % (protein)
 try:
@@ -27,7 +25,6 @@ now = datetime.datetime.now()
 
 def write_greta_atomtypes_atp(atomtypes_atp):
     # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
     directory = 'outputs/output_%s/atomtypes.atp' %(protein)
     file = open(directory, "w")
     file.write(str(head))
@@ -42,8 +39,6 @@ def write_greta_atomtypes_atp(atomtypes_atp):
     file.close()
 
 def write_greta_topology_atoms(topology_atoms):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
     directory = 'outputs/output_%s/topology_atoms' %(protein)
     file = open(directory, "w")
     file.write(str(head))
@@ -60,8 +55,6 @@ def write_greta_topology_atoms(topology_atoms):
     file.close()
 
 def write_greta_topology_pairs(pairs_topology, exclusion_topology):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
     directory = 'outputs/output_%s/topology_pairs' %(protein)
     file = open(directory, "w")
     file.write(str(head))
@@ -84,7 +77,6 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     file.write("\n")
     file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
-
 
 def write_greta_LJ(atomtypes, greta_LJ):
     if acid_ff == True and acid_atp !=0:
