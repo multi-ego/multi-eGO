@@ -275,14 +275,12 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_md*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
     #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
-    
     # Paissoni Equation 2.1
     # Attractive
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_md/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (epsilon_md/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
-
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
@@ -412,9 +410,6 @@ def merge_GRETA(greta_LJ):
     greta_LJ['c6'] = greta_LJ["c6"].map(lambda x:'{:.6e}'.format(x))
     greta_LJ['c12'] = greta_LJ["c12"].map(lambda x:'{:.6e}'.format(x))
 
-    #greta_LJ.sort_values(by = ['epsilon'], inplace = True, ascending=False)
-
-
     print('\t GRETA FF COMPLETE: ', len(greta_LJ))
 
     return greta_LJ
@@ -501,7 +496,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
         pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
         pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
 
-    
         # We keep the pairs we dropped from the make_pairs: those are from the fibril interactions exclusively
         # The incoming pairs are obtained from atoms close in space. Some are from different chains but from residues close in sequence
         # Here we keep pairs between residues close in sequence but from different chains, thus close in space
@@ -611,7 +605,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
             left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
-        
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     left_alpha_pairs['ai'] = left_alpha_ai
     left_alpha_pairs['aj'] = left_alpha_aj
@@ -623,33 +616,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
-
-    if not greta_merge.empty:
-        # If we don't have any pairs (greta is empty) this part isn't needed
-        # This one is to remove intramolecular contacts that are always formed in the Random Coil simulation
-        ex_rc_backbone_ai, ex_rc_backbone_aj, ex_rc_backbone_c6, ex_rc_backbone_c12 = [], [], [], []
-        backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
-        backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
-
-        for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
-            line_backbone_carbonyl = backbone_carbonyl.loc[backbone_carbonyl['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
-            line_backbone_oxygen = backbone_oxygen.loc[backbone_oxygen['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
-            if not (line_backbone_carbonyl.empty and line_backbone_oxygen.empty):
-                ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
-                ex_rc_backbone_aj.append(line_backbone_carbonyl['nr'])
-                ex_rc_backbone_c6.append(0)
-                ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_carbonyl['c12']))
-                ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
-                ex_rc_backbone_aj.append(line_backbone_oxygen['nr'])
-                ex_rc_backbone_c6.append(0)
-                ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_oxygen['c12']))
-        ex_rc_backbone_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-        ex_rc_backbone_pairs['ai'] = ex_rc_backbone_ai
-        ex_rc_backbone_pairs['aj'] = ex_rc_backbone_aj
-        ex_rc_backbone_pairs['c6'] = ex_rc_backbone_c6
-        ex_rc_backbone_pairs['c12'] = ex_rc_backbone_c12
-        ex_rc_backbone_pairs['func'] = 1
-        pairs = pairs.append(ex_rc_backbone_pairs)
 
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
