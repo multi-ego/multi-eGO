@@ -428,15 +428,13 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
 
+    # this is the list of GROMOS atom names
     topology_atoms = raw_topology_atoms.copy()
 
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-
-    #atnum_type_top = topology_atoms[['; nr', 'type']]
     atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']]
-    #atnum_type_top = atnum_type_top.rename(columns = {'; nr': 'nr'})
     atnum_type_top['resnr'] = atnum_type_top['resnr'].astype(int)
 
     # Dictionaries definitions to map values
@@ -527,7 +525,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
         pairs['c6'] = 0.00000e+00
-        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
         pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
         pairs.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
 
@@ -565,11 +562,15 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_c12_dict)
     pairs_14['func'] = 1
     pairs_14['c6'] = 0.00000e+00
-    pairs_14['c6'] = pairs_14["c6"].map(lambda x:'{:.6e}'.format(x))
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
     
     # The N N interactions are still too close, so we double the c12
     pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+
+    # Removing the interactions with the proline N becasue this does not have the H
+    pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)]
+    pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)]
+
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
     # Exclusions 1-4
@@ -584,9 +585,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     cols = ['ai', 'aj']
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-    pairs.sort_values(by = ['ai', 'aj'], inplace = True)
-    pairs = pairs.rename(columns = {'ai': '; ai'})
 
     # Left alpha helix
     # Here we introduce the c6 and the c12 between the O and the CB of the next residue
@@ -614,24 +612,17 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
         
-
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     left_alpha_pairs['ai'] = left_alpha_ai
     left_alpha_pairs['aj'] = left_alpha_aj
     left_alpha_pairs['c6'] = left_alpha_c6
     left_alpha_pairs['c12'] = left_alpha_c12
-    left_alpha_pairs['c6'] = left_alpha_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-    left_alpha_pairs['c12'] = left_alpha_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     left_alpha_pairs['func'] = 1
 
-    left_alpha_pairs = left_alpha_pairs.rename(columns = {'ai': '; ai'})
     pairs = pairs.append(left_alpha_pairs)
-
-    # Drop duplicates
-    pairs.sort_values(by = ['; ai', 'aj', 'c6'], inplace = True)
-    # Cleaning the duplicates
-    pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'], keep = 'last')
-    pairs.sort_values(by = ['; ai', 'aj', 'c12'], inplace = True)
+    # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
+    pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
 
     if not greta_merge.empty:
         # If we don't have any pairs (greta is empty) this part isn't needed
@@ -657,54 +648,16 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
         ex_rc_backbone_pairs['aj'] = ex_rc_backbone_aj
         ex_rc_backbone_pairs['c6'] = ex_rc_backbone_c6
         ex_rc_backbone_pairs['c12'] = ex_rc_backbone_c12
-        ex_rc_backbone_pairs['c6'] = ex_rc_backbone_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-        ex_rc_backbone_pairs['c12'] = ex_rc_backbone_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
         ex_rc_backbone_pairs['func'] = 1
-        ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
         pairs = pairs.append(ex_rc_backbone_pairs)
 
-    # Removing the reverse duplicates
-    # In case this last step added a few
-    cols = ['; ai', 'aj']
-    pairs[cols] = np.sort(pairs[cols].values, axis=1)
-    pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'], keep = 'first')
-    pairs.sort_values(by = ['; ai', 'aj'], inplace = True)
+    pairs['ai'] = pairs['ai'].astype(int)
+    pairs['aj'] = pairs['aj'].astype(int)
+    pairs.sort_values(by = ['ai', 'aj'], inplace = True)
 
-    # Removing the interactions with the prolin N
-    pairs = pairs[~pairs['; ai'].isin(proline_n)]
-    pairs = pairs[~pairs['aj'].isin(proline_n)]
-
+    pairs = pairs.rename(columns = {'ai': '; ai'})
+    pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+    pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     exclusion = pairs[['; ai', 'aj']].copy()
 
     return pairs, exclusion
-
-
-    # 3 bonds versione
-    ##TODO this should be in topology_definitions.py
-    #ex, exclusion_bonds = [], []
-    #for atom in atom_topology_num:
-    #    for t in bond_tuple:
-    #        if t[0] == atom:
-    #            first = t[1]
-    #        elif t[1] == atom:
-    #            first = t[0]
-    #            ex.append(t[0])
-    #        else: continue
-    #        for tt in bond_tuple:
-    #            if (tt[0] == first) & (tt[1] != atom):
-    #                second = tt[1]
-    #                ex.append(tt[1])
-    #            elif (tt[1] == first) & (tt[0] != atom):
-    #                second = tt[0]
-    #                ex.append(tt[0])
-    #            else: continue
-    #            for ttt in bond_tuple:
-    #                if (ttt[0] == second) & (ttt[1] != first):
-    #                    ex.append(ttt[1])
-    #                elif (ttt[1] == second) & (ttt[0] != first):
-    #                    ex.append(ttt[0])
-    #    for e in ex:
-    #        exclusion_bonds.append((str(str(atom) + '_' + str(e))))
-    #        exclusion_bonds.append((str(str(e) + '_' + str(atom))))
-    #    ex = []
-    #
