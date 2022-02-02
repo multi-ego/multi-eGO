@@ -578,7 +578,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     # Drop duplicates
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
     # Cleaning the duplicates
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
 
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
@@ -633,37 +633,35 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     pairs = pairs.drop_duplicates(subset = ['; ai', 'aj'], keep = 'last')
     pairs.sort_values(by = ['; ai', 'aj', 'c12'], inplace = True)
 
-    # This one is to remove intramolecular contacts that are always formed in the Random Coil simulation
-    ex_rc_backbone_ai, ex_rc_backbone_aj, ex_rc_backbone_c6, ex_rc_backbone_c12 = [], [], [], []
-    backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
-    backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
+    if not greta_merge.empty:
+        # If we don't have any pairs (greta is empty) this part isn't needed
+        # This one is to remove intramolecular contacts that are always formed in the Random Coil simulation
+        ex_rc_backbone_ai, ex_rc_backbone_aj, ex_rc_backbone_c6, ex_rc_backbone_c12 = [], [], [], []
+        backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
+        backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
 
-    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
-        line_backbone_carbonyl = backbone_carbonyl.loc[backbone_carbonyl['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
-        line_backbone_oxygen = backbone_oxygen.loc[backbone_oxygen['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
-        if not (line_backbone_carbonyl.empty and line_backbone_oxygen.empty):
-            ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
-            ex_rc_backbone_aj.append(line_backbone_carbonyl['nr'])
-            ex_rc_backbone_c6.append(0)
-            ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_carbonyl['c12']))
-            ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
-            ex_rc_backbone_aj.append(line_backbone_oxygen['nr'])
-            ex_rc_backbone_c6.append(0)
-            ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_oxygen['c12']))
-
-
-    ex_rc_backbone_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    ex_rc_backbone_pairs['ai'] = ex_rc_backbone_ai
-    ex_rc_backbone_pairs['aj'] = ex_rc_backbone_aj
-    ex_rc_backbone_pairs['c6'] = ex_rc_backbone_c6
-    ex_rc_backbone_pairs['c12'] = ex_rc_backbone_c12
-    ex_rc_backbone_pairs['c6'] = ex_rc_backbone_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-    ex_rc_backbone_pairs['c12'] = ex_rc_backbone_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-    ex_rc_backbone_pairs['func'] = 1
-
-    ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
-    
-    pairs = pairs.append(ex_rc_backbone_pairs)
+        for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
+            line_backbone_carbonyl = backbone_carbonyl.loc[backbone_carbonyl['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
+            line_backbone_oxygen = backbone_oxygen.loc[backbone_oxygen['resnr'] == (line_backbone_nitrogen['resnr']-2)].squeeze(axis=None)
+            if not (line_backbone_carbonyl.empty and line_backbone_oxygen.empty):
+                ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
+                ex_rc_backbone_aj.append(line_backbone_carbonyl['nr'])
+                ex_rc_backbone_c6.append(0)
+                ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_carbonyl['c12']))
+                ex_rc_backbone_ai.append(line_backbone_nitrogen['nr'])
+                ex_rc_backbone_aj.append(line_backbone_oxygen['nr'])
+                ex_rc_backbone_c6.append(0)
+                ex_rc_backbone_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_backbone_oxygen['c12']))
+        ex_rc_backbone_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+        ex_rc_backbone_pairs['ai'] = ex_rc_backbone_ai
+        ex_rc_backbone_pairs['aj'] = ex_rc_backbone_aj
+        ex_rc_backbone_pairs['c6'] = ex_rc_backbone_c6
+        ex_rc_backbone_pairs['c12'] = ex_rc_backbone_c12
+        ex_rc_backbone_pairs['c6'] = ex_rc_backbone_pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+        ex_rc_backbone_pairs['c12'] = ex_rc_backbone_pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+        ex_rc_backbone_pairs['func'] = 1
+        ex_rc_backbone_pairs = ex_rc_backbone_pairs.rename(columns = {'ai': '; ai'})
+        pairs = pairs.append(ex_rc_backbone_pairs)
 
     # Removing the reverse duplicates
     # In case this last step added a few
