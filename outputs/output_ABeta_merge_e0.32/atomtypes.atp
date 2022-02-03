@@ -1,7 +1,7 @@
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab 
-; Created the 03-02-2022 18:11
+; Created the 03-02-2022 18:38
 ; Protein name: ABeta 
-; The ensemble includes all 
+; The ensemble includes merge 
 ; Atom cutoff distance: 5.5 A 
 ; Skipping contacts within 2 residues 
 ; LJ are set with epsilon 0.32 

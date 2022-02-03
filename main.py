@@ -1,24 +1,17 @@
 #from os import getresgid
 import os
-from time import process_time_ns
 import pandas as pd
 import sys, getopt
-
-from pytest import param
 from topology_definitions import raw_top 
 from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat
-from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs, header
+from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
-#from mdmat import mdmat 
 
 
 #TODO unire RC a greta to keep
-#TODO nomi delle cartelle in base a greta to keep
-#TODO cartelle di input in base a plain, rc
 
 
 def main(argv):
-
 
     parameters = {
         'distance_cutoff':5.5,
@@ -44,11 +37,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"hrip:b:e:",["protein=","build-from=","random-coil","epsilon=","ensemble"])
     except getopt.GetoptError:
-        print('main.py -p <protein> -b <native|fibril|all>' )
+        print('main.py -p <protein> -b <native|fibril|merge>' )
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('main.py -p <protein> -b <native|fibril|all>')
+            print('main.py -p <protein> -b <native|fibril|merge>')
             sys.exit()
         elif opt in ("-p", "--protein"):
             parameters['protein'] = arg
@@ -70,7 +63,7 @@ def main(argv):
         print(f' -{k,v}')
 
     # Create the folders which will be used by the script
-    output_directory = f"outputs/output_{parameters['protein']}_e{parameters['epsilon_input']}"
+    output_directory = f"outputs/output_{parameters['protein']}_{parameters['greta_to_keep']}_e{parameters['epsilon_input']}"
     try:
         os.mkdir(output_directory)
     except OSError as error:
@@ -116,7 +109,7 @@ def main(argv):
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)
 
-        elif parameters['greta_to_keep'] == 'all':
+        elif parameters['greta_to_keep'] == 'merge':
             if idp == True:
                 atomic_mat_plainMD = plainMD_mdmat(parameters)
                 atomic_mat_random_coil = random_coil_mdmat(parameters)

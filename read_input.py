@@ -14,7 +14,7 @@ def read_pdbs(parameters):
         fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
         fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
 
-    elif parameters['greta_to_keep'] == 'all':
+    elif parameters['greta_to_keep'] == 'merge':
         native_directory = f"inputs/native_{parameters['protein']}/native.pdb"
         fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
         native_pdb = mda.Universe(native_directory, guess_bonds = True)
