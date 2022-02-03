@@ -10,10 +10,6 @@ def raw_top(protein):
 
 	# To import the [ atoms ] section of the topology
 	atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein_top.list_atoms()
-	atom_types, atom_resids = protein_top.list_bonds(by_resid=True)
-
-	print(protein_top.list_bonds(by_resid=True))
-	print(atom_topology_resid)
 
 	# This is needed when we want to do some stuff only to the N terminal
 	first_resid = 'N_'+str(atom_topology_resid[0])
@@ -48,8 +44,6 @@ def raw_top(protein):
 	# This list will be used to build pairs and exclusions lists to attach in the topology
 	atom_types, atom_resids = protein_top.list_bonds(by_resid=True)
 	ai_type, aj_type, ai_resid, aj_resid = [], [], [], []
-
-	print(atom_resids)
 
 	for atyp in atom_types:
 		atyp_split = atyp.split(' ')
