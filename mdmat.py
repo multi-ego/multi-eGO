@@ -3,12 +3,11 @@ import MDAnalysis
 
 def mdmat(protein, distance_residue, ratio_treshold):
 	# Reading PlainMD contacts
-	atomic_mat_plainMD = pd.read_csv(f'inputs/native_{protein}/plainMD_contacts.ndx', header=None, sep = '\s+')
+	atomic_mat_plainMD = pd.read_csv(f'inputs/md_{protein}/plainMD_contacts.ndx', header=None, sep = '\s+')
 	atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
 	atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
 	atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-	#plainMD_directory = '/home/emanuele/ABeta/markov'
-	plainMD_directory = 'inputs/native_%s' %(protein)
+	plainMD_directory = 'inputs/md_%s' %(protein)
 	reference_plainMD_structure = f'{plainMD_directory}/reduced-noh.gro'
 
 	plainMD = MDAnalysis.Universe(reference_plainMD_structure)
@@ -27,11 +26,11 @@ def mdmat(protein, distance_residue, ratio_treshold):
 	atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
 	# Reading Random Coil contacts
-	atomic_mat_random_coil = pd.read_csv(f'inputs/native_{protein}/random_coil_contacts.ndx', header=None, sep = '\s+')
+	atomic_mat_random_coil = pd.read_csv(f'inputs/rc_{protein}/random_coil_contacts.ndx', header=None, sep = '\s+')
 	atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
 	atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
 
-	reference_random_coil_structure = f'inputs/native_{protein}/random_coil.gro'
+	reference_random_coil_structure = f'inputs/rc_{protein}/random_coil.gro'
 
 	random_coil = MDAnalysis.Universe(reference_random_coil_structure)
 	peptides = random_coil.select_atoms('all')
