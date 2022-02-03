@@ -9,9 +9,6 @@ from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_p
 from mdmat import mdmat 
 
 # global variables
-# modified from input arguments
-make_random_coil = False
-idp = False
 # hardcoded 
 distance_cutoff = 5.5
 distance_residue = 2
@@ -29,6 +26,9 @@ acid_ff = False
 def main(argv):
     print('\n\nGRETA:\n')
 
+    make_random_coil = False
+    idp = False
+
     try:
         opts, args = getopt.getopt(argv,"hrip:b:e:",["protein=","build-from=","random-coil","epsilon=","ensemble"])
     except getopt.GetoptError:
@@ -43,13 +43,11 @@ def main(argv):
         elif opt in ("-b", "--build-from"):
             greta_to_keep = arg
         elif opt in ("r", "--random-coil"):
-            global make_random_coil 
             make_random_coil = True
         elif opt in ("e", "--epsilon"):
             global epsilon_input
             epsilon_input = arg
         elif opt in ("i", "--ensemble"):
-            global idp 
             idp = True 
 
     epsilon_structure = float(epsilon_input)
@@ -88,7 +86,7 @@ def main(argv):
     if make_random_coil == True:
         greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
         write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, protein, distance_cutoff, distance_residue, greta_to_keep, epsilon_md, epsilon_structure, ratio_treshold, acid_ff)
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, distance_residue, lj_reduction, multiply_c6)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, protein, distance_cutoff, distance_residue, lj_reduction, greta_to_keep)
 
     else:
@@ -131,7 +129,7 @@ def main(argv):
         write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, protein, distance_cutoff, distance_residue, greta_to_keep, epsilon_md, epsilon_structure, ratio_treshold, acid_ff)
 
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, greta_ffnb)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, distance_residue, lj_reduction, multiply_c6, greta_ffnb)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, protein, distance_cutoff, distance_residue, lj_reduction, greta_to_keep)
 
     print('\nGRETA complete! Carlo is happy\n')

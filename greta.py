@@ -273,6 +273,7 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, epsilon_md, rat
     atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
 
     print("\t\t",len(atomic_mat_merged), " interactions added")
+    print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].mean())
 
     return atomic_mat_merged
 
@@ -394,7 +395,7 @@ def merge_GRETA(greta_LJ, epsilon_structure):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, distance_residue, lj_reduction, multiply_c6, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -414,7 +415,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
 
     # Bonds from topology
     atnum_topology_bonds = topology_bonds.copy()
-    print(atnum_topology_bonds.to_string())
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].map(atnum_type_dict)
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].astype(int)
