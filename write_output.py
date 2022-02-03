@@ -1,27 +1,10 @@
 import os
 import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep, ratio_treshold, epsilon_md, epsilon_structure
-from topology_definitions import acid_atp
-
-# Create the folders which will be used by the script
-output_folder = 'outputs/output_%s' % (protein)
-try:
-    os.mkdir(output_folder)
-except OSError as error:
-    pass
-    #print(error)
-
-output_folder = 'FF_greta_analysis_%s' % (protein)
-try:
-    os.mkdir(output_folder)
-except OSError as error:
-    pass
-    #print(error)
 
 head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
 now = datetime.datetime.now()
 
-def write_greta_atomtypes_atp(atomtypes_atp):
+def write_greta_atomtypes_atp(atomtypes_atp, protein):
     # This function is used to create the atomtypes.atp.
     directory = 'outputs/output_%s/atomtypes.atp' %(protein)
     file = open(directory, "w")
@@ -36,7 +19,7 @@ def write_greta_atomtypes_atp(atomtypes_atp):
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms):
+def write_greta_topology_atoms(topology_atoms, protein, distance_cutoff, distance_residue):
     directory = 'outputs/output_%s/topology_atoms' %(protein)
     file = open(directory, "w")
     file.write(str(head))
@@ -52,7 +35,7 @@ def write_greta_topology_atoms(topology_atoms):
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology):
+def write_greta_topology_pairs(pairs_topology, exclusion_topology, protein, distance_cutoff, distance_residue, lj_reduction, greta_to_keep):
     directory = 'outputs/output_%s/topology_pairs' %(protein)
     file = open(directory, "w")
     file.write(str(head))
@@ -77,7 +60,7 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology):
     file.close()
     print('- Pairs and Exclusions written')
 
-def write_greta_LJ(atomtypes, greta_LJ):
+def write_greta_LJ(atomtypes, greta_LJ, acid_atp, protein, distance_cutoff, distance_residue, greta_to_keep, epsilon_md, epsilon_structure, ratio_treshold, acid_ff):
     if acid_ff == True and acid_atp !=0:
         directory = "outputs/output_%s/acid_ffnonbonded.itp" %(protein)
         file = open(directory, "w")
@@ -110,7 +93,7 @@ def write_greta_LJ(atomtypes, greta_LJ):
     print('- FF Written.')
     print('\tChange the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
 
-def write_pairs_list(pairs, ff_name):
+def write_pairs_list(pairs, ff_name, protein, distance_cutoff, distance_residue):
     pairs.rename(columns = {'; ai':'ai'}, inplace = True)
     pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
     directory = "FF_greta_analysis_%s/%s_%s_pairs_list_c%s_e%s.txt" %(protein, protein, ff_name, distance_cutoff, distance_residue)

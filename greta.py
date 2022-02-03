@@ -1,18 +1,15 @@
 from operator import concat
-
 from MDAnalysis.lib.util import parse_residue
-from read_input import read_native_pairs
 from MDAnalysis.analysis import distances
 import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_md, epsilon_structure, ratio_treshold, u_threshold, lj_reduction, multiply_c6
-from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
+from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
 # TODO
 #def make_pdb_atomtypes (native_pdb, *fibril_pdb):
-def make_pdb_atomtypes (native_pdb, fibril_pdb):
+def make_pdb_atomtypes (native_pdb, fibril_pdb, raw_topology_atoms):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
@@ -94,7 +91,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb):
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
-def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
+def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structure, ratio_treshold, distance_cutoff, distance_residue, u_threshold):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
@@ -224,7 +221,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     return structural_LJ
 
 
-def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
+def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, epsilon_md, ratio_treshold):
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('\tAddition of MD derived native pairs')
     # The ratio treshold considers only pairs occurring at a certain probability
@@ -280,7 +277,7 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil):
     return atomic_mat_merged
 
 
-def merge_GRETA(greta_LJ):
+def merge_GRETA(greta_LJ, epsilon_structure):
     '''
     This function merges the atom contacts from native and fibril.
     '''
@@ -397,7 +394,7 @@ def merge_GRETA(greta_LJ):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -405,13 +402,10 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
 
-    # this is the list of GROMOS atom names
-    topology_atoms = raw_topology_atoms.copy()
-
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-    atnum_type_top = topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']].copy()
+    atnum_type_top = raw_topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']].copy()
     atnum_type_top['resnr'] = atnum_type_top['resnr'].astype(int)
 
     # Dictionaries definitions to map values
@@ -420,6 +414,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, greta_merge=pd.DataF
 
     # Bonds from topology
     atnum_topology_bonds = topology_bonds.copy()
+    print(atnum_topology_bonds.to_string())
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
     atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].map(atnum_type_dict)
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].astype(int)
