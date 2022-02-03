@@ -1,55 +1,43 @@
-import os
-import datetime
+from time import gmtime, strftime
+now = strftime("%d-%m-%Y %H:%M", gmtime())
 
-head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
-now = datetime.datetime.now()
+def header(parameters):
+    header = f'; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab \n'
+    header = header + f'; Created the {now}\n'
+    header = header + f"; Protein name: {parameters['protein']} \n"
+    header = header + f"; The ensemble includes {parameters['greta_to_keep']} \n"
+    header = header + f"; Atom cutoff distance: {parameters['distance_cutoff']} A \n"
+    header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
+    header = header + f"; LJ are set with epsilon {parameters['epsilon_input']} \n"
+    header = header + f"; LJ potential from plainMD reweighted by {parameters['ratio_treshold']} \n"
+    header = header + f"; Reducing the C12 Lennard Jones by {parameters['lj_reduction']} \n"
+    header = header + f"; Enhancing C6 for left alpha dihedral by {parameters['multiply_c6']} \n"
 
-def write_greta_atomtypes_atp(atomtypes_atp, protein):
+    return header
+
+def write_greta_atomtypes_atp(atomtypes_atp, parameters, directory):
     # This function is used to create the atomtypes.atp.
-    directory = 'outputs/output_%s/atomtypes.atp' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; ' + f'GRETA {protein}')
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
+    #directory = f"outputs/output_{parameters['protein']}"
+    file = open(f'{directory}/atomtypes.atp', "w")
+    file.write(header(parameters))
     file.write("[ atomtypes ]")
     file.write("\n")
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms, protein, distance_cutoff, distance_residue):
-    directory = 'outputs/output_%s/topology_atoms' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
+def write_greta_topology_atoms(topology_atoms, parameters, directory):
+    #directory = f'outputs/output_{parameters["protein"]}'
+    file = open(f'{directory}/topology_atoms', "w")
+    file.write(header(parameters))
     file.write("[ atoms ]")
     file.write("\n")
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology, protein, distance_cutoff, distance_residue, lj_reduction, greta_to_keep):
-    directory = 'outputs/output_%s/topology_pairs' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; LJ_reduction: ' + str(lj_reduction))
-    file.write("\n")
-    file.write('; Protein: ' + str(protein) + '-' + str(greta_to_keep))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n\n")
+def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters, directory):
+    #directory = f'outputs/output_{parameters["protein"]}'
+    file = open(f'{directory}/topology_pairs', "w")
+    file.write(header(parameters))
     file.write("[ pairs ]")
     file.write("\n")
     file.write(str(pairs_topology.to_string(index = False)))
@@ -60,25 +48,16 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology, protein, dist
     file.close()
     print('- Pairs and Exclusions written')
 
-def write_greta_LJ(atomtypes, greta_LJ, acid_atp, protein, distance_cutoff, distance_residue, greta_to_keep, epsilon_md, epsilon_structure, ratio_treshold, acid_ff):
-    if acid_ff == True and acid_atp !=0:
-        directory = "outputs/output_%s/acid_ffnonbonded.itp" %(protein)
-        file = open(directory, "w")
-        file.write(str(head))
-        file.write("\n")
-        file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
+def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters, directory):
+    if parameters['acid_ff'] == True and acid_atp !=0:
+        #directory = f"outputs/output_{parameters['protein']}/acid_ffnonbonded.itp"
+        file = open(f'{directory}/acid_ffnonbonded.itp', "w")
+        file.write(header(parameters))
     else:
-        directory = "outputs/output_%s/ffnonbonded.itp" %(protein)
-        file = open(directory, "w")
-        file.write(str(head))
-        file.write("\n")
-        file.write(f'; Distance cutoff: {distance_cutoff} - aminoacid exclusion: {distance_residue}')
+        #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
+        file = open(f'{directory}/ffnonbonded.itp', "w")
+        file.write(header(parameters))
 
-    file.write("\n")
-    file.write(f'; FF parameters {protein}-{greta_to_keep} - epsilon: {epsilon_md, epsilon_structure} - idp contacts treshold: {ratio_treshold}')
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
     file.write("[ atomtypes ]\n")
     file.write(str(atomtypes.to_string(index = False)))
     file.write("\n")
@@ -92,11 +71,3 @@ def write_greta_LJ(atomtypes, greta_LJ, acid_atp, protein, distance_cutoff, dist
 
     print('- FF Written.')
     print('\tChange the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
-
-def write_pairs_list(pairs, ff_name, protein, distance_cutoff, distance_residue):
-    pairs.rename(columns = {'; ai':'ai'}, inplace = True)
-    pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
-    directory = "FF_greta_analysis_%s/%s_%s_pairs_list_c%s_e%s.txt" %(protein, protein, ff_name, distance_cutoff, distance_residue)
-    file = open(directory, "w")
-    file.write(str(pairs_analysis.to_string(index = False)))
-    file.close()

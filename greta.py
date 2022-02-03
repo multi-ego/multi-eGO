@@ -5,6 +5,8 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
+
+from pytest import param
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
 # TODO
@@ -91,7 +93,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, raw_topology_atoms):
     return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
 
-def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structure, ratio_treshold, distance_cutoff, distance_residue, u_threshold):
+def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
@@ -131,8 +133,8 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structu
     print('\t\tRaw pairs list ', raw_structural_LJ)
     
     # Keep only the atoms within cutoff
-    structural_LJ = structural_LJ[structural_LJ.distance < distance_cutoff] # PROTEIN CONFIGURATION
-    print(f'\t\tPairs below cutoff {distance_cutoff}: ', len(structural_LJ))
+    structural_LJ = structural_LJ[structural_LJ.distance < parameters["distance_cutoff"]] # PROTEIN CONFIGURATION
+    print(f'\t\tPairs below cutoff {parameters["distance_cutoff"]}: ', len(structural_LJ))
 
     # That is name_resname:resid made from the previous function.
     # Extracting the resid information to check if the atom pair is on the same chain.
@@ -150,13 +152,13 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structu
     # And to do that it is necessary to convert the two columns into integer
     structural_LJ = structural_LJ.astype({"resnum_ai": int, "resnum_aj": int})
     structural_LJ['diff'] = ''
-    structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < distance_residue) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
+    structural_LJ.drop(structural_LJ[(abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai']) < parameters['distance_residue']) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     structural_LJ['diff'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
-    print(f'\t\tAll the pairs further than {distance_residue} aminoacids or not in the same chain: ', len(structural_LJ))
+    print(f'\t\tAll the pairs further than {parameters["distance_residue"]} aminoacids or not in the same chain: ', len(structural_LJ))
     
     # sigma copied below
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = epsilon_structure
+    structural_LJ['epsilon'] = parameters['epsilon_structure']
 
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
@@ -196,7 +198,9 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structu
     # OLD prima di usare la formula
     #structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
     pd.options.mode.chained_assignment = None
-     
+    
+    u_treshold = 1-parameters['ratio_treshold']
+
     # TODO applicare la formula per riscalare
     # Paissoni Equation 2.0
     # Attractive pairs
@@ -204,10 +208,10 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structu
     #structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(epsilon_structure/np.log(0.1*ratio_treshold))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
-    structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
+    structural_LJ_intra['epsilon'].loc[(u_treshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_treshold']))*(np.log(u_treshold/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(u_treshold <  structural_LJ_intra['rc_probability'])] = 0
     # Too small epsilon will be removed
-    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_structure] = 0
+    structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*parameters['epsilon_structure']] = 0
     structural_LJ_intra.dropna(inplace=True)
 
     # This is included in the old before using the formula
@@ -221,7 +225,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, epsilon_structu
     return structural_LJ
 
 
-def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, epsilon_md, ratio_treshold):
+def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('\tAddition of MD derived native pairs')
     # The ratio treshold considers only pairs occurring at a certain probability
@@ -257,14 +261,14 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, epsilon_md, rat
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(epsilon_md/np.log(0.1*ratio_treshold))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_treshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (epsilon_md/np.log(ratio_treshold))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_treshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  ratio_treshold)] = 0
-    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*epsilon_md] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_treshold'])] = 0
+    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     pd.options.mode.chained_assignment = 'warn' 
 
 
@@ -278,7 +282,7 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, epsilon_md, rat
     return atomic_mat_merged
 
 
-def merge_GRETA(greta_LJ, epsilon_structure):
+def merge_GRETA(greta_LJ, parameters):
     '''
     This function merges the atom contacts from native and fibril.
     '''
@@ -366,15 +370,15 @@ def merge_GRETA(greta_LJ, epsilon_structure):
                 
                 # Creation of new c6 and c12
                 # Epsilon structure because those are self
-                new_c6 = 4 * epsilon_structure * (media_sigma ** 6)
-                new_c12 = 4 * epsilon_structure * (media_sigma ** 12)
+                new_c6 = 4 * parameters['epsilon_structure'] * (media_sigma ** 6)
+                new_c12 = 4 * parameters['epsilon_structure'] * (media_sigma ** 12)
 
                 # In the pairs to add dataframe all those new information are inserted
 
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = epsilon_structure
+                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = parameters['epsilon_structure']
 
         pairs_toadd.dropna(inplace = True)
         # Appending the missing atom pairs to the main dataframe
@@ -395,7 +399,7 @@ def merge_GRETA(greta_LJ, epsilon_structure):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, distance_residue, lj_reduction, multiply_c6, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -475,7 +479,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
 	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
         # Now we neeed to be sure that these are excluded intramolecularly
         # If we keep such LJ they cause severe frustration to the system and artifacts
-        pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < distance_residue)]
+        pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])]
 
         # We remove the contact with itself
         pairs = pairs[pairs['ai'] != pairs['aj']]
@@ -530,7 +534,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     pairs_14['func'] = 1
     pairs_14['c6'] = 0.00000e+00
     # in general 1-4 interactions are excluded, N-X 1-4 interactions are retained but scaled down
-    pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*lj_reduction
+    pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
     pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
@@ -576,7 +580,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
         if not line_sidechain_cb.empty:
             left_alpha_ai.append(line_backbone_oxygen['nr'])
             left_alpha_aj.append(line_sidechain_cb['nr'])
-            left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*multiply_c6)
+            left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])

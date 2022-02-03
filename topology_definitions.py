@@ -4,8 +4,8 @@ from read_input import read_top
 import numpy as np
 
 # Import the topology informations
-def raw_top(protein):
-	topology = read_top(protein)
+def raw_top(parameters):
+	topology = read_top(parameters)
 	protein_top = topology.molecules[0]
 
 	# To import the [ atoms ] section of the topology

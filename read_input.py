@@ -5,30 +5,92 @@ import warnings
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
 
-def read_pdbs(protein, greta_to_keep):
-    if greta_to_keep == 'native':
-        native_directory = 'inputs/native_%s/native.pdb' %(protein)
+def read_pdbs(parameters):
+    if parameters['greta_to_keep'] == 'native':
+        native_directory = f"inputs/native_{parameters['protein']}/native.pdb"
         native_pdb = mda.Universe(native_directory, guess_bonds = True)
 
-    elif greta_to_keep == 'fibril':
-        fibril_directory = 'inputs/fibril_%s/fibril.pdb' %(protein)
+    elif parameters['greta_to_keep'] == 'fibril':
+        fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
         fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
 
-    elif greta_to_keep == 'all':
-        native_directory = 'inputs/native_%s/native.pdb' %(protein)
-        fibril_directory = 'inputs/fibril_%s/fibril.pdb' %(protein)
+    elif parameters['greta_to_keep'] == 'all':
+        native_directory = f"inputs/native_{parameters['protein']}/native.pdb"
+        fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
         native_pdb = mda.Universe(native_directory, guess_bonds = True)
         fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
 
     else:
-        print("I dont' understand --build-from=",greta_to_keep)
+        print("I dont' understand --build-from=",parameters['greta_to_keep'])
         exit()
 
     return native_pdb, fibril_pdb
 
-def read_top(protein):
-    native_directory = 'inputs/native_%s/topol.top' %(protein)
-    native_pdb = 'inputs/native_%s/native.pdb' %(protein)
+def read_top(parameters):  
+    native_directory = f'inputs/native_{parameters["protein"]}/topol.top'
+    native_pdb = f"inputs/native_{parameters['protein']}/native.pdb"
     native_topology = Top(native_directory, gmx_dir='/home/emanuele/MAGROS', pdb=native_pdb)
     
     return native_topology
+
+
+def plainMD_mdmat(parameters):
+    # Reading PlainMD contacts
+    atomic_mat_plainMD = pd.read_csv(f'inputs/native_{parameters["protein"]}/plainMD_contacts.ndx', header=None, sep = '\s+')
+    atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+    atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
+    atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
+    #plainMD_directory = '/home/emanuele/ABeta/markov'
+    plainMD_directory = f'inputs/native_{parameters["protein"]}'
+    reference_plainMD_structure = f'{plainMD_directory}/reduced-noh.gro'
+
+    plainMD = mda.Universe(reference_plainMD_structure)
+    peptides = plainMD.select_atoms('all')
+    plain_atomtypes_dict = {}
+    for atom in peptides:
+        plain_atomtypes_dict[atom.id] = str(atom.name) + '_' + str(atom.resnum)
+
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':plain_atomtypes_dict})
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':plain_atomtypes_dict})
+    atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)
+    atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
+    atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
+    atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
+    atomic_mat_plainMD.drop(atomic_mat_plainMD[abs(atomic_mat_plainMD['residue_aj'] - atomic_mat_plainMD['residue_ai']) < parameters['distance_residue']].index, inplace=True)
+    atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
+
+    return atomic_mat_plainMD
+
+
+def random_coil_mdmat(parameters):
+	# Reading Random Coil contacts
+	atomic_mat_random_coil = pd.read_csv(f'inputs/native_{parameters["protein"]}/random_coil_contacts.ndx', header=None, sep = '\s+')
+	atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+	atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
+
+	reference_random_coil_structure = f'inputs/native_{parameters["protein"]}/random_coil.gro'
+
+	random_coil = mda.Universe(reference_random_coil_structure)
+	peptides = random_coil.select_atoms('all')
+	random_coil_atomtypes_dict = {}
+	for atom in peptides:
+		random_coil_atomtypes_dict[atom.id] = str(atom.name) + '_' + str(atom.resnum)
+
+	atomic_mat_random_coil = atomic_mat_random_coil.replace({'ai':random_coil_atomtypes_dict})
+	atomic_mat_random_coil = atomic_mat_random_coil.replace({'aj':random_coil_atomtypes_dict})
+	atomic_mat_random_coil[['type_ai', 'residue_ai']] = atomic_mat_random_coil.ai.str.split("_", expand = True)
+	atomic_mat_random_coil[['type_aj', 'residue_aj']] = atomic_mat_random_coil.aj.str.split("_", expand = True)
+	atomic_mat_random_coil['residue_ai'] = atomic_mat_random_coil['residue_ai'].astype(int)
+	atomic_mat_random_coil['residue_aj'] = atomic_mat_random_coil['residue_aj'].astype(int)
+	atomic_mat_random_coil.drop(atomic_mat_random_coil[abs(atomic_mat_random_coil['residue_aj'] - atomic_mat_random_coil['residue_ai']) < parameters["distance_residue"]].index, inplace=True)
+	atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
+	pd.options.mode.chained_assignment = None
+	atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (parameters['ratio_treshold']/10)] = parameters['ratio_treshold']/10
+	pd.options.mode.chained_assignment = 'warn' 
+
+	new_colnames = []
+	for colname in atomic_mat_random_coil.columns:
+		new_colnames.append(f'rc_{colname}')
+	atomic_mat_random_coil.columns = new_colnames
+
+	return atomic_mat_random_coil
