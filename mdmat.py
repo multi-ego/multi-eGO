@@ -31,7 +31,8 @@ atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
 # Reading Random Coil contacts
 atomic_mat_random_coil = pd.read_csv(f'inputs/native_{protein}/random_coil_contacts.ndx', header=None, sep = '\s+')
-atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
+atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
 
 reference_random_coil_structure = f'inputs/native_{protein}/random_coil.gro'
 
