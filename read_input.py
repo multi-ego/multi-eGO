@@ -36,7 +36,7 @@ def read_top(parameters):
 
 def plainMD_mdmat(parameters):
     # Reading PlainMD contacts
-    atomic_mat_plainMD = pd.read_csv(f'inputs/native_{parameters["protein"]}/plainMD_contacts.ndx', header=None, sep = '\s+')
+    atomic_mat_plainMD = pd.read_csv(f'inputs/md_{parameters["protein"]}/plainMD_contacts.ndx', header=None, sep = '\s+')
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
     atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
@@ -64,11 +64,11 @@ def plainMD_mdmat(parameters):
 
 def random_coil_mdmat(parameters):
 	# Reading Random Coil contacts
-	atomic_mat_random_coil = pd.read_csv(f'inputs/native_{parameters["protein"]}/random_coil_contacts.ndx', header=None, sep = '\s+')
+	atomic_mat_random_coil = pd.read_csv(f'inputs/rc_{parameters["protein"]}/random_coil_contacts.ndx', header=None, sep = '\s+')
 	atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
 	atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
 
-	reference_random_coil_structure = f'inputs/native_{parameters["protein"]}/random_coil.gro'
+	reference_random_coil_structure = f'inputs/rc_{parameters["protein"]}/random_coil.gro'
 
 	random_coil = mda.Universe(reference_random_coil_structure)
 	peptides = random_coil.select_atoms('all')
