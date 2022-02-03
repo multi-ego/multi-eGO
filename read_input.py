@@ -32,10 +32,3 @@ def read_top(protein):
     native_topology = Top(native_directory, gmx_dir='/home/emanuele/MAGROS', pdb=native_pdb)
     
     return native_topology
-
-def read_native_pairs(protein, distance_residue, distance_cutoff):
-    native_directory = 'inputs/native_%s/monomer_pairs_md_ex%s_co%s.txt' %(protein, distance_residue, distance_cutoff)
-    native_pairs = pd.read_csv(native_directory, sep = '\\s+', header = None)
-    native_pairs.columns = ['ai', 'aj', 'counts', 'ratio', 'distance']
-
-    return native_pairs

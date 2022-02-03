@@ -8,6 +8,13 @@ from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_idp_epsilon
 from mdmat import mdmat 
 
+
+#TODO dizionario dei cosi
+#TODO unire RC a greta to keep
+#TODO nomi delle cartelle in base a greta to keep
+#TODO cartelle di input in base a plain, rc
+#TODO cartelle di out includono la epsilon
+
 # global variables
 # hardcoded 
 distance_cutoff = 5.5
@@ -24,7 +31,7 @@ multiply_c6 = 1.5
 acid_ff = False
 
 def main(argv):
-    print('\n\nGRETA:\n')
+    print('\n\nMulti-eGO (codename: GRETA)\n')
 
     make_random_coil = False
     idp = False
