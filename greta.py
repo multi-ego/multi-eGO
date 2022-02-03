@@ -7,7 +7,7 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from protein_configuration import distance_cutoff, distance_residue, epsilon_md, epsilon_structure, ratio_treshold, lj_reduction, multiply_c6
+from protein_configuration import distance_cutoff, distance_residue, epsilon_md, epsilon_structure, ratio_treshold, u_threshold, lj_reduction, multiply_c6
 from topology_definitions import raw_topology_atoms, gromos_atp, gromos_atp_c6, gro_to_amb_dict, topology_bonds, atom_topology_num
 
 # TODO
@@ -203,13 +203,13 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes):
     # TODO applicare la formula per riscalare
     # Paissoni Equation 2.0
     # Attractive pairs
-    #structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(0.999))/(np.log(structural_LJ_intra['rc_probability']))))
-    #structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
+    #structural_LJ_intra['epsilon'].loc[u_threshold >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(u_threshold))/(np.log(structural_LJ_intra['rc_probability']))))
+    #structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(0.999 >=  structural_LJ_intra['rc_probability'])] = -(epsilon_structure/np.log(0.1*ratio_treshold))*(np.log(0.999/structural_LJ_intra['rc_probability']))
-    structural_LJ_intra['epsilon'].loc[(0.999 <  structural_LJ_intra['rc_probability'])] = 0
-    # Too little epsilon will be removed
+    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(epsilon_structure/np.log(0.1*ratio_treshold))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
+    # Too small epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*epsilon_structure] = 0
     structural_LJ_intra.dropna(inplace=True)
 

@@ -23,6 +23,7 @@ epsilon_md = epsilon_input
 idp = True
 #idp = False
 ratio_treshold = 0.001
+u_threshold = 1.-ratio_treshold
 
 # Does the N_terminal have a protonation?
 # Taking off N_1 N_1 and raising c12 of N_1
