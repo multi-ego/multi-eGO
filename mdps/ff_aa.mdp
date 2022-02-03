@@ -68,7 +68,7 @@ nstcalcenergy            = -1
 nstenergy                = 50000
 ; Output frequency and precision for .xtc file
 nstxout-compressed       = 50000
-compressed-x-precision   = 5000
+compressed-x-precision   = 1000
 ; This selects the subset of atoms for the compressed
 ; trajectory file. You can select multiple groups. By
 ; default, all atoms will be written.
@@ -156,7 +156,7 @@ gen_temp                 = 278
 gen_seed                 = -1
 
 ; OPTIONS FOR BONDS    
-constraints              = none 
+constraints              = none
 ; Type of constraint algorithm
 constraint-algorithm     = Lincs
 ; Do not constrain the start configuration
