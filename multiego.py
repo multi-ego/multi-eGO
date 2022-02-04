@@ -1,8 +1,7 @@
 import os
 import pandas as pd
 import sys, getopt
-from topology_definitions import raw_top 
-from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat
+from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology
 from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes, make_idp_epsilon
 
@@ -73,14 +72,16 @@ def main(argv):
         pass
 
     print('- reading TOPOLOGY')
-    raw_topology_atoms, first_resid, acid_atp, topology_bonds, atom_topology_num = raw_top(parameters)
+    first_resid = read_topology(parameters)[0].first_resid
+    acid_atp = read_topology(parameters)[0].acid_atp
+
     print('- reading PDB')
     native_pdb = read_pdbs(parameters, False)
     if parameters['egos'] == 'merge':
         fibril_pdb = read_pdbs(parameters, True)
 
     print('- Generating Atomtypes')
-    native_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, raw_topology_atoms)
+    native_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, parameters)
     if parameters['egos'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
@@ -94,7 +95,7 @@ def main(argv):
         greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
         write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, parameters, output_directory)
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters, output_directory)
 
     elif parameters['egos'] == 'single':
@@ -135,7 +136,7 @@ def main(argv):
         write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, parameters, output_directory)
 
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters, greta_ffnb)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_ffnb)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters, output_directory)
 
     print('\nGRETA completed! Carlo is happy\n')

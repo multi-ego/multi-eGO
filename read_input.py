@@ -27,7 +27,8 @@ def read_top(parameters):
 
 def read_topology(parameters):
 	# Read the topology created from pbd2gmx with gromos-primefull
-    topol_atoms = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top').df_topology_atoms
+    print('\n\n\n\n\n\n', parameters["protein"])
+    topol_atoms = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top')
     topol_bonds = topology_bonds(f'inputs/native_{parameters["protein"]}/topol.top')
 	
     return topol_atoms, topol_bonds

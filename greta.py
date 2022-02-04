@@ -5,14 +5,15 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
+from read_input import read_topology
 
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
-def make_pdb_atomtypes(native_pdb, raw_topology_atoms):
+def make_pdb_atomtypes(native_pdb, parameters):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
-    topology_atoms = raw_topology_atoms.copy()
+    topology_atoms = read_topology(parameters)[0].df_topology_atoms
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
@@ -399,7 +400,7 @@ def merge_GRETA(greta_LJ, parameters):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -409,6 +410,9 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
+    
+    topol_atoms, topol_bonds = read_topology(parameters)
+    raw_topology_atoms = topol_atoms.df_topology_atoms
     atnum_type_top = raw_topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
     atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
     atnum_type_top['atom_number'] = atnum_type_top['atom_number'].astype(str)
@@ -417,14 +421,14 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
     # Bonds from topology
-    bond_tuple = topology_bonds.copy()
+    bond_tuple = topol_bonds.bond_pairs
 
     #TODO this should be in topology_definitions.py
     # Building the exclusion bonded list
     # exclusion_bonds are all the interactions within 3 bonds
     # p14 are specifically the interactions at exactly 3 bonds
     ex, ex14, p14, exclusion_bonds = [], [], [], []
-    for atom in atom_topology_num:
+    for atom in raw_topology_atoms['atom_number'].to_list():
         for t in bond_tuple:
             if t[0] == atom:
                 first = t[1]
