@@ -35,7 +35,7 @@ def main(argv):
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('main.py -p <protein> -b <single|merge|rc>')
+            print('multiego.py -p <protein> -b <single|merge|rc>')
             sys.exit()
         elif opt in ("--protein"):
             if not arg:
