@@ -100,4 +100,3 @@ class topology_bonds:
 
         bonds_pairs = list([(ai, aj) for ai, aj in zip(topology_bonds['ai'].to_list(), topology_bonds['aj'].to_list())])
         self.bond_pairs = bonds_pairs
-
