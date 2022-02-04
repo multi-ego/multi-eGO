@@ -3,15 +3,16 @@ now = strftime("%d-%m-%Y %H:%M", gmtime())
 
 def header(parameters):
     header = f'; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab \n'
-    header = header + f'; Created the {now}\n'
+    header = header + f'; Created on the {now}\n'
     header = header + f"; Protein name: {parameters['protein']} \n"
-    header = header + f"; The ensemble includes {parameters['greta_to_keep']} \n"
-    header = header + f"; Atom cutoff distance: {parameters['distance_cutoff']} A \n"
+    header = header + f"; The force field type is: {parameters['greta_to_keep']} \n"
+    header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
-    header = header + f"; LJ are set with epsilon {parameters['epsilon_input']} \n"
-    header = header + f"; LJ potential from plainMD reweighted by {parameters['ratio_treshold']} \n"
-    header = header + f"; Reducing the C12 Lennard Jones by {parameters['lj_reduction']} \n"
-    header = header + f"; Enhancing C6 for left alpha dihedral by {parameters['multiply_c6']} \n"
+    header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
+    # TODO this should be if idp
+    header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
+    header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
+    header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
 
     return header
 
