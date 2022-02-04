@@ -2,7 +2,7 @@ import pandas as pd
 import MDAnalysis as mda
 from gromologist import Top
 import warnings
-from new_topology_parser import topology_atoms, topology_bonds
+from topology_parser import topology_atoms, topology_bonds
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
 

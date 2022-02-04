@@ -45,6 +45,7 @@ def main(argv):
         elif opt in ("--egos"):
             if arg in ('single', 'merge', 'rc'):
                 parameters['egos'] = arg
+                readall +=1
             else:
                 print('--egos accepts <single|merge|rc> options')
                 sys.exit()
