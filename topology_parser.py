@@ -53,14 +53,12 @@ class topology_atoms:
         df_topology_atoms['mass'].astype(float)
         # Adding H to backbone N
 
-        mask = df_topology_atoms['atom_type'] == 'N'
-        df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).add(1)
         # Adding an extra H to the N terminal
+        mask = ((df_topology_atoms['residue'] == "PRO") & (df_topology_atoms['atom_type'] == 'N'))
+        df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).sub(1)
+        # Removing an extra H to PRO 
         mask = ((df_topology_atoms['residue_number'] == df_topology_atoms['residue_number'].min()) & (df_topology_atoms['atom_type'] == 'N'))
         df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).add(2)
-        # Adding H to OH groups
-        mask = df_topology_atoms['atom_type'] == 'OA'
-        df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).add(1)
 
         # Aromatic carbons dictionary
         aromatic_carbons_dict = {
