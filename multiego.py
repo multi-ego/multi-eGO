@@ -24,11 +24,12 @@ def main(argv):
 
     print('\n\nMulti-eGO (codename: GRETA)\n')
 
+    readall=0
 
     try:
         opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=","noensemble"])
     except getopt.GetoptError:
-        print('main.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
+        print('multiego.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -40,6 +41,7 @@ def main(argv):
                 sys.exit()
             else:
                 parameters['protein'] = arg
+                readall +=1
         elif opt in ("--egos"):
             if arg in ('single', 'merge', 'rc'):
                 parameters['egos'] = arg
@@ -48,16 +50,22 @@ def main(argv):
                 sys.exit()
         elif opt in ("--epsilon"):
             arg = float(arg)
-            if arg > 1 or arg == 0:
+            if arg > 1 or arg < 0:
                 print('Epsilon values must be chosen between 0 and 1')
                 sys.exit()
             else:
                 parameters['epsilon_input'] = float(arg)
                 parameters['epsilon_structure'] = float(arg)
                 parameters['epsilon_md'] = float(arg)
+                readall +=1
         elif opt in ("--noensemble"):
             parameters['idp'] = False 
-   
+  
+    if readall != 3:
+        print('ERROR: missing input argument')
+        print('multiego.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
+        exit()
+ 
     print('- Creating a multi-eGO force-field using the following parameters:')
     
     for k,v in parameters.items():
