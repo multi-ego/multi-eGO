@@ -102,7 +102,3 @@ class topology_bonds:
 
         bonds_pairs = list([(ai, aj) for ai, aj in zip(topology_bonds['ai'].to_list(), topology_bonds['aj'].to_list())])
         self.bond_pairs = bonds_pairs
-
-
-prova = topology_bonds(f'inputs/native_ABeta/topol.top')
-print(len(prova.bond_pairs))
