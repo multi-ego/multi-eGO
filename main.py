@@ -1,4 +1,3 @@
-#from os import getresgid
 import os
 import pandas as pd
 import sys, getopt
@@ -7,10 +6,6 @@ from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat
 from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes, make_idp_epsilon
 
-
-#TODO unire RC a greta to keep
-
-
 def main(argv):
 
     parameters = {
@@ -18,7 +13,6 @@ def main(argv):
         'distance_residue':2,
         'ratio_treshold':0.001,
         #'u_treshold':1.-Self['ratio_treshold'],
-        'u_treshold':1.-0.001,
         'N_terminal':False,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
@@ -31,33 +25,37 @@ def main(argv):
 
     print('\n\nMulti-eGO (codename: GRETA)\n')
 
-    idp = False
+    idp = True
 
     try:
-        opts, args = getopt.getopt(argv,"hip:b:e:",["protein=","build-from=","epsilon=","ensemble"])
+        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=","noensemble"])
     except getopt.GetoptError:
-        print('main.py -p <protein> -b <single|merge|rc>' )
+        print('main.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
             print('main.py -p <protein> -b <single|merge|rc>')
             sys.exit()
-        elif opt in ("-p", "--protein"):
+        elif opt in ("--protein"):
             parameters['protein'] = arg
-        elif opt in ("-b", "--build-from"):
+        elif opt in ("--egos"):
             parameters['greta_to_keep'] = arg
-        elif opt in ("e", "--epsilon"):
-            global epsilon_input
+        elif opt in ("--epsilon"):
             parameters['epsilon_input'] = float(arg)
             parameters['epsilon_structure'] = float(arg)
             parameters['epsilon_md'] = float(arg)
-        elif opt in ("i", "--ensemble"):
-            idp = True 
+        elif opt in ("--noensemble"):
+            idp = False 
+   
+    # TODO add the checks that the arguments are written correctly
+    # protein should not be empty
+    # egos should be one among single|merge|rc
+    # epsilon should be a number between (0 and 1) 
 
-    print('Creating a force-field using the following parameters:')
+    print('- Creating a multi-eGO force-field using the following parameters:')
     
     for k,v in parameters.items():
-        print(f' -{k,v}')
+        print(f'\t{k}: {v}')
 
     # Create the folders which will be used by the script
     output_directory = f"outputs/output_{parameters['protein']}_{parameters['greta_to_keep']}_e{parameters['epsilon_input']}"
@@ -122,7 +120,7 @@ def main(argv):
         exit()
 
     if parameters['greta_to_keep'] != 'rc':
-        print('- Merging LJ interactions')
+        print('- Finalising LJ interactions')
         greta_ffnb = merge_GRETA(greta_LJ, parameters)
         if parameters['N_terminal'] == True:
             greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
@@ -132,7 +130,7 @@ def main(argv):
         topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters, greta_ffnb)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters, output_directory)
 
-    print('\nGRETA complete! Carlo is happy\n')
+    print('\nGRETA completed! Carlo is happy\n')
 
 
 if __name__ == "__main__":

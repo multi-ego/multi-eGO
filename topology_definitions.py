@@ -19,7 +19,9 @@ def raw_top(parameters):
 
 	# Changing the mass of the atoms section by adding the H
 	raw_topology_atoms['mass'].astype(float)
-	mask = ((raw_topology_atoms['type'] == 'N') | (raw_topology_atoms['type'] == 'OA')) | ((raw_topology_atoms['residue'] == 'TYR') & ((raw_topology_atoms['atom'] == 'CD1') | (raw_topology_atoms['atom'] == 'CD2') | (raw_topology_atoms['atom'] == 'CE1') | (raw_topology_atoms['atom'] == 'CE2')))
+	# TODO rewrite the mass stuff
+	# Aromatics (PHE/TYR/HIS/TRP)
+	mask = ((raw_topology_atoms['type'] == 'N') & (raw_topology_atoms['residue'] != 'PRO')) | (raw_topology_atoms['type'] == 'OA') | ((raw_topology_atoms['residue'] == 'TYR') & ((raw_topology_atoms['atom'] == 'CD1') | (raw_topology_atoms['atom'] == 'CD2') | (raw_topology_atoms['atom'] == 'CE1') | (raw_topology_atoms['atom'] == 'CE2')))
 	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
 
 	# Same thing here with the N terminal which is charged
@@ -67,11 +69,11 @@ def raw_top(parameters):
 
 
 # Harp 0
+# check all the masses in combination with the above stuff
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 
             'CH2', 'CH3', 'CH2r', 'NT', 'S',
             'NR', 'OM', 'NE', 'NL', 'NZ'],
-     'mass': [16, 17, 15, 12, 13, 14, 15, 14, 17, 32, 14, 16, 15, 17, 16],
      'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
      'c12': [1e-06, 1.505529e-06, 2.319529e-06, 4.937284e-06, 9.70225e-05, # CH1
             3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,

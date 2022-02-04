@@ -43,8 +43,6 @@ def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
         print('\n\tCheck PDB and topology because they have different numbers of atoms')
         exit()
         
-
-
     # ffnonbonded making
     # Making a dictionary with atom number and type
     ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
