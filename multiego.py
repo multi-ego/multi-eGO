@@ -4,6 +4,7 @@ import sys, getopt
 from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology
 from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
 from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes, make_idp_epsilon
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(argv):
 
@@ -70,7 +71,7 @@ def main(argv):
     print('- Creating a multi-eGO force-field using the following parameters:')
     
     for k,v in parameters.items():
-        print(f'\t{k}: {v}')
+        print('\t{:<20}: {:<20}'.format(k,v))
 
     # Create the folders which will be used by the script
     output_directory = f"outputs/output_{parameters['protein']}_{parameters['egos']}_e{parameters['epsilon_input']}"

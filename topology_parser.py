@@ -1,4 +1,5 @@
 import pandas as pd
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def read_sections(topology_path, *topology_sections):
     sections_dict = {}
@@ -42,6 +43,7 @@ class topology_atoms:
     Cose
     '''
     def __init__(self, path):
+        pd.options.mode.chained_assignment = None  # default='warn'
         # We read everything except charge, typeB, chargeB, massB
         colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'mass']
         section_dict = read_sections(path, 'atoms')

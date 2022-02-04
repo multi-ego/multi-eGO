@@ -5,6 +5,9 @@ import warnings
 from topology_parser import topology_atoms, topology_bonds
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def read_pdbs(parameters, flag):
     if not flag:
@@ -27,7 +30,6 @@ def read_top(parameters):
 
 def read_topology(parameters):
 	# Read the topology created from pbd2gmx with gromos-primefull
-    print('\n\n\n\n\n\n', parameters["protein"])
     topol_atoms = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top')
     topol_bonds = topology_bonds(f'inputs/native_{parameters["protein"]}/topol.top')
 	
