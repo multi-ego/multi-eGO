@@ -2,18 +2,18 @@
 ;	File 'topol.top' was generated
 ;	By user: emanuele (1003)
 ;	On host: bologna
-;	At date: Fri Nov 26 13:37:47 2021
+;	At date: Fri Feb  4 23:00:41 2022
 ;
 ;	This is a standalone topology file
 ;
 ;	Created by:
-;	            :-) GROMACS - gmx pdb2gmx, 2021.3-plumed-2.8.0-dev (-:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.4-plumed-2.8.0-dev (-:
 ;	
-;	Executable:   /opt/gromacs-2021.3/bin/gmx_mpi
-;	Data prefix:  /opt/gromacs-2021.3
+;	Executable:   /opt/gromacs-2021.4/bin/gmx_mpi
+;	Data prefix:  /opt/gromacs-2021.4
 ;	Working dir:  /home/emanuele/MAGROS/inputs/native_ABeta
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f topol.gro -ignh
+;	  gmx_mpi pdb2gmx -f native.pdb
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
@@ -22,12 +22,12 @@
 
 [ moleculetype ]
 ; Name            nrexcl
-Protein             3
+Protein_chain_1     3
 
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
 ; residue   1 ASP rtp ASP  q  0.0
-     1          N      1    ASP      N      1          0    14.0067
+     1          N      1    ASP      N      1          0    15.0067
      2        CH1      1    ASP     CA      1          0     13.019
      3        CH2      1    ASP     CB      1          0     14.027
      4          C      1    ASP     CG      1          0     12.011
@@ -36,13 +36,13 @@ Protein             3
      7          C      1    ASP      C      1          0     12.011
      8          O      1    ASP      O      1          0    15.9994   ; qtot 0
 ; residue   2 ALA rtp ALA  q  0.0
-     9          N      2    ALA      N      2          0    14.0067
+     9          N      2    ALA      N      2          0    15.0067
     10        CH1      2    ALA     CA      2          0     13.019
     11        CH3      2    ALA     CB      2          0     15.035
     12          C      2    ALA      C      2          0     12.011
     13          O      2    ALA      O      2          0    15.9994   ; qtot 0
 ; residue   3 GLU rtp GLU  q  0.0
-    14          N      3    GLU      N      3          0    14.0067
+    14          N      3    GLU      N      3          0    15.0067
     15        CH1      3    GLU     CA      3          0     13.019
     16        CH2      3    GLU     CB      3          0     14.027
     17        CH2      3    GLU     CG      3          0     14.027
@@ -52,7 +52,7 @@ Protein             3
     21          C      3    GLU      C      3          0     12.011
     22          O      3    GLU      O      3          0    15.9994   ; qtot 0
 ; residue   4 PHE rtp PHE  q  0.0
-    23          N      4    PHE      N      4          0    14.0067
+    23          N      4    PHE      N      4          0    15.0067
     24        CH1      4    PHE     CA      4          0     13.019
     25        CH2      4    PHE     CB      4          0     14.027
     26          C      4    PHE     CG      4          0     12.011
@@ -64,30 +64,30 @@ Protein             3
     32          C      4    PHE      C      4          0     12.011
     33          O      4    PHE      O      4          0    15.9994   ; qtot 0
 ; residue   5 ARG rtp ARG  q  0.0
-    34          N      5    ARG      N      5          0    14.0067
+    34          N      5    ARG      N      5          0    15.0067
     35        CH1      5    ARG     CA      5          0     13.019
     36        CH2      5    ARG     CB      5          0     14.027
     37        CH2      5    ARG     CG      5          0     14.027
     38        CH2      5    ARG     CD      5          0     14.027
-    39         NE      5    ARG     NE      5          0    14.0067
+    39         NE      5    ARG     NE      5          0    15.0067
     40          C      5    ARG     CZ      5          0     12.011
-    41         NZ      5    ARG    NH1      5          0    14.0067
-    42         NZ      5    ARG    NH2      5          0    14.0067
+    41         NZ      5    ARG    NH1      5          0    16.0067
+    42         NZ      5    ARG    NH2      5          0    16.0067
     43          C      5    ARG      C      5          0     12.011
     44          O      5    ARG      O      5          0    15.9994   ; qtot 0
 ; residue   6 HIS rtp HIS  q  0.0
-    45          N      6    HIS      N      6          0    14.0067
+    45          N      6    HIS      N      6          0    15.0067
     46        CH1      6    HIS     CA      6          0     13.019
     47        CH2      6    HIS     CB      6          0     14.027
     48          C      6    HIS     CG      6          0     12.011
-    49         NR      6    HIS    ND1      6          0    14.0067
+    49         NR      6    HIS    ND1      6          0    15.0067
     50          C      6    HIS    CD2      6          0     12.011
     51          C      6    HIS    CE1      6          0     12.011
-    52         NR      6    HIS    NE2      6          0    14.0067
+    52         NR      6    HIS    NE2      6          0    15.0067
     53          C      6    HIS      C      6          0     12.011
     54          O      6    HIS      O      6          0    15.9994   ; qtot 0
 ; residue   7 ASP rtp ASP  q  0.0
-    55          N      7    ASP      N      7          0    14.0067
+    55          N      7    ASP      N      7          0    15.0067
     56        CH1      7    ASP     CA      7          0     13.019
     57        CH2      7    ASP     CB      7          0     14.027
     58          C      7    ASP     CG      7          0     12.011
@@ -96,19 +96,19 @@ Protein             3
     61          C      7    ASP      C      7          0     12.011
     62          O      7    ASP      O      7          0    15.9994   ; qtot 0
 ; residue   8 SER rtp SER  q  0.0
-    63          N      8    SER      N      8          0    14.0067
+    63          N      8    SER      N      8          0    15.0067
     64        CH1      8    SER     CA      8          0     13.019
     65        CH2      8    SER     CB      8          0     14.027
-    66         OA      8    SER     OG      8          0    15.9994
+    66         OA      8    SER     OG      8          0    16.9994
     67          C      8    SER      C      8          0     12.011
     68          O      8    SER      O      8          0    15.9994   ; qtot 0
 ; residue   9 GLY rtp GLY  q  0.0
-    69          N      9    GLY      N      9          0    14.0067
+    69          N      9    GLY      N      9          0    15.0067
     70        CH2      9    GLY     CA      9          0     14.027
     71          C      9    GLY      C      9          0     12.011
     72          O      9    GLY      O      9          0    15.9994   ; qtot 0
 ; residue  10 TYR rtp TYR  q  0.0
-    73          N     10    TYR      N     10          0    14.0067
+    73          N     10    TYR      N     10          0    15.0067
     74        CH1     10    TYR     CA     10          0     13.019
     75        CH2     10    TYR     CB     10          0     14.027
     76          C     10    TYR     CG     10          0     12.011
@@ -117,11 +117,11 @@ Protein             3
     79          C     10    TYR    CE1     10          0     12.011
     80          C     10    TYR    CE2     10          0     12.011
     81          C     10    TYR     CZ     10          0     12.011
-    82         OA     10    TYR     OH     10          0    15.9994
+    82         OA     10    TYR     OH     10          0    16.9994
     83          C     10    TYR      C     10          0     12.011
     84          O     10    TYR      O     10          0    15.9994   ; qtot 0
 ; residue  11 GLU rtp GLU  q  0.0
-    85          N     11    GLU      N     11          0    14.0067
+    85          N     11    GLU      N     11          0    15.0067
     86        CH1     11    GLU     CA     11          0     13.019
     87        CH2     11    GLU     CB     11          0     14.027
     88        CH2     11    GLU     CG     11          0     14.027
@@ -131,7 +131,7 @@ Protein             3
     92          C     11    GLU      C     11          0     12.011
     93          O     11    GLU      O     11          0    15.9994   ; qtot 0
 ; residue  12 VAL rtp VAL  q  0.0
-    94          N     12    VAL      N     12          0    14.0067
+    94          N     12    VAL      N     12          0    15.0067
     95        CH1     12    VAL     CA     12          0     13.019
     96        CH1     12    VAL     CB     12          0     13.019
     97        CH3     12    VAL    CG1     12          0     15.035
@@ -139,49 +139,49 @@ Protein             3
     99          C     12    VAL      C     12          0     12.011
    100          O     12    VAL      O     12          0    15.9994   ; qtot 0
 ; residue  13 HIS rtp HIS  q  0.0
-   101          N     13    HIS      N     13          0    14.0067
+   101          N     13    HIS      N     13          0    15.0067
    102        CH1     13    HIS     CA     13          0     13.019
    103        CH2     13    HIS     CB     13          0     14.027
    104          C     13    HIS     CG     13          0     12.011
-   105         NR     13    HIS    ND1     13          0    14.0067
+   105         NR     13    HIS    ND1     13          0    15.0067
    106          C     13    HIS    CD2     13          0     12.011
    107          C     13    HIS    CE1     13          0     12.011
-   108         NR     13    HIS    NE2     13          0    14.0067
+   108         NR     13    HIS    NE2     13          0    15.0067
    109          C     13    HIS      C     13          0     12.011
    110          O     13    HIS      O     13          0    15.9994   ; qtot 0
 ; residue  14 HIS rtp HIS  q  0.0
-   111          N     14    HIS      N     14          0    14.0067
+   111          N     14    HIS      N     14          0    15.0067
    112        CH1     14    HIS     CA     14          0     13.019
    113        CH2     14    HIS     CB     14          0     14.027
    114          C     14    HIS     CG     14          0     12.011
-   115         NR     14    HIS    ND1     14          0    14.0067
+   115         NR     14    HIS    ND1     14          0    15.0067
    116          C     14    HIS    CD2     14          0     12.011
    117          C     14    HIS    CE1     14          0     12.011
-   118         NR     14    HIS    NE2     14          0    14.0067
+   118         NR     14    HIS    NE2     14          0    15.0067
    119          C     14    HIS      C     14          0     12.011
    120          O     14    HIS      O     14          0    15.9994   ; qtot 0
 ; residue  15 GLN rtp GLN  q  0.0
-   121          N     15    GLN      N     15          0    14.0067
+   121          N     15    GLN      N     15          0    15.0067
    122        CH1     15    GLN     CA     15          0     13.019
    123        CH2     15    GLN     CB     15          0     14.027
    124        CH2     15    GLN     CG     15          0     14.027
    125          C     15    GLN     CD     15          0     12.011
    126          O     15    GLN    OE1     15          0    15.9994
-   127         NT     15    GLN    NE2     15          0    14.0067
+   127         NT     15    GLN    NE2     15          0    16.0067
    128          C     15    GLN      C     15          0     12.011
    129          O     15    GLN      O     15          0    15.9994   ; qtot 0
 ; residue  16 LYS rtp LYS  q  0.0
-   130          N     16    LYS      N     16          0    14.0067
+   130          N     16    LYS      N     16          0    15.0067
    131        CH1     16    LYS     CA     16          0     13.019
    132        CH2     16    LYS     CB     16          0     14.027
    133        CH2     16    LYS     CG     16          0     14.027
    134        CH2     16    LYS     CD     16          0     14.027
    135        CH2     16    LYS     CE     16          0     14.027
-   136         NT     16    LYS     NZ     16          0    14.0067
+   136         NT     16    LYS     NZ     16          0    16.0067
    137          C     16    LYS      C     16          0     12.011
    138          O     16    LYS      O     16          0    15.9994   ; qtot 0
 ; residue  17 LEU rtp LEU  q  0.0
-   139          N     17    LEU      N     17          0    14.0067
+   139          N     17    LEU      N     17          0    15.0067
    140        CH1     17    LEU     CA     17          0     13.019
    141        CH2     17    LEU     CB     17          0     14.027
    142        CH1     17    LEU     CG     17          0     13.019
@@ -190,7 +190,7 @@ Protein             3
    145          C     17    LEU      C     17          0     12.011
    146          O     17    LEU      O     17          0    15.9994   ; qtot 0
 ; residue  18 VAL rtp VAL  q  0.0
-   147          N     18    VAL      N     18          0    14.0067
+   147          N     18    VAL      N     18          0    15.0067
    148        CH1     18    VAL     CA     18          0     13.019
    149        CH1     18    VAL     CB     18          0     13.019
    150        CH3     18    VAL    CG1     18          0     15.035
@@ -198,7 +198,7 @@ Protein             3
    152          C     18    VAL      C     18          0     12.011
    153          O     18    VAL      O     18          0    15.9994   ; qtot 0
 ; residue  19 PHE rtp PHE  q  0.0
-   154          N     19    PHE      N     19          0    14.0067
+   154          N     19    PHE      N     19          0    15.0067
    155        CH1     19    PHE     CA     19          0     13.019
    156        CH2     19    PHE     CB     19          0     14.027
    157          C     19    PHE     CG     19          0     12.011
@@ -210,7 +210,7 @@ Protein             3
    163          C     19    PHE      C     19          0     12.011
    164          O     19    PHE      O     19          0    15.9994   ; qtot 0
 ; residue  20 PHE rtp PHE  q  0.0
-   165          N     20    PHE      N     20          0    14.0067
+   165          N     20    PHE      N     20          0    15.0067
    166        CH1     20    PHE     CA     20          0     13.019
    167        CH2     20    PHE     CB     20          0     14.027
    168          C     20    PHE     CG     20          0     12.011
@@ -222,13 +222,13 @@ Protein             3
    174          C     20    PHE      C     20          0     12.011
    175          O     20    PHE      O     20          0    15.9994   ; qtot 0
 ; residue  21 ALA rtp ALA  q  0.0
-   176          N     21    ALA      N     21          0    14.0067
+   176          N     21    ALA      N     21          0    15.0067
    177        CH1     21    ALA     CA     21          0     13.019
    178        CH3     21    ALA     CB     21          0     15.035
    179          C     21    ALA      C     21          0     12.011
    180          O     21    ALA      O     21          0    15.9994   ; qtot 0
 ; residue  22 GLU rtp GLU  q  0.0
-   181          N     22    GLU      N     22          0    14.0067
+   181          N     22    GLU      N     22          0    15.0067
    182        CH1     22    GLU     CA     22          0     13.019
    183        CH2     22    GLU     CB     22          0     14.027
    184        CH2     22    GLU     CG     22          0     14.027
@@ -238,7 +238,7 @@ Protein             3
    188          C     22    GLU      C     22          0     12.011
    189          O     22    GLU      O     22          0    15.9994   ; qtot 0
 ; residue  23 ASP rtp ASP  q  0.0
-   190          N     23    ASP      N     23          0    14.0067
+   190          N     23    ASP      N     23          0    15.0067
    191        CH1     23    ASP     CA     23          0     13.019
    192        CH2     23    ASP     CB     23          0     14.027
    193          C     23    ASP     CG     23          0     12.011
@@ -247,7 +247,7 @@ Protein             3
    196          C     23    ASP      C     23          0     12.011
    197          O     23    ASP      O     23          0    15.9994   ; qtot 0
 ; residue  24 VAL rtp VAL  q  0.0
-   198          N     24    VAL      N     24          0    14.0067
+   198          N     24    VAL      N     24          0    15.0067
    199        CH1     24    VAL     CA     24          0     13.019
    200        CH1     24    VAL     CB     24          0     13.019
    201        CH3     24    VAL    CG1     24          0     15.035
@@ -255,49 +255,49 @@ Protein             3
    203          C     24    VAL      C     24          0     12.011
    204          O     24    VAL      O     24          0    15.9994   ; qtot 0
 ; residue  25 GLY rtp GLY  q  0.0
-   205          N     25    GLY      N     25          0    14.0067
+   205          N     25    GLY      N     25          0    15.0067
    206        CH2     25    GLY     CA     25          0     14.027
    207          C     25    GLY      C     25          0     12.011
    208          O     25    GLY      O     25          0    15.9994   ; qtot 0
 ; residue  26 SER rtp SER  q  0.0
-   209          N     26    SER      N     26          0    14.0067
+   209          N     26    SER      N     26          0    15.0067
    210        CH1     26    SER     CA     26          0     13.019
    211        CH2     26    SER     CB     26          0     14.027
-   212         OA     26    SER     OG     26          0    15.9994
+   212         OA     26    SER     OG     26          0    16.9994
    213          C     26    SER      C     26          0     12.011
    214          O     26    SER      O     26          0    15.9994   ; qtot 0
 ; residue  27 ASN rtp ASN  q  0.0
-   215          N     27    ASN      N     27          0    14.0067
+   215          N     27    ASN      N     27          0    15.0067
    216        CH1     27    ASN     CA     27          0     13.019
    217        CH2     27    ASN     CB     27          0     14.027
    218          C     27    ASN     CG     27          0     12.011
    219          O     27    ASN    OD1     27          0    15.9994
-   220         NT     27    ASN    ND2     27          0    14.0067
+   220         NT     27    ASN    ND2     27          0    16.0067
    221          C     27    ASN      C     27          0     12.011
    222          O     27    ASN      O     27          0    15.9994   ; qtot 0
 ; residue  28 LYS rtp LYS  q  0.0
-   223          N     28    LYS      N     28          0    14.0067
+   223          N     28    LYS      N     28          0    15.0067
    224        CH1     28    LYS     CA     28          0     13.019
    225        CH2     28    LYS     CB     28          0     14.027
    226        CH2     28    LYS     CG     28          0     14.027
    227        CH2     28    LYS     CD     28          0     14.027
    228        CH2     28    LYS     CE     28          0     14.027
-   229         NT     28    LYS     NZ     28          0    14.0067
+   229         NT     28    LYS     NZ     28          0    16.0067
    230          C     28    LYS      C     28          0     12.011
    231          O     28    LYS      O     28          0    15.9994   ; qtot 0
 ; residue  29 GLY rtp GLY  q  0.0
-   232          N     29    GLY      N     29          0    14.0067
+   232          N     29    GLY      N     29          0    15.0067
    233        CH2     29    GLY     CA     29          0     14.027
    234          C     29    GLY      C     29          0     12.011
    235          O     29    GLY      O     29          0    15.9994   ; qtot 0
 ; residue  30 ALA rtp ALA  q  0.0
-   236          N     30    ALA      N     30          0    14.0067
+   236          N     30    ALA      N     30          0    15.0067
    237        CH1     30    ALA     CA     30          0     13.019
    238        CH3     30    ALA     CB     30          0     15.035
    239          C     30    ALA      C     30          0     12.011
    240          O     30    ALA      O     30          0    15.9994   ; qtot 0
 ; residue  31 ILE rtp ILE  q  0.0
-   241          N     31    ILE      N     31          0    14.0067
+   241          N     31    ILE      N     31          0    15.0067
    242        CH1     31    ILE     CA     31          0     13.019
    243        CH1     31    ILE     CB     31          0     13.019
    244        CH2     31    ILE    CG1     31          0     14.027
@@ -306,7 +306,7 @@ Protein             3
    247          C     31    ILE      C     31          0     12.011
    248          O     31    ILE      O     31          0    15.9994   ; qtot 0
 ; residue  32 ILE rtp ILE  q  0.0
-   249          N     32    ILE      N     32          0    14.0067
+   249          N     32    ILE      N     32          0    15.0067
    250        CH1     32    ILE     CA     32          0     13.019
    251        CH1     32    ILE     CB     32          0     13.019
    252        CH2     32    ILE    CG1     32          0     14.027
@@ -315,12 +315,12 @@ Protein             3
    255          C     32    ILE      C     32          0     12.011
    256          O     32    ILE      O     32          0    15.9994   ; qtot 0
 ; residue  33 GLY rtp GLY  q  0.0
-   257          N     33    GLY      N     33          0    14.0067
+   257          N     33    GLY      N     33          0    15.0067
    258        CH2     33    GLY     CA     33          0     14.027
    259          C     33    GLY      C     33          0     12.011
    260          O     33    GLY      O     33          0    15.9994   ; qtot 0
 ; residue  34 LEU rtp LEU  q  0.0
-   261          N     34    LEU      N     34          0    14.0067
+   261          N     34    LEU      N     34          0    15.0067
    262        CH1     34    LEU     CA     34          0     13.019
    263        CH2     34    LEU     CB     34          0     14.027
    264        CH1     34    LEU     CG     34          0     13.019
@@ -329,7 +329,7 @@ Protein             3
    267          C     34    LEU      C     34          0     12.011
    268          O     34    LEU      O     34          0    15.9994   ; qtot 0
 ; residue  35 MET rtp MET  q  0.0
-   269          N     35    MET      N     35          0    14.0067
+   269          N     35    MET      N     35          0    15.0067
    270        CH1     35    MET     CA     35          0     13.019
    271        CH2     35    MET     CB     35          0     14.027
    272        CH2     35    MET     CG     35          0     14.027
@@ -338,7 +338,7 @@ Protein             3
    275          C     35    MET      C     35          0     12.011
    276          O     35    MET      O     35          0    15.9994   ; qtot 0
 ; residue  36 VAL rtp VAL  q  0.0
-   277          N     36    VAL      N     36          0    14.0067
+   277          N     36    VAL      N     36          0    15.0067
    278        CH1     36    VAL     CA     36          0     13.019
    279        CH1     36    VAL     CB     36          0     13.019
    280        CH3     36    VAL    CG1     36          0     15.035
@@ -346,17 +346,17 @@ Protein             3
    282          C     36    VAL      C     36          0     12.011
    283          O     36    VAL      O     36          0    15.9994   ; qtot 0
 ; residue  37 GLY rtp GLY  q  0.0
-   284          N     37    GLY      N     37          0    14.0067
+   284          N     37    GLY      N     37          0    15.0067
    285        CH2     37    GLY     CA     37          0     14.027
    286          C     37    GLY      C     37          0     12.011
    287          O     37    GLY      O     37          0    15.9994   ; qtot 0
 ; residue  38 GLY rtp GLY  q  0.0
-   288          N     38    GLY      N     38          0    14.0067
+   288          N     38    GLY      N     38          0    15.0067
    289        CH2     38    GLY     CA     38          0     14.027
    290          C     38    GLY      C     38          0     12.011
    291          O     38    GLY      O     38          0    15.9994   ; qtot 0
 ; residue  39 VAL rtp VAL  q  0.0
-   292          N     39    VAL      N     39          0    14.0067
+   292          N     39    VAL      N     39          0    15.0067
    293        CH1     39    VAL     CA     39          0     13.019
    294        CH1     39    VAL     CB     39          0     13.019
    295        CH3     39    VAL    CG1     39          0     15.035
@@ -364,7 +364,7 @@ Protein             3
    297          C     39    VAL      C     39          0     12.011
    298          O     39    VAL      O     39          0    15.9994   ; qtot 0
 ; residue  40 VAL rtp VAL  q  0.0
-   299          N     40    VAL      N     40          0    14.0067
+   299          N     40    VAL      N     40          0    15.0067
    300        CH1     40    VAL     CA     40          0     13.019
    301        CH1     40    VAL     CB     40          0     13.019
    302        CH3     40    VAL    CG1     40          0     15.035
@@ -372,7 +372,7 @@ Protein             3
    304          C     40    VAL      C     40          0     12.011
    305          O     40    VAL      O     40          0    15.9994   ; qtot 0
 ; residue  41 ILE rtp ILE  q  0.0
-   306          N     41    ILE      N     41          0    14.0067
+   306          N     41    ILE      N     41          0    15.0067
    307        CH1     41    ILE     CA     41          0     13.019
    308        CH1     41    ILE     CB     41          0     13.019
    309        CH2     41    ILE    CG1     41          0     14.027
@@ -381,7 +381,7 @@ Protein             3
    312          C     41    ILE      C     41          0     12.011
    313          O     41    ILE      O     41          0    15.9994   ; qtot 0
 ; residue  42 ALA rtp ALA  q  0.0
-   314          N     42    ALA      N     42          0    14.0067
+   314          N     42    ALA      N     42          0    15.0067
    315        CH1     42    ALA     CA     42          0     13.019
    316        CH3     42    ALA     CB     42          0     15.035
    317          C     42    ALA      C     42          0     12.011
@@ -2077,4 +2077,4 @@ Generated with MDTraj, t= 36860.0 in water
 
 [ molecules ]
 ; Compound        #mols
-Protein             1
+Protein_chain_1     1
