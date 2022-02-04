@@ -9,9 +9,7 @@ import itertools
 from pytest import param
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
-# TODO
-#def make_pdb_atomtypes (native_pdb, *fibril_pdb):
-def make_pdb_atomtypes (native_pdb, fibril_pdb, raw_topology_atoms):
+def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
@@ -45,11 +43,7 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, raw_topology_atoms):
         print('\n\tCheck PDB and topology because they have different numbers of atoms')
         exit()
         
-    fibril_sel = fibril_pdb.select_atoms('all')
-    fibril_atomtypes = []
-    for atom in fibril_sel:
-        atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
-        fibril_atomtypes.append(atp)
+
 
     # ffnonbonded making
     # Making a dictionary with atom number and type
@@ -90,8 +84,16 @@ def make_pdb_atomtypes (native_pdb, fibril_pdb, raw_topology_atoms):
 
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, fibril_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
+    return native_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
 
+def make_more_atomtypes(fibril_pdb):
+    fibril_sel = fibril_pdb.select_atoms('all')
+    fibril_atomtypes = []
+    for atom in fibril_sel:
+        atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
+        fibril_atomtypes.append(atp)
+
+    return fibril_atomtypes
 
 def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     '''

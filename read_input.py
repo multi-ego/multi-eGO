@@ -5,26 +5,16 @@ import warnings
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
 
-def read_pdbs(parameters):
-    if parameters['greta_to_keep'] == 'native':
-        native_directory = f"inputs/native_{parameters['protein']}/native.pdb"
-        native_pdb = mda.Universe(native_directory, guess_bonds = True)
-
-    elif parameters['greta_to_keep'] == 'fibril':
-        fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
-        fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
-
-    elif parameters['greta_to_keep'] == 'merge':
-        native_directory = f"inputs/native_{parameters['protein']}/native.pdb"
-        fibril_directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
-        native_pdb = mda.Universe(native_directory, guess_bonds = True)
-        fibril_pdb = mda.Universe(fibril_directory, guess_bonds = True)
+def read_pdbs(parameters, flag):
+    if not flag:
+        directory = f"inputs/native_{parameters['protein']}/native.pdb"
 
     else:
-        print("I dont' understand --build-from=",parameters['greta_to_keep'])
-        exit()
+        directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
+        
+    pdb = mda.Universe(directory, guess_bonds = True)
 
-    return native_pdb, fibril_pdb
+    return pdb
 
 def read_top(parameters):  
     native_directory = f'inputs/native_{parameters["protein"]}/topol.top'
