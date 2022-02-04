@@ -43,8 +43,8 @@ def main(argv):
             else:
                 parameters['protein'] = arg
         elif opt in ("--egos"):
-            if arg in ('singe', 'merge', 'rc'):
-                parameters['greta_to_keep'] = arg
+            if arg in ('single', 'merge', 'rc'):
+                parameters['egos'] = arg
             else:
                 print('--egos accepts <single|merge|rc> options')
                 sys.exit()
@@ -66,7 +66,7 @@ def main(argv):
         print(f'\t{k}: {v}')
 
     # Create the folders which will be used by the script
-    output_directory = f"outputs/output_{parameters['protein']}_{parameters['greta_to_keep']}_e{parameters['epsilon_input']}"
+    output_directory = f"outputs/output_{parameters['protein']}_{parameters['egos']}_e{parameters['epsilon_input']}"
     try:
         os.mkdir(output_directory)
     except OSError as error:
@@ -76,12 +76,12 @@ def main(argv):
     raw_topology_atoms, first_resid, acid_atp, topology_bonds, atom_topology_num = raw_top(parameters)
     print('- reading PDB')
     native_pdb = read_pdbs(parameters, False)
-    if parameters['greta_to_keep'] == 'merge':
+    if parameters['egos'] == 'merge':
         fibril_pdb = read_pdbs(parameters, True)
 
     print('- Generating Atomtypes')
     native_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, raw_topology_atoms)
-    if parameters['greta_to_keep'] == 'merge':
+    if parameters['egos'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
     # TODO correggi la massa dell'azoto in prolina
@@ -90,14 +90,14 @@ def main(argv):
 
     print('- Generating LJ Interactions')
 
-    if parameters['greta_to_keep'] == 'rc':
+    if parameters['egos'] == 'rc':
         greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
         write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, parameters, output_directory)
         print('- Generating Pairs and Exclusions')
         topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, topology_bonds, atom_topology_num, parameters)
         write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters, output_directory)
 
-    elif parameters['greta_to_keep'] == 'single':
+    elif parameters['egos'] == 'single':
         if parameters['idp'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
@@ -109,7 +109,7 @@ def main(argv):
                     greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
 
-    elif parameters['greta_to_keep'] == 'merge':
+    elif parameters['egos'] == 'merge':
         if parameters['idp'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
@@ -123,11 +123,11 @@ def main(argv):
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
             greta_LJ = greta_LJ.append(make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters), sort = False, ignore_index = True)
 
-    else:
-        print("I dont' understand --build-from=",parameters['greta_to_keep'])
+    else: # Questo serve ancora?
+        print("I dont' understand --build-from=",parameters['egos'])
         exit()
 
-    if parameters['greta_to_keep'] != 'rc':
+    if parameters['egos'] != 'rc':
         print('- Finalising LJ interactions')
         greta_ffnb = merge_GRETA(greta_LJ, parameters)
         if parameters['N_terminal'] == True:

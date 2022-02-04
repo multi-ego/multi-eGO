@@ -8,7 +8,7 @@ import itertools
 
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
-def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
+def make_pdb_atomtypes(native_pdb, raw_topology_atoms):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
@@ -19,7 +19,11 @@ def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
     for atom in native_sel:
         '''
         This for loop reads the coordinates file and starts building the SB atomtypes.
-        The native atomtypes will be used for topology.top, atomtypes.atp and ffnonbonded.itp.
+        The native atomtypes will be used for 
+         - topology.top,
+         - atomtypes.atp,
+         - ffnonbonded.itp
+         
         We define atps as atomname_resnumber:chainnumber, as we need this three informations to create atom pairs.
         '''
         # Native atomtypes will be used to create the pairs list
@@ -46,7 +50,7 @@ def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
     # Making a dictionary with atom number and type
     ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
     ffnb_atomtype['; type'] = topology_atoms['sb_type']
-    ffnb_atomtype['chem'] = topology_atoms['type']
+    ffnb_atomtype['chem'] = topology_atoms['atom_type']
     ffnb_atomtype['at.num'] = ffnb_atomtype['chem'].map(gromos_atp['at.num'])
     ffnb_atomtype['mass'] = topology_atoms['mass']
     ffnb_atomtype['charge'] = '0.000000'
@@ -68,15 +72,13 @@ def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
     
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
-
+    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
     topology_atoms['type'] = topology_atoms['sb_type']
-    topology_atoms.insert(5, 'cgnr', 1)
     topology_atoms.insert(6, 'charge', '')
     topology_atoms['mass'] = ''
     topology_atoms['typeB'] = ''
     topology_atoms['chargeB'] = ''
     topology_atoms['massB'] = ''
-    topology_atoms.rename(columns={'nr':'; nr'}, inplace=True)
     topology_atoms.drop(columns=['sb_type'], inplace=True)
 
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
@@ -404,17 +406,16 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     contacts will be defined in pairs and exclusions as particular cases.
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
     '''
-
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-    atnum_type_top = raw_topology_atoms[['nr', 'sb_type', 'resnr', 'atom', 'type', 'residue']].copy()
-    atnum_type_top['resnr'] = atnum_type_top['resnr'].astype(int)
+    atnum_type_top = raw_topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
+    atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
+    atnum_type_top['atom_number'] = atnum_type_top['atom_number'].astype(str)
 
     # Dictionaries definitions to map values
-    atnum_type_dict = atnum_type_top.set_index('sb_type')['nr'].to_dict()
-    type_atnum_dict = atnum_type_top.set_index('nr')['sb_type'].to_dict()
-
+    atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
+    type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
     # Bonds from topology
     atnum_topology_bonds = topology_bonds.copy()
     atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
@@ -558,7 +559,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     # to optimize the left alpha region in the Ramachandran
 
     # Adding the c6 and c12 (I do it now because later is sbatti)
-    atnum_type_top['c6'] = atnum_type_top['type'].map(gromos_atp_c6['c6'])
+    atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp_c6['c6'])
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
     # Here we make a dictionary of the backbone oxygen as atom number
@@ -571,10 +572,10 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
     left_alpha_ai, left_alpha_aj, left_alpha_c6, left_alpha_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['resnr'] == (line_backbone_oxygen['resnr'])+1].squeeze(axis=None)
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])+1].squeeze(axis=None)
         if not line_sidechain_cb.empty:
-            left_alpha_ai.append(line_backbone_oxygen['nr'])
-            left_alpha_aj.append(line_sidechain_cb['nr'])
+            left_alpha_ai.append(line_backbone_oxygen['atom_number'])
+            left_alpha_aj.append(line_sidechain_cb['atom_number'])
             left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
             left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 

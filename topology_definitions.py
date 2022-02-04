@@ -1,32 +1,30 @@
 import pandas as pd
-from read_input import read_top
+from read_input import read_top, read_topology
 import numpy as np
 
 # Import the topology informations
 def raw_top(parameters):
 	topology = read_top(parameters)
 	protein_top = topology.molecules[0]
-
+	raw_topology_atoms = read_topology(parameters)
 	# To import the [ atoms ] section of the topology
-	atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein_top.list_atoms()
-
+	#atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein_top.list_atoms()
 	# This is needed when we want to do some stuff only to the N terminal
-	first_resid = 'N_'+str(atom_topology_resid[0])
-
+	first_resid = 'N_'+str(raw_topology_atoms['residue_number'][0])
 	# this is used in greta
-	raw_topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass]), columns=['nr', 'type','resnr', 'residue', 'atom', 'mass'])
+	#raw_topology_atoms = pd.DataFrame(np.column_stack([atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass]), columns=['nr', 'type','residue_number', 'residue', 'atom', 'mass'])
 
 	# Changing the mass of the atoms section by adding the H
 	raw_topology_atoms['mass'].astype(float)
 
 	# Adding H to backbone N
-	mask = raw_topology_atoms['type'] == 'N'
+	mask = raw_topology_atoms['atom_type'] == 'N'
 	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
 	# Adding an extra H to the N terminal
-	mask = ((raw_topology_atoms['resnr'] == raw_topology_atoms['resnr'].min()) & (raw_topology_atoms['type'] == 'N'))
+	mask = ((raw_topology_atoms['residue_number'] == raw_topology_atoms['residue_number'].min()) & (raw_topology_atoms['atom_type'] == 'N'))
 	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(2)
 	# Adding H to OH groups
-	mask = raw_topology_atoms['type'] == 'OA'
+	mask = raw_topology_atoms['atom_type'] == 'OA'
 	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
 
 	# Aromatics (PHE/TYR/HIS/TRP)
@@ -38,7 +36,6 @@ def raw_top(parameters):
 		'HIS': ['CE1', 'CD2'],
 		'TRP': ['CD1', 'CE3', 'CZ2', 'CZ3', 'CH2']
 	}
-	mask = ((raw_topology_atoms['type'] == 'N') | (raw_topology_atoms['type'] == 'OA')) | ((raw_topology_atoms['residue'] == 'TYR') & ((raw_topology_atoms['atom'] == 'CD1') | (raw_topology_atoms['atom'] == 'CD2') | (raw_topology_atoms['atom'] == 'CE1') | (raw_topology_atoms['atom'] == 'CE2')))
 
 	for resname, atomnames in aromatic_carbons_dict.items():
 		for atom in atomnames:
@@ -46,7 +43,7 @@ def raw_top(parameters):
 			raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
 
 	# Structure based atomtype definition
-	raw_topology_atoms['sb_type'] = raw_topology_atoms['atom'] + '_' + raw_topology_atoms['resnr']
+	raw_topology_atoms['sb_type'] = raw_topology_atoms['atom'] + '_' + raw_topology_atoms['residue_number'].astype(str)
 
 	# ACID pH
 	# Selection of the aminoacids and the charged atoms (used for B2m)
@@ -82,7 +79,11 @@ def raw_top(parameters):
 	topology_bonds['aj'] = topology_bonds['aj_type'] + '_' + topology_bonds['aj_resid'].astype(str)
 	topology_bonds.drop(['ai_type', 'ai_resid','aj_type', 'aj_resid'], axis=1, inplace=True)
 
-	return raw_topology_atoms, first_resid, acid_atp, topology_bonds, atom_topology_num
+	return raw_topology_atoms, first_resid, acid_atp, topology_bonds, raw_topology_atoms['atom_number'].to_list()
+
+
+
+
 
 
 # Harp 0
