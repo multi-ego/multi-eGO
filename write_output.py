@@ -1,11 +1,11 @@
-from time import gmtime, strftime
-now = strftime("%d-%m-%Y %H:%M", gmtime())
+from time import localtime, strftime
+now = strftime("%d-%m-%Y %H:%M", localtime())
 
 def header(parameters):
     header = f'; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab \n'
     header = header + f'; Created on the {now}\n'
     header = header + f"; Protein name: {parameters['protein']} \n"
-    header = header + f"; The force field type is: {parameters['greta_to_keep']} \n"
+    header = header + f"; The force field type is: {parameters['egos']} \n"
     header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
