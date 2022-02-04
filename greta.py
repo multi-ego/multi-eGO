@@ -417,12 +417,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
     # Bonds from topology
-    atnum_topology_bonds = topology_bonds.copy()
-    atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].map(atnum_type_dict)
-    atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].map(atnum_type_dict)
-    atnum_topology_bonds['ai'] = atnum_topology_bonds['ai'].astype(int)
-    atnum_topology_bonds['aj'] = atnum_topology_bonds['aj'].astype(int)
-    bond_tuple = list(map(tuple, atnum_topology_bonds.to_numpy()))
+    bond_tuple = topology_bonds.copy()
 
     #TODO this should be in topology_definitions.py
     # Building the exclusion bonded list

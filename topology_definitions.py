@@ -4,9 +4,7 @@ import numpy as np
 
 # Import the topology informations
 def raw_top(parameters):
-	topology = read_top(parameters)
-	protein_top = topology.molecules[0]
-	raw_topology_atoms = read_topology(parameters)
+	raw_topology_atoms, topol_bonds = read_topology(parameters)
 	# To import the [ atoms ] section of the topology
 	#atom_topology_num, atom_topology_type, atom_topology_resid, atom_topology_resname, atom_topology_name, atom_topology_mass  = protein_top.list_atoms()
 	# This is needed when we want to do some stuff only to the N terminal
@@ -58,26 +56,7 @@ def raw_top(parameters):
 
 	# BONDS
 	# This list will be used to build pairs and exclusions lists to attach in the topology
-	atom_types, atom_resids = protein_top.list_bonds(by_resid=True)
-	ai_type, aj_type, ai_resid, aj_resid = [], [], [], []
-
-	for atyp in atom_types:
-		atyp_split = atyp.split(' ')
-		ai_type.append(atyp_split[0])
-		aj_type.append(atyp_split[1])
-
-	for ares in atom_resids:
-		ares_split = ares.split(' ')
-		ai_resid.append(ares_split[0])
-		aj_resid.append(ares_split[1])
-
-	# TODO put the exclusion list here instead of the function
-	# TODO you also may consider to join the exclusions and pairs function within the atomtypes one
-
-	topology_bonds = pd.DataFrame(np.column_stack([ai_type, ai_resid, aj_type, aj_resid]), columns=['ai_type', 'ai_resid','aj_type', 'aj_resid'])
-	topology_bonds['ai'] = topology_bonds['ai_type'] + '_' + topology_bonds['ai_resid'].astype(str)
-	topology_bonds['aj'] = topology_bonds['aj_type'] + '_' + topology_bonds['aj_resid'].astype(str)
-	topology_bonds.drop(['ai_type', 'ai_resid','aj_type', 'aj_resid'], axis=1, inplace=True)
+	topology_bonds = topol_bonds.bond_pairs
 
 	return raw_topology_atoms, first_resid, acid_atp, topology_bonds, raw_topology_atoms['atom_number'].to_list()
 

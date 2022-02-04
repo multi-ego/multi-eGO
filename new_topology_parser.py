@@ -61,5 +61,5 @@ class topology_bonds:
         self.bond_pairs = bonds_pairs
 
 
-#prova = topology_bonds(f'inputs/native_ABeta/topol.top')
-#print(prova.bond_pairs)
+prova = topology_bonds(f'inputs/native_ABeta/topol.top')
+print(len(prova.bond_pairs))

@@ -2,7 +2,7 @@ import pandas as pd
 import MDAnalysis as mda
 from gromologist import Top
 import warnings
-from new_topology_parser import topology_atoms
+from new_topology_parser import topology_atoms, topology_bonds
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
 
@@ -27,9 +27,10 @@ def read_top(parameters):
 
 def read_topology(parameters):
 	# Read the topology created from pbd2gmx with gromos-primefull
-	topology = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top').df_topology_atoms
-    #bonds =
-	return topology
+    topol_atoms = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top').df_topology_atoms
+    topol_bonds = topology_bonds(f'inputs/native_{parameters["protein"]}/topol.top')
+	
+    return topol_atoms, topol_bonds
 
 
 def plainMD_mdmat(parameters):
