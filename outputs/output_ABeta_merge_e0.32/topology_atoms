@@ -1,13 +1,13 @@
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab 
-; Created the 03-02-2022 18:38
+; Created on the 04-02-2022 14:13
 ; Protein name: ABeta 
-; The ensemble includes merge 
-; Atom cutoff distance: 5.5 A 
+; The force field type is: merge 
+; Atoms cutoff distance: 5.5 A 
 ; Skipping contacts within 2 residues 
-; LJ are set with epsilon 0.32 
-; LJ potential from plainMD reweighted by 0.001 
-; Reducing the C12 Lennard Jones by 0.15 
-; Enhancing C6 for left alpha dihedral by 1.5 
+; LJ epsilon: 0.32 
+; LJ potential from plainMD reweighted by: 0.001 
+; Reducing the C12 N-X 1-3 C12 by: 0.15 
+; Enhancing C6 for left alpha dihedral by: 1.5 
 [ atoms ]
 ; nr   type resnr residue atom  cgnr charge mass typeB chargeB massB
    1    N_1     1     ASP    N     1                                

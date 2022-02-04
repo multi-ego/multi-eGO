@@ -20,12 +20,12 @@ def main(argv):
         # For left alpha we might want to increase the c6 values
         'multiply_c6':1.5,
         # Acid FFnonbondend it only works on the native pairs
-        'acid_ff':False
+        'acid_ff':False, 
+        'idp':True
     }
 
     print('\n\nMulti-eGO (codename: GRETA)\n')
 
-    idp = True
 
     try:
         opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=","noensemble"])
@@ -37,21 +37,29 @@ def main(argv):
             print('main.py -p <protein> -b <single|merge|rc>')
             sys.exit()
         elif opt in ("--protein"):
-            parameters['protein'] = arg
+            if not arg:
+                print('Provide a protein name')
+                sys.exit()
+            else:
+                parameters['protein'] = arg
         elif opt in ("--egos"):
-            parameters['greta_to_keep'] = arg
+            if arg in ('singe', 'merge', 'rc'):
+                parameters['greta_to_keep'] = arg
+            else:
+                print('--egos accepts <single|merge|rc> options')
+                sys.exit()
         elif opt in ("--epsilon"):
-            parameters['epsilon_input'] = float(arg)
-            parameters['epsilon_structure'] = float(arg)
-            parameters['epsilon_md'] = float(arg)
+            arg = float(arg)
+            if arg > 1 or arg == 0:
+                print('Epsilon values must be chosen between 0 and 1')
+                sys.exit()
+            else:
+                parameters['epsilon_input'] = float(arg)
+                parameters['epsilon_structure'] = float(arg)
+                parameters['epsilon_md'] = float(arg)
         elif opt in ("--noensemble"):
-            idp = False 
+            parameters['idp'] = False 
    
-    # TODO add the checks that the arguments are written correctly
-    # protein should not be empty
-    # egos should be one among single|merge|rc
-    # epsilon should be a number between (0 and 1) 
-
     print('- Creating a multi-eGO force-field using the following parameters:')
     
     for k,v in parameters.items():
@@ -90,7 +98,7 @@ def main(argv):
         write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters, output_directory)
 
     elif parameters['greta_to_keep'] == 'single':
-        if idp == True:
+        if parameters['idp'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
@@ -102,7 +110,7 @@ def main(argv):
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
 
     elif parameters['greta_to_keep'] == 'merge':
-        if idp == True:
+        if parameters['idp'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters)

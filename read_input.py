@@ -30,8 +30,7 @@ def plainMD_mdmat(parameters):
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
     atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-    #plainMD_directory = '/home/emanuele/ABeta/markov'
-    plainMD_directory = f'inputs/native_{parameters["protein"]}'
+    plainMD_directory = f'inputs/md_{parameters["protein"]}'
     reference_plainMD_structure = f'{plainMD_directory}/reduced-noh.gro'
 
     plainMD = mda.Universe(reference_plainMD_structure)

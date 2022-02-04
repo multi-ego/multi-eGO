@@ -9,10 +9,10 @@ def header(parameters):
     header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
-    # TODO this should be if idp
-    header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
-    header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
-    header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+    if parameters['idp'] == True:
+        header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
+        header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
+        header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
 
     return header
 

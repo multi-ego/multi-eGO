@@ -1,13 +1,13 @@
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab 
-; Created the 03-02-2022 18:38
+; Created on the 04-02-2022 14:13
 ; Protein name: ABeta 
-; The ensemble includes merge 
-; Atom cutoff distance: 5.5 A 
+; The force field type is: merge 
+; Atoms cutoff distance: 5.5 A 
 ; Skipping contacts within 2 residues 
-; LJ are set with epsilon 0.32 
-; LJ potential from plainMD reweighted by 0.001 
-; Reducing the C12 Lennard Jones by 0.15 
-; Enhancing C6 for left alpha dihedral by 1.5 
+; LJ epsilon: 0.32 
+; LJ potential from plainMD reweighted by: 0.001 
+; Reducing the C12 N-X 1-3 C12 by: 0.15 
+; Enhancing C6 for left alpha dihedral by: 1.5 
 [ atomtypes ]
    N_1  17.0067
   CA_1   13.019
@@ -35,11 +35,11 @@
   CA_4   13.019
   CB_4   14.027
   CG_4   12.011
- CD1_4   12.011
- CD2_4   12.011
- CE1_4   12.011
- CE2_4   12.011
-  CZ_4   12.011
+ CD1_4   13.011
+ CD2_4   13.011
+ CE1_4   13.011
+ CE2_4   13.011
+  CZ_4   13.011
    C_4   12.011
    O_4  15.9994
    N_5  15.0067
@@ -58,8 +58,8 @@
   CB_6   14.027
   CG_6   12.011
  ND1_6  14.0067
- CD2_6   12.011
- CE1_6   12.011
+ CD2_6   13.011
+ CE1_6   13.011
  NE2_6  14.0067
    C_6   12.011
    O_6  15.9994
@@ -114,8 +114,8 @@ CG2_12   15.035
  CB_13   14.027
  CG_13   12.011
 ND1_13  14.0067
-CD2_13   12.011
-CE1_13   12.011
+CD2_13   13.011
+CE1_13   13.011
 NE2_13  14.0067
   C_13   12.011
   O_13  15.9994
@@ -124,8 +124,8 @@ NE2_13  14.0067
  CB_14   14.027
  CG_14   12.011
 ND1_14  14.0067
-CD2_14   12.011
-CE1_14   12.011
+CD2_14   13.011
+CE1_14   13.011
 NE2_14  14.0067
   C_14   12.011
   O_14  15.9994
@@ -166,22 +166,22 @@ CG2_18   15.035
  CA_19   13.019
  CB_19   14.027
  CG_19   12.011
-CD1_19   12.011
-CD2_19   12.011
-CE1_19   12.011
-CE2_19   12.011
- CZ_19   12.011
+CD1_19   13.011
+CD2_19   13.011
+CE1_19   13.011
+CE2_19   13.011
+ CZ_19   13.011
   C_19   12.011
   O_19  15.9994
   N_20  15.0067
  CA_20   13.019
  CB_20   14.027
  CG_20   12.011
-CD1_20   12.011
-CD2_20   12.011
-CE1_20   12.011
-CE2_20   12.011
- CZ_20   12.011
+CD1_20   13.011
+CD2_20   13.011
+CE1_20   13.011
+CE2_20   13.011
+ CZ_20   13.011
   C_20   12.011
   O_20  15.9994
   N_21  15.0067

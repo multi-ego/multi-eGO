@@ -6,7 +6,6 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 
-from pytest import param
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 
 def make_pdb_atomtypes (native_pdb, raw_topology_atoms):
@@ -201,7 +200,6 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     
     u_treshold = 1-parameters['ratio_treshold']
 
-    # TODO applicare la formula per riscalare
     # Paissoni Equation 2.0
     # Attractive pairs
     #structural_LJ_intra['epsilon'].loc[u_threshold >=  structural_LJ_intra['rc_probability'])] = epsilon_structure*(1-((np.log(u_threshold))/(np.log(structural_LJ_intra['rc_probability']))))
@@ -465,7 +463,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
         ex14 = []
     
 
-    # TODO Questa si puo prendere direttamente durante il merge per evitare di fare calcoli ridondanti
     if not greta_merge.empty:
         # pairs from greta does not have duplicates because these have been cleaned before
         pairs = greta_merge[['ai', 'aj']].copy()
@@ -509,8 +506,6 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, raw_topology_atoms, 
     pairs_14['exclusions'] = p14
     pairs_14[['ai', 'aj']] = pairs_14.exclusions.str.split("_", expand = True)
 
-    # TODO migliora questo passaggio mettendo direttamente il map
-    # TODO sistemare direttamente c12_ax con type e poi chiamare la colonna quando serve con quel nome
     pairs_14['c12_ai'] = pairs_14['ai']
     pairs_14['c12_aj'] = pairs_14['aj']
     pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_atnum_dict)
