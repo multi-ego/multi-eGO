@@ -93,7 +93,6 @@ def main(argv):
     if parameters['greta_to_keep'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
-    # TODO correggi la massa dell'azoto in prolina
     write_greta_atomtypes_atp(atomtypes_atp, parameters, output_directory)
     write_greta_topology_atoms(topology_atoms, parameters, output_directory)
 
