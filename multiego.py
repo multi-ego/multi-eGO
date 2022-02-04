@@ -11,7 +11,6 @@ def main(argv):
         'distance_cutoff':5.5,
         'distance_residue':2,
         'ratio_treshold':0.001,
-        #'u_treshold':1.-Self['ratio_treshold'],
         'N_terminal':False,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
