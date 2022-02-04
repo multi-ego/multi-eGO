@@ -5,6 +5,9 @@ import warnings
 from topology_parser import topology_atoms, topology_bonds
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
+pd.options.mode.chained_assignment = None  # default='warn'
 
 def read_pdbs(parameters, flag):
     if not flag:

@@ -6,8 +6,9 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 from read_input import read_topology
-
 from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
+pd.options.mode.chained_assignment = None  # default='warn'
+
 
 def make_pdb_atomtypes(native_pdb, parameters):
     '''
@@ -358,16 +359,16 @@ def merge_GRETA(greta_LJ, parameters):
             
             if len(sigma) == 1:
                 # If there is only onw sigma for the averages it will be skipped
-                print('\t\tOnly one self interacting pair has been found for', a, '==> Skip')
+                print('\t\tOnly one self interacting pair available for {} ==> {}'.format((str(a)[:-1]), 'Skip'))
             elif len(sigma) == 0:
                 # If the missing atom pairs is not represented in the strcture there are not
                 # sigmas to average
-                print('\t\tThere are not self interactions for', a, '==> Skip')
+                print('\t\tThere are not self interactions for {:<12} ==> {}'.format((str(a)[:-1]), 'Skip'))
             else:
                 # If there are enough sigmas to make an average then it creates the missing atom pairs
                 media_sigma = sigma.mean()
                 sd_sigma = sigma.std()
-                print('\t\tThere are', len(sigma),  a, 'with an average Sigma:', '\t', media_sigma ,'+/-', sd_sigma)
+                print('\t\tThere are {:<3} {:<3} with an average Sigma of: {:>17.10f} +/- {}'.format((len(sigma)), (str(a)[:-1]), media_sigma, sd_sigma))
                 
                 # Creation of new c6 and c12
                 # Epsilon structure because those are self
