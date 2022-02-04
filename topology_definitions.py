@@ -19,18 +19,14 @@ def raw_top(parameters):
 	# Changing the mass of the atoms section by adding the H
 	raw_topology_atoms['mass'].astype(float)
 
-	# Adding H to backbone N
-	mask = raw_topology_atoms['type'] == 'N'
-	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
-	# Adding an extra H to the N terminal
+	# Adding two extra H to the N terminal
 	mask = ((raw_topology_atoms['resnr'] == raw_topology_atoms['resnr'].min()) & (raw_topology_atoms['type'] == 'N'))
 	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(2)
-	# Adding H to OH groups
-	mask = raw_topology_atoms['type'] == 'OA'
-	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).add(1)
+	# removing an H to the N of PRO 
+	mask = ((raw_topology_atoms['type'] == 'N') & ( raw_topology_atoms['residue'] == "PRO"))
+	raw_topology_atoms['mass'][mask] = raw_topology_atoms['mass'][mask].astype(float).sub(1)
 
 	# Aromatics (PHE/TYR/HIS/TRP)
-
 	# Aromatic carbons dictionary
 	aromatic_carbons_dict = {
 		'PHE': ['CD1', 'CD2', 'CE1', 'CE2', 'CZ'],
@@ -38,7 +34,6 @@ def raw_top(parameters):
 		'HIS': ['CE1', 'CD2'],
 		'TRP': ['CD1', 'CE3', 'CZ2', 'CZ3', 'CH2']
 	}
-	mask = ((raw_topology_atoms['type'] == 'N') | (raw_topology_atoms['type'] == 'OA')) | ((raw_topology_atoms['residue'] == 'TYR') & ((raw_topology_atoms['atom'] == 'CD1') | (raw_topology_atoms['atom'] == 'CD2') | (raw_topology_atoms['atom'] == 'CE1') | (raw_topology_atoms['atom'] == 'CE2')))
 
 	for resname, atomnames in aromatic_carbons_dict.items():
 		for atom in atomnames:
