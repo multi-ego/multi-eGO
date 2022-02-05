@@ -71,4 +71,3 @@ def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters, directory):
     file.close()
 
     print('- FF Written.')
-    print('\tChange the masses and copy ffnonbonded.itp and atomtypes.atp into the ff folder.')
