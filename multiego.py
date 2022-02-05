@@ -46,10 +46,14 @@ def main(argv):
         elif opt in ("--egos"):
             if arg in ('single', 'merge', 'rc'):
                 parameters['egos'] = arg
-                readall +=1
+                if arg == 'rc':
+                    readall +=2
+                else:
+                    readall +=1
             else:
                 print('--egos accepts <single|merge|rc> options')
                 sys.exit()
+
         elif opt in ("--epsilon"):
             arg = float(arg)
             if arg > 1 or arg < 0:
@@ -74,7 +78,11 @@ def main(argv):
         print('\t{:<20}: {:<20}'.format(k,v))
 
     # Create the folders which will be used by the script
-    output_directory = f"outputs/output_{parameters['protein']}_{parameters['egos']}_e{parameters['epsilon_input']}"
+    if parameters['egos'] == 'rc':
+        output_directory = f"outputs/output_{parameters['protein']}_{parameters['egos']}"
+    else:
+        output_directory = f"outputs/output_{parameters['protein']}_{parameters['egos']}_e{parameters['epsilon_input']}"
+    
     try:
         os.mkdir(output_directory)
     except OSError as error:

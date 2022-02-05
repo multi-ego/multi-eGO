@@ -8,7 +8,10 @@ def header(parameters):
     header = header + f"; The force field type is: {parameters['egos']} \n"
     header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
-    header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
+    if parameters['egos'] == 'rc':
+        header = header + f"; Random Coil \n"
+    else:    
+        header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
     if parameters['idp'] == True:
         header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
         header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
