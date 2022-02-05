@@ -576,8 +576,11 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
         if not line_sidechain_cb.empty:
             left_alpha_ai.append(line_backbone_oxygen['atom_number'])
             left_alpha_aj.append(line_sidechain_cb['atom_number'])
-            left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
-            left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+            #left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
+            #left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+            #we use the parameters of Alanine because dihedrals have been optimised with these
+            left_alpha_c6.append(0.007115485)
+            left_alpha_c12.append(0.000005162090)
 
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     left_alpha_pairs['ai'] = left_alpha_ai
