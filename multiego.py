@@ -132,14 +132,14 @@ def main(argv):
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
-            greta_LJ = greta_LJ.append(make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters), sort = False, ignore_index = True)
+            greta_LJ = pd.concat([greta_LJ,make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = make_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
             if parameters['acid_ff'] == True and acid_atp !=0:
                     greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
-            greta_LJ = greta_LJ.append(make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters), sort = False, ignore_index = True)
+            greta_LJ = pd.concat([greta_LJ,make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
 
     else: # one should never get here
         print("I dont' understand --egos=",parameters['egos'])

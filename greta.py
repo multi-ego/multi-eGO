@@ -186,7 +186,8 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     # this must list ALL COLUMNS!
     inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
     inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
-    structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    structural_LJ = pd.concat([structural_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
+    
 
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
@@ -237,7 +238,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
     # This is included in the old before using the formula
     structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
-    structural_LJ = structural_LJ_intra.append(structural_LJ_inter, sort = False, ignore_index = True)
+    structural_LJ = pd.concat([structural_LJ_intra,structural_LJ_inter], axis=0, sort = False, ignore_index = True)
 
     pd.options.mode.chained_assignment = 'warn' 
     print('\t\tSigma and epsilon completed ', len(structural_LJ))
@@ -310,7 +311,7 @@ def merge_GRETA(greta_LJ, parameters):
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon']].copy()
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
-    greta_LJ = greta_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
     print('\tDoubled pairs list: ', len(greta_LJ))
 
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
@@ -403,7 +404,7 @@ def merge_GRETA(greta_LJ, parameters):
 
         pairs_toadd.dropna(inplace = True)
         # Appending the missing atom pairs to the main dataframe
-        greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
+        greta_LJ = pd.concat([greta_LJ,pairs_toadd], axis=0, sort = False, ignore_index = True)
         print('\tSelf interactions added to greta_LJ ', len(pairs_toadd))
 
     # Drop double, we don't need it anymore
@@ -561,7 +562,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
     # Exclusions 1-4
-    pairs = pairs.append(pairs_14)
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # Drop duplicates
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
@@ -608,7 +609,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     left_alpha_pairs['c12'] = left_alpha_c12
     left_alpha_pairs['func'] = 1
 
-    pairs = pairs.append(left_alpha_pairs)
+    pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
@@ -619,7 +620,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     # Here we want to sort so that ai is smaller than aj
     inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12']
-    pairs = pairs.append(inv_pairs, sort = False, ignore_index = True)
+    pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
     pairs = pairs[pairs['ai']<pairs['aj']]
     
     pairs.sort_values(by = ['ai', 'aj'], inplace = True)
