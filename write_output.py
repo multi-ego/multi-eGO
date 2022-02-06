@@ -18,27 +18,27 @@ def header(parameters):
 
     return header
 
-def write_greta_atomtypes_atp(atomtypes_atp, parameters, directory):
+def write_greta_atomtypes_atp(atomtypes_atp, parameters):
     # This function is used to create the atomtypes.atp.
     #directory = f"outputs/output_{parameters['protein']}"
-    file = open(f'{directory}/atomtypes.atp', "w")
+    file = open(f'{parameters["output_folder"]}/atomtypes.atp', "w")
     file.write(header(parameters))
     file.write("\n")
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms, parameters, directory):
+def write_greta_topology_atoms(topology_atoms, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
-    file = open(f'{directory}/topology_atoms', "w")
+    file = open(f'{parameters["output_folder"]}/topology_atoms', "w")
     file.write(header(parameters))
     file.write("[ atoms ]")
     file.write("\n")
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters, directory):
+def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
-    file = open(f'{directory}/topology_pairs', "w")
+    file = open(f'{parameters["output_folder"]}/topology_pairs', "w")
     file.write(header(parameters))
     file.write("[ pairs ]")
     file.write("\n")
@@ -50,14 +50,14 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters, d
     file.close()
     print('- Pairs and Exclusions written')
 
-def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters, directory):
+def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters):
     if parameters['acid_ff'] == True and acid_atp !=0:
         #directory = f"outputs/output_{parameters['protein']}/acid_ffnonbonded.itp"
-        file = open(f'{directory}/acid_ffnonbonded.itp', "w")
+        file = open(f'{parameters["output_folder"]}/acid_ffnonbonded.itp', "w")
         file.write(header(parameters))
     else:
         #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
-        file = open(f'{directory}/ffnonbonded.itp', "w")
+        file = open(f'{parameters["output_folder"]}/ffnonbonded.itp', "w")
         file.write(header(parameters))
 
     file.write("[ atomtypes ]\n")

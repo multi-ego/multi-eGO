@@ -4,7 +4,7 @@
 
 [ ACE ]
  [ atoms ]
-    CA   CH3   0.000     0
+   CH3   CH3   0.000     0
      C     C   0.000     0
      O     O   0.000     0
  [ bonds ]
@@ -21,7 +21,7 @@
 [ NME ]
  [ atoms ]
      N     N   0.000    0
-    CA   CH3   0.000    0
+   CH3   CH3   0.000    0
  [ bonds ]
     N    CA    gb_21
  [ angles ]
