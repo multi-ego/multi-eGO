@@ -10,10 +10,10 @@ pd.options.mode.chained_assignment = None  # default='warn'
 
 def read_pdbs(parameters, flag):
     if not flag:
-        directory = f"inputs/native_{parameters['protein']}/native.pdb"
+        directory = f"{parameters['input_folder']}/native.pdb"
 
     else:
-        directory = f"inputs/fibril_{parameters['protein']}/fibril.pdb"
+        directory = f"{parameters['input_folder']}/fibril.pdb"
         
     pdb = mda.Universe(directory, guess_bonds = True)
 
@@ -21,19 +21,18 @@ def read_pdbs(parameters, flag):
 
 def read_topology(parameters):
     # Read the topology created from pbd2gmx with gromos-primefull
-    topol_atoms = topology_atoms(f'inputs/native_{parameters["protein"]}/topol.top')
-    topol_bonds = topology_bonds(f'inputs/native_{parameters["protein"]}/topol.top')
+    topol_atoms = topology_atoms(f'{parameters["input_folder"]}/topol.top')
+    topol_bonds = topology_bonds(f'{parameters["input_folder"]}/topol.top')
 	
     return topol_atoms, topol_bonds
 
 def plainMD_mdmat(parameters):
     # Reading PlainMD contacts
-    atomic_mat_plainMD = pd.read_csv(f'inputs/md_{parameters["protein"]}/plainMD_contacts.ndx', header=None, sep = '\s+')
+    atomic_mat_plainMD = pd.read_csv(f'{parameters["input_folder"]}/plainMD_contacts.ndx', header=None, sep = '\s+')
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
     atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-    plainMD_directory = f'inputs/md_{parameters["protein"]}'
-    reference_plainMD_structure = f'{plainMD_directory}/reduced-noh.gro'
+    reference_plainMD_structure = f'{parameters["input_folder"]}/plainMD-noh.gro'
 
     plainMD = mda.Universe(reference_plainMD_structure)
     peptides = plainMD.select_atoms('all')
@@ -55,11 +54,11 @@ def plainMD_mdmat(parameters):
 
 def random_coil_mdmat(parameters):
 	# Reading Random Coil contacts
-	atomic_mat_random_coil = pd.read_csv(f'inputs/rc_{parameters["protein"]}/random_coil_contacts.ndx', header=None, sep = '\s+')
+	atomic_mat_random_coil = pd.read_csv(f'{parameters["input_folder"]}/random_coil_contacts.ndx', header=None, sep = '\s+')
 	atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
 	atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
 
-	reference_random_coil_structure = f'inputs/rc_{parameters["protein"]}/random_coil.gro'
+	reference_random_coil_structure = f'{parameters["input_folder"]}/native.pdb'
 
 	random_coil = mda.Universe(reference_random_coil_structure)
 	peptides = random_coil.select_atoms('all')
