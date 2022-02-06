@@ -152,7 +152,7 @@ refcoord-scaling         = No
 
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen_vel                  = no
-gen_temp                 = 278 
+gen_temp                 = 278
 gen_seed                 = -1
 
 ; OPTIONS FOR BONDS    
