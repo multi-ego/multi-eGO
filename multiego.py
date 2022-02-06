@@ -30,7 +30,7 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=","noensemble"])
     except getopt.GetoptError:
-        print('multiego.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
+        print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)' )
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
@@ -69,7 +69,7 @@ def main(argv):
   
     if readall != 3:
         print('ERROR: missing input argument')
-        print('multiego.py --protein <protein> --egos <single|merge|rc> --noensemble (optional)' )
+        print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)' )
         exit()
  
     print('- Creating a multi-eGO force-field using the following parameters:')
