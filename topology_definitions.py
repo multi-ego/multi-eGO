@@ -1,6 +1,4 @@
 import pandas as pd
-from read_input import read_top, read_topology
-import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
 # Harp 0
