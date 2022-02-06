@@ -86,7 +86,7 @@ def random_coil_mdmat(parameters):
 	atomic_mat_random_coil.drop(atomic_mat_random_coil[abs(atomic_mat_random_coil['residue_aj'] - atomic_mat_random_coil['residue_ai']) < parameters["distance_residue"]].index, inplace=True)
 	atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
 	pd.options.mode.chained_assignment = None
-	atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (parameters['ratio_treshold']/10)] = parameters['ratio_treshold']/10
+	atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (parameters['ratio_threshold']/10)] = parameters['ratio_threshold']/10
 	pd.options.mode.chained_assignment = 'warn' 
 
 	new_colnames = []

@@ -6,16 +6,15 @@ def header(parameters):
     header = header + f'; Created on the {now}\n'
     header = header + f"; Protein name: {parameters['protein']} \n"
     header = header + f"; The force field type is: {parameters['egos']} \n"
-    header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
-    header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
-    if parameters['egos'] == 'rc':
-        header = header + f"; Random Coil \n"
-    else:    
+    if parameters['egos'] != 'rc':
         header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
     if parameters['idp'] == True:
-        header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
-        header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
-        header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+        header = header + f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['ratio_threshold']} \n"
+    header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
+    header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
+    header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
+    header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+    header = header + "\n"
 
     return header
 
@@ -24,7 +23,6 @@ def write_greta_atomtypes_atp(atomtypes_atp, parameters, directory):
     #directory = f"outputs/output_{parameters['protein']}"
     file = open(f'{directory}/atomtypes.atp', "w")
     file.write(header(parameters))
-    file.write("[ atomtypes ]")
     file.write("\n")
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()

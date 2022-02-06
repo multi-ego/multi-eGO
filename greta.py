@@ -202,7 +202,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
     pd.options.mode.chained_assignment = None
     
-    u_treshold = 1-parameters['ratio_treshold']
+    u_threshold = 1-parameters['ratio_threshold']
 
     # Paissoni Equation 2.0
     # Attractive pairs
@@ -210,8 +210,8 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(u_treshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_treshold']))*(np.log(u_treshold/structural_LJ_intra['rc_probability']))
-    structural_LJ_intra['epsilon'].loc[(u_treshold <  structural_LJ_intra['rc_probability'])] = 0
+    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_threshold']))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Too small epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*parameters['epsilon_structure']] = 0
     structural_LJ_intra.dropna(inplace=True)
@@ -230,7 +230,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('\tAddition of MD derived native pairs')
-    # The ratio treshold considers only pairs occurring at a certain probability
+    # The ratio threshold considers only pairs occurring at a certain probability
     # This dictionary was made to link amber and greta atomtypes
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':gro_to_amb_dict})
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':gro_to_amb_dict})
@@ -263,13 +263,13 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_treshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_treshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_treshold'])] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_threshold'])] = 0
     atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     pd.options.mode.chained_assignment = 'warn' 
 
