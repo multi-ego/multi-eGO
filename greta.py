@@ -30,20 +30,17 @@ gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
 
 def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
     '''
-    This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
+    This function prepares the ffnonbonded.itp section of Multi-ego.ff.
+    The topology of the plainMD is read, and custom c12 are added.
+    The native .pdb is read and a list of the atoms is prepared to use in PDB_LJ_pairs.
+    It also provides a dictionary based on atom_type and c12 used in make_pairs_exclusion_topology.
     '''
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
     for atom in native_sel:
         '''
-        This for loop reads the coordinates file and starts building the SB atomtypes.
-        The native atomtypes will be used for 
-         - topology.top,
-         - atomtypes.atp,
-         - ffnonbonded.itp
-         
-        We define atps as atomname_resnumber:chainnumber, as we need this three informations to create atom pairs.
+        This loop is required for the atom list to be used in PDB_LJ_pairs.
         '''
         # Native atomtypes will be used to create the pairs list
         #TODO print another for check
@@ -90,6 +87,9 @@ def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
     return native_atomtypes, ffnb_atomtype, atomtypes_atp, type_c12_dict
 
 def make_more_atomtypes(fibril_pdb):
+    '''
+    Like the previous one, this part is needed in PDB_LJ_pairs when computing the pairs.
+    '''
     fibril_sel = fibril_pdb.select_atoms('all')
     fibril_atomtypes = []
     for atom in fibril_sel:
@@ -102,6 +102,11 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
+    Pairs are filtered based on the distance_cutoff which is fixed at 5.5A (in main parameters).
+    A second filter is based on the distance_residue. Pairs between atoms closer than two residues are removed 
+    if the contact is in the same chain.
+    The function also provides the sigma and the epsilon of each pair.
+    In case of intramolecular contacts, pairs are reweighted based on the random_coil probability
     '''
     print('\tAddition of PDB derived native LJ-pairs')
 
@@ -231,6 +236,10 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
 
 def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
+    '''
+    This function reads the probabilities obtained using mdmat on the plainMD and the random coil simulations.
+    For each atom contact the sigma and epsilon are obtained.
+    '''
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
     print('\tAddition of MD derived LJ-pairs')
     # The ratio threshold considers only pairs occurring at a certain probability
@@ -289,7 +298,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
 def merge_and_clean_LJ(greta_LJ, parameters):
     '''
-    This function merges the atom contacts from native and fibril.
+    This function merges the atom contacts from native and fibril and removed eventual duplicates.
     '''
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon']].copy()
