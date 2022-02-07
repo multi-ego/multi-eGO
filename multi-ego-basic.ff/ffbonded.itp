@@ -1,0 +1,368 @@
+; Table 2.5.2.1
+;       GROMOS bond-stretching parameters
+;
+;
+;	Bond type code
+;	Force constant
+;	Ideal bond length
+;	Examples of usage in terms of non-bonded atom types
+;
+;
+;	ICB(H)[N]    CB[N] B0[N]
+;
+; grep "define gb" ffbonded.itp -C 2 |  awk '{if (substr($1,1,1) != ";") printf("%s %s %12.6f %e ; %s\n", $1, $2, $3, $4*2*$3*$3, $6); else print $0}' > new-bond-constant.txt
+
+#define gb_4     0.112000 9.282560e+05 ; 
+; C - O (CO in heme)  2220
+;
+#define gb_5     0.123000 1.000000e+05 ; 
+; C  - O        1200    
+;
+#define gb_6     0.125000 1.000000e+05 ; 
+; C  - OM       1000    
+;
+#define gb_7     0.132000 4.100000e+05 ; 
+; CR1  -  NR (6-ring)   1000    
+;
+#define gb_9     0.133000 1.000000e+05 ; 
+; C  -  NT, NL  900     
+;
+#define gb_10     0.133000 9.3000000e+04 ; 
+; C, CR1  -  N, NR, CR1, C (peptide, 5-ring)       1000    
+;
+#define gb_11     0.134000 9.300000e+04 ; 
+; C  -  N, NZ, NE       900     
+;
+#define gb_12     0.134000 4.200000e+05 ; 
+; C  -  NR (no H) (6-ring)      1000    
+;
+#define gb_13     0.136000 1.010000e+05 ; 
+; C  -  OA      900     
+;
+#define gb_14     0.138000 4.100000e+05 ; 
+; C  -  NR (heme)       1000    
+;
+#define gb_15     0.139000 3.300000e+05 ; 
+; CH2  -  C, CR1 (6-ring)       800     
+;
+#define gb_16     0.139000 9.300000e+04 ; 
+; C, CR1  -  CH2, C, CR1 (6-ring)       1000    
+;
+#define gb_17     0.140000 3.300000e+05 ; 
+; C, CR1, CH2  -  NR (6-ring)   800     
+;
+#define gb_18     0.143000 1.100000e+05 ; 
+; CHn  -  OA    800     
+;
+#define gb_19     0.143000 3.700000e+05 ; 
+; CHn  -  OM    900     
+;
+#define gb_20     0.143500 2.500000e+05 ; 
+; CHn  -  OA (sugar)    600     
+;
+#define gb_21     0.147000 1.000000e+05 ; 
+; CHn  -  N, NT, NL, NZ, NE     900     
+;
+#define gb_22     0.148000 2.500000e+05 ; 
+; CHn  -  NR (5-ring)   600     
+;
+#define gb_23     0.148000 3.300000e+05 ; 
+; CHn  -   NR (6-ring)  800     
+;
+#define gb_24     0.148000 3.700000e+05 ; 
+; O, OM  -   P     900     
+;
+#define gb_25     0.150000 3.700000e+05 ; 
+; O  -  S       900     
+;
+#define gb_26     0.152000 2.500000e+05 ; 
+; CHn  -   CHn (sugar)  600     
+;
+#define gb_27     0.153000 9.000000e+04 ; 
+; C, CHn  -   C, CHn    800     
+;
+#define gb_28     0.161000 2.500000e+05 ; 
+; OA  -   P     600     
+;
+#define gb_29     0.163000 2.500000e+05 ; 
+; OA  -   SI    600     
+;
+#define gb_30     0.178000 1.700000e+05 ; 
+; FE  -  C (Heme)
+;
+#define gb_31     0.178000 1.500000e+05 ; 
+; CH3  -   S    900     
+;
+#define gb_32     0.183000 1.400000e+05 ; 
+; CH2  -   S    900     
+;
+#define gb_33     0.187000 2.500000e+05 ; 
+; CH1  -   SI   600     
+;
+#define gb_34     0.198000 5.000000e+04 ; 
+; NR  -   FE    120    
+;
+#define gb_35     0.200000 5.000000e+04 ; 
+; NR (heme)  -  FE   120
+;
+#define gb_36     0.204000 2.500000e+05 ; 
+; S  -   S      1000    
+;
+#define gb_37     0.221000 5.200000e+04 ; 
+; NR  -  FE     126
+;
+;---
+;       Table 2.5.3.1.
+;       GROMOS bond-angle bending parameters
+; 
+; 
+; Bond-angle type code
+; Force constant
+; Ideal bond angle
+; Example of usage in terms of non-bonded atom types
+; 
+; 
+; grep "define ga" ffbonded.itp -C 2 |  awk '{if (substr($1,1,1) != ";") printf("%s %s %12.6f %e ; %s\n", $1, $2, $3, $4*(sin($3/180*3.1415)^2), $6); else print $0}' > new-angle-constant.txt
+;  ICT(H)[N]  CT[N]  (T0[N])
+;
+#define ga_1    90.000000 3.800000e+02 ; 
+; NR(heme)  -  FE  -  C          90
+;
+#define ga_2    90.000000 4.200000e+02 ; 
+; NR(heme)  -  FE  -  NR(heme)  100     
+;
+#define ga_4   100.000000 4.606854e+02 ; 
+; CH2  -  S  -  CH3     110     
+;
+#define ga_5   103.000000 3.987565e+02 ; 
+; OA  -  P  -  OA       95      
+;
+#define ga_6   104.000000 4.613345e+02 ; 
+; CH2  -  S  -  S       110     
+;
+#define ga_7   108.000000 4.206116e+02 ; 
+; NR, C, CR1(5-ring)    100     
+;
+#define ga_8   109.500000 2.532534e+02 ; 
+; CHn  - CHn - CHn, NR(6-ring) (sugar)  60      
+;
+#define ga_9   109.500000 2.843547e+02 ; 
+; CHn, OA  - CHn  - OA, NR(ring) (sugar)        68      
+;
+#define ga_12   109.500000 3.998738e+02 ; 
+; X  -  OA, SI  -  X    95      
+;
+#define ga_13   109.500000 4.620764e+02 ; 
+; CHn,C  -  CHn  -  C, CHn, OA, OM, N, NE       110     
+;
+#define ga_14   109.600000 3.993786e+02 ; 
+; OM  -  P  -  OA       95      
+;
+#define ga_15   111.000000 4.619536e+02 ; 
+; CHn  -  CHn  -  C, CHn, OA, NR, NT, NL        110     
+;
+#define ga_16   113.000000 4.618172e+02 ; 
+; CHn  -  CH2  -  S     110     
+;
+#define ga_17   115.000000 4.107196e+01 ; 
+; NR(heme)  -  FE  - NR 10      
+;
+#define ga_19   115.000000 5.010779e+02 ; 
+; CHn, C  -  C  -  OA, N, NT, NL        120     
+;
+#define ga_20   116.000000 3.756632e+02 ; 
+; H  -  NE  -  CH2      90      
+;
+#define ga_21   116.000000 5.008842e+02 ; 
+; CH2  -  N  -  CH1     120     
+;
+#define ga_22   117.000000 5.041528e+02 ; 
+; CH3 -  N  -  C, CHn  - C  - OM        120     
+;
+#define ga_26   120.000000 3.975284e+02 ; 
+; P, SI  -  OA  -  CHn, P       95      
+;
+#define ga_27   120.000000 4.200300e+02 ; 
+; N, C, CR1 (6-ring, no H)      100     
+;
+#define ga_28   120.000000 5.025358e+02 ; 
+; NZ  -  C  -  NZ, NE   120     
+;
+#define ga_29   120.000000 5.850417e+02 ; 
+; OM  - P  -  OM        140     
+;
+#define ga_30   121.000000 5.033317e+02 ; 
+; O  -  C  -  CHn, C          CH3  -  N  -  CHn 120     
+;
+#define ga_31   122.000000 5.034694e+02 ; 
+; CH1, CH2  -  N  -  C  120     
+;
+#define ga_33   124.000000 5.017746e+02 ; 
+; O  - C  - OA, N, NT, NL   C - NE - CH2        120     
+;
+#define ga_34   125.000000 2.516514e+02 ; 
+; FE  - NR  - CR1 (5-ring)      60      
+;
+#define ga_35   125.000000 5.033029e+02 ; 
+; -     120     
+;
+#define ga_37   126.000000 4.189249e+02 ; 
+; X(noH)  - 5-ring      100     
+;
+#define ga_38   126.000000 5.040190e+02 ; 
+; OM  - C  - OM 120     
+;
+#define ga_39   132.000000 4.197722e+02 ; 
+; 5, 6 ring connnection 100     
+;
+#define ga_40   155.000000 3.957481e+02 ; 
+; SI  - OA  - SI        95      
+;
+#define ga_41   180.000000 7.842112e-04 ; 
+; Fe  -  C  -  O (heme) 57
+;
+;       Table 2.5.4.1
+;       GROMOS improper (harmonic) dihedral angle parameters
+; 
+; 
+; Improper dihedral-angle type code
+; Force constant
+; Ideal improper dihedral angle
+; Example of usage
+; 
+; 
+; ICQ(H)[N] CQ[N] (Q0[N])
+;
+#define gi_1           0.0   167.42309
+; planar groups 40      
+;
+#define gi_2      35.26439   334.84617
+; tetrahedral centres   80      
+;
+#define gi_3           0.0   669.69235
+; heme iron     160     
+;
+#define gi_4         180.0   167.42309
+; planar groups 40      
+;
+#define gi_5      -35.26439   334.84617
+; tetrahedral centres   80      
+;
+;       Table 2.5.5.1 (Note: changes with respect to the 43A1 table)
+;       GROMOS (trigonometric) dihedral torsional angle parameters
+; 
+; 
+; Dihedral-angle type code
+; Force constant
+; Phase shift
+; Multiplicity
+; Example of usage in terms of non-bonded atom types
+; 
+; 
+; ICP(H)[N]  CP[N] PD[N] NP[N]
+; 
+#define gd_10   180.000       5.86          2
+; -C-C-	1.4
+;
+#define gd_11   180.000       7.11          2
+; -C-OA,OE- (at ring)	1.7
+;
+#define gd_12   180.000       16.7          2
+; -C-OA,OE- (carboxyl)	4.0
+;
+#define gd_14   180.000       33.5          2
+; -C-N,NT,NE,NZ,NR-	8.0
+;
+#define gd_15   180.000       41.8          2
+; -C-CR1- (6-ring)	10.0
+;
+#define gd_17     0.000      0.418          2
+; O-CH1-CHn-no O	0.1
+;
+#define gd_18     0.000       2.09          2
+; O-CH1-CHn-O	0.5
+;
+#define gd_19     0.000       3.14          2
+; -OA-P-	0.75
+;
+#define gd_21     0.000       16.7          2
+; -S-S-	4.0
+;
+#define gd_22     0.000       1.05          3
+; -OA-P-	0.25
+;
+#define gd_23     0.000       1.26          3
+; -CHn-OA(no sugar)- 0.3
+;
+#define gd_24     0.000       1.30          3
+; HTFE-OTFE-CHTFE-CTFE	0.3
+;
+#define gd_26     0.000       2.93          3
+; -CH2-S-	0.7
+;
+#define gd_29     0.000       3.77          3
+; -C,CHn,SI-	0.9
+;
+#define gd_30     0.000       3.90          3
+; CHn-CHn-OA-H (sugar)	0.9
+;
+#define gd_31     0.000       4.18          3
+; HC-C-S-	1.0
+;
+#define gd_34     0.000       5.92          3
+; -CHn,SI-CHn-	1.4
+;
+#define gd_38     0.000        0.0          4
+; -NR-FE-	0.0
+;
+#define gd_39   180.000        1.0          6
+; -CHn-N,NE-	0.24
+;
+#define gd_40     0.000        1.0          6
+; -CHn-C,NR(ring), CR1-	0.24
+;
+#define gd_41     0.000       3.77          6
+; -CHn-NT-	0.9
+;
+; OPT from ala_step_4_1.0_c6_1.5_n
+#define gd_42 158.2201 1.9985 2 
+; Backbone dihedral angle -N-CA-C-N- 
+; 
+#define gd_43 58.6863 1.9994 2
+; Backbone dihedral angle -C-N-CA-C- 
+; 
+#define gd_44 159.8008 1.9994 1
+; Backbone dihedral angle -C-N-CA-C- 
+; 
+#define gd_45 152.6994 0.7245 1
+; Backbone dihedral angle -N-CA-C-N- 
+;
+; OPT form gly_step_k3
+#define gd_48 178.6948 2.9356 2
+; Backbone dihedral angle -N-CA-C-N  GLY
+;
+#define gd_49 179.1792 2.9958 1
+; Backbone dihedral angle -C-N-CA-C  GLY
+;
+#define gd_50 179.5213 2.9977 1
+; Backbone dihedral angle -C-N-CA-C  GLY
+;
+#define gd_51 177.4001 2.9892 2
+; Backbone dihedral angle -N-CA-C-N  GLY
+;
+; OPT from ala_step_4_loc
+#define gd_52 137.5088 1.9983 2
+; Backbone dihedral angle -N-CA-C-N  PRO
+;
+#define gd_53 27.7126 1.9993 4
+; Backbone dihedral angle -C-N-CA-C  PRO
+;
+#define gd_54 28.0386 1.9975 4
+; Backbone dihedral angle -C-N-CA-C  PRO
+;
+#define gd_55 139.7280 1.9981 2
+; Backbone dihedral angle -N-CA-C-N  PRO
+;
+#define gd_56    180.000     31.0     2
+; Omega dihedral - PRO
+                                                                             

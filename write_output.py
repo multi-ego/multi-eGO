@@ -6,41 +6,48 @@ def header(parameters):
     header = header + f'; Created on the {now}\n'
     header = header + f"; Protein name: {parameters['protein']} \n"
     header = header + f"; The force field type is: {parameters['egos']} \n"
+    if parameters['egos'] != 'rc':
+        header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
+    if parameters['ensemble'] == True:
+        header = header + f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['ratio_threshold']} \n"
     header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
-    if parameters['egos'] == 'rc':
-        header = header + f"; Random Coil \n"
-    else:    
-        header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
-    if parameters['idp'] == True:
-        header = header + f"; LJ potential from plainMD reweighted by: {parameters['ratio_treshold']} \n"
-        header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
-        header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+    header = header + f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
+    header = header + f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+    header = header + "\n"
 
     return header
 
-def write_greta_atomtypes_atp(atomtypes_atp, parameters, directory):
+def write_atomtypes_atp(atomtypes_atp, parameters):
     # This function is used to create the atomtypes.atp.
     #directory = f"outputs/output_{parameters['protein']}"
-    file = open(f'{directory}/atomtypes.atp', "w")
+    file = open(f'{parameters["output_folder"]}/atomtypes.atp', "w")
     file.write(header(parameters))
-    file.write("[ atomtypes ]")
     file.write("\n")
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms, parameters, directory):
+def write_topology_atoms(topol_atoms, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
-    file = open(f'{directory}/topology_atoms', "w")
+    topology_atoms = topol_atoms.copy() 
+    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
+    topology_atoms['type'] = topology_atoms['sb_type']
+    topology_atoms.insert(6, 'charge', '')
+    topology_atoms['mass'] = ''
+    topology_atoms['typeB'] = ''
+    topology_atoms['chargeB'] = ''
+    topology_atoms['massB'] = ''
+    topology_atoms.drop(columns=['sb_type'], inplace=True)
+    file = open(f'{parameters["output_folder"]}/topology_atoms', "w")
     file.write(header(parameters))
     file.write("[ atoms ]")
     file.write("\n")
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters, directory):
+def write_pairs_exclusion(pairs_topology, exclusion_topology, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
-    file = open(f'{directory}/topology_pairs', "w")
+    file = open(f'{parameters["output_folder"]}/topology_pairs', "w")
     file.write(header(parameters))
     file.write("[ pairs ]")
     file.write("\n")
@@ -50,17 +57,11 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters, d
     file.write("\n")
     file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
-    print('- Pairs and Exclusions written')
 
-def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters, directory):
-    if parameters['acid_ff'] == True and acid_atp !=0:
-        #directory = f"outputs/output_{parameters['protein']}/acid_ffnonbonded.itp"
-        file = open(f'{directory}/acid_ffnonbonded.itp', "w")
-        file.write(header(parameters))
-    else:
-        #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
-        file = open(f'{directory}/ffnonbonded.itp', "w")
-        file.write(header(parameters))
+def write_LJ(atomtypes, greta_LJ, parameters):
+    #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
+    file = open(f'{parameters["output_folder"]}/ffnonbonded.itp', "w")
+    file.write(header(parameters))
 
     file.write("[ atomtypes ]\n")
     file.write(str(atomtypes.to_string(index = False)))
@@ -72,5 +73,3 @@ def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters, directory):
     else:
         file.write(str(greta_LJ.to_string(index = False)))
     file.close()
-
-    print('- FF Written.')

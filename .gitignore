@@ -128,20 +128,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .vscode/settings.json
-MAGROS.code-workspace
 
-
-/analysis_bash_jupyter/backup_rdf
-/analysis
-/analysis_bash_jupyter/prod_2000-1mM.tpr
-/analysis_bash_jupyter/prod_2000-1mM.xtc
-/analysis_bash_jupyter/NOPBC_prod_2000-1mM-dt100.xtc
-/magros.ff
-/TTR_output_test
-/TTR_output_test2
-/inputs/fibril_ABeta/topol_Protein*
-/inputs/fibril_ABeta/posre_*
-/inputs/fibril_ABeta_shortfibril1/
-/inputs/fibril_*
+# more
 /inputs/*
-
+*.swp

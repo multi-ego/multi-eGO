@@ -5,16 +5,33 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from read_input import read_topology
-from topology_definitions import gromos_atp, gromos_atp_c6, gro_to_amb_dict
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def make_pdb_atomtypes(native_pdb, parameters):
+gromos_atp = pd.DataFrame(
+    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
+            'CH2', 'CH3', 'CH2r', 'NT', 'S',
+            'NR', 'OM', 'NE', 'NL', 'NZ'],
+     'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+     'c12': [1e-06, 1.505529e-06, 2.319529e-06, 4.937284e-06, 9.70225e-05, # CH1
+            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,
+            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06],
+     # here the 0 should be corrected with the correct c6 (anyway they are not used now)
+     'c6': [0.0022619536, 0, 0, 0, 0.00606841, 0.0074684164, 0.0096138025, 0, 0, 0, 0, 0, 0, 0, 0]
+     }
+)
+gromos_atp.to_dict()
+gromos_atp.set_index('name', inplace=True)
+
+# TODO make it more general (without the residue number)
+# native reweight for TTR and ABeta. This dictionary will rename the amber topology to gromos topology
+#gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
+gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
+
+def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
-    topology_atoms = read_topology(parameters)[0].df_topology_atoms
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
@@ -60,13 +77,6 @@ def make_pdb_atomtypes(native_pdb, parameters):
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
-    # This will be used to check if there are prolines in the structure and half their N c12
-    residue_list = topology_atoms['residue'].to_list()
-
-    # This is used to remove the proline N interactions in Pairs and Exclusions
-    proline_n = []
-    if 'PRO' in residue_list:
-        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
     
     # This will be needed for exclusion and pairs to paste in topology
     # A dictionary with the c12 of each atom in the system
@@ -74,18 +84,10 @@ def make_pdb_atomtypes(native_pdb, parameters):
     
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
-    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-    topology_atoms['type'] = topology_atoms['sb_type']
-    topology_atoms.insert(6, 'charge', '')
-    topology_atoms['mass'] = ''
-    topology_atoms['typeB'] = ''
-    topology_atoms['chargeB'] = ''
-    topology_atoms['massB'] = ''
-    topology_atoms.drop(columns=['sb_type'], inplace=True)
 
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
+    return native_atomtypes, ffnb_atomtype, atomtypes_atp, type_c12_dict
 
 def make_more_atomtypes(fibril_pdb):
     fibril_sel = fibril_pdb.select_atoms('all')
@@ -96,14 +98,14 @@ def make_more_atomtypes(fibril_pdb):
 
     return fibril_atomtypes
 
-def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
+def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     '''
     This function measures all the distances between all atoms using MDAnalysis.
     It works on both native and fibril in the same manner.
     '''
-    print('\tAddition of PDB derived native pairs')
+    print('\tAddition of PDB derived native LJ-pairs')
 
-    print('\t\tMeasuring distances between all atom in the pdb')
+    print('\t\tMeasuring distances between all atom in the structure')
     # Selecting all atoms in the system
     atom_sel = structure_pdb.select_atoms('all')
 
@@ -167,7 +169,8 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     # this must list ALL COLUMNS!
     inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']].copy()
     inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diff']
-    structural_LJ = structural_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    structural_LJ = pd.concat([structural_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
+    
 
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
@@ -202,7 +205,7 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
     pd.options.mode.chained_assignment = None
     
-    u_treshold = 1-parameters['ratio_treshold']
+    u_threshold = 1-parameters['ratio_threshold']
 
     # Paissoni Equation 2.0
     # Attractive pairs
@@ -210,15 +213,15 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(u_treshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_treshold']))*(np.log(u_treshold/structural_LJ_intra['rc_probability']))
-    structural_LJ_intra['epsilon'].loc[(u_treshold <  structural_LJ_intra['rc_probability'])] = 0
+    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_threshold']))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Too small epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*parameters['epsilon_structure']] = 0
     structural_LJ_intra.dropna(inplace=True)
 
     # This is included in the old before using the formula
     structural_LJ_intra = structural_LJ_intra[structural_LJ_intra.epsilon != 0]
-    structural_LJ = structural_LJ_intra.append(structural_LJ_inter, sort = False, ignore_index = True)
+    structural_LJ = pd.concat([structural_LJ_intra,structural_LJ_inter], axis=0, sort = False, ignore_index = True)
 
     pd.options.mode.chained_assignment = 'warn' 
     print('\t\tSigma and epsilon completed ', len(structural_LJ))
@@ -227,10 +230,10 @@ def make_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     return structural_LJ
 
 
-def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
+def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # In the case of an IDP, it is possible to add dynamical informations based on a simulation
-    print('\tAddition of MD derived native pairs')
-    # The ratio treshold considers only pairs occurring at a certain probability
+    print('\tAddition of MD derived LJ-pairs')
+    # The ratio threshold considers only pairs occurring at a certain probability
     # This dictionary was made to link amber and greta atomtypes
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':gro_to_amb_dict})
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':gro_to_amb_dict})
@@ -263,13 +266,13 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_treshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_treshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_treshold'])] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_threshold'])] = 0
     atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     pd.options.mode.chained_assignment = 'warn' 
 
@@ -284,14 +287,14 @@ def make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     return atomic_mat_merged
 
 
-def merge_GRETA(greta_LJ, parameters):
+def merge_and_clean_LJ(greta_LJ, parameters):
     '''
     This function merges the atom contacts from native and fibril.
     '''
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon']].copy()
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
-    greta_LJ = greta_LJ.append(inv_LJ, sort = False, ignore_index = True)
+    greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
     print('\tDoubled pairs list: ', len(greta_LJ))
 
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
@@ -384,7 +387,7 @@ def merge_GRETA(greta_LJ, parameters):
 
         pairs_toadd.dropna(inplace = True)
         # Appending the missing atom pairs to the main dataframe
-        greta_LJ = greta_LJ.append(pairs_toadd, sort = False, ignore_index = True)
+        greta_LJ = pd.concat([greta_LJ,pairs_toadd], axis=0, sort = False, ignore_index = True)
         print('\tSelf interactions added to greta_LJ ', len(pairs_toadd))
 
     # Drop double, we don't need it anymore
@@ -401,7 +404,7 @@ def merge_GRETA(greta_LJ, parameters):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds, parameters, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -411,10 +414,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-    
-    topol_atoms, topol_bonds = read_topology(parameters)
-    raw_topology_atoms = topol_atoms.df_topology_atoms
-    atnum_type_top = raw_topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
+    atnum_type_top = topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
     atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
     atnum_type_top['atom_number'] = atnum_type_top['atom_number'].astype(str)
 
@@ -422,14 +422,14 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
     # Bonds from topology
-    bond_tuple = topol_bonds.bond_pairs
+    bond_tuple = topology_bonds.bond_pairs
 
     #TODO this should be in topology_definitions.py
     # Building the exclusion bonded list
     # exclusion_bonds are all the interactions within 3 bonds
     # p14 are specifically the interactions at exactly 3 bonds
     ex, ex14, p14, exclusion_bonds = [], [], [], []
-    for atom in raw_topology_atoms['atom_number'].to_list():
+    for atom in topology_atoms['atom_number'].to_list():
         for t in bond_tuple:
             if t[0] == atom:
                 first = t[1]
@@ -536,13 +536,18 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
 
     # Removing the interactions with the proline N becasue this does not have the H
+    residue_list = topology_atoms['residue'].to_list()
+    proline_n = []
+    if 'PRO' in residue_list:
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
+
     pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)]
     pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)]
 
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
 
     # Exclusions 1-4
-    pairs = pairs.append(pairs_14)
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # Drop duplicates
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
@@ -559,7 +564,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     # to optimize the left alpha region in the Ramachandran
 
     # Adding the c6 and c12 (I do it now because later is sbatti)
-    atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp_c6['c6'])
+    atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
     # Here we make a dictionary of the backbone oxygen as atom number
@@ -589,7 +594,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     left_alpha_pairs['c12'] = left_alpha_c12
     left_alpha_pairs['func'] = 1
 
-    pairs = pairs.append(left_alpha_pairs)
+    pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
@@ -600,7 +605,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     # Here we want to sort so that ai is smaller than aj
     inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12']
-    pairs = pairs.append(inv_pairs, sort = False, ignore_index = True)
+    pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
     pairs = pairs[pairs['ai']<pairs['aj']]
     
     pairs.sort_values(by = ['ai', 'aj'], inplace = True)
