@@ -304,7 +304,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     return atomic_mat_merged
 
 
-def merge_GRETA(greta_LJ, parameters):
+def merge_and_clean_LJ(greta_LJ, parameters):
     '''
     This function merges the atom contacts from native and fibril.
     '''

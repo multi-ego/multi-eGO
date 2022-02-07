@@ -51,12 +51,11 @@ class topology_atoms:
 
         # Changing the mass of the atoms section by adding the H
         df_topology_atoms['mass'].astype(float)
-        # Adding H to backbone N
 
-        # Adding an extra H to the N terminal
+        # Removing an extra H to PRO 
         mask = ((df_topology_atoms['residue'] == "PRO") & (df_topology_atoms['atom_type'] == 'N'))
         df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).sub(1)
-        # Removing an extra H to PRO 
+        # Adding an extra H to the N terminal
         mask = ((df_topology_atoms['residue_number'] == df_topology_atoms['residue_number'].min()) & (df_topology_atoms['atom_type'] == 'N'))
         df_topology_atoms['mass'][mask] = df_topology_atoms['mass'][mask].astype(float).add(2)
 
@@ -76,7 +75,6 @@ class topology_atoms:
         ## Structure based atomtype definition
         df_topology_atoms['sb_type'] = df_topology_atoms['atom'] + '_' + df_topology_atoms['residue_number'].astype(str)
         self.df_topology_atoms = df_topology_atoms
-        self.first_resid = 'N_'+str(df_topology_atoms['residue_number'][0])
         # ACID pH
         # Selection of the aminoacids and the charged atoms (used for B2m)
         # TODO add some options for precise pH setting

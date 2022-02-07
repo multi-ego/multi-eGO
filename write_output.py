@@ -48,7 +48,6 @@ def write_pairs_exclusion(pairs_topology, exclusion_topology, parameters):
     file.write("\n")
     file.write(str(exclusion_topology.to_string(index = False)))
     file.close()
-    print('- Pairs and Exclusions written')
 
 def write_LJ(atomtypes, greta_LJ, parameters):
     #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
@@ -65,5 +64,3 @@ def write_LJ(atomtypes, greta_LJ, parameters):
     else:
         file.write(str(greta_LJ.to_string(index = False)))
     file.close()
-
-    print('- FF Written.')

@@ -3,7 +3,7 @@ import pandas as pd
 import sys, getopt
 from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms
 from write_output import write_LJ, write_atomtypes_atp, write_topology_atoms, write_pairs_exclusion
-from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes 
+from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_and_clean_LJ, make_pdb_atomtypes, make_more_atomtypes 
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(argv):
@@ -15,8 +15,6 @@ def main(argv):
         'distance_residue':2,
         #
         'ratio_threshold':0.001,
-        #
-        'N_terminal':False,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
         'lj_reduction':0.15,
@@ -161,17 +159,14 @@ def main(argv):
 
     if parameters['egos'] != 'rc':
         print('- Finalising LJ interactions')
-        greta_ffnb = merge_GRETA(greta_LJ, parameters)
-        if parameters['N_terminal'] == True:
-            first_resid = read_topology_atoms(parameters).first_resid
-            greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
+        greta_ffnb = merge_and_clean_LJ(greta_LJ, parameters)
         write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
 
         print('- Generating Pairs and Exclusions')
         topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_ffnb)
         write_pairs_exclusion(topology_pairs, topology_exclusion, parameters)
 
-    print('\nForce-Field files saved in ' + parameters['output_folder'])
+    print('- Force-Field files saved in ' + parameters['output_folder'])
     print('\nGRETA completed! Carlo is happy\n')
 
 
