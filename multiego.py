@@ -102,7 +102,8 @@ def main(argv):
 
     print('- reading TOPOLOGY')
     print('\tReading ', f'{parameters["input_folder"]}/topol.top')
-    topology_atoms = read_topology_atoms(parameters).df_topology_atoms
+    top = read_topology_atoms(parameters)
+    topology_atoms = top.df_topology_atoms
     topology_bonds = read_topology_bonds(parameters)
 
     print('- reading PDB')
@@ -135,10 +136,9 @@ def main(argv):
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = PDB_LJ_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
-            acid_atp = read_topology_atoms(parameters).acid_atp
-            if parameters['acid_ff'] == True and acid_atp !=0:
-                    greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
-                    greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
+            if parameters['acid_ff'] == True and top.acid_atp !=0:
+                    greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
+                    greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
 
     elif parameters['egos'] == 'merge':
         if parameters['ensemble'] == True:
@@ -149,10 +149,9 @@ def main(argv):
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = PDB_LJ_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
-            acid_atp = read_topology_atoms(parameters).acid_atp
-            if parameters['acid_ff'] == True and acid_atp !=0:
-                    greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
-                    greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
+            if parameters['acid_ff'] == True and top.acid_atp !=0:
+                    greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
+                    greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
             greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
 
     else: # one should never get here
