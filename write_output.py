@@ -27,8 +27,17 @@ def write_atomtypes_atp(atomtypes_atp, parameters):
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_topology_atoms(topology_atoms, parameters):
+def write_topology_atoms(topol_atoms, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
+    topology_atoms = topol_atoms.copy() 
+    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
+    topology_atoms['type'] = topology_atoms['sb_type']
+    topology_atoms.insert(6, 'charge', '')
+    topology_atoms['mass'] = ''
+    topology_atoms['typeB'] = ''
+    topology_atoms['chargeB'] = ''
+    topology_atoms['massB'] = ''
+    topology_atoms.drop(columns=['sb_type'], inplace=True)
     file = open(f'{parameters["output_folder"]}/topology_atoms', "w")
     file.write(header(parameters))
     file.write("[ atoms ]")
