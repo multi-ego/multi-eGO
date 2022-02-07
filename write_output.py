@@ -8,7 +8,7 @@ def header(parameters):
     header = header + f"; The force field type is: {parameters['egos']} \n"
     if parameters['egos'] != 'rc':
         header = header + f"; LJ epsilon: {parameters['epsilon_input']} \n"
-    if parameters['idp'] == True:
+    if parameters['ensemble'] == True:
         header = header + f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['ratio_threshold']} \n"
     header = header + f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header = header + f"; Skipping contacts within {parameters['distance_residue']} residues \n"
@@ -18,7 +18,7 @@ def header(parameters):
 
     return header
 
-def write_greta_atomtypes_atp(atomtypes_atp, parameters):
+def write_atomtypes_atp(atomtypes_atp, parameters):
     # This function is used to create the atomtypes.atp.
     #directory = f"outputs/output_{parameters['protein']}"
     file = open(f'{parameters["output_folder"]}/atomtypes.atp', "w")
@@ -27,7 +27,7 @@ def write_greta_atomtypes_atp(atomtypes_atp, parameters):
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms, parameters):
+def write_topology_atoms(topology_atoms, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
     file = open(f'{parameters["output_folder"]}/topology_atoms', "w")
     file.write(header(parameters))
@@ -36,7 +36,7 @@ def write_greta_topology_atoms(topology_atoms, parameters):
     file.write(str(topology_atoms.to_string(index = False)))
     file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters):
+def write_pairs_exclusion(pairs_topology, exclusion_topology, parameters):
     #directory = f'outputs/output_{parameters["protein"]}'
     file = open(f'{parameters["output_folder"]}/topology_pairs', "w")
     file.write(header(parameters))
@@ -50,15 +50,10 @@ def write_greta_topology_pairs(pairs_topology, exclusion_topology, parameters):
     file.close()
     print('- Pairs and Exclusions written')
 
-def write_greta_LJ(atomtypes, greta_LJ, acid_atp, parameters):
-    if parameters['acid_ff'] == True and acid_atp !=0:
-        #directory = f"outputs/output_{parameters['protein']}/acid_ffnonbonded.itp"
-        file = open(f'{parameters["output_folder"]}/acid_ffnonbonded.itp', "w")
-        file.write(header(parameters))
-    else:
-        #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
-        file = open(f'{parameters["output_folder"]}/ffnonbonded.itp', "w")
-        file.write(header(parameters))
+def write_LJ(atomtypes, greta_LJ, parameters):
+    #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
+    file = open(f'{parameters["output_folder"]}/ffnonbonded.itp', "w")
+    file.write(header(parameters))
 
     file.write("[ atomtypes ]\n")
     file.write(str(atomtypes.to_string(index = False)))

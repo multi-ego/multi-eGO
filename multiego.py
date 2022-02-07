@@ -1,17 +1,21 @@
 import os
 import pandas as pd
 import sys, getopt
-from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology
-from write_output import write_greta_LJ, write_greta_atomtypes_atp, write_greta_topology_atoms, write_greta_topology_pairs
-from greta import make_pairs_exclusion_topology, make_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes, make_idp_epsilon
+from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms
+from write_output import write_LJ, write_atomtypes_atp, write_topology_atoms, write_pairs_exclusion
+from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_GRETA, make_pdb_atomtypes, make_more_atomtypes 
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(argv):
 
     parameters = {
+        #
         'distance_cutoff':5.5,
+        #
         'distance_residue':2,
+        #
         'ratio_threshold':0.001,
+        #
         'N_terminal':False,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
@@ -19,8 +23,17 @@ def main(argv):
         # For left alpha we might want to increase the c6 values
         'multiply_c6':1.5,
         # Acid FFnonbondend it only works on the native pairs
-        'acid_ff':False, 
-        'idp':True
+        'acid_ff':False,
+        #
+        'ensemble':True
+        # The following parameters are added later from input arguments
+        # protein:
+        # egos:
+        # epsilon_input:
+        # epsilon_structure:
+        # epsilon_md:
+        # input_folder:
+        # output_folder:
     }
 
     print('\n\nMulti-eGO (codename: GRETA)\n')
@@ -65,7 +78,7 @@ def main(argv):
                 parameters['epsilon_md'] = float(arg)
                 readall +=1
         elif opt in ("--noensemble"):
-            parameters['idp'] = False 
+            parameters['ensemble'] = False 
   
     if readall != 3:
         print('ERROR: missing input argument')
@@ -90,8 +103,7 @@ def main(argv):
         pass
 
     print('- reading TOPOLOGY')
-    first_resid = read_topology(parameters)[0].first_resid
-    acid_atp = read_topology(parameters)[0].acid_atp
+    print('\tReading ', f'{parameters["input_folder"]}/topol.top')
 
     print('- reading PDB')
     native_pdb = read_pdbs(parameters, False)
@@ -103,43 +115,45 @@ def main(argv):
     if parameters['egos'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
-    write_greta_atomtypes_atp(atomtypes_atp, parameters)
-    write_greta_topology_atoms(topology_atoms, parameters)
+    write_atomtypes_atp(atomtypes_atp, parameters)
+    write_topology_atoms(topology_atoms, parameters)
 
     print('- Generating LJ Interactions')
 
     if parameters['egos'] == 'rc':
         greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
-        write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, parameters)
+        write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
         print('- Generating Pairs and Exclusions')
         topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters)
-        write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters)
+        write_pairs_exclusion(topology_pairs, topology_exclusion, parameters)
 
     elif parameters['egos'] == 'single':
-        if parameters['idp'] == True:
+        if parameters['ensemble'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
+            greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = make_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            greta_LJ = PDB_LJ_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            acid_atp = read_topology_atoms(parameters).acid_atp
             if parameters['acid_ff'] == True and acid_atp !=0:
                     greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
 
     elif parameters['egos'] == 'merge':
-        if parameters['idp'] == True:
+        if parameters['ensemble'] == True:
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = make_idp_epsilon(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
-            greta_LJ = pd.concat([greta_LJ,make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
+            greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
+            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = make_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            greta_LJ = PDB_LJ_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            acid_atp = read_topology_atoms(parameters).acid_atp
             if parameters['acid_ff'] == True and acid_atp !=0:
                     greta_LJ = greta_LJ[~greta_LJ.ai.isin(acid_atp)]
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(acid_atp)]
-            greta_LJ = pd.concat([greta_LJ,make_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
+            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
 
     else: # one should never get here
         print("I dont' understand --egos=",parameters['egos'])
@@ -149,12 +163,13 @@ def main(argv):
         print('- Finalising LJ interactions')
         greta_ffnb = merge_GRETA(greta_LJ, parameters)
         if parameters['N_terminal'] == True:
+            first_resid = read_topology_atoms(parameters).first_resid
             greta_ffnb.loc[(greta_ffnb['; ai'] == first_resid) & (greta_ffnb['aj'] == first_resid), '; ai'] = ';'+greta_ffnb['; ai'] 
-        write_greta_LJ(ffnonbonded_atp, greta_ffnb, acid_atp, parameters)
+        write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
 
         print('- Generating Pairs and Exclusions')
         topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_ffnb)
-        write_greta_topology_pairs(topology_pairs, topology_exclusion, parameters)
+        write_pairs_exclusion(topology_pairs, topology_exclusion, parameters)
 
     print('\nForce-Field files saved in ' + parameters['output_folder'])
     print('\nGRETA completed! Carlo is happy\n')
