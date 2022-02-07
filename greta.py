@@ -299,6 +299,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 def merge_and_clean_LJ(greta_LJ, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
+    Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon']].copy()
@@ -419,6 +420,7 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
     contacts will be defined in pairs and exclusions as particular cases.
     Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
+    This function also fixes the dihedral issue of the left alpha to be explored.
     '''
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
