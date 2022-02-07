@@ -137,8 +137,8 @@ print-nose-hoover-chain-variables = no
 ; Groups to couple separately
 tc-grps                  = system
 ; Time constant (ps) and reference temperature (K)
-tau_t                    = 
-ref_t                    = 
+tau_t                    = 1
+ref_t                    = 310
 ; pressure coupling     
 Pcoupl                   = no
 pcoupltype               = Isotropic
