@@ -5,7 +5,6 @@ import numpy as np
 from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
-from read_input import read_topology_bonds, read_topology_atoms
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -29,11 +28,10 @@ gromos_atp.set_index('name', inplace=True)
 #gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
 gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
 
-def make_pdb_atomtypes(native_pdb, parameters):
+def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
     '''
     This function defines the SB based atomtypes to add in topology.top, atomtypes.atp and ffnonbonded.itp.
     '''
-    topology_atoms = read_topology_atoms(parameters).df_topology_atoms
     native_sel = native_pdb.select_atoms('all')
     native_atomtypes, ffnb_sb_type = [], []
 
@@ -79,13 +77,6 @@ def make_pdb_atomtypes(native_pdb, parameters):
     ffnb_atomtype['c6'] = '0.00000e+00'
     ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
     
-    # This will be used to check if there are prolines in the structure and half their N c12
-    residue_list = topology_atoms['residue'].to_list()
-
-    # This is used to remove the proline N interactions in Pairs and Exclusions
-    proline_n = []
-    if 'PRO' in residue_list:
-        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
     
     # This will be needed for exclusion and pairs to paste in topology
     # A dictionary with the c12 of each atom in the system
@@ -93,18 +84,10 @@ def make_pdb_atomtypes(native_pdb, parameters):
     
     ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
     ffnb_atomtype.drop(columns = ['chem'], inplace = True)
-    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-    topology_atoms['type'] = topology_atoms['sb_type']
-    topology_atoms.insert(6, 'charge', '')
-    topology_atoms['mass'] = ''
-    topology_atoms['typeB'] = ''
-    topology_atoms['chargeB'] = ''
-    topology_atoms['massB'] = ''
-    topology_atoms.drop(columns=['sb_type'], inplace=True)
 
     atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
 
-    return native_atomtypes, ffnb_atomtype, atomtypes_atp, topology_atoms, type_c12_dict, proline_n
+    return native_atomtypes, ffnb_atomtype, atomtypes_atp, type_c12_dict
 
 def make_more_atomtypes(fibril_pdb):
     fibril_sel = fibril_pdb.select_atoms('all')
@@ -421,7 +404,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds, parameters, greta_merge=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -431,9 +414,7 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
-    topol_bonds = read_topology_bonds(parameters)
-    topol_atoms = read_topology_atoms(parameters).df_topology_atoms
-    atnum_type_top = topol_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
+    atnum_type_top = topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
     atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
     atnum_type_top['atom_number'] = atnum_type_top['atom_number'].astype(str)
 
@@ -441,14 +422,14 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
     # Bonds from topology
-    bond_tuple = topol_bonds.bond_pairs
+    bond_tuple = topology_bonds.bond_pairs
 
     #TODO this should be in topology_definitions.py
     # Building the exclusion bonded list
     # exclusion_bonds are all the interactions within 3 bonds
     # p14 are specifically the interactions at exactly 3 bonds
     ex, ex14, p14, exclusion_bonds = [], [], [], []
-    for atom in topol_atoms['atom_number'].to_list():
+    for atom in topology_atoms['atom_number'].to_list():
         for t in bond_tuple:
             if t[0] == atom:
                 first = t[1]
@@ -555,6 +536,11 @@ def make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_me
     pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
 
     # Removing the interactions with the proline N becasue this does not have the H
+    residue_list = topology_atoms['residue'].to_list()
+    proline_n = []
+    if 'PRO' in residue_list:
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
+
     pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)]
     pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)]
 

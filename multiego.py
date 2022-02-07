@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import sys, getopt
-from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms
+from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms, read_topology_bonds
 from write_output import write_LJ, write_atomtypes_atp, write_topology_atoms, write_pairs_exclusion
 from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_and_clean_LJ, make_pdb_atomtypes, make_more_atomtypes 
 pd.options.mode.chained_assignment = None  # default='warn'
@@ -102,6 +102,8 @@ def main(argv):
 
     print('- reading TOPOLOGY')
     print('\tReading ', f'{parameters["input_folder"]}/topol.top')
+    topology_atoms = read_topology_atoms(parameters).df_topology_atoms
+    topology_bonds = read_topology_bonds(parameters)
 
     print('- reading PDB')
     native_pdb = read_pdbs(parameters, False)
@@ -109,7 +111,7 @@ def main(argv):
         fibril_pdb = read_pdbs(parameters, True)
 
     print('- Generating Atomtypes')
-    native_atomtypes, ffnonbonded_atp, atomtypes_atp, topology_atoms, type_c12_dict, proline_n = make_pdb_atomtypes(native_pdb, parameters)
+    native_atomtypes, ffnonbonded_atp, atomtypes_atp, type_c12_dict = make_pdb_atomtypes(native_pdb, topology_atoms, parameters)
     if parameters['egos'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
@@ -122,7 +124,7 @@ def main(argv):
         greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
         write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds, parameters)
         write_pairs_exclusion(topology_pairs, topology_exclusion, parameters)
 
     elif parameters['egos'] == 'single':
@@ -163,7 +165,7 @@ def main(argv):
         write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
 
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, proline_n, parameters, greta_ffnb)
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds, parameters, greta_ffnb)
         write_pairs_exclusion(topology_pairs, topology_exclusion, parameters)
 
     print('- Force-Field files saved in ' + parameters['output_folder'])
