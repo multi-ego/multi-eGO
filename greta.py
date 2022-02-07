@@ -550,7 +550,7 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     residue_list = topology_atoms['residue'].to_list()
     proline_n = []
     if 'PRO' in residue_list:
-        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'nr'].to_list()
+        proline_n = topology_atoms.loc[(topology_atoms['residue'] == 'PRO') & (topology_atoms['atom'] == 'N'), 'atom_number'].to_list()
 
     pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)]
     pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)]

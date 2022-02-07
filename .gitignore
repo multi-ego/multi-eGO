@@ -132,3 +132,5 @@ dmypy.json
 # more
 /inputs/*
 *.swp
+
+/analysis/
