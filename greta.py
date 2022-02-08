@@ -532,7 +532,7 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     # Here we take a particular interest of the interaction between two N, because both should have an explicit H
     pairs_14.loc[(pairs_14['ai_type'] == 'N') & (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = True
     # Only the pairs with an N involved are retained
-    pairs_14.drop(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
+    pairs_14.dropna(inplace=True)#(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
 
     # Thus, only N with X LJ 1-4 interactions will be kept
     # All the other 1-4 interactions will NOT interact with each others
