@@ -544,7 +544,8 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+    #pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 3
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = topology_atoms['residue'].to_list()
