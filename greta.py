@@ -599,6 +599,20 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
             left_alpha_c6.append(0.007115485)
             left_alpha_c12.append(0.000005162090)
 
+
+    # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
+    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
+            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
+            #alpha_beta_rift_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
+            #alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+            #we use the parameters of Alanine because dihedrals have been optimised with these
+            alpha_beta_rift_c6.append(0.0)
+            alpha_beta_rift_c12.append((0.000005162090)*0.1)
+
     left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     left_alpha_pairs['ai'] = left_alpha_ai
     left_alpha_pairs['aj'] = left_alpha_aj
