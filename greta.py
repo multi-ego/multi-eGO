@@ -599,6 +599,16 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
             left_alpha_c6.append(0.007115485)
             left_alpha_c12.append(0.000005162090)
 
+    left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    left_alpha_pairs['ai'] = left_alpha_ai
+    left_alpha_pairs['aj'] = left_alpha_aj
+    left_alpha_pairs['c6'] = left_alpha_c6
+    left_alpha_pairs['c12'] = left_alpha_c12
+    left_alpha_pairs['func'] = 1
+
+    pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
+
+
 
     # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
@@ -613,14 +623,15 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
             alpha_beta_rift_c6.append(0.0)
             alpha_beta_rift_c12.append((0.000005162090)*0.1)
 
-    left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    left_alpha_pairs['ai'] = left_alpha_ai
-    left_alpha_pairs['aj'] = left_alpha_aj
-    left_alpha_pairs['c6'] = left_alpha_c6
-    left_alpha_pairs['c12'] = left_alpha_c12
-    left_alpha_pairs['func'] = 1
+    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
+    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
+    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
+    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
+    alpha_beta_rift_pairs['func'] = 1
 
-    pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
