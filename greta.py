@@ -425,9 +425,9 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
     
+    topology_atoms['atom_number'] = topology_atoms['atom_number'].astype(str)
     atnum_type_top = topology_atoms[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
     atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
-    atnum_type_top['atom_number'] = atnum_type_top['atom_number'].astype(str)
 
     # Dictionaries definitions to map values
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
@@ -512,7 +512,7 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
 
     else:
         pairs = pd.DataFrame()
-
+        
     # Only 1-4 exclusions are fully reintroduced
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
     pairs_14['exclusions'] = p14
@@ -544,8 +544,7 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    #pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 3
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = topology_atoms['residue'].to_list()
@@ -608,8 +607,6 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
 
     pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
 
-
-
     # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
@@ -635,7 +632,6 @@ def make_pairs_exclusion_topology(type_c12_dict, topology_atoms, topology_bonds,
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
-
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
 

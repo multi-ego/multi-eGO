@@ -1,56 +1,76 @@
 import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 
-def read_sections(topology_path, *topology_sections):
+def read_topology(topology_path):
+    sections_dict = get_sections_dict(make_file_dictionary(topology_path))
+    return sections_dict
+
+def make_file_dictionary(topology_path):
+    file_dict = {}
+    with open(topology_path) as f:
+        for line_number, line in enumerate(f):
+            if not (line.startswith(';') or line.startswith('#')):
+                if not line.strip():
+                    continue
+                else:
+                    file_dict[line_number+1] = line.strip()
+    return file_dict
+
+def get_sections_dict(file_dict):
+    section_numbers = []
     sections_dict = {}
-    for section in topology_sections:
-        sections_dict[section] = line_parser(topology_path, section)
+    for line_number, line in file_dict.items():
+        if '[' in line:
+            section_numbers.append(line_number)
+
+    end_line = (max(file_dict.keys())+1)
+    section_numbers.append(end_line)
+    counter = list(range(0, len(section_numbers)))
+
+    for number in counter:
+        if number == counter[-1]:
+            break
+        else:
+            lines = list(range(section_numbers[number], section_numbers[number+1]))
+            if (file_dict[lines[0]] =='[ dihedrals ]' and '[ dihedrals ]' in list(sections_dict.keys())):
+                section_name = '[ impropers ]'
+            else:
+                section_name = file_dict[lines[0]]
+            subset_file_dict = {key: value for key, value in file_dict.items() if key in lines[1:]}
+            for k, v in subset_file_dict.items():
+                subset_file_dict[k] = v.split()
+            sections_dict[section_name] = subset_file_dict
+            subset_file_dict = {}
+    
     return sections_dict
 
 
-def line_parser(topology_path, section):
-    section_dict = {}
-    with open(topology_path) as f:
-        for line_number, line in enumerate(f):
-                if section in line:
-                    section_dict['section_start'] = line_number
-    section_dict = get_section_end(topology_path, section_dict)
-    section_dict['lines_toskip'] = commented_lines(topology_path, section_dict)
-    return section_dict
+class topology_moleculetype:
+    def __init__(self, sections_dict):
+        colnames = ['; Name', 'nrexcl']
+        section_dict = sections_dict['[ moleculetype ]']
+        moleculetype_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        self.topology_moleculetype = moleculetype_df
 
-
-def get_section_end(topology_path, section_dict):
-    with open(topology_path) as f:
-        for line_number, line in enumerate(f):
-            if not line.strip() and line_number > section_dict['section_start']:
-                section_dict['section_end'] = line_number
-                break
-    
-    return section_dict
-
-
-def commented_lines(topology_path, section_dict):
-    lines_toskip = list(range(0, section_dict['section_start']+1))
-    with open(topology_path) as f:
-        for line_number, line in enumerate(f):
-            if line_number >= section_dict['section_start'] and line_number <= section_dict['section_end']:
-                if line.startswith(';'):
-                    lines_toskip.append(line_number)
-    return lines_toskip
 
 class topology_atoms:
     '''
     Cose
     '''
-    def __init__(self, path):
+    def __init__(self, sections_dict):
         pd.options.mode.chained_assignment = None  # default='warn'
-        # We read everything except charge, typeB, chargeB, massB
-        colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'mass']
-        section_dict = read_sections(path, 'atoms')
-        df_topology_atoms = pd.read_csv(path, names= colnames, usecols=[0,1,2,3,4,5,7], sep='\s+', header=None, nrows=section_dict['atoms']['section_end']-(len(section_dict['atoms']['lines_toskip'])), skiprows=section_dict['atoms']['lines_toskip'])
+        colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB']
 
+        section_dict = sections_dict['[ atoms ]']
+        df_topology_atoms = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        df_topology_atoms.drop(columns=['charge', 'typeB', 'chargeB', 'massB'], inplace=True)
+        df_topology_atoms.reset_index(inplace=True, drop=True)   
+        
         # Changing the mass of the atoms section by adding the H
-        df_topology_atoms['mass'].astype(float)
+        df_topology_atoms['atom_number'] = df_topology_atoms['atom_number'].astype(int)
+        df_topology_atoms['residue_number'] = df_topology_atoms['residue_number'].astype(int)
+        df_topology_atoms['cgnr'] = df_topology_atoms['cgnr'].astype(int)
+        df_topology_atoms['mass'] = df_topology_atoms['mass'].astype(float)
 
         # Removing an extra H to PRO 
         mask = ((df_topology_atoms['residue'] == "PRO") & (df_topology_atoms['atom_type'] == 'N'))
@@ -86,15 +106,70 @@ class topology_atoms:
         #this is used
         self.acid_atp = acid_atp['sb_type'].tolist()
 
-
 class topology_bonds:
-    def __init__(self, path):
+    def __init__(self, sections_dict):
         colnames = ['ai', 'aj', 'func', 'func_type']
-        section_dict = read_sections(path, 'bonds')
-        topology_bonds = pd.read_csv(path, names=colnames, usecols=[0,1,2,3], sep='\s+', header=None, nrows=section_dict['bonds']['section_end']-(len(section_dict['bonds']['lines_toskip'])), skiprows=section_dict['bonds']['lines_toskip'])
+        section_dict = sections_dict['[ bonds ]']
+        bonds_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        bonds_df.reset_index(inplace=True, drop=True)
 
-        #for ai, aj in zip(topology_bonds['ai'].to_list(), topology_bonds['aj'].to_list()):
-        #    print(ai, aj)
-
-        bonds_pairs = list([(ai, aj) for ai, aj in zip(topology_bonds['ai'].to_list(), topology_bonds['aj'].to_list())])
+        self.df_topology_bonds = bonds_df
+        bonds_pairs = list([(ai, aj) for ai, aj in zip(bonds_df['ai'].to_list(), bonds_df['aj'].to_list())])
         self.bond_pairs = bonds_pairs
+
+
+class topology_angles:
+    def __init__(self, sections_dict):
+        colnames = ['ai', 'aj', 'ak', 'funct', 'c0']
+        section_dict = sections_dict['[ angles ]']
+        angles_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        angles_df.reset_index(inplace=True, drop=True) 
+        self.topology_angles = angles_df
+
+
+class topology_dihedrals:
+    def __init__(self, sections_dict):
+        colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0']
+        section_dict = sections_dict['[ dihedrals ]']
+        dihedrals_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        dihedrals_df.reset_index(inplace=True, drop=True)
+        self.topology_dihedrals = dihedrals_df
+
+
+class topology_impropers:
+    def __init__(self, sections_dict):
+        colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0']
+        section_dict = sections_dict['[ impropers ]']
+        impropers_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        impropers_df.reset_index(inplace=True, drop=True)
+        self.topology_impropers = impropers_df
+
+
+class topology_system:
+    def __init__(self, sections_dict):
+        section_dict = sections_dict['[ system ]']
+        system_df = pd.DataFrame.from_dict(section_dict, orient='index')
+        system_df.reset_index(inplace=True, drop=True)
+        system_df['; Name'] = system_df[0] + system_df[1] + system_df[2] + system_df[3] + system_df[4] + system_df[5] + system_df[6]
+        system_df = system_df['; Name']
+        self.topology_system = system_df
+
+
+class topology_molecules:
+    def __init__(self, sections_dict):
+        colnames = ['; Compound', '#mols']
+        section_dict = sections_dict['[ molecules ]']
+        molecules_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        molecules_df.reset_index(inplace=True, drop=True)
+        self.topology_molecules = molecules_df
+
+        
+#dick = read_topology('/home/emanuele/MAGROS/inputs/ABeta/topol.top')
+#coso = topology_molecules(dick).topology_molecules
+#print(coso)
+
+
+
+
+
+

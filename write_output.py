@@ -1,4 +1,8 @@
 from time import localtime, strftime
+from numpy import column_stack
+from topology_parser import topology_moleculetype, topology_atoms, topology_bonds, topology_angles, topology_dihedrals, topology_impropers, topology_system, topology_molecules
+import pandas as pd
+
 now = strftime("%d-%m-%Y %H:%M", localtime())
 
 def header(parameters):
@@ -27,39 +31,8 @@ def write_atomtypes_atp(atomtypes_atp, parameters):
     file.write(str(atomtypes_atp.to_string(index = False, header = False)))
     file.close()
 
-def write_topology_atoms(topol_atoms, parameters):
-    #directory = f'outputs/output_{parameters["protein"]}'
-    topology_atoms = topol_atoms.copy() 
-    topology_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-    topology_atoms['type'] = topology_atoms['sb_type']
-    topology_atoms.insert(6, 'charge', '')
-    topology_atoms['mass'] = ''
-    topology_atoms['typeB'] = ''
-    topology_atoms['chargeB'] = ''
-    topology_atoms['massB'] = ''
-    topology_atoms.drop(columns=['sb_type'], inplace=True)
-    file = open(f'{parameters["output_folder"]}/topology_atoms', "w")
-    file.write(header(parameters))
-    file.write("[ atoms ]")
-    file.write("\n")
-    file.write(str(topology_atoms.to_string(index = False)))
-    file.close()
-
-def write_pairs_exclusion(pairs_topology, exclusion_topology, parameters):
-    #directory = f'outputs/output_{parameters["protein"]}'
-    file = open(f'{parameters["output_folder"]}/topology_pairs', "w")
-    file.write(header(parameters))
-    file.write("[ pairs ]")
-    file.write("\n")
-    file.write(str(pairs_topology.to_string(index = False)))
-    file.write("\n\n")
-    file.write("[ exclusions ]")
-    file.write("\n")
-    file.write(str(exclusion_topology.to_string(index = False)))
-    file.close()
 
 def write_LJ(atomtypes, greta_LJ, parameters):
-    #directory = f"outputs/output_{parameters['protein']}/ffnonbonded.itp"
     file = open(f'{parameters["output_folder"]}/ffnonbonded.itp', "w")
     file.write(header(parameters))
 
@@ -73,3 +46,77 @@ def write_LJ(atomtypes, greta_LJ, parameters):
     else:
         file.write(str(greta_LJ.to_string(index = False)))
     file.close()
+
+def write_topology(parameters, topology_sections_dict, pairs_topology='', exclusion_topology=''):
+    pd.set_option('display.colheader_justify', 'left')
+    file = open(f'{parameters["output_folder"]}/topol_GRETA.top', "w")
+    file.write(header(parameters))  
+
+    file.write('; Include forcefield parameters\n')  
+    file.write('#include "paste/the/ff/folder/here"\n\n')  
+    
+    file.write('[ moleculetype ]\n')
+    df = topology_moleculetype(topology_sections_dict).topology_moleculetype
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    top_atoms = topology_atoms(topology_sections_dict).df_topology_atoms
+    top_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
+    top_atoms['type'] = top_atoms['sb_type']
+    top_atoms.drop(columns=['sb_type', 'mass'], inplace=True)
+    file.write("[ atoms ]\n")
+    file.write(str(top_atoms.to_string(index = False)))
+    file.write('\n\n')
+
+    file.write('[ bonds ]\n')
+    df = topology_bonds(topology_sections_dict).df_topology_bonds
+    df.rename(columns={'ai':'; ai'}, inplace=True)
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    file.write('[ angles ]\n')
+    df = topology_angles(topology_sections_dict).topology_angles
+    df.rename(columns={'ai':'; ai'}, inplace=True)
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    file.write('[ dihedrals ]\n')
+    df = topology_dihedrals(topology_sections_dict).topology_dihedrals
+    df.rename(columns={'ai':'; ai'}, inplace=True)
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    file.write('[ dihedrals ]\n')
+    df = topology_impropers(topology_sections_dict).topology_impropers
+    df.rename(columns={'ai':'; ai'}, inplace=True)
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+    
+    file.write("[ pairs ]")
+    file.write("\n")
+    file.write(str(pairs_topology.to_string(index = False)))
+    file.write("\n\n")
+    file.write("[ exclusions ]")
+    file.write("\n")
+    file.write(str(exclusion_topology.to_string(index = False)))
+    file.write('\n\n')
+
+    file.write('; Include Position restraint file\n')
+    file.write('#ifdef POSRES\n')
+    file.write('#include "posre.itp"\n')
+    file.write('#endif\n\n')
+
+    file.write('[ system ]\n')
+    df = topology_system(topology_sections_dict).topology_system
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    file.write('[ molecules ]\n')
+    df = topology_molecules(topology_sections_dict).topology_molecules
+    file.write(str(df.to_string(index=False)))
+    file.write('\n\n')
+
+    df = ''
+
+    file.close()
+
