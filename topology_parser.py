@@ -162,14 +162,3 @@ class topology_molecules:
         molecules_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         molecules_df.reset_index(inplace=True, drop=True)
         self.topology_molecules = molecules_df
-
-        
-#dick = read_topology('/home/emanuele/MAGROS/inputs/ABeta/topol.top')
-#coso = topology_molecules(dick).topology_molecules
-#print(coso)
-
-
-
-
-
-
