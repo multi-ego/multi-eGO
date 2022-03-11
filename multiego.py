@@ -1,10 +1,11 @@
 import os
 import pandas as pd
 import sys, getopt
-from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms, read_topology_bonds
-from write_output import write_LJ, write_atomtypes_atp, write_topology
-from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_and_clean_LJ, make_pdb_atomtypes, make_more_atomtypes 
-from topology_parser import read_topology, topology_atoms, topology_bonds
+from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat, read_topology_atoms, read_topology_bonds#, parmed_read
+from write_output import write_LJ, write_atomtypes_atp, write_topology, write_ligand_topology
+from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_and_clean_LJ, make_pdb_atomtypes, make_more_atomtypes, topology_check
+from topology_parser import read_topology, topology_atoms, topology_bonds, topology_ligands
+from greta import ensemble
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(argv):
@@ -24,7 +25,9 @@ def main(argv):
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         #
-        'ensemble':True
+        'ensemble':True,
+        #
+        'ligand':False
         # The following parameters are added later from input arguments
         # protein:
         # egos:
@@ -40,7 +43,7 @@ def main(argv):
     readall=0
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=","noensemble","help"])
+        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=", "ligand", "noensemble","help"])
     except getopt.GetoptError:
         print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)')
         sys.exit(2)
@@ -76,6 +79,9 @@ def main(argv):
                 parameters['epsilon_structure'] = float(arg)
                 parameters['epsilon_md'] = float(arg)
                 readall +=1
+        elif opt in ("--ligand"):
+            parameters['ligand'] = True
+        
         elif opt in ("--noensemble"):
             parameters['ensemble'] = False 
   
@@ -104,8 +110,13 @@ def main(argv):
     print('- reading TOPOLOGY')
     print('\tReading ', f'{parameters["input_folder"]}/topol.top')
     top = read_topology(f'{parameters["input_folder"]}/topol.top')
-    top_atoms = topology_atoms(top).df_topology_atoms
-    top_bonds = topology_bonds(top)
+    #top_atoms = topology_atoms(top).df_topology_atoms
+    #top_bonds = topology_bonds(top)
+    
+    #if parameters['ligand'] == True:
+    #    top_ligand = read_topology(f'{parameters["input_folder"]}/topol_ligand.top')
+    #    top_ligand_atoms = topology_ligands(top_ligand)
+
 
     print('- reading PDB')
     native_pdb = read_pdbs(parameters, False)
@@ -113,25 +124,50 @@ def main(argv):
         fibril_pdb = read_pdbs(parameters, True)
 
     print('- Generating Atomtypes')
-    native_atomtypes, ffnonbonded_atp, atomtypes_atp, type_c12_dict = make_pdb_atomtypes(native_pdb, top_atoms, parameters)
+    #ego_native = ensemble(f"{parameters['input_folder']}/topol.top", f"{parameters['input_folder']}/native.pdb", parameters)
+    
     if parameters['egos'] == 'merge':
         fibril_atomtypes = make_more_atomtypes(fibril_pdb)
 
-    write_atomtypes_atp(atomtypes_atp, parameters)
+
+
+    #type_c12_dict = ego_native.type_c12_dict
+    #print(ego_native.type_c12_dict == type_c12_dict)
+    # True
+    #print(ego_native.atomtypes_atp.to_string() == atomtypes_atp.to_string())
+    # True
+    #print(native_atomtypes == nat_atomtypes)
+    # True
+    #print((ffnonbonded_atp == ego_native.ffnonbonded_atp).to_string())
+    # True, except for the atom number
+
+
 
     print('- Generating LJ Interactions')
 
     if parameters['egos'] == 'rc':
-        greta_ffnb = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon'])
-        write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
+        '''
+        Reading the native ensemble from pdb2gmx using multi-ego-basic.ff
+        This setup is to get the ffnonbonded without pairs to perform an RC simulation
+        '''
+        ego_native = ensemble(f"{parameters['input_folder']}/topol.top", f"{parameters['input_folder']}/native.pdb", parameters)
+        write_atomtypes_atp(ego_native.atomtypes_atp, parameters)
+        write_LJ(ego_native.ffnonbonded_atp, parameters)
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, top_atoms, top_bonds, parameters)
-        write_topology(parameters, top, topology_pairs, topology_exclusion)
+        write_topology(parameters, top, ego_native)
 
     elif parameters['egos'] == 'single':
         if parameters['ensemble'] == True:
+
+            ego_native = ensemble(topology_file = f"{parameters['input_folder']}/topol.top", structure_file = f"{parameters['input_folder']}/native.pdb", parameters = parameters, use_RC=True)
+            ego_md = ensemble(topology_file = f"{parameters['input_folder']}/topol_md.top", structure_file = f"{parameters['input_folder']}/native_md.gro", parameters = parameters, is_MD=True, use_RC=True)
+            
+            
+            print(ego_native==ego_md)            
+            
             atomic_mat_plainMD = plainMD_mdmat(parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
+            #topology_check(plain_atomtypes, native_atomtypes)
             greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
         else:
             atomic_mat_random_coil = random_coil_mdmat(parameters)
@@ -161,11 +197,14 @@ def main(argv):
     if parameters['egos'] != 'rc':
         print('- Finalising LJ interactions')
         greta_ffnb = merge_and_clean_LJ(greta_LJ, parameters)
-        write_LJ(ffnonbonded_atp, greta_ffnb, parameters)
+        print(ego_native.ffnonbonded_atp)
+        write_LJ(atomtypes = ego_native.ffnonbonded_atp, greta_LJ = greta_ffnb, parameters = parameters)
 
         print('- Generating Pairs and Exclusions')
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(type_c12_dict, top_atoms, top_bonds, parameters, greta_ffnb)
-        write_topology(parameters, top, topology_pairs, topology_exclusion)
+        write_topology(parameters, top, ego_native)
+
+        if parameters['ligand'] == True:
+            write_ligand_topology(parameters, top_ligand)
 
     print('- Force-Field files saved in ' + parameters['output_folder'])
     print('\nGRETA completed! Carlo is happy\n')

@@ -1,5 +1,5 @@
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab 
-; Created on the 03-03-2022 09:33
+; Created on the 11-03-2022 11:37
 ; Protein name: ABeta 
 ; The force field type is: rc 
 ; LJ potential from a MD/random_coil ratio and threshold: 0.001 
@@ -2001,6 +2001,9 @@ Protein_chain_1 3
 #ifdef POSRES
 #include "posre.itp"
 #endif
+
+; Include ligand topology
+#include "topol_ligand_GRETA.itp"
 
 [ system ]
 GeneratedwithMDTraj,t=36860.0inwater
