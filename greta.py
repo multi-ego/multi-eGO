@@ -1,4 +1,5 @@
 from operator import concat
+import MDAnalysis as mda
 from MDAnalysis.lib.util import parse_residue
 from MDAnalysis.analysis import distances
 import numpy as np
@@ -37,11 +38,15 @@ class ensemble:
     '''
     def __init__(self, topology_file, structure_file, parameters, get_pairs=False, is_MD=False, use_RC=False):
         
+        # RC is needed for native pairs
+        if get_pairs == True:
+            use_RC = True
+        
         # Topology Section
         # Atoms
         topology = pmd.load_file(topology_file, parametrize=False)
         structure = pmd.load_file(structure_file)
-        ensemble_top = prepare_ensemble_topology(topology, structure)       
+        ensemble_top = prepare_ensemble_topology(topology, structure, is_MD)       
 
         self.multiego_topology = ensemble_top
 
@@ -90,13 +95,6 @@ class ensemble:
         self.topology_pairs = topology_pairs
         self.topology_exclusion = topology_exclusion
 
-        
-        # Structure based contacts
-        if get_pairs==True:
-            mdanalysis_pdb = mda.Universe(structure_file, guess_bonds = True)
-            native_pairs = PDB_LJ_pairs(mdanalysis_pdb, atomic_mat_random_coil, parameters)
-            self.native_pairs = native_pairs
-
         # The random coil should come from the same native ensemble
         if use_RC==True:
             atomic_mat_random_coil = nrandom_coil_mdmat(parameters, idx_sbtype_dict)
@@ -106,11 +104,16 @@ class ensemble:
         if is_MD==True:
             atomic_mat_plainMD = nplainMD_mdmat(parameters, idx_sbtype_dict)
             self.atomic_mat_plainMD = atomic_mat_plainMD
+        
+        # Structure based contacts
+        if get_pairs==True:
+            mda_pdb = mda.Universe(structure_file, guess_bonds = True)
+            native_pairs = PDB_LJ_pairs(mda_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            self.native_pairs = native_pairs
 
 
-        pass
 
-def prepare_ensemble_topology(topology, structure):
+def prepare_ensemble_topology(topology, structure, is_MD):
 
     # Checking if the topology and the structure have the same atom order
     for atom_top, atom_struct in zip(topology.atoms, structure.atoms):
@@ -119,9 +122,22 @@ def prepare_ensemble_topology(topology, structure):
             print(atom_top, atom_struct)
             exit()
 
-    #print(dir(topology))
     topology_df = topology.to_dataframe()
     structure_df = structure.to_dataframe()
+    if is_MD == True:
+        # MD has hydrogen which we don't use
+        hydrogen = topology['@H=']
+        hydrogen_namelist = []
+        for h in hydrogen.atoms:
+            hydrogen_namelist.append(h.name)
+        hydrogen_namelist = list(set(hydrogen_namelist))
+        mask = (topology_df['name']).isin(hydrogen_namelist)
+        topology_df = topology_df[~mask]
+        topology_df.reset_index(inplace=True)
+        mask = (structure_df['name']).isin(hydrogen_namelist)
+        structure_df = structure_df[~mask]
+        structure_df['number'] = list(range(1, len(structure_df)+1))
+        structure_df.reset_index(inplace=True)
 
     multiego_top = pd.DataFrame()
     multiego_top['atom_number'] = structure_df['number']
@@ -138,7 +154,6 @@ def prepare_ensemble_topology(topology, structure):
     multiego_top['c6'] = '0.00000e+00'
     multiego_top['c12'] = multiego_top['atom_type'].map(gromos_atp['c12'])
     
-
     # Removing an extra H to PRO
     mask = ((multiego_top['residue'] == "PRO") & (multiego_top['atom_type'] == 'N'))
     multiego_top['mass'][mask] = multiego_top['mass'][mask].astype(float).sub(1)
@@ -182,7 +197,36 @@ def get_topology_bonds(topology):
 
     return bonds_df
 
+def sb_type_conversion(multiego_ensemble, md_ensemble):
+    '''
+    This functions is needed to convert the structure based atomtypes from a force field to gromos.
+    It is tested using charmm were the only different atomtypes are OT1 and OT2 which has to be renamed to O1 and O2.
+    Other differences are on the atom index which is solved using the structure based atomtype.
+    Here a dictionary is made by charmm key: gromos value.
+    '''
 
+    multiego_topology = multiego_ensemble.multiego_topology
+    md_topology = md_ensemble.multiego_topology
+
+    convert_dict = {}
+    multiego_atoms = set(multiego_topology['atom'].to_list())
+    md_atoms = set(md_topology['atom'].to_list())
+    diff_atoms = list(multiego_atoms - md_atoms)
+    merged_atoms = pd.DataFrame()
+    merged_atoms['atoms_multiego'] = multiego_topology['atom']
+    merged_atoms['multiego_resnum'] = multiego_topology['residue_number']
+    merged_atoms['atoms_md'] = md_topology['atom']
+    merged_atoms['md_resnum'] = md_topology['residue_number']
+    merged_atoms = merged_atoms.loc[merged_atoms['atoms_multiego'].isin(diff_atoms)]
+    merged_atoms['sb_multiego'] = merged_atoms['atoms_multiego']+'_'+merged_atoms['multiego_resnum'].astype(str)
+    merged_atoms['sb_md'] = merged_atoms['atoms_md']+'_'+merged_atoms['md_resnum'].astype(str)
+    merged_atoms_dict = merged_atoms.set_index('sb_md')['sb_multiego'].to_dict()
+    
+    updated_mat_plainMD = md_ensemble.atomic_mat_plainMD
+    updated_mat_plainMD = updated_mat_plainMD.replace({'ai':merged_atoms_dict})
+    updated_mat_plainMD = updated_mat_plainMD.replace({'aj':merged_atoms_dict})
+
+    return updated_mat_plainMD, merged_atoms_dict
 
 
 
