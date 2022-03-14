@@ -130,7 +130,7 @@ dmypy.json
 .vscode/settings.json
 
 # more
-/inputs/*
+#/inputs/*
 *.swp
 
 /analysis/
