@@ -1,8 +1,9 @@
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab 
-; Created on the 11-03-2022 19:21
+; Created on the 11-03-2022 19:42
 ; Protein name: ABeta 
 ; The force field type is: single 
 ; LJ epsilon: 0.32 
+; LJ potential from a MD/random_coil ratio and threshold: 0.001 
 ; Atoms cutoff distance: 5.5 A 
 ; Skipping contacts within 2 residues 
 ; Reducing the C12 N-X 1-3 C12 by: 0.15 

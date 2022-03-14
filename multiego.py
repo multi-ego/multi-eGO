@@ -147,26 +147,69 @@ def main(argv):
 
     print('- Generating LJ Interactions')
 
-    if parameters['egos'] == 'rc':
+    if parameters['egos'] == 'rc': # Ensemble done, to check
         '''
         Reading the native ensemble from pdb2gmx using multi-ego-basic.ff
         This setup is to get the ffnonbonded without pairs to perform an RC simulation
         '''
-        ego_native = ensemble(f"{parameters['input_folder']}/topol.top", f"{parameters['input_folder']}/native.pdb", parameters)
+        ego_native_parameters = {
+            'topology_file':f"{parameters['input_folder']}/topol.top",
+            'structure_file': f"{parameters['input_folder']}/native.pdb",
+            'get_structure_pairs':False,
+            'is_MD':False,
+            'not_matching_native':False,
+            'use_RC':False,
+            'get_pairs_exclusions':True
+        }
+
+        ego_native = ensemble(parameters=parameters, ensemble_parameters=ego_native_parameters)
         write_atomtypes_atp(ego_native.atomtypes_atp, parameters)
         write_LJ(ego_native.ffnonbonded_atp, parameters)
         print('- Generating Pairs and Exclusions')
         write_topology(parameters, top, ego_native)
 
-    elif parameters['egos'] == 'single':
+    elif parameters['egos'] == 'single': # Ensemble done, to check
         if parameters['ensemble'] == True:
-            ego_native = ensemble(topology_file = f"{parameters['input_folder']}/topol.top", structure_file = f"{parameters['input_folder']}/native.pdb", parameters = parameters, use_RC=True)
-            ego_md = ensemble(topology_file = f"{parameters['input_folder']}/topol_md.top", structure_file = f"{parameters['input_folder']}/native_md.gro", parameters = parameters, is_MD=True)
+            ego_native_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol.top",
+                'structure_file': f"{parameters['input_folder']}/native.pdb",
+                'get_structure_pairs':False,
+                'is_MD':False,
+                'not_matching_native':False,
+                'use_RC':True,
+                'get_pairs_exclusions':True
+            }
+
+            ego_md_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol_md.top",
+                'structure_file': f"{parameters['input_folder']}/native_md.gro",
+                'get_structure_pairs':False,
+                'is_MD':True,
+                'not_matching_native':False,
+                'use_RC':False,
+                'get_pairs_exclusions':True
+            }
+            
+            ego_native = ensemble(parameters = parameters, ensemble_parameters=ego_native_parameters)
+            ego_md = ensemble(parameters = parameters, ensemble_parameters=ego_md_parameters)
             # Topologies conversion
             atomic_mat_plainMD, ts2multiego_dict = sb_type_conversion(ego_native, ego_md)
+            print(f'- The following contacts were converted: {ts2multiego_dict}')
             greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, ego_native.atomic_mat_random_coil, parameters)
+        
         else:
-            ego_native = ensemble(topology_file = f"{parameters['input_folder']}/topol.top", structure_file = f"{parameters['input_folder']}/native.pdb", parameters = parameters, get_pairs=True)
+
+            ego_native_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol.top",
+                'structure_file': f"{parameters['input_folder']}/native.pdb",
+                'get_structure_pairs':True,
+                'is_MD':False,
+                'not_matching_native':False,
+                'use_RC':False,
+                'get_pairs_exclusions':True
+            }
+
+            ego_native = ensemble(parameters = parameters, ensemble_parameters=ego_native_parameters)
             write_atomtypes_atp(ego_native.atomtypes_atp, parameters)
             atomic_mat_random_coil = random_coil_mdmat(parameters)
             greta_LJ = ego_native.native_pairs
@@ -176,17 +219,73 @@ def main(argv):
 
     elif parameters['egos'] == 'merge':
         if parameters['ensemble'] == True:
-            atomic_mat_plainMD = plainMD_mdmat(parameters)
-            atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters)
-            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
+
+            ego_native_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol.top",
+                'structure_file': f"{parameters['input_folder']}/native.pdb",
+                'get_structure_pairs':False,
+                'is_MD':False,
+                'not_matching_native':False,
+                'use_RC':True,
+                'get_pairs_exclusions':True
+            }
+            ego_native = ensemble(parameters = parameters, ensemble_parameters=ego_native_parameters)
+            
+            ego_md_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol_md.top",
+                'structure_file': f"{parameters['input_folder']}/native_md.gro",
+                'get_structure_pairs':False,
+                'is_MD':True,
+                'not_matching_native':False,
+                'use_RC':False,
+                'get_pairs_exclusions':False
+            }
+            ego_md = ensemble(parameters = parameters, ensemble_parameters=ego_md_parameters)
+            
+            ego_fibril_parameters = {
+                'topology_file':f"{parameters['input_folder']}/fibril_temp/topol.top",
+                'structure_file': f"{parameters['input_folder']}/fibril_temp/conf.gro",
+                'get_structure_pairs':False,
+                'is_MD':False,
+                'not_matching_native':ego_native.sbtype_idx_dict,
+                'use_RC':False,
+                'get_pairs_exclusions':False
+            }
+            ego_fibril = ensemble(parameters = parameters, ensemble_parameters=ego_fibril_parameters)
+
+            # Topologies conversion
+            atomic_mat_plainMD, ts2multiego_dict = sb_type_conversion(ego_native, ego_md)
+            print(f'\t\tThe following contacts were converted: {ts2multiego_dict}')
+
+            greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, ego_native.atomic_mat_random_coil, parameters)
+            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, ego_native.atomic_mat_random_coil, ego_fibril.native_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
         else:
-            atomic_mat_random_coil = random_coil_mdmat(parameters)
-            greta_LJ = PDB_LJ_pairs(native_pdb, atomic_mat_random_coil, native_atomtypes, parameters)
+            ego_native_parameters = {
+                'topology_file':f"{parameters['input_folder']}/topol.top",
+                'structure_file': f"{parameters['input_folder']}/native.pdb",
+                'get_structure_pairs':False,
+                'is_MD':False,
+                'not_matching_native':False,
+                'use_RC':True,
+                'get_pairs_exclusions':True
+            }
+            ego_fibril_parameters = {
+                'topology_file':f"{parameters['input_folder']}/fibril_temp/topol.top",
+                'structure_file': f"{parameters['input_folder']}/fibril_temp/conf.gro",
+                'get_structure_pairs':False,
+                'is_MD':False,
+                'not_matching_native':ego_native.sbtype_idx_dict,
+                'use_RC':False,
+                'get_pairs_exclusions':False
+            }
+
+            ego_native = ensemble(parameters = parameters, ensemble_parameters=ego_native_parameters)
+            ego_fibril = ensemble(parameters = parameters, ensemble_parameters=ego_fibril_parameters)
+            greta_LJ = PDB_LJ_pairs(native_pdb, ego_native.atomic_mat_random_coil, native_ego.native_atomtypes, parameters)
             if parameters['acid_ff'] == True and top.acid_atp !=0:
                     greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
                     greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
-            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, atomic_mat_random_coil, fibril_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
+            greta_LJ = pd.concat([greta_LJ,PDB_LJ_pairs(fibril_pdb, native_ego.atomic_mat_random_coil, fibril_ego.native_atomtypes, parameters)], axis=0, sort = False, ignore_index = True)
 
     else: # one should never get here
         print("I dont' understand --egos=",parameters['egos'])
@@ -195,7 +294,6 @@ def main(argv):
     if parameters['egos'] != 'rc':
         print('- Finalising LJ interactions')
         greta_ffnb = merge_and_clean_LJ(greta_LJ, parameters)
-        #print(ego_native.ffnonbonded_atp)
         write_LJ(atomtypes = ego_native.ffnonbonded_atp, greta_LJ = greta_ffnb, parameters = parameters)
 
         print('- Generating Pairs and Exclusions')
