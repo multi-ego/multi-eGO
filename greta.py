@@ -7,7 +7,8 @@ from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 import parmed as pmd
-from read_input import nrandom_coil_mdmat, nplainMD_mdmat
+from read_input import random_coil_mdmat, plainMD_mdmat
+import mdtraj as md
 
 pd.options.mode.chained_assignment = None  # default='warn'
 
@@ -27,10 +28,9 @@ gromos_atp = pd.DataFrame(
 gromos_atp.to_dict()
 gromos_atp.set_index('name', inplace=True)
 
-# TODO make it more general (without the residue number)
 # native reweight for TTR and ABeta. This dictionary will rename the amber topology to gromos topology
 #gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
-gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
+#gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
 
 class ensemble:
     '''
@@ -45,17 +45,20 @@ class ensemble:
         
         # Topology Section
         # Atoms
+        print('\t- Generating ensemble Atomtypes')
+        print('\t- Reading topology and structure')
         topology = pmd.load_file(ensemble_parameters['topology_file'], parametrize=False)
         structure = pmd.load_file(ensemble_parameters['structure_file'])
-        ensemble_top = prepare_ensemble_topology(topology, structure, ensemble_parameters['is_MD'])
+        ensemble_top, renamed_structure = prepare_ensemble_topology(topology, structure, ensemble_parameters, parameters)
+        print('\t- Ensemble topology generated')
 
-        if ensemble_parameters['not_matching_native']==True:
-        # Fibril might not be modelled, therefore the numbering does not match the native structure
-        # Here a dictionary is supplied to renumber the atoms
-            print('\tRenumbering the fibril atom numbers')
-            ensemble_top['atom_number'] = ensemble_top['sb_type'].map(not_matching_native)
+        if ensemble_parameters['not_matching_native']:
+            sbtype_idx_dict = ensemble_parameters['not_matching_native'].sbtype_idx_dict           
+            # Fibril might not be modelled, therefore the numbering does not match the native structure
+            # Here a dictionary is supplied to renumber the atoms
+            print('\t- Renumbering the fibril atom numbers')
+            ensemble_top['atom_number'] = ensemble_top['sb_type'].map(sbtype_idx_dict)
         
-
         self.multiego_topology = ensemble_top
 
         native_atomtypes = (ensemble_top['sb_type'] +':'+ ensemble_top['chain']).tolist()
@@ -97,7 +100,7 @@ class ensemble:
         self.acid_atp = acid_atp['sb_type'].tolist()
 
         if ensemble_parameters['get_pairs_exclusions'] == True:
-            # Bonds
+            print('\t- Generating bonds, pairs and exclusions')
             ensemble_bonds = get_topology_bonds(topology)
             bonds_pairs = list([(str(ai), str(aj)) for ai, aj in zip(ensemble_bonds['ai'].to_list(), ensemble_bonds['aj'].to_list())])
             self.multiego_bonds = ensemble_bonds
@@ -110,36 +113,43 @@ class ensemble:
 
         # The random coil should come from the same native ensemble
         if ensemble_parameters['use_RC']==True:
-            atomic_mat_random_coil = nrandom_coil_mdmat(parameters, idx_sbtype_dict)
-            self.atomic_mat_random_coil = atomic_mat_random_coil
+            if not ensemble_parameters['not_matching_native']:
+                atomic_mat_random_coil = random_coil_mdmat(parameters, idx_sbtype_dict)
+                self.atomic_mat_random_coil = atomic_mat_random_coil
         
         # MD_contacts
         if ensemble_parameters['is_MD']==True:
-            atomic_mat_plainMD = nplainMD_mdmat(parameters, idx_sbtype_dict)
+            atomic_mat_plainMD = plainMD_mdmat(parameters, idx_sbtype_dict)
             self.atomic_mat_plainMD = atomic_mat_plainMD
         
         # Structure based contacts
         if ensemble_parameters['get_structure_pairs']==True:
-            mda_structure = mda.Universe(structure_file, guess_bonds = True)
-            native_pairs = PDB_LJ_pairs(mda_structure, atomic_mat_random_coil, native_atomtypes, parameters)
-            self.native_pairs = native_pairs
+            if ensemble_parameters['not_matching_native']:
+                native_ensemble = ensemble_parameters['not_matching_native']
+                #mda_structure = mda.Universe(ensemble_parameters['structure_file'], guess_bonds = True)
+                mda_structure = mda.Universe(renamed_structure, guess_bonds = True, topology_format='PDB')
+                structure_pairs = PDB_LJ_pairs(mda_structure, native_ensemble.atomic_mat_random_coil, native_atomtypes, parameters)
+            else:
+                #mda_structure = mda.Universe(ensemble_parameters['structure_file'], guess_bonds = True)
+                mda_structure = mda.Universe(renamed_structure, guess_bonds = True, topology_format='PDB')
+                structure_pairs = PDB_LJ_pairs(mda_structure, atomic_mat_random_coil, native_atomtypes, parameters)
+            self.structure_pairs = structure_pairs
 
 
-
-def prepare_ensemble_topology(topology, structure, is_MD):
-
-    # Checking if the topology and the structure have the same atom order
+def prepare_ensemble_topology(topology, structure, ensemble_parameters, parameters):
+    print('\t\t- Checking the atoms in both Topology and Structure')
     for atom_top, atom_struct in zip(topology.atoms, structure.atoms):
         if str(atom_top) != str(atom_struct):
             print('- Topology and structure have different atom definitions\n\n')
             print(atom_top, atom_struct)
             exit()
+    print('\t\t- Atoms between Topology and Structure are corresponding')
 
     topology_df = topology.to_dataframe()
     structure_df = structure.to_dataframe()
-
     hydrogen_number = 0
-    if is_MD == True:
+    if ensemble_parameters['is_MD'] == True:
+        print('\t\t- Removing Hydrogens')
         # MD has hydrogen which we don't use
         hydrogen = topology['@H=']
         hydrogen_number = len(hydrogen.atoms)
@@ -155,9 +165,9 @@ def prepare_ensemble_topology(topology, structure, is_MD):
         structure_df['number'] = list(range(1, len(structure_df)+1))
         structure_df.reset_index(inplace=True)
 
-    # Chain labelling
-    chain_labels, chain_column = [], []
-    if is_MD == True:
+    print('\t\t- Chain renaming')
+    chain_labels, chain_ids = [], []
+    if ensemble_parameters['is_MD'] == True:
         n_molecules = ['1']
     else:
         n_molecules = topology.molecules
@@ -166,8 +176,9 @@ def prepare_ensemble_topology(topology, structure, is_MD):
     atoms_per_molecule = int((len(topology.atoms)-hydrogen_number)/len(n_molecules))
     for label in chain_labels:
         for atom in range(atoms_per_molecule):
-            chain_column.append(label)
+            chain_ids.append(label)
 
+    print('\t\t- Generating multi-eGO topology')
     multiego_top = pd.DataFrame()
     multiego_top['atom_number'] = structure_df['number']
     multiego_top['atom_type'] = topology_df['type']
@@ -177,12 +188,13 @@ def prepare_ensemble_topology(topology, structure, is_MD):
     multiego_top['cgnr'] = structure_df['resnum']
     multiego_top['mass'] = topology_df['mass']
     multiego_top['atomic_number'] = topology_df['atomic_number']
-    multiego_top['chain'] = chain_column
+    multiego_top['chain'] = chain_ids
     multiego_top['charge'] = '0.000000'
     multiego_top['ptype'] = 'A'
     multiego_top['c6'] = '0.00000e+00'
     multiego_top['c12'] = multiego_top['atom_type'].map(gromos_atp['c12'])
 
+    print('\t\t- Topology fixes')
     # Removing an extra H to PRO
     mask = ((multiego_top['residue'] == "PRO") & (multiego_top['atom_type'] == 'N'))
     multiego_top['mass'][mask] = multiego_top['mass'][mask].astype(float).sub(1)
@@ -203,10 +215,41 @@ def prepare_ensemble_topology(topology, structure, is_MD):
             mask = ((multiego_top['residue'] == resname) & (multiego_top['atom'] == atom))
             multiego_top['mass'][mask] = multiego_top['mass'][mask].astype(float).add(1)
 
-    # multi-eGO atomtypes definitions
+    print('\t\t- Defining multi-eGO atomtypes')
     multiego_top['sb_type'] = multiego_top['atom'] + '_' + multiego_top['residue_number'].astype(str)
 
-    return multiego_top
+    print('\t\t- Writing a new pdb with renamed chains')
+    structure_dict = make_file_dictionary(ensemble_parameters['structure_file'])
+    renamed_structure = rename_chains(structure_dict, chain_ids, ensemble_parameters['structure_file'])
+
+    return multiego_top, renamed_structure
+
+
+def make_file_dictionary(filename):
+    file_dict = {}
+    with open(filename) as f:
+        for line_number, line in enumerate(f):
+            if line.startswith('ATOM'):
+                file_dict[line_number+1] = line.strip()
+    return file_dict
+
+
+def rename_chains(structure_dict, chain_ids, file_name):
+    # Change the column number 22 which is the chain id in the pdb
+    column = 22 - 1
+    renamed_pdb = []
+    file_name = file_name.split('/')
+    file_path = file_name[:-1]
+    file_name = file_name[-1]
+    file_name = file_name.split('.')
+    file_name = '/'.join(file_path)+'/'+file_name[0]+'_renamed.'+file_name[1]
+    with open(file_name, 'w') as scrivi:
+        for (line, string), chain_id in zip(structure_dict.items(), chain_ids):
+            new_string = string[0:column]+str(chain_id)+string[column+1:]
+            scrivi.write(f"{new_string}\n")
+    
+    return file_name
+
 
 def get_topology_bonds(topology):
 
@@ -256,8 +299,6 @@ def sb_type_conversion(multiego_ensemble, md_ensemble):
     updated_mat_plainMD = updated_mat_plainMD.replace({'aj':merged_atoms_dict})
 
     return updated_mat_plainMD, merged_atoms_dict
-
-
 
 
 
@@ -496,11 +537,11 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     print('\tAddition of MD derived LJ-pairs')
     # The ratio threshold considers only pairs occurring at a certain probability
     # This dictionary was made to link amber and greta atomtypes
-    atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':gro_to_amb_dict})
-    atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':gro_to_amb_dict})
+    #atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':gro_to_amb_dict})
+    #atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':gro_to_amb_dict})
 
-    atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_ai':gro_to_amb_dict})
-    atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_aj':gro_to_amb_dict})
+    #atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_ai':gro_to_amb_dict})
+    #atomic_mat_random_coil = atomic_mat_random_coil.replace({'rc_aj':gro_to_amb_dict})
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']) / (2**(1/6))
