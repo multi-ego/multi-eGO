@@ -38,6 +38,9 @@ def read_topology_bonds(parameters):
 
 def plainMD_mdmat(parameters, idx_sbtype_dict):
     # Reading PlainMD contacts
+    #if parameters['ligand']:
+    #    contact_map_file = f'{parameters["input_folder"]}/ligandMD_contacts.ndx'
+    #else:
     contact_map_file = f'{parameters["input_folder"]}/plainMD_contacts.ndx'
     print('\tReading ', contact_map_file)        
     atomic_mat_plainMD = pd.read_csv(contact_map_file, header=None, sep = '\s+')

@@ -126,6 +126,26 @@ def main(argv):
 
     #print('- Generating LJ Interactions')
 
+    if parameters['ligand']:
+    
+        ego_ligand_parameters = {
+            'topology_file':f"{parameters['input_folder']}/topol_ligand.top",
+            'structure_file': f"{parameters['input_folder']}/topol_native_ligand.pdb",
+            'get_structure_pairs':False,
+            'is_MD':True,
+            'not_matching_native':False,
+            'use_RC':False,
+            'get_pairs_exclusions':True,
+            'is_ligand':True
+        }       
+        ego_ligand = ensemble(parameters=parameters, ensemble_parameters=ego_ligand_parameters)
+        print(ego_ligand.multiego_topology.to_string())
+        #print(ego_ligand.atomic_mat_plainMD.to_string())
+        print(ego_ligand.idx_sbtype_dict)
+        
+        
+        exit()
+
     if parameters['egos'] == 'rc': # Ensemble done, to check
         '''
         Reading the native ensemble from pdb2gmx using multi-ego-basic.ff
@@ -169,14 +189,14 @@ def main(argv):
                 'use_RC':False,
                 'get_pairs_exclusions':True
             }
-            
             ego_native = ensemble(parameters = parameters, ensemble_parameters=ego_native_parameters)
             ego_md = ensemble(parameters = parameters, ensemble_parameters=ego_md_parameters)
             # Topologies conversion
             atomic_mat_plainMD, ts2multiego_dict = sb_type_conversion(ego_native, ego_md)
             print(f'- The following contacts were converted: {ts2multiego_dict}')
             greta_LJ = MD_LJ_pairs(atomic_mat_plainMD, ego_native.atomic_mat_random_coil, parameters)
-        
+
+
         else:
 
             ego_native_parameters = {

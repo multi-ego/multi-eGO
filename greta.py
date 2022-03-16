@@ -11,6 +11,7 @@ from read_input import random_coil_mdmat, plainMD_mdmat
 import mdtraj as md
 
 pd.options.mode.chained_assignment = None  # default='warn'
+pd.options.mode.chained_assignment = 'warn' 
 
 
 gromos_atp = pd.DataFrame(
@@ -64,6 +65,9 @@ class ensemble:
         native_atomtypes = (ensemble_top['sb_type'] +':'+ ensemble_top['chain']).tolist()
         self.native_atomtypes = native_atomtypes
 
+        atomtypes_towrite = ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
+        self.atomtypes_towrite = atomtypes_towrite
+
         atomtypes_atp = ensemble_top[['sb_type', 'mass']].copy()
         atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
         self.atomtypes_atp = atomtypes_atp
@@ -103,6 +107,7 @@ class ensemble:
             print('\t- Generating bonds, pairs and exclusions')
             ensemble_bonds = get_topology_bonds(topology)
             bonds_pairs = list([(str(ai), str(aj)) for ai, aj in zip(ensemble_bonds['ai'].to_list(), ensemble_bonds['aj'].to_list())])
+            # TODO here we have an issue about the gb definition
             self.multiego_bonds = ensemble_bonds
             self.bonds_pairs = bonds_pairs
 
@@ -196,6 +201,8 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
 
     print('\t\t- Topology fixes')
     # Removing an extra H to PRO
+    pd.options.mode.chained_assignment = None 
+
     mask = ((multiego_top['residue'] == "PRO") & (multiego_top['atom_type'] == 'N'))
     multiego_top['mass'][mask] = multiego_top['mass'][mask].astype(float).sub(1)
     # Adding an extra H to the N terminal

@@ -60,10 +60,8 @@ def write_topology(parameters, topology_sections_dict, ego_topology):
     file.write(str(df.to_string(index=False)))
     file.write('\n\n')
 
-    top_atoms = topology_atoms(topology_sections_dict).df_topology_atoms
-    top_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-    top_atoms['type'] = top_atoms['sb_type']
-    top_atoms.drop(columns=['sb_type', 'mass'], inplace=True)
+    top_atoms = ego_topology.atomtypes_towrite
+    top_atoms.rename(columns = {'atom_number':'; nr', 'sb_type':'type', 'residue_number':'resnr'}, inplace=True)
     file.write("[ atoms ]\n")
     file.write(str(top_atoms.to_string(index = False)))
     file.write('\n\n')
