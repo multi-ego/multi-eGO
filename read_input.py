@@ -1,7 +1,7 @@
 import pandas as pd
 import MDAnalysis as mda
 import warnings
-from topology_parser import topology_atoms, topology_bonds
+from topology_parser import topology_parser
 import parmed as pmd
 
 warnings.filterwarnings('ignore', category=UserWarning, module='MDAnalysis')
@@ -22,32 +22,32 @@ def read_pdbs(parameters, flag):
     return pdb
 
 
-def read_topology_atoms(parameters):
-    # Read the topology created from pbd2gmx with gromos-primefull
-    topol_atoms = topology_atoms(f'{parameters["input_folder"]}/topol.top')
-	
-    return topol_atoms
+#def read_topology_atoms(parameters):
+#    # Read the topology created from pbd2gmx with gromos-primefull
+#    topol_atoms = topology_atoms(f'{parameters["input_folder"]}/topol.top')
+#	
+#    return topol_atoms
+#
+#
+#def read_topology_bonds(parameters):
+#    # Read the topology created from pbd2gmx with gromos-primefull
+#    topol_bonds = topology_bonds(f'{parameters["input_folder"]}/topol.top')
+#	
+#    return topol_bonds
 
 
-def read_topology_bonds(parameters):
-    # Read the topology created from pbd2gmx with gromos-primefull
-    topol_bonds = topology_bonds(f'{parameters["input_folder"]}/topol.top')
-	
-    return topol_bonds
-
-
-def plainMD_mdmat(parameters, idx_sbtype_dict):
+def plainMD_mdmat(parameters, ensemble_parameters, idx_sbtype_dict):
     # Reading PlainMD contacts
-    #if parameters['ligand']:
-    #    contact_map_file = f'{parameters["input_folder"]}/ligandMD_contacts.ndx'
-    #else:
-    contact_map_file = f'{parameters["input_folder"]}/plainMD_contacts.ndx'
+#    if ensemble_parameters['is_ligand']:
+#        contact_map_file = f'{parameters["input_folder"]}/ligandMD_contacts.ndx'
+#    else:
+#        contact_map_file = f'{parameters["input_folder"]}/plainMD_contacts.ndx'
+    contact_map_file = ensemble_parameters['mdmat_contacts_file']
     print('\tReading ', contact_map_file)        
     atomic_mat_plainMD = pd.read_csv(contact_map_file, header=None, sep = '\s+')
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
     atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
     atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':idx_sbtype_dict})
     atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':idx_sbtype_dict})
     atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)

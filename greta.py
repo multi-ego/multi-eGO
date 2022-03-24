@@ -9,6 +9,7 @@ import itertools
 import parmed as pmd
 from read_input import random_coil_mdmat, plainMD_mdmat
 import mdtraj as md
+from topology_parser import read_topology, topology_parser, extra_topology_ligands
 
 pd.options.mode.chained_assignment = None  # default='warn'
 pd.options.mode.chained_assignment = 'warn' 
@@ -33,45 +34,235 @@ gromos_atp.set_index('name', inplace=True)
 #gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
 #gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
 
+
+class multiego_ensemble:
+    '''
+    This ensemble type gathers different topologies to make a single one.
+    '''
+    # Checklist of topology sections we need
+    multiego_ensemble_top = pd.DataFrame()
+
+    moleculetype = ''
+    bonds = pd.DataFrame()
+    bond_pairs = pd.DataFrame()
+    angles = pd.DataFrame()
+    dihedrals = pd.DataFrame()
+    impropers = pd.DataFrame()
+        
+    ligand_bonds = pd.DataFrame()
+    ligand_bond_pairs = []
+    ligand_angles = pd.DataFrame()
+    ligand_dihedrals = pd.DataFrame()
+
+    pairs = pd.DataFrame()
+    exclusions = pd.DataFrame()
+
+    structure_based_contacts_dict = {
+        'random_coil' : pd.DataFrame(),
+        'atomic_mat_plainMD' : pd.DataFrame(),
+        'native_pairs' : pd.DataFrame(),
+        'fibril_pairs' : pd.DataFrame(),
+        'ligand_MD_pairs' : pd.DataFrame()
+    }
+
+    greta_LJ = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
+    
+    def __init__(self, parameters):
+        self.parameters = parameters
+
+
+    def multiego_wrapper():
+        '''
+        Check based on the attribute. Provides all the ensemble, check the attributes of each and then makes the merge 
+        '''
+        pass
+
+    def add_ensemble_top(self, ensemble_toadd):
+        '''
+        This method allow the addition of atoms into the multi-eGO ensemble
+        '''
+        # ATOMTYPES
+        ensemble_top = ensemble_toadd.ensemble_top.copy()
+        ensemble_top['idx_sbtype'] = ensemble_top['sb_type']
+        ensemble_top.set_index(['idx_sbtype'], inplace = True)
+        ensemble_top.drop(columns=['index'], inplace=True)
+
+        multiego_idx = self.multiego_ensemble_top.index
+        ensemble_idx = ensemble_top.index
+        diff_index = ensemble_idx.difference(multiego_idx)
+        if not diff_index.empty:
+            #print(f'\t- The following atoms are being inserted in multiego topology: {list(diff_index)}')
+            print(f'\t- Inserting atoms in multiego ensemble')
+        ensemble_top = ensemble_top.loc[diff_index]
+        self.multiego_ensemble_top = pd.concat([self.multiego_ensemble_top, ensemble_top], axis=0, sort=False)
+    
+        # Those will be recreated after the addition of all atoms, including the ligand ones
+        type_c12_dict = self.multiego_ensemble_top[['sb_type', 'c12']].copy()
+        type_c12_dict.rename(columns={'sb_type':'; type'}, inplace=True)
+        type_c12_dict = type_c12_dict.set_index('; type')['c12'].to_dict()
+        self.type_c12_dict = type_c12_dict
+
+
+        return self
+    
+    
+    def add_parsed_topology(self, ensemble_toadd):
+        self.moleculetype = ensemble_toadd.parsed_topology.moleculetype.copy()
+        self.bonds = ensemble_toadd.bonds.copy()
+        self.bond_pairs = ensemble_toadd.bond_pairs.copy()
+        self.angles = ensemble_toadd.angles.copy()
+        self.dihedrals = ensemble_toadd.dihedrals.copy()
+        self.impropers = ensemble_toadd.impropers.copy()
+        self.system = ensemble_toadd.parsed_topology.system.copy()
+        self.molecules = ensemble_toadd.parsed_topology.molecules.copy()
+        
+        return self
+
+        
+    def add_structure_based_contacts(self, **contacts):
+        '''
+        Names to use: random_coil, atomic_mat_plainMD, native_pairs, fibril_pairs, ligand_MD_pairs
+        '''
+        for name, value in contacts.items():
+            self.structure_based_contacts_dict[name] = value
+        self.structure_based_contacts_dict = self.structure_based_contacts_dict
+        return self
+
+        
+    def generate_multiego_LJ(self):
+        #print(self.structure_based_contacts_dict)
+        greta_MD_LJ = pd.DataFrame()
+        greta_native_SB_LJ = pd.DataFrame()
+        greta_fibril_SB_LJ = pd.DataFrame()
+        ligand_MD_LJ = pd.DataFrame()
+
+        if not self.structure_based_contacts_dict['random_coil'].empty:
+            if not self.structure_based_contacts_dict['atomic_mat_plainMD'].empty:
+                greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict['atomic_mat_plainMD'], self.structure_based_contacts_dict['random_coil'], self.parameters)
+
+            if not self.structure_based_contacts_dict['native_pairs'].empty:
+                # TODO to compute here the sb types and not in the fibril ensemble
+                greta_native_SB_LJ = self.structure_based_contacts_dict['native_pairs']
+            
+            if not self.structure_based_contacts_dict['fibril_pairs'].empty:
+                # TODO to compute here the sb types and not in the fibril ensemble
+                greta_fibril_SB_LJ = self.structure_based_contacts_dict['fibril_pairs']
+            
+            if not self.structure_based_contacts_dict['ligand_MD_pairs'].empty:
+                ligand_MD_LJ = self.structure_based_contacts_dict['ligand_MD_pairs']
+        
+        greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
+       
+        if greta_LJ.empty:
+            greta_ffnb = greta_LJ
+        else:
+            greta_ffnb = merge_and_clean_LJ(greta_LJ, self.parameters)
+        
+        self.greta_ffnb = greta_ffnb
+        return self
+        
+    def generate_pairs_exclusions(self):
+        # Here different bonds_pairs should be added:
+        # from native and MD they should be the same, the ligand will be added.
+        # Then here the pairs and exclusions will be made.
+
+        bond_pairs = self.bond_pairs + self.ligand_bond_pairs
+        topology_pairs, topology_exclusions = make_pairs_exclusion_topology(self.multiego_ensemble_top, bond_pairs, self.type_c12_dict, self.parameters, self.greta_LJ)
+        self.pairs = topology_pairs
+        self.exclusions = topology_exclusions
+
+        return self
+
+    def add_parsed_ligand_topology(self, ensemble_toadd):
+        '''
+        This one will be kept separated by the protein parsed topology since the definitions are different
+        '''
+        self.ligand_bonds = ensemble_toadd.ligand_bonds
+        self.ligand_bond_pairs = ensemble_toadd.ligand_pair_bonds
+        self.ligand_angles = ensemble_toadd.ligand_angles
+        self.ligand_dihedrals = ensemble_toadd.ligand_dihedrals
+
+        return self
+
+    def list_acid_pH(self):
+        # ACID pH
+        # Selection of the aminoacids and the charged atoms (used for B2m)
+        # TODO add some options for precise pH setting
+        acid_ASP = self.ensemble_top[(ensemble_top['residue'] == "ASP") & ((self.ensemble_top['atom'] == "OD1") | (self.ensemble_top['atom'] == "OD2") | (self.ensemble_top['atom'] == "CG"))]
+        acid_GLU = self.ensemble_top[(ensemble_top['residue'] == "GLU") & ((self.ensemble_top['atom'] == "OE1") | (self.ensemble_top['atom'] == "OE2") | (self.ensemble_top['atom'] == "CD"))]
+        acid_HIS = self.ensemble_top[(ensemble_top['residue'] == "HIS") & ((self.ensemble_top['atom'] == "ND1") | (self.ensemble_top['atom'] == "CE1") | (self.ensemble_top['atom'] == "NE2") | (self.ensemble_top['atom'] == "CD2") | (self.ensemble_top['atom'] == "CG"))]
+        frames = [acid_ASP, acid_GLU, acid_HIS]
+        acid_atp = pd.concat(frames, ignore_index = True)
+        #this is used
+        self.acid_atp = acid_atp['sb_type'].tolist()
+        return self
+
+
+    def generate_outputs_toWrite(self):
+        # Single and merge are right
+        # Topol.top is left
+        #pd.set_option('display.colheader_justify', 'left')
+        pd.set_option('display.colheader_justify', 'right')
+
+        self.moleculetype_toWrite = self.moleculetype.to_string(index=False)
+
+        ffnonbonded_atp = self.multiego_ensemble_top[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
+        ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
+        ffnonbonded_atp.columns = ffnb_colnames
+        ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
+        # TODO there's a problem with the atom number, but the topol.top ones seems correct
+        ffnonbonded_atp.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
+        self.ffnonbonded_atp_toWrite = ffnonbonded_atp.to_string(index = False)
+        
+        atomtypes_top = self.multiego_ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
+        atomtypes_top.rename(columns = {'atom_number':'; nr', 'sb_type':'type', 'residue_number':'resnr'}, inplace=True)
+        self.atomtypes_top_toWrite = atomtypes_top.to_string(index=False)
+        
+        atomtypes_atp = self.multiego_ensemble_top[['sb_type', 'mass']].copy()
+        atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
+        self.atomtypes_atp_toWrite = atomtypes_atp.to_string(index = False, header = False)
+
+        self.bonds_toWrite = self.bonds.to_string(index=False)
+        self.angles_toWrite = self.angles.to_string(index=False)
+        self.dihedrals_toWrite = self.dihedrals.to_string(index=False)
+        self.impropers_toWrite = self.impropers.to_string(index=False)
+        self.pairs_toWrite = self.pairs.to_string(index=False)
+        self.exclusions_toWrite = self.exclusions.to_string(index=False)
+        #self.system_toWrite = self.system.to_string(index=False)
+        self.system_toWrite = self.parameters['protein']
+        self.molecules_toWrite = self.molecules.to_string(index=False)
+        self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
+
+        return self
+
+
 class ensemble:
     '''
     Ensemble class: aggregates all the parameters used in the script.
     '''
-    #def __init__(self, topology_file, structure_file, parameters, get_structure_pairs=False, is_MD=False, not_matching_native=False, use_RC=False, get_pairs_exclusions=False):
-    def __init__(self, parameters, ensemble_parameters):
-        
-        # RC is needed for native pairs
-        if ensemble_parameters['get_structure_pairs'] == True:
-            ensemble_parameters['use_RC'] = True
-        
+    def __init__(self, parameters, ensemble_parameters):        
         # Topology Section
         # Atoms
         print('\t- Generating ensemble Atomtypes')
         print('\t- Reading topology and structure')
-        topology = pmd.load_file(ensemble_parameters['topology_file'], parametrize=False)
-        structure = pmd.load_file(ensemble_parameters['structure_file'])
-        ensemble_top, renamed_structure = prepare_ensemble_topology(topology, structure, ensemble_parameters, parameters)
-        print('\t- Ensemble topology generated')
+        self.parameters = parameters
+        self.ensemble_parameters = ensemble_parameters
+        self.topology = pmd.load_file(ensemble_parameters['topology_file'], parametrize=False)
+        self.structure = pmd.load_file(ensemble_parameters['structure_file'])
 
-        if ensemble_parameters['not_matching_native']:
-            sbtype_idx_dict = ensemble_parameters['not_matching_native'].sbtype_idx_dict           
-            # Fibril might not be modelled, therefore the numbering does not match the native structure
-            # Here a dictionary is supplied to renumber the atoms
-            print('\t- Renumbering the fibril atom numbers')
-            ensemble_top['atom_number'] = ensemble_top['sb_type'].map(sbtype_idx_dict)
+
+    def prepare_ensemble(self, add_native_ensemble = False):
+        ensemble_top = prepare_ensemble_topology(self.topology, self.structure, self.ensemble_parameters, self.parameters)
+        self.ensemble_top = ensemble_top
+        print('\t- Ensemble topology generated')
         
-        self.multiego_topology = ensemble_top
+        sbtype_idx_dict = ensemble_top[['atom_number', 'sb_type']].copy()
+        sbtype_idx_dict = sbtype_idx_dict.set_index('sb_type')['atom_number'].to_dict()
+        self.sbtype_idx_dict = sbtype_idx_dict
 
         native_atomtypes = (ensemble_top['sb_type'] +':'+ ensemble_top['chain']).tolist()
         self.native_atomtypes = native_atomtypes
-
-        atomtypes_towrite = ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
-        self.atomtypes_towrite = atomtypes_towrite
-
-        atomtypes_atp = ensemble_top[['sb_type', 'mass']].copy()
-        atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
-        self.atomtypes_atp = atomtypes_atp
-
+        
         type_c12_dict = ensemble_top[['sb_type', 'c12']].copy()
         type_c12_dict.rename(columns={'sb_type':'; type'}, inplace=True)
         type_c12_dict = type_c12_dict.set_index('; type')['c12'].to_dict()
@@ -81,66 +272,232 @@ class ensemble:
         idx_sbtype_dict = idx_sbtype_dict.set_index('atom_number')['sb_type'].to_dict()
         self.idx_sbtype_dict = idx_sbtype_dict
 
-        sbtype_idx_dict = ensemble_top[['atom_number', 'sb_type']].copy()
-        sbtype_idx_dict = sbtype_idx_dict.set_index('sb_type')['atom_number'].to_dict()
-        self.sbtype_idx_dict = sbtype_idx_dict
+        return self
 
-        ffnonbonded_atp = ensemble_top[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
+
+    def get_parsed_topology(self):
+        '''
+        Topol.top sort of things except atoms. Namely bonds, angles, dihedrals, impropers, pairs and exclusions.
+        This method uses the parser i wrote and not ParmEd.
+        '''
+        parsed_topology = topology_parser(read_topology(self.ensemble_parameters['topology_file']))
+
+        # This one is self so i wrote less things in multiego and here
+        self.parsed_topology = parsed_topology
+        
+        self.bonds = parsed_topology.bonds
+        bond_pairs = parsed_topology.bond_pairs
+        self.bond_pairs = bond_pairs
+        self.angles = parsed_topology.angles
+        self.dihedrals = parsed_topology.dihedrals
+        self.impropers = parsed_topology.impropers
+
+        return self
+
+
+    def match_native_topology(self, sbtype_idx_dict):
+        '''
+        Fibril might not be entirely modelled, therefore the numbering does not match the native structure.
+        Here a dictionary is supplied to renumber the atoms.
+        '''
+
+        print('\t- Renumbering the fibril atom numbers')
+        self.ensemble_top['atom_number'] = self.ensemble_top['sb_type'].map(sbtype_idx_dict)
+        return self
+    
+    def convert_topology(self, ego_native):
+        '''
+        This functions is needed to convert the structure based atomtypes from a force field to gromos.
+        It is tested using charmm were the only different atomtypes are OT1 and OT2 which has to be renamed to O1 and O2.
+        Other differences are on the atom index which is solved using the structure based atomtype.
+        Here a dictionary is made by charmm key: gromos value.
+        '''
+        multiego_topology = ego_native.ensemble_top
+        md_topology = self.ensemble_top
+
+        multiego_atoms = set(multiego_topology['atom'].to_list())
+        md_atoms = set(md_topology['atom'].to_list())
+        diff_atoms = list(multiego_atoms - md_atoms)
+        
+        merged_atoms = pd.DataFrame()
+        merged_atoms['atoms_multiego'] = multiego_topology['atom']
+        merged_atoms['multiego_resnum'] = multiego_topology['residue_number']
+        merged_atoms['atoms_md'] = md_topology['atom']
+        merged_atoms['md_resnum'] = md_topology['residue_number']
+        merged_atoms = merged_atoms.loc[merged_atoms['atoms_multiego'].isin(diff_atoms)]
+        merged_atoms['sb_multiego'] = merged_atoms['atoms_multiego']+'_'+merged_atoms['multiego_resnum'].astype(str)
+        merged_atoms['sb_md'] = merged_atoms['atoms_md']+'_'+merged_atoms['md_resnum'].astype(str)
+        merged_atoms_dict = merged_atoms.set_index('sb_md')['sb_multiego'].to_dict()
+
+        md_topology = md_topology.replace({'sb_type':merged_atoms_dict})
+        self.ensemble_top = md_topology
+        updated_mat_plainMD = self.atomic_mat_MD
+        updated_mat_plainMD = updated_mat_plainMD.replace({'ai':merged_atoms_dict})
+        updated_mat_plainMD = updated_mat_plainMD.replace({'aj':merged_atoms_dict})
+        self.atomic_mat_MD = updated_mat_plainMD
+        self.conversion_dict = merged_atoms_dict
+
+        return self
+
+
+    def add_random_coil(self):
+        # The random coil should come from the same native ensemble
+        #if not ensemble_parameters['not_matching_native']:
+        atomic_mat_random_coil = random_coil_mdmat(self.parameters, self.idx_sbtype_dict)
+        self.atomic_mat_random_coil = atomic_mat_random_coil
+        return self
+        
+        
+    def add_MD_contacts(self):
+        # MD_contacts
+        atomic_mat_MD = plainMD_mdmat(self.parameters, self.ensemble_parameters, self.idx_sbtype_dict)
+        self.atomic_mat_MD = atomic_mat_MD
+        return self
+    
+
+    def get_structure_pairs(self, ego_native):
+        print('\t- Reading pdb structure for pairs')
+        mda_structure = mda.Universe(self.ensemble_parameters['structure_file'], guess_bonds = False)#, topology_format='PDB')
+        print('\t- Making pairs')
+        structure_pairs = PDB_LJ_pairs(mda_structure, ego_native.atomic_mat_random_coil, self.native_atomtypes, self.parameters)
+        self.structure_pairs = structure_pairs
+        return self
+
+
+    def make_outputs_toWrite(self):
+        # TODO this one might be removed and added in multiego ensemble
+        pd.set_option('display.colheader_justify', 'left')
+        #pd.set_option('display.colheader_justify', 'right')
+        ffnonbonded_atp = self.ensemble_top[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
         ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
         ffnonbonded_atp.columns = ffnb_colnames
-        ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
+        #ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
         # TODO there's a problem with the atom number, but the topol.top ones seems correct
+        #ffnonbonded_atp.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
         self.ffnonbonded_atp = ffnonbonded_atp
-
-        # ACID pH
-        # Selection of the aminoacids and the charged atoms (used for B2m)
-        # TODO add some options for precise pH setting
-        acid_ASP = ensemble_top[(ensemble_top['residue'] == "ASP") & ((ensemble_top['atom'] == "OD1") | (ensemble_top['atom'] == "OD2") | (ensemble_top['atom'] == "CG"))]
-        acid_GLU = ensemble_top[(ensemble_top['residue'] == "GLU") & ((ensemble_top['atom'] == "OE1") | (ensemble_top['atom'] == "OE2") | (ensemble_top['atom'] == "CD"))]
-        acid_HIS = ensemble_top[(ensemble_top['residue'] == "HIS") & ((ensemble_top['atom'] == "ND1") | (ensemble_top['atom'] == "CE1") | (ensemble_top['atom'] == "NE2") | (ensemble_top['atom'] == "CD2") | (ensemble_top['atom'] == "CG"))]
-        frames = [acid_ASP, acid_GLU, acid_HIS]
-        acid_atp = pd.concat(frames, ignore_index = True)
-        #this is used
-        self.acid_atp = acid_atp['sb_type'].tolist()
-
-        if ensemble_parameters['get_pairs_exclusions'] == True:
-            print('\t- Generating bonds, pairs and exclusions')
-            ensemble_bonds = get_topology_bonds(topology)
-            bonds_pairs = list([(str(ai), str(aj)) for ai, aj in zip(ensemble_bonds['ai'].to_list(), ensemble_bonds['aj'].to_list())])
-            # TODO here we have an issue about the gb definition
-            self.multiego_bonds = ensemble_bonds
-            self.bonds_pairs = bonds_pairs
-
-            # Pairs and Exclusions
-            topology_pairs, topology_exclusion = make_pairs_exclusion_topology(ensemble_top, bonds_pairs, type_c12_dict, parameters)
-            self.topology_pairs = topology_pairs
-            self.topology_exclusion = topology_exclusion
-
-        # The random coil should come from the same native ensemble
-        if ensemble_parameters['use_RC']==True:
-            if not ensemble_parameters['not_matching_native']:
-                atomic_mat_random_coil = random_coil_mdmat(parameters, idx_sbtype_dict)
-                self.atomic_mat_random_coil = atomic_mat_random_coil
         
-        # MD_contacts
-        if ensemble_parameters['is_MD']==True:
-            atomic_mat_plainMD = plainMD_mdmat(parameters, idx_sbtype_dict)
-            self.atomic_mat_plainMD = atomic_mat_plainMD
+        atomtypes_top = self.ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
+        self.atomtypes_top = atomtypes_top
         
-        # Structure based contacts
-        if ensemble_parameters['get_structure_pairs']==True:
-            if ensemble_parameters['not_matching_native']:
-                native_ensemble = ensemble_parameters['not_matching_native']
-                #mda_structure = mda.Universe(ensemble_parameters['structure_file'], guess_bonds = True)
-                mda_structure = mda.Universe(renamed_structure, guess_bonds = True, topology_format='PDB')
-                structure_pairs = PDB_LJ_pairs(mda_structure, native_ensemble.atomic_mat_random_coil, native_atomtypes, parameters)
-            else:
-                #mda_structure = mda.Universe(ensemble_parameters['structure_file'], guess_bonds = True)
-                mda_structure = mda.Universe(renamed_structure, guess_bonds = True, topology_format='PDB')
-                structure_pairs = PDB_LJ_pairs(mda_structure, atomic_mat_random_coil, native_atomtypes, parameters)
-            self.structure_pairs = structure_pairs
+        atomtypes_atp = self.ensemble_top[['sb_type', 'mass']].copy()
+        atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
+        self.atomtypes_atp = atomtypes_atp
+
+        print('\t- Generating bonds, pairs and exclusions')
+        ensemble_bonds = get_topology_bonds(self.topology)
+        bond_pairs = list([(str(ai), str(aj)) for ai, aj in zip(ensemble_bonds['ai'].to_list(), ensemble_bonds['aj'].to_list())])
+        # TODO here we have an issue about the gb definition
+        self.multiego_bonds = ensemble_bonds
+        self.bond_pairs = bond_pairs
+
+        # Pairs and Exclusions
+        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(self.ensemble_top, bonds_pairs, self.type_c12_dict, self.parameters)
+        self.topology_pairs = topology_pairs.to_string(index = False)
+        self.topology_exclusion = topology_exclusion.to_string(index = False)
+
+        return self
 
 
+    def get_ligand_ensemble(self): # TODO change name
+        
+        # ATOMS
+        # Here is just filtering by the ligand 
+        ligand_residue_number = self.ensemble_top['residue_number'].max()
+        self.ligand_residue_number = ligand_residue_number
+
+        # extra atomtypes for c12 definitions
+        print('\t - Retrieving ligand extra atom definitions')
+        itp = read_topology(self.ensemble_parameters['itp_file'])
+        prm = read_topology(self.ensemble_parameters['prm_file'])
+        extra_ligand_top = extra_topology_ligands(itp, prm, ligand_residue_number)
+    
+        # Inserting the new c12 in ffnonbonded.itp
+        ligand_ensemble_top = self.ensemble_top.loc[self.ensemble_top['residue_number'] == ligand_residue_number]
+        ligand_ensemble_top['c12'] = ligand_ensemble_top['sb_type'].map(extra_ligand_top.ligand_sbtype_c12_dict)
+        ligand_ensemble_top['c12'] = ligand_ensemble_top['c12'].map(lambda x:'{:.6e}'.format(x))
+        self.ensemble_top = ligand_ensemble_top
+        
+        ligand_sbtype_number_dict = ligand_ensemble_top[['sb_type', 'atom_number']].copy()
+        ligand_sbtype_number_dict = ligand_sbtype_number_dict.set_index('sb_type')['atom_number'].to_dict()   
+        self.ligand_sbtype_number_dict = ligand_sbtype_number_dict
+
+        update_ligand_bonds = extra_ligand_top.ligand_bonds
+        update_ligand_bonds['ai'] = update_ligand_bonds['ai'].map(ligand_sbtype_number_dict)
+        update_ligand_bonds['aj'] = update_ligand_bonds['aj'].map(ligand_sbtype_number_dict)
+        update_ligand_bonds.dropna(inplace=True)
+        update_ligand_bonds['ai'] = update_ligand_bonds['ai'].astype(int)
+        update_ligand_bonds['aj'] = update_ligand_bonds['aj'].astype(int)
+        self.ligand_bonds = update_ligand_bonds
+        bond_pairs = list([(str(ai), str(aj)) for ai, aj in zip(update_ligand_bonds['ai'].to_list(), update_ligand_bonds['aj'].to_list())])
+        self.ligand_pair_bonds = bond_pairs
+
+        update_ligand_angles = extra_ligand_top.ligand_angles
+        update_ligand_angles['ai'] = update_ligand_angles['ai'].map(ligand_sbtype_number_dict)
+        update_ligand_angles['aj'] = update_ligand_angles['aj'].map(ligand_sbtype_number_dict)
+        update_ligand_angles['ak'] = update_ligand_angles['ak'].map(ligand_sbtype_number_dict)
+        update_ligand_angles.dropna(inplace=True)
+        update_ligand_angles['ai'] = update_ligand_angles['ai'].astype(int)
+        update_ligand_angles['aj'] = update_ligand_angles['aj'].astype(int)
+        update_ligand_angles['ak'] = update_ligand_angles['ak'].astype(int)
+        self.ligand_angles = update_ligand_angles
+
+        update_ligand_dihedrals = extra_ligand_top.ligand_dihedrals
+        update_ligand_dihedrals['ai'] = update_ligand_dihedrals['ai'].map(ligand_sbtype_number_dict)
+        update_ligand_dihedrals['aj'] = update_ligand_dihedrals['aj'].map(ligand_sbtype_number_dict)
+        update_ligand_dihedrals['ak'] = update_ligand_dihedrals['ak'].map(ligand_sbtype_number_dict)
+        update_ligand_dihedrals['al'] = update_ligand_dihedrals['al'].map(ligand_sbtype_number_dict)
+        update_ligand_dihedrals.dropna(inplace=True)
+        update_ligand_dihedrals['ai'] = update_ligand_dihedrals['ai'].astype(int)
+        update_ligand_dihedrals['aj'] = update_ligand_dihedrals['aj'].astype(int)
+        update_ligand_dihedrals['ak'] = update_ligand_dihedrals['ak'].astype(int)
+        update_ligand_dihedrals['al'] = update_ligand_dihedrals['al'].astype(int)
+        self.ligand_dihedrals = update_ligand_dihedrals
+
+        return self
+
+
+    def add_ligand_ensemble(self, ligand_ensemble):
+        # TODO this one might be deleted since I am writing ligand itp and include
+        # atomtypes
+        new_atomtypes_atp = pd.concat([self.atomtypes_atp, ligand_ensemble.ligand_atomtypes_atp], axis=0, sort=False, ignore_index=True)
+        self.atomtypes_atp = new_atomtypes_atp
+        new_ffnonbonded_atp = pd.concat([self.ffnonbonded_atp, ligand_ensemble.ligand_ffnonbonded_atp], axis=0, sort=False, ignore_index=True)
+        self.ffnonbonded_atp = new_ffnonbonded_atp
+        new_atomtypes_top = pd.concat([self.atomtypes_top, ligand_ensemble.ligand_atomtypes_top], axis=0, sort=False, ignore_index=True)
+        self.atomtypes_top = new_atomtypes_top
+
+        
+        return self
+
+
+    def ligand_MD_LJ_pairs(self):
+        # TODO this one will be moved in multiego_ensemble
+        print('\t- Adding the ligand LJ potential')
+
+        # Following the idea that the ligand is considered as a residue in the same chain,
+        # we select ligand pairs by selecting the spare residue compared with the ligand
+        atomic_ligand_mat = self.atomic_mat_MD
+        atomic_ligand_mat = atomic_ligand_mat.loc[(atomic_ligand_mat['residue_ai'] == self.ligand_residue_number) | (atomic_ligand_mat['residue_aj'] == self.ligand_residue_number)]
+        atomic_ligand_mat['sigma'] = (atomic_ligand_mat['distance']) / (2**(1/6))
+        atomic_ligand_mat[['idx_ai', 'idx_aj']] = atomic_ligand_mat[['ai', 'aj']]
+        atomic_ligand_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
+        
+        # We are using the old equation (prior to the RC version)
+        atomic_ligand_mat['epsilon'] = self.parameters['epsilon_input']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(self.parameters['ratio_threshold']))))
+        atomic_ligand_mat.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability'], inplace = True)
+        atomic_ligand_mat.dropna(inplace=True)
+        atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
+        self.ligand_atomic_mat_MD = atomic_ligand_mat
+
+        return self
+
+
+
+# END CLASS
+
+
+
+# TODO this one might be included in the ensemble class
 def prepare_ensemble_topology(topology, structure, ensemble_parameters, parameters):
     print('\t\t- Checking the atoms in both Topology and Structure')
     for atom_top, atom_struct in zip(topology.atoms, structure.atoms):
@@ -149,39 +506,9 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
             print(atom_top, atom_struct)
             exit()
     print('\t\t- Atoms between Topology and Structure are corresponding')
-
+    
     topology_df = topology.to_dataframe()
     structure_df = structure.to_dataframe()
-    hydrogen_number = 0
-    if ensemble_parameters['is_MD'] == True:
-        print('\t\t- Removing Hydrogens')
-        # MD has hydrogen which we don't use
-        hydrogen = topology['@H=']
-        hydrogen_number = len(hydrogen.atoms)
-        hydrogen_namelist = []
-        for h in hydrogen.atoms:
-            hydrogen_namelist.append(h.name)
-        hydrogen_namelist = list(set(hydrogen_namelist))
-        mask = (topology_df['name']).isin(hydrogen_namelist)
-        topology_df = topology_df[~mask]
-        topology_df.reset_index(inplace=True)
-        mask = (structure_df['name']).isin(hydrogen_namelist)
-        structure_df = structure_df[~mask]
-        structure_df['number'] = list(range(1, len(structure_df)+1))
-        structure_df.reset_index(inplace=True)
-
-    print('\t\t- Chain renaming')
-    chain_labels, chain_ids = [], []
-    if ensemble_parameters['is_MD'] == True:
-        n_molecules = ['1']
-    else:
-        n_molecules = topology.molecules
-    for chain in n_molecules:
-        chain_labels.append(chain[-1]) 
-    atoms_per_molecule = int((len(topology.atoms)-hydrogen_number)/len(n_molecules))
-    for label in chain_labels:
-        for atom in range(atoms_per_molecule):
-            chain_ids.append(label)
 
     print('\t\t- Generating multi-eGO topology')
     multiego_top = pd.DataFrame()
@@ -193,11 +520,27 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
     multiego_top['cgnr'] = structure_df['resnum']
     multiego_top['mass'] = topology_df['mass']
     multiego_top['atomic_number'] = topology_df['atomic_number']
-    multiego_top['chain'] = chain_ids
+    #multiego_top['chain'] = chain_ids
+    multiego_top['chain'] = structure_df['chain']
     multiego_top['charge'] = '0.000000'
     multiego_top['ptype'] = 'A'
     multiego_top['c6'] = '0.00000e+00'
     multiego_top['c12'] = multiego_top['atom_type'].map(gromos_atp['c12'])
+
+    #if ensemble_parameters['is_MD'] == True:
+    print('\t\t- Removing Hydrogens')
+    # MD has hydrogen which we don't use
+    hydrogen = topology['@H=']
+    hydrogen_number = len(hydrogen.atoms)
+    hydrogen_namelist = []
+    for h in hydrogen.atoms:
+        hydrogen_namelist.append(h.name)
+    hydrogen_namelist = list(set(hydrogen_namelist))
+    # Multi-eGO topology
+    mask = (multiego_top['atom']).isin(hydrogen_namelist)
+    multiego_top = multiego_top[~mask]
+    multiego_top.reset_index(inplace=True)
+    multiego_top['atom_number'] = multiego_top.index+1
 
     print('\t\t- Topology fixes')
     # Removing an extra H to PRO
@@ -225,14 +568,10 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
     print('\t\t- Defining multi-eGO atomtypes')
     multiego_top['sb_type'] = multiego_top['atom'] + '_' + multiego_top['residue_number'].astype(str)
 
-    print('\t\t- Writing a new pdb with renamed chains')
-    structure_dict = make_file_dictionary(ensemble_parameters['structure_file'])
-    renamed_structure = rename_chains(structure_dict, chain_ids, ensemble_parameters['structure_file'])
-
-    return multiego_top, renamed_structure
+    return multiego_top
 
 
-def make_file_dictionary(filename):
+def make_file_dictionary_todelete(filename):
     file_dict = {}
     with open(filename) as f:
         for line_number, line in enumerate(f):
@@ -241,10 +580,9 @@ def make_file_dictionary(filename):
     return file_dict
 
 
-def rename_chains(structure_dict, chain_ids, file_name):
+def rename_chains_todelete(structure_dict, chain_ids, file_name):
     # Change the column number 22 which is the chain id in the pdb
     column = 22 - 1
-    renamed_pdb = []
     file_name = file_name.split('/')
     file_path = file_name[:-1]
     file_name = file_name[-1]
@@ -258,14 +596,13 @@ def rename_chains(structure_dict, chain_ids, file_name):
     return file_name
 
 
-def get_topology_bonds(topology):
-
+def get_topology_bonds_todelete(topology):
     bond_atom1, bond_atom2, bond_funct = [], [], []
     for bond in topology.bonds:
         bond_atom1.append(bond.atom1.idx+1)
         bond_atom2.append(bond.atom2.idx+1)
         bond_funct.append(bond.funct)
-        # Here is missing the gd_definition, maybe in writing the input will solve this
+        # TODO Here is missing the gd_definition, maybe in writing the input will solve this
         #print(dir(bond))
         #print(bond.type)
 
@@ -276,6 +613,7 @@ def get_topology_bonds(topology):
 
     return bonds_df
 
+# TODO this one might be included in the ensemble class
 def sb_type_conversion(multiego_ensemble, md_ensemble):
     '''
     This functions is needed to convert the structure based atomtypes from a force field to gromos.
@@ -308,17 +646,28 @@ def sb_type_conversion(multiego_ensemble, md_ensemble):
     return updated_mat_plainMD, merged_atoms_dict
 
 
+def ligand_MD_LJ_pairs_todelete(ego_ligand, parameters):
+    # TODO this one will be moved in multiego_ensemble
+    print('\t- Adding the ligand LJ potential')
+
+    # Following the idea that the ligand is considered as a residue in the same chain,
+    # we select ligand pairs by selecting the spare residue compared with the ligand
+    atomic_ligand_mat = ego_ligand.atomic_mat_MD
+    atomic_ligand_mat = atomic_ligand_mat.loc[(atomic_ligand_mat['residue_ai'] == ego_ligand.ligand_residue_number) | (atomic_ligand_mat['residue_aj'] == ego_ligand.ligand_residue_number)]
+    atomic_ligand_mat['sigma'] = (atomic_ligand_mat['distance']) / (2**(1/6))
+    atomic_ligand_mat[['idx_ai', 'idx_aj']] = atomic_ligand_mat[['ai', 'aj']]
+    atomic_ligand_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    
+    # We are using the old equation (prior to the RC version)
+    atomic_ligand_mat['epsilon'] = parameters['epsilon_input']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(parameters['ratio_threshold']))))
+    atomic_ligand_mat.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability'], inplace = True)
+    atomic_ligand_mat.dropna(inplace=True)
+    atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
+
+    return atomic_ligand_mat
 
 
-
-
-
-
-
-
-
-
-
+# TODO todelete
 def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
     '''
     This function prepares the ffnonbonded.itp section of Multi-ego.ff.
@@ -377,6 +726,7 @@ def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
 
     return native_atomtypes, ffnb_atomtype, atomtypes_atp, type_c12_dict
 
+# TODO todelete
 def make_more_atomtypes(fibril_pdb):
     '''
     Like the previous one, this part is needed in PDB_LJ_pairs when computing the pairs.
@@ -389,6 +739,7 @@ def make_more_atomtypes(fibril_pdb):
 
     return fibril_atomtypes
 
+# TODO todelete
 def topology_check(top1, top2):
     if top1 == top2:
         print('- Same topology definitions')
@@ -396,7 +747,7 @@ def topology_check(top1, top2):
         difference = set(top1).symmetric_difference(set(top2))
         atom_difference = list(difference)
         #print(atom_difference)
-    
+
 
 def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     '''
@@ -424,7 +775,6 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
     # TODO create directly the two separated lists
     pairs_list = list(itertools.combinations(atomtypes, 2))
-
     # But the combinations are list of list and we need to separate them.
     pairs_ai, pairs_aj = [], []
     for n in range(0, len(pairs_list)):
@@ -714,7 +1064,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     return greta_LJ
 
 
-def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, parameters, greta_merge=pd.DataFrame()):
+def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, parameters, greta_merge):#=pd.DataFrame()):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -732,7 +1082,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Dictionaries definitions to map values
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
-    # Bonds from topology
 
     #TODO this should be in topology_definitions.py
     # Building the exclusion bonded list
@@ -784,7 +1133,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
         pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
 
-	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
+	    # When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
         # Now we neeed to be sure that these are excluded intramolecularly
         # If we keep such LJ they cause severe frustration to the system and artifacts
         pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])]

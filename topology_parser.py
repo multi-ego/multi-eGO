@@ -44,24 +44,20 @@ def get_sections_dict(file_dict):
     
     return sections_dict
 
-
-class topology_moleculetype:
+class topology_parser:
     def __init__(self, sections_dict):
+        self.sections_dict = sections_dict
+
         colnames = ['; Name', 'nrexcl']
         section_dict = sections_dict['[ moleculetype ]']
         moleculetype_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
-        self.topology_moleculetype = moleculetype_df
+        self.moleculetype = moleculetype_df
+        #self.string_moleculetype = moleculetype_df.to_string(index=False)
 
-
-class topology_atoms:
-    '''
-    Cose
-    '''
-    def __init__(self, sections_dict):
         pd.options.mode.chained_assignment = None  # default='warn'
         colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB']
 
-        section_dict = sections_dict['[ atoms ]']
+        section_dict = self.sections_dict['[ atoms ]']
         df_topology_atoms = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         df_topology_atoms.drop(columns=['charge', 'typeB', 'chargeB', 'massB'], inplace=True)
         df_topology_atoms.reset_index(inplace=True, drop=True)   
@@ -108,88 +104,140 @@ class topology_atoms:
         #this is used
         self.acid_atp = acid_atp['sb_type'].tolist()
 
-class topology_bonds:
-    def __init__(self, sections_dict):
+        # BONDS
         colnames = ['ai', 'aj', 'func', 'func_type']
-        section_dict = sections_dict['[ bonds ]']
+        section_dict = self.sections_dict['[ bonds ]']
         bonds_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         bonds_df.reset_index(inplace=True, drop=True)
+        self.bonds = bonds_df
 
-        self.df_topology_bonds = bonds_df
         bonds_pairs = list([(ai, aj) for ai, aj in zip(bonds_df['ai'].to_list(), bonds_df['aj'].to_list())])
         self.bond_pairs = bonds_pairs
 
+        #bonds_df.rename(columns={'ai':'; ai'}, inplace=True)
+        #self.string_bonds = bonds_df.to_string(index=False)
 
-class topology_angles:
-    def __init__(self, sections_dict):
         colnames = ['ai', 'aj', 'ak', 'funct', 'c0']
-        section_dict = sections_dict['[ angles ]']
+        section_dict = self.sections_dict['[ angles ]']
         angles_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         angles_df.reset_index(inplace=True, drop=True) 
-        self.topology_angles = angles_df
+        self.angles = angles_df
 
+        #angles_df.rename(columns={'ai':'; ai'}, inplace=True)
+        #self.string_angles = angles_df.to_string(index=False)
 
-class topology_dihedrals:
-    def __init__(self, sections_dict):
         colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0']
-        section_dict = sections_dict['[ dihedrals ]']
+        section_dict = self.sections_dict['[ dihedrals ]']
         dihedrals_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         dihedrals_df.reset_index(inplace=True, drop=True)
-        self.topology_dihedrals = dihedrals_df
+        self.dihedrals = dihedrals_df
+        
+        #dihedrals_df.rename(columns={'ai':'; ai'}, inplace=True)
+        #self.string_dihedrals = dihedrals_df.to_string(index=False)
 
-
-class topology_impropers:
-    def __init__(self, sections_dict):
         colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0']
-        section_dict = sections_dict['[ impropers ]']
+        section_dict = self.sections_dict['[ impropers ]']
         impropers_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         impropers_df.reset_index(inplace=True, drop=True)
-        self.topology_impropers = impropers_df
+        self.impropers = impropers_df
+        
+        #impropers_df.rename(columns={'ai':'; ai'}, inplace=True)
+        #self.string_impropers = impropers_df.to_string(index=False)
 
-
-class topology_system:
-    def __init__(self, sections_dict):
-        section_dict = sections_dict['[ system ]']
+        section_dict = self.sections_dict['[ system ]']
         system_df = pd.DataFrame.from_dict(section_dict, orient='index')
         system_df.reset_index(inplace=True, drop=True)
-        system_df['; Name'] = system_df[0] + system_df[1] + system_df[2] + system_df[3] + system_df[4] + system_df[5] + system_df[6]
+        system_df['; Name'] = 'Protein'
         system_df = system_df['; Name']
-        self.topology_system = system_df
+        self.system = system_df
+        #self.string_system = system_df.to_string(index=False)
 
-
-class topology_molecules:
-    def __init__(self, sections_dict):
         colnames = ['; Compound', '#mols']
-        section_dict = sections_dict['[ molecules ]']
+        section_dict = self.sections_dict['[ molecules ]']
         molecules_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
         molecules_df.reset_index(inplace=True, drop=True)
-        self.topology_molecules = molecules_df
+        self.molecules = molecules_df
+        #self.string_molecules = molecules_df.to_string(index=False)
 
 
-class topology_ligands:
+class extra_topology_ligands:
     '''
     Cose
     '''
-    def __init__(self, sections_dict):
+    def __init__(self, sections_dict_itp, sections_dict_prm, ligand_residue_number):
         pd.options.mode.chained_assignment = None  # default='warn'
+        
+        # PRM to get the c12
+        section_dict_prm = sections_dict_prm['[ atomtypes ]']
+        colnames = ['atom_type', 'atom_number', 'mass', 'charge', 'ptype', 'sigma', 'epsilon']
+        df_ligand_atomtypes = pd.DataFrame.from_dict(section_dict_prm, orient='index', columns=colnames)
+        df_ligand_atomtypes['sigma'] = df_ligand_atomtypes['sigma'].astype(float)
+        df_ligand_atomtypes['epsilon'] = df_ligand_atomtypes['epsilon'].astype(float)
+        df_ligand_atomtypes['c12'] = abs(4 * df_ligand_atomtypes['epsilon'] * (df_ligand_atomtypes['sigma'] ** 12))
+        # Dictionary for ligand c12
+        ligand_c12_dict = df_ligand_atomtypes[['atom_type', 'c12']].copy()
+        ligand_c12_dict = ligand_c12_dict.set_index('atom_type')['c12'].to_dict()   
+        self.ligand_c12_dict = ligand_c12_dict
+    
+        # ITP
+        # ATOMS
+        section_dict_itp = sections_dict_itp['[ atoms ]']
         colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB']
-        section_dict = sections_dict['[ atoms ]']
-        df_topology_atoms = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
-        df_topology_atoms.drop(columns=['charge', 'typeB', 'chargeB', 'massB'], inplace=True)
-        df_topology_atoms.reset_index(inplace=True, drop=True)   
-        
+        df_ligand_atoms = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)        
         # Changing the mass of the atoms section by adding the H
-        df_topology_atoms['atom_number'] = df_topology_atoms['atom_number'].astype(int)
-        df_topology_atoms['residue_number'] = 'L'
-        df_topology_atoms['cgnr'] = df_topology_atoms['cgnr'].astype(int)
-        df_topology_atoms['mass'] = df_topology_atoms['mass'].astype(float)
-
-        
+        df_ligand_atoms['atom_number'] = df_ligand_atoms['atom_number'].astype(int)
+        df_ligand_atoms['residue_number'] = ligand_residue_number
+        df_ligand_atoms['cgnr'] = df_ligand_atoms['cgnr'].astype(int)
+        df_ligand_atoms['mass'] = df_ligand_atoms['mass'].astype(float)
         ## Structure based atomtype definition
-        df_topology_atoms['sb_type'] = df_topology_atoms['atom'] + '_' + df_topology_atoms['residue_number'].astype(str)
-        self.df_topology_ligand = df_topology_atoms
+        df_ligand_atoms['sb_type'] = df_ligand_atoms['atom'] + '_' + df_ligand_atoms['residue_number'].astype(str)
+        df_ligand_atoms['c12'] = df_ligand_atoms['atom_type'].map(ligand_c12_dict)
+        self.df_topology_ligand = df_ligand_atoms
 
-        #print(df_topology_atoms)
+        ligand_sbtype_c12_dict = df_ligand_atoms[['sb_type', 'c12']].copy()
+        ligand_sbtype_c12_dict = ligand_sbtype_c12_dict.set_index('sb_type')['c12'].to_dict()   
+        self.ligand_sbtype_c12_dict = ligand_sbtype_c12_dict
+        
+        ligand_number_sbtype_dict = df_ligand_atoms[['atom_number', 'sb_type']]
+        ligand_number_sbtype_dict = ligand_number_sbtype_dict.set_index('atom_number')['sb_type'].to_dict()   
+        self.ligand_number_sbtype_dict = ligand_number_sbtype_dict
+
+        # BONDS
+        section_dict_itp =  sections_dict_itp['[ bonds ]']
+        colnames = ['ai', 'aj', 'funct', 'c0', 'c1']
+        df_ligand_bonds = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
+        df_ligand_bonds['ai'] = df_ligand_bonds['ai'].astype(int)
+        df_ligand_bonds['aj'] = df_ligand_bonds['aj'].astype(int)
+        df_ligand_bonds['ai'] = df_ligand_bonds['ai'].map(ligand_number_sbtype_dict)
+        df_ligand_bonds['aj'] = df_ligand_bonds['aj'].map(ligand_number_sbtype_dict)
+        self.ligand_bonds =  df_ligand_bonds
+
+        # ANGLES
+        section_dict_itp =  sections_dict_itp['[ angles ]']
+        colnames = ['ai', 'aj', 'ak', 'funct', 'c0', 'c1', 'c2', 'c3']
+        df_ligand_angles = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
+        df_ligand_angles['ai'] = df_ligand_angles['ai'].astype(int)
+        df_ligand_angles['aj'] = df_ligand_angles['aj'].astype(int)
+        df_ligand_angles['ak'] = df_ligand_angles['ak'].astype(int)
+        df_ligand_angles['ai'] = df_ligand_angles['ai'].map(ligand_number_sbtype_dict)
+        df_ligand_angles['aj'] = df_ligand_angles['aj'].map(ligand_number_sbtype_dict)
+        df_ligand_angles['ak'] = df_ligand_angles['ak'].map(ligand_number_sbtype_dict)
+        self.ligand_angles =  df_ligand_angles
+
+        # DIHEDRALS
+        section_dict_itp =  sections_dict_itp['[ angles ]']
+        colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0', 'c1', 'c2']
+        df_ligand_dihedrals = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
+        df_ligand_dihedrals['ai'] = df_ligand_dihedrals['ai'].astype(int)
+        df_ligand_dihedrals['aj'] = df_ligand_dihedrals['aj'].astype(int)
+        df_ligand_dihedrals['ak'] = df_ligand_dihedrals['ak'].astype(int)
+        df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].astype(int)
+        df_ligand_dihedrals['ai'] = df_ligand_dihedrals['ai'].map(ligand_number_sbtype_dict)
+        df_ligand_dihedrals['aj'] = df_ligand_dihedrals['aj'].map(ligand_number_sbtype_dict)
+        df_ligand_dihedrals['ak'] = df_ligand_dihedrals['ak'].map(ligand_number_sbtype_dict)
+        df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].map(ligand_number_sbtype_dict)
+        self.ligand_dihedrals =  df_ligand_dihedrals
+
 
 
 class topology_ligand_bonds:
