@@ -1218,10 +1218,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    # Left alpha helix
-    # Here we introduce the c6 and the c12 between the O and the CB of the next residue
-    # to optimize the left alpha region in the Ramachandran
-
     # Adding the c6 and c12 (I do it now because later is sbatti)
     atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
