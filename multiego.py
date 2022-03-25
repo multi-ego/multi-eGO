@@ -94,15 +94,16 @@ def main(argv):
     # TODO figure out valid parameter combinations
     # check if input parameter combination is valid
     # if not ((parameters['epsilon_input'] != None) ^ ( parameters['epsilon_structure'] != None or parameters['epsilon_md'] != None )):
-    if not ((parameters['epsilon_input'] != None) ^ ( parameters['epsilon_structure'] != None or parameters['epsilon_md'] != None )):
-        print('oopsie')
-        exit(4)
-    else:
-        if parameters['epsilon_structure'] == None: parameters['epsilon_structure'] = parameters['epsilon_input']
-        if parameters['epsilon_md'] == None: parameters['epsilon_md'] = parameters['epsilon_input']
-        if parameters['epsilon_input'] == None: parameters['epsilon_input'] = parameters['epsilon_md']
-        # the only way epsilon_input and epsilon_structure are the same is when only epsilon_input was supplied
-        if parameters['epsilon_input'] != parameters['epsilon_structure']: parameters['different_epsilon'] = True
+    if parameters['egos'] != 'rc':
+        if not ((parameters['epsilon_input'] != None) ^ ( parameters['epsilon_structure'] != None or parameters['epsilon_md'] != None )):
+            print('oopsie')
+            exit(4)
+        else:
+            if parameters['epsilon_structure'] == None: parameters['epsilon_structure'] = parameters['epsilon_input']
+            if parameters['epsilon_md'] == None: parameters['epsilon_md'] = parameters['epsilon_input']
+            if parameters['epsilon_input'] == None: parameters['epsilon_input'] = parameters['epsilon_md']
+            # the only way epsilon_input and epsilon_structure are the same is when only epsilon_input was supplied
+            if parameters['epsilon_input'] != parameters['epsilon_structure']: parameters['different_epsilon'] = True
 
     parameters['input_folder'] = f"inputs/{parameters['protein']}"
 
