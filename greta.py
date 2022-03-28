@@ -158,7 +158,6 @@ class multiego_ensemble:
                 ligand_MD_LJ = self.structure_based_contacts_dict['ligand_MD_pairs']
         
         greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
-       
         if greta_LJ.empty:
             greta_ffnb = greta_LJ
         else:
@@ -173,7 +172,7 @@ class multiego_ensemble:
         # Then here the pairs and exclusions will be made.
 
         bond_pairs = self.bond_pairs + self.ligand_bond_pairs
-        topology_pairs, topology_exclusions = make_pairs_exclusion_topology(self.multiego_ensemble_top, bond_pairs, self.type_c12_dict, self.parameters, self.greta_LJ)
+        topology_pairs, topology_exclusions = make_pairs_exclusion_topology(self.multiego_ensemble_top, bond_pairs, self.type_c12_dict, self.parameters, self.greta_ffnb)
         self.pairs = topology_pairs
         self.exclusions = topology_exclusions
 
@@ -207,8 +206,8 @@ class multiego_ensemble:
     def generate_outputs_toWrite(self):
         # Single and merge are right
         # Topol.top is left
-        #pd.set_option('display.colheader_justify', 'left')
-        pd.set_option('display.colheader_justify', 'right')
+        pd.set_option('display.colheader_justify', 'left')
+        #pd.set_option('display.colheader_justify', 'right')
 
         self.moleculetype_toWrite = self.moleculetype.to_string(index=False)
 
