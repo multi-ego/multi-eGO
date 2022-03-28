@@ -82,7 +82,7 @@ venv.bak/
 
 # Pyre type checker
 .pyre/
-.vscode/settings.json
+.vscode/*
 
 # more
 /inputs/
