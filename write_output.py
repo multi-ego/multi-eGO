@@ -73,9 +73,19 @@ def write_topology(ensemble):
     file.write(str(ensemble.bonds_toWrite))
     file.write('\n\n')
 
+    if ensemble.parameters['ligand'] == True:
+        file.write('[ bonds ]\n')
+        file.write(str(ensemble.ligand_bonds_toWrite))
+        file.write('\n\n')
+
     file.write('[ angles ]\n')
     file.write(str(ensemble.angles_toWrite))
     file.write('\n\n')
+    
+    if ensemble.parameters['ligand'] == True:
+        file.write('[ angles ]\n')
+        file.write(str(ensemble.ligand_angles_toWrite))
+        file.write('\n\n')
 
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.dihedrals_toWrite))
@@ -84,7 +94,12 @@ def write_topology(ensemble):
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.impropers_toWrite))
     file.write('\n\n')
-    
+        
+    if ensemble.parameters['ligand'] == True:
+        file.write('[ dihedrals ]\n')
+        file.write(str(ensemble.ligand_dihedrals_toWrite))
+        file.write('\n\n')
+
     file.write("[ pairs ]")
     file.write("\n")
     file.write(str(ensemble.pairs_toWrite))

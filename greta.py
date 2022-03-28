@@ -94,6 +94,7 @@ class multiego_ensemble:
             #print(f'\t- The following atoms are being inserted in multiego topology: {list(diff_index)}')
             print(f'\t- Inserting atoms in multiego ensemble')
         ensemble_top = ensemble_top.loc[diff_index]
+        ensemble_top.sort_values(by=['atom_number'], inplace=True)
         self.multiego_ensemble_top = pd.concat([self.multiego_ensemble_top, ensemble_top], axis=0, sort=False)
     
         # Those will be recreated after the addition of all atoms, including the ligand ones
@@ -101,7 +102,6 @@ class multiego_ensemble:
         type_c12_dict.rename(columns={'sb_type':'; type'}, inplace=True)
         type_c12_dict = type_c12_dict.set_index('; type')['c12'].to_dict()
         self.type_c12_dict = type_c12_dict
-
 
         return self
     
@@ -130,6 +130,12 @@ class multiego_ensemble:
 
         
     def generate_multiego_LJ(self):
+        
+        # TODO ACID DEMMERDA
+        #if parameters['acid_ff'] == True and top.acid_atp !=0:
+        #        greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
+        #        greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
+
         #print(self.structure_based_contacts_dict)
         greta_MD_LJ = pd.DataFrame()
         greta_native_SB_LJ = pd.DataFrame()
@@ -232,6 +238,11 @@ class multiego_ensemble:
         self.system_toWrite = self.parameters['protein']
         self.molecules_toWrite = self.molecules.to_string(index=False)
         self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
+
+        if self.parameters['ligand'] == True:
+            self.ligand_bonds_toWrite = self.ligand_bonds.to_string(index=False)
+            self.ligand_angles_toWrite = self.ligand_angles.to_string(index=False)
+            self.ligand_dihedrals_toWrite = self.ligand_dihedrals.to_string(index=False)
 
         return self
 
@@ -414,7 +425,7 @@ class ensemble:
         # Inserting the new c12 in ffnonbonded.itp
         ligand_ensemble_top = self.ensemble_top.loc[self.ensemble_top['residue_number'] == ligand_residue_number]
         ligand_ensemble_top['c12'] = ligand_ensemble_top['sb_type'].map(extra_ligand_top.ligand_sbtype_c12_dict)
-        ligand_ensemble_top['c12'] = ligand_ensemble_top['c12'].map(lambda x:'{:.6e}'.format(x))
+        #ligand_ensemble_top['c12'] = ligand_ensemble_top['c12'].map(lambda x:'{:.6e}'.format(x))
         self.ensemble_top = ligand_ensemble_top
         
         ligand_sbtype_number_dict = ligand_ensemble_top[['sb_type', 'atom_number']].copy()
