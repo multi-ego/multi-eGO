@@ -186,6 +186,10 @@ class multiego_ensemble:
         self.ligand_bond_pairs = ensemble_toadd.ligand_pair_bonds
         self.ligand_angles = ensemble_toadd.ligand_angles
         self.ligand_dihedrals = ensemble_toadd.ligand_dihedrals
+        
+        # This is used when when want to read ligand pairs from the original topology
+        # We might want to remove this part
+        self.ligand_pairs = ensemble_toadd.ligand_pairs
 
         return self
 
@@ -206,8 +210,8 @@ class multiego_ensemble:
     def generate_outputs_toWrite(self):
         # Single and merge are right
         # Topol.top is left
-        pd.set_option('display.colheader_justify', 'left')
-        #pd.set_option('display.colheader_justify', 'right')
+        #pd.set_option('display.colheader_justify', 'left')
+        pd.set_option('display.colheader_justify', 'right')
 
         self.moleculetype_toWrite = self.moleculetype.to_string(index=False)
 
@@ -227,21 +231,45 @@ class multiego_ensemble:
         atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
         self.atomtypes_atp_toWrite = atomtypes_atp.to_string(index = False, header = False)
 
-        self.bonds_toWrite = self.bonds.to_string(index=False)
-        self.angles_toWrite = self.angles.to_string(index=False)
-        self.dihedrals_toWrite = self.dihedrals.to_string(index=False)
-        self.impropers_toWrite = self.impropers.to_string(index=False)
-        self.pairs_toWrite = self.pairs.to_string(index=False)
-        self.exclusions_toWrite = self.exclusions.to_string(index=False)
+        bonds = self.bonds
+        bonds.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.bonds_toWrite = bonds.to_string(index=False)
+        angles = self.angles
+        angles.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.angles_toWrite = angles.to_string(index=False)
+        dihedrals = self.dihedrals
+        dihedrals.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.dihedrals_toWrite = dihedrals.to_string(index=False)
+        impropers = self.impropers
+        impropers.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.impropers_toWrite = impropers.to_string(index=False)
+        pairs = self.pairs
+        pairs.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.pairs_toWrite = pairs.to_string(index=False)
+        exclusions = self.exclusions
+        exclusions.rename(columns = {'ai':'; ai'}, inplace=True)
+        self.exclusions_toWrite = exclusions.to_string(index=False)
         #self.system_toWrite = self.system.to_string(index=False)
         self.system_toWrite = self.parameters['protein']
         self.molecules_toWrite = self.molecules.to_string(index=False)
         self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
-            self.ligand_bonds_toWrite = self.ligand_bonds.to_string(index=False)
-            self.ligand_angles_toWrite = self.ligand_angles.to_string(index=False)
-            self.ligand_dihedrals_toWrite = self.ligand_dihedrals.to_string(index=False)
+            ligand_bonds = self.ligand_bonds
+            ligand_bonds.rename(columns = {'ai':'; ai'}, inplace=True)
+            self.ligand_bonds_toWrite = ligand_bonds.to_string(index=False)
+            ligand_angles = self.ligand_angles
+            ligand_angles.rename(columns = {'ai':'; ai'}, inplace=True)
+            self.ligand_angles_toWrite = ligand_angles.to_string(index=False)
+            ligand_dihedrals = self.ligand_dihedrals
+            ligand_dihedrals.rename(columns = {'ai':'; ai'}, inplace=True)
+            self.ligand_dihedrals_toWrite = ligand_dihedrals.to_string(index=False)
+            ligand_pairs = self.ligand_pairs
+            ligand_pairs.rename(columns = {'ai':'; ai'}, inplace=True)
+            ligand_pairs['c12'] = ligand_pairs['c12'].map(lambda x:'{:.6e}'.format(x))
+            self.ligand_pairs_toWrite = ligand_pairs.to_string(index=False)
+            ligand_exclusions = self.ligand_pairs[['; ai', 'aj']].copy()
+            self.ligand_exclusions_toWrite = ligand_exclusions.to_string(index=False)
 
         return self
 
@@ -374,7 +402,7 @@ class ensemble:
         return self
 
 
-    def make_outputs_toWrite(self):
+    def make_outputs_toWrite_todelete(self):
         # TODO this one might be removed and added in multiego ensemble
         pd.set_option('display.colheader_justify', 'left')
         #pd.set_option('display.colheader_justify', 'right')
@@ -420,7 +448,7 @@ class ensemble:
         itp = read_topology(self.ensemble_parameters['itp_file'])
         prm = read_topology(self.ensemble_parameters['prm_file'])
         extra_ligand_top = extra_topology_ligands(itp, prm, ligand_residue_number)
-    
+
         # Inserting the new c12 in ffnonbonded.itp
         ligand_ensemble_top = self.ensemble_top.loc[self.ensemble_top['residue_number'] == ligand_residue_number]
         ligand_ensemble_top['c12'] = ligand_ensemble_top['sb_type'].map(extra_ligand_top.ligand_sbtype_c12_dict)
@@ -463,10 +491,20 @@ class ensemble:
         update_ligand_dihedrals['al'] = update_ligand_dihedrals['al'].astype(int)
         self.ligand_dihedrals = update_ligand_dihedrals
 
+        # This is used when when want to read ligand pairs from the original topology
+        # We might want to remove this part
+        update_ligand_pairs = extra_ligand_top.ligand_pairs
+        update_ligand_pairs['ai'] = update_ligand_pairs['ai'].map(ligand_sbtype_number_dict)
+        update_ligand_pairs['aj'] = update_ligand_pairs['aj'].map(ligand_sbtype_number_dict)
+        update_ligand_pairs.dropna(inplace=True)
+        update_ligand_pairs['ai'] = update_ligand_pairs['ai'].astype(int)
+        update_ligand_pairs['aj'] = update_ligand_pairs['aj'].astype(int)
+        self.ligand_pairs = update_ligand_pairs
+        
         return self
 
 
-    def add_ligand_ensemble(self, ligand_ensemble):
+    def add_ligand_ensemble_todelete(self, ligand_ensemble):
         # TODO this one might be deleted since I am writing ligand itp and include
         # atomtypes
         new_atomtypes_atp = pd.concat([self.atomtypes_atp, ligand_ensemble.ligand_atomtypes_atp], axis=0, sort=False, ignore_index=True)
@@ -493,7 +531,7 @@ class ensemble:
         atomic_ligand_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
         
         # We are using the old equation (prior to the RC version)
-        atomic_ligand_mat['epsilon'] = self.parameters['epsilon_input']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(self.parameters['ratio_threshold']))))
+        atomic_ligand_mat['epsilon'] = self.parameters['epsilon_ligand']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(self.parameters['ratio_threshold']))))
         atomic_ligand_mat.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability'], inplace = True)
         atomic_ligand_mat.dropna(inplace=True)
         atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]

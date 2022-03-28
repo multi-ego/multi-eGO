@@ -43,7 +43,7 @@ def main(argv):
     readall=0
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=", "ligand", "noensemble","help"])
+        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=", "ligand=", "noensemble","help"])
     except getopt.GetoptError:
         print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)')
         sys.exit(2)
@@ -80,7 +80,12 @@ def main(argv):
                 parameters['epsilon_md'] = float(arg)
                 readall +=1
         elif opt in ("--ligand"):
-            parameters['ligand'] = True
+            arg = float(arg)
+            if arg > 1 or arg < 0:
+                print('Epsilon values must be chosen between 0 and 1')
+            else:
+                parameters['ligand'] = True
+                parameters['epsilon_ligand'] = float(arg)
         
         elif opt in ("--noensemble"):
             parameters['ensemble'] = False 

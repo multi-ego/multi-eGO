@@ -104,19 +104,30 @@ def write_topology(ensemble):
     file.write("\n")
     file.write(str(ensemble.pairs_toWrite))
     file.write("\n\n")
+
+    if ensemble.parameters['ligand'] == True:
+        file.write('[ pairs ]\n')
+        file.write(str(ensemble.ligand_pairs_toWrite))
+        file.write('\n\n')
+
     file.write("[ exclusions ]")
     file.write("\n")
     file.write(str(ensemble.exclusions_toWrite))
     file.write('\n\n')
+
+    if ensemble.parameters['ligand'] == True:
+        file.write('[ exclusions ]\n')
+        file.write(str(ensemble.ligand_exclusions_toWrite))
+        file.write('\n\n')
 
     file.write('; Include Position restraint file\n')
     file.write('#ifdef POSRES\n')
     file.write('#include "posre.itp"\n')
     file.write('#endif\n\n')
     
-    file.write('; Include ligand topology\n')
-    file.write('#include "topol_ligand_GRETA.itp"')
-    file.write('\n\n')
+    #file.write('; Include ligand topology\n')
+    #file.write('#include "topol_ligand_GRETA.itp"')
+    #file.write('\n\n')
 
     file.write('[ system ]\n')
     file.write(str(ensemble.system_toWrite))

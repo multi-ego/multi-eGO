@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def read_topology(topology_path):
@@ -225,7 +226,7 @@ class extra_topology_ligands:
         self.ligand_angles =  df_ligand_angles
 
         # DIHEDRALS
-        section_dict_itp =  sections_dict_itp['[ angles ]']
+        section_dict_itp = sections_dict_itp['[ dihedrals ]']
         colnames = ['ai', 'aj', 'ak', 'al', 'funct', 'c0', 'c1', 'c2']
         df_ligand_dihedrals = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
         df_ligand_dihedrals['ai'] = df_ligand_dihedrals['ai'].astype(int)
@@ -238,6 +239,29 @@ class extra_topology_ligands:
         df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].map(ligand_number_sbtype_dict)
         self.ligand_dihedrals =  df_ligand_dihedrals
 
+        # PAIRS
+        # This is used when when want to read ligand pairs from the original topology
+        # We might want to remove this part
+        section_dict_itp = sections_dict_itp['[ pairs ]']
+        colnames = ['ai', 'aj', 'funct']
+        df_ligand_pairs = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
+        # TODO check if they want a value of pairs
+        df_ligand_pairs['ai'] = df_ligand_pairs['ai'].astype(int)
+        df_ligand_pairs['aj'] = df_ligand_pairs['aj'].astype(int)
+        df_ligand_pairs['ai'] = df_ligand_pairs['ai'].map(ligand_number_sbtype_dict)
+        df_ligand_pairs['aj'] = df_ligand_pairs['aj'].map(ligand_number_sbtype_dict)
+        df_ligand_pairs['c6'] = 0.000000e+00
+        df_ligand_pairs['c12_ai'] = df_ligand_pairs['ai'].map(ligand_sbtype_c12_dict)
+        df_ligand_pairs['c12_aj'] = df_ligand_pairs['aj'].map(ligand_sbtype_c12_dict)
+        # Now we keep it plain
+        df_ligand_pairs['c12'] = (np.sqrt(df_ligand_pairs['c12_ai'] * df_ligand_pairs['c12_aj']))#*parameters['lj_reduction']
+        df_ligand_pairs.drop(columns=['c12_ai', 'c12_aj'], inplace=True)
+        self.ligand_pairs = df_ligand_pairs
+        
+        ## EXCLUSIONS
+        # This one is obtained during the writing part
+        #df_ligand_exclusions = df_ligand_pairs[['ai', 'aj']].copy()
+        #self.ligand_exclusions = df_ligand_exclusions
 
 
 class topology_ligand_bonds:
