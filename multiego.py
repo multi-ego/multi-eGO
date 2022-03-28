@@ -210,14 +210,10 @@ def main(argv):
             ego_ligand.get_ligand_ensemble()
             ego_ligand.ligand_MD_LJ_pairs()
             
+            multi_ego.add_ensemble_top(ego_ligand)
             multi_ego.add_parsed_ligand_topology(ego_ligand)
             print('- Adding MD probability matrix to multi-eGO ensemble')
             multi_ego.add_structure_based_contacts(ligand_MD_pairs = ego_ligand.ligand_atomic_mat_MD)
-            
-            # TODO ACID DEMMERDA
-            #if parameters['acid_ff'] == True and top.acid_atp !=0:
-            #        greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
-            #        greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
         
     elif parameters['egos'] == 'rc':
         pass
