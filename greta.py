@@ -1240,7 +1240,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 1.6
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = ego_topology['residue'].to_list()
@@ -1266,42 +1266,75 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-    # Left alpha helix
-    # Here we introduce the c6 and the c12 between the O and the CB of the next residue
-    # to optimize the left alpha region in the Ramachandran
-
     # Adding the c6 and c12 (I do it now because later is sbatti)
     atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
     # Here we make a dictionary of the backbone oxygen as atom number
     backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+    backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
     # Left alphas do not occur in GLY and PRO
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
+    backbone_nitrogen = backbone_nitrogen[backbone_nitrogen.residue != 'PRO']
 
-    # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
-    left_alpha_ai, left_alpha_aj, left_alpha_c6, left_alpha_c12 = [], [], [], []
+    # Add pair interaction for nitrogen and oxygen
+    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])+1].squeeze(axis=None)
-        if not line_sidechain_cb.empty:
-            left_alpha_ai.append(line_backbone_oxygen['atom_number'])
-            left_alpha_aj.append(line_sidechain_cb['atom_number'])
-            #left_alpha_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
-            #left_alpha_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
-            #we use the parameters of Alanine because dihedrals have been optimised with these
-            left_alpha_c6.append(0.007115485)
-            left_alpha_c12.append(0.000005162090)
+        line_backbone_n = backbone_nitrogen.loc[backbone_nitrogen['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+        if not line_backbone_n.empty:
+            nitrogen_interactions_ai.append(line_backbone_oxygen['atom_number'])
+            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
+            nitrogen_interactions_c6.append(0)
+            nitrogen_interactions_c12.append(parameters['lj_reduction'] * 1.523e-06)    # nitrogen c12 times O c12
 
-    left_alpha_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    left_alpha_pairs['ai'] = left_alpha_ai
-    left_alpha_pairs['aj'] = left_alpha_aj
-    left_alpha_pairs['c6'] = left_alpha_c6
-    left_alpha_pairs['c12'] = left_alpha_c12
-    left_alpha_pairs['func'] = 1
+    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
+    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
+    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
+    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
+    nitrogen_interaction_pairs['func'] = 1
 
-    pairs = pd.concat([pairs,left_alpha_pairs], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
+
+    # Add pair interaction for beta carbon and nitrogen + 1
+    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
+    for index, line_sidechain_cb in sidechain_cb.iterrows():
+        line_backbone_n = backbone_nitrogen.loc[(backbone_nitrogen['residue_number']) == (line_sidechain_cb['residue_number']+1)].squeeze(axis=None)
+        if not line_backbone_n.empty:
+            nitrogen_interactions_ai.append(line_sidechain_cb['atom_number'])
+            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
+            nitrogen_interactions_c6.append(0)
+            nitrogen_interactions_c12.append(parameters['lj_reduction'] * 7.861728e-06)    # nitrogen c12 times ala cb c12
+
+    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
+    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
+    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
+    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
+    nitrogen_interaction_pairs['func'] = 1
+
+    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
+
+    # Add pair interaction for nitrogen and nitrogen + 1
+    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
+    for index, line_backbone_n in backbone_nitrogen.iterrows():
+        line_backbone_n = backbone_nitrogen.loc[(backbone_nitrogen['residue_number']+1) == (line_backbone_n['residue_number'])].squeeze(axis=None)
+        if not line_backbone_n.empty:
+            nitrogen_interactions_ai.append(line_backbone_n['atom_number'])
+            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
+            nitrogen_interactions_c6.append(0)
+            nitrogen_interactions_c12.append(1.6 * parameters['lj_reduction'] * 2.319529e-6)    # nitrogen c12 times n + 1 c12
+
+    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
+    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
+    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
+    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
+    nitrogen_interaction_pairs['func'] = 1
+
+    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
     # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
@@ -1310,11 +1343,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         if not line_sidechain_cb.empty:
             alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
             alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
-            #alpha_beta_rift_c6.append(np.sqrt(line_backbone_oxygen['c6']*line_sidechain_cb['c6'])*parameters['multiply_c6'])
-            #alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
-            #we use the parameters of Alanine because dihedrals have been optimised with these
             alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append((0.000005162090)*0.1)
+            alpha_beta_rift_c12.append((0.000005162090)*0.2)
 
     alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
@@ -1324,6 +1354,14 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     alpha_beta_rift_pairs['func'] = 1
 
     pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+
+    pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    # drop inverse duplicates
+    cols = ['ai', 'aj']
+    pairs[cols] = np.sort(pairs[cols].values, axis=1)
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
