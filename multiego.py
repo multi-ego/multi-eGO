@@ -16,12 +16,11 @@ def main(argv):
         #
         'distance_residue':2,
         #
-        'ratio_threshold':0.001,
+        'md_threshold':0.001,
+        'rc_threshold':0.000001,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
         'lj_reduction':0.25,
-        # For left alpha we might want to increase the c6 values
-        'multiply_c6':1.5,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         #
