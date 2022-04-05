@@ -182,10 +182,12 @@ class multiego_ensemble:
         '''
         This one will be kept separated by the protein parsed topology since the definitions are different
         '''
-        self.ligand_bonds = ensemble_toadd.ligand_bonds
-        self.ligand_bond_pairs = ensemble_toadd.ligand_pair_bonds
-        self.ligand_angles = ensemble_toadd.ligand_angles
-        self.ligand_dihedrals = ensemble_toadd.ligand_dihedrals
+        self.ligand_moleculetype = ensemble_toadd.ligand_moleculetype.copy()
+        self.ligand_topology = ensemble_toadd.ensemble_top.copy()
+        self.ligand_bonds = ensemble_toadd.ligand_bonds.copy()
+        self.ligand_bond_pairs = ensemble_toadd.ligand_pair_bonds.copy()
+        self.ligand_angles = ensemble_toadd.ligand_angles.copy()
+        self.ligand_dihedrals = ensemble_toadd.ligand_dihedrals.copy()
         
         # This is used when when want to read ligand pairs from the original topology
         # We might want to remove this part
@@ -219,8 +221,6 @@ class multiego_ensemble:
         ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
         ffnonbonded_atp.columns = ffnb_colnames
         ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
-        # TODO there's a problem with the atom number, but the topol.top ones seems correct
-        ffnonbonded_atp.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
         self.ffnonbonded_atp_toWrite = ffnonbonded_atp.to_string(index = False)
         
         atomtypes_top = self.multiego_ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
@@ -255,6 +255,20 @@ class multiego_ensemble:
         self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
+            self.ligand_moleculetype_toWrite = self.ligand_moleculetype.to_string(index=False)
+            
+            ligand_ffnonbonded_atp = self.ligand_topology[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
+            ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
+            ligand_ffnonbonded_atp.columns = ffnb_colnames
+            ligand_ffnonbonded_atp['c12'] = ligand_ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
+            ffnonbonded_atp = pd.concat([ffnonbonded_atp, ligand_ffnonbonded_atp], axis=0, sort=False, ignore_index=True)
+            self.ffnonbonded_atp_toWrite = ffnonbonded_atp.to_string(index = False)
+
+            ligand_atomtypes_top = self.ligand_topology[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
+            #ligand_atomtypes_top['atom_number'] = list(range(1, len(ligand_atomtypes_top['atom_number'])+1))
+            #ligand_atomtypes_top['residue'] = 1
+            ligand_atomtypes_top.rename(columns = {'atom_number':'; nr', 'sb_type':'type', 'residue_number':'resnr'}, inplace=True)
+            self.ligand_atomtypes_top_toWrite = ligand_atomtypes_top.to_string(index=False)
             ligand_bonds = self.ligand_bonds
             ligand_bonds.rename(columns = {'ai':'; ai'}, inplace=True)
             self.ligand_bonds_toWrite = ligand_bonds.to_string(index=False)
@@ -266,6 +280,7 @@ class multiego_ensemble:
             self.ligand_dihedrals_toWrite = ligand_dihedrals.to_string(index=False)
             ligand_pairs = self.ligand_pairs
             ligand_pairs.rename(columns = {'ai':'; ai'}, inplace=True)
+            ligand_pairs['c6'] = ligand_pairs['c6'].map(lambda x:'{:.6e}'.format(x))
             ligand_pairs['c12'] = ligand_pairs['c12'].map(lambda x:'{:.6e}'.format(x))
             self.ligand_pairs_toWrite = ligand_pairs.to_string(index=False)
             ligand_exclusions = self.ligand_pairs[['; ai', 'aj']].copy()
@@ -402,40 +417,6 @@ class ensemble:
         return self
 
 
-    def make_outputs_toWrite_todelete(self):
-        # TODO this one might be removed and added in multiego ensemble
-        pd.set_option('display.colheader_justify', 'left')
-        #pd.set_option('display.colheader_justify', 'right')
-        ffnonbonded_atp = self.ensemble_top[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
-        ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
-        ffnonbonded_atp.columns = ffnb_colnames
-        #ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
-        # TODO there's a problem with the atom number, but the topol.top ones seems correct
-        #ffnonbonded_atp.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-        self.ffnonbonded_atp = ffnonbonded_atp
-        
-        atomtypes_top = self.ensemble_top[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
-        self.atomtypes_top = atomtypes_top
-        
-        atomtypes_atp = self.ensemble_top[['sb_type', 'mass']].copy()
-        atomtypes_atp.rename(columns={'sb_type':'; type'}, inplace=True)
-        self.atomtypes_atp = atomtypes_atp
-
-        print('\t- Generating bonds, pairs and exclusions')
-        ensemble_bonds = get_topology_bonds(self.topology)
-        bond_pairs = list([(str(ai), str(aj)) for ai, aj in zip(ensemble_bonds['ai'].to_list(), ensemble_bonds['aj'].to_list())])
-        # TODO here we have an issue about the gb definition
-        self.multiego_bonds = ensemble_bonds
-        self.bond_pairs = bond_pairs
-
-        # Pairs and Exclusions
-        topology_pairs, topology_exclusion = make_pairs_exclusion_topology(self.ensemble_top, bonds_pairs, self.type_c12_dict, self.parameters)
-        self.topology_pairs = topology_pairs.to_string(index = False)
-        self.topology_exclusion = topology_exclusion.to_string(index = False)
-
-        return self
-
-
     def get_ligand_ensemble(self): # TODO change name
         
         # ATOMS
@@ -449,9 +430,12 @@ class ensemble:
         prm = read_topology(self.ensemble_parameters['prm_file'])
         extra_ligand_top = extra_topology_ligands(itp, prm, ligand_residue_number)
 
+        self.ligand_moleculetype = extra_ligand_top.ligand_moleculetype
+
         # Inserting the new c12 in ffnonbonded.itp
         ligand_ensemble_top = self.ensemble_top.loc[self.ensemble_top['residue_number'] == ligand_residue_number]
         ligand_ensemble_top['c12'] = ligand_ensemble_top['sb_type'].map(extra_ligand_top.ligand_sbtype_c12_dict)
+        ligand_ensemble_top['atom_number'] = ligand_ensemble_top['sb_type'].map(extra_ligand_top.sbtype_ligand_number_dict)
         #ligand_ensemble_top['c12'] = ligand_ensemble_top['c12'].map(lambda x:'{:.6e}'.format(x))
         self.ensemble_top = ligand_ensemble_top
         
@@ -465,6 +449,8 @@ class ensemble:
         update_ligand_bonds.dropna(inplace=True)
         update_ligand_bonds['ai'] = update_ligand_bonds['ai'].astype(int)
         update_ligand_bonds['aj'] = update_ligand_bonds['aj'].astype(int)
+        # This is for gromacs which is bitchy
+        update_ligand_bonds['c1'] = update_ligand_bonds['c1']/self.parameters['ligand_reduction']
         self.ligand_bonds = update_ligand_bonds
         bond_pairs = list([(str(ai), str(aj)) for ai, aj in zip(update_ligand_bonds['ai'].to_list(), update_ligand_bonds['aj'].to_list())])
         self.ligand_pair_bonds = bond_pairs
@@ -502,21 +488,7 @@ class ensemble:
         self.ligand_pairs = update_ligand_pairs
         
         return self
-
-
-    def add_ligand_ensemble_todelete(self, ligand_ensemble):
-        # TODO this one might be deleted since I am writing ligand itp and include
-        # atomtypes
-        new_atomtypes_atp = pd.concat([self.atomtypes_atp, ligand_ensemble.ligand_atomtypes_atp], axis=0, sort=False, ignore_index=True)
-        self.atomtypes_atp = new_atomtypes_atp
-        new_ffnonbonded_atp = pd.concat([self.ffnonbonded_atp, ligand_ensemble.ligand_ffnonbonded_atp], axis=0, sort=False, ignore_index=True)
-        self.ffnonbonded_atp = new_ffnonbonded_atp
-        new_atomtypes_top = pd.concat([self.atomtypes_top, ligand_ensemble.ligand_atomtypes_top], axis=0, sort=False, ignore_index=True)
-        self.atomtypes_top = new_atomtypes_top
-
-        
-        return self
-
+     
 
     def ligand_MD_LJ_pairs(self):
         # TODO this one will be moved in multiego_ensemble

@@ -22,20 +22,6 @@ def read_pdbs(parameters, flag):
     return pdb
 
 
-#def read_topology_atoms(parameters):
-#    # Read the topology created from pbd2gmx with gromos-primefull
-#    topol_atoms = topology_atoms(f'{parameters["input_folder"]}/topol.top')
-#	
-#    return topol_atoms
-#
-#
-#def read_topology_bonds(parameters):
-#    # Read the topology created from pbd2gmx with gromos-primefull
-#    topol_bonds = topology_bonds(f'{parameters["input_folder"]}/topol.top')
-#	
-#    return topol_bonds
-
-
 def plainMD_mdmat(parameters, ensemble_parameters, idx_sbtype_dict):
     # Reading PlainMD contacts
 #    if ensemble_parameters['is_ligand']:

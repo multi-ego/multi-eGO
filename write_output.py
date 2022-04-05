@@ -44,8 +44,7 @@ def write_LJ(ensemble):
     file.write(header(ensemble.parameters))
     file.write("[ atomtypes ]\n")
     file.write(str(ensemble.ffnonbonded_atp_toWrite))
-    file.write("\n")
-    file.write("\n")
+    file.write("\n\n")
     file.write("[ nonbond_params ]\n")
     if ensemble.parameters['egos'] == 'rc':
         file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
@@ -77,19 +76,9 @@ def write_topology(ensemble):
     file.write(str(ensemble.bonds_toWrite))
     file.write('\n\n')
 
-    if ensemble.parameters['ligand'] == True:
-        file.write('[ bonds ]\n')
-        file.write(str(ensemble.ligand_bonds_toWrite))
-        file.write('\n\n')
-
     file.write('[ angles ]\n')
     file.write(str(ensemble.angles_toWrite))
-    file.write('\n\n')
-    
-    if ensemble.parameters['ligand'] == True:
-        file.write('[ angles ]\n')
-        file.write(str(ensemble.ligand_angles_toWrite))
-        file.write('\n\n')
+    file.write('\n\n')  
 
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.dihedrals_toWrite))
@@ -97,41 +86,27 @@ def write_topology(ensemble):
 
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.impropers_toWrite))
-    file.write('\n\n')
-        
-    if ensemble.parameters['ligand'] == True:
-        file.write('[ dihedrals ]\n')
-        file.write(str(ensemble.ligand_dihedrals_toWrite))
-        file.write('\n\n')
+    file.write('\n\n')  
 
     file.write("[ pairs ]")
     file.write("\n")
     file.write(str(ensemble.pairs_toWrite))
-    file.write("\n\n")
-
-    if ensemble.parameters['ligand'] == True:
-        file.write('[ pairs ]\n')
-        file.write(str(ensemble.ligand_pairs_toWrite))
-        file.write('\n\n')
+    file.write("\n\n")  
 
     file.write("[ exclusions ]")
     file.write("\n")
     file.write(str(ensemble.exclusions_toWrite))
-    file.write('\n\n')
-
-    if ensemble.parameters['ligand'] == True:
-        file.write('[ exclusions ]\n')
-        file.write(str(ensemble.ligand_exclusions_toWrite))
-        file.write('\n\n')
+    file.write('\n\n')       
 
     file.write('; Include Position restraint file\n')
     file.write('#ifdef POSRES\n')
     file.write('#include "posre.itp"\n')
     file.write('#endif\n\n')
     
-    #file.write('; Include ligand topology\n')
-    #file.write('#include "topol_ligand_GRETA.itp"')
-    #file.write('\n\n')
+    if ensemble.parameters['ligand'] == True:
+        file.write('; Include ligand topology\n')
+        file.write('#include "topol_ligand_GRETA.itp"')
+        file.write('\n\n')
 
     file.write('[ system ]\n')
     file.write(str(ensemble.system_toWrite))
@@ -139,46 +114,43 @@ def write_topology(ensemble):
 
     file.write('[ molecules ]\n')
     file.write(str(ensemble.molecules_toWrite))
+    if ensemble.parameters['ligand'] == True:
+        file.write('\nligand')
     file.write('\n\n')
 
     file.close()
 
-def write_ligand_topology(parameters, topology_sections_dict):
+def write_ligand_topology(ensemble):
     pd.set_option('display.colheader_justify', 'left')
-    file = open(f'{parameters["output_folder"]}/topol_ligand_GRETA.itp', "w")
-    file.write(header(parameters))  
+    file = open(f'{ensemble.parameters["output_folder"]}/topol_ligand_GRETA.itp', "w")
+    file.write(header(ensemble.parameters))  
     
     file.write('[ moleculetype ]\n')
-    df = topology_moleculetype(topology_sections_dict).topology_moleculetype
-    file.write(str(df.to_string(index=False)))
+    file.write(str(ensemble.ligand_moleculetype_toWrite))
     file.write('\n\n')
 
-    top_atoms = topology_atoms(topology_sections_dict).df_topology_atoms
-    top_atoms.rename(columns = {'atom_number':'; nr', 'atom_type':'type', 'residue_number':'resnr'}, inplace=True)
-    top_atoms['type'] = top_atoms['sb_type']
-    top_atoms.drop(columns=['sb_type', 'mass'], inplace=True)
     file.write("[ atoms ]\n")
-    file.write(str(top_atoms.to_string(index = False)))
+    file.write(str(ensemble.ligand_atomtypes_top_toWrite))
     file.write('\n\n')
 
     file.write('[ bonds ]\n')
-    df = topology_ligand_bonds(topology_sections_dict).df_topology_bonds
-    df.rename(columns={'ai':'; ai'}, inplace=True)
-    file.write(str(df.to_string(index=False)))
+    file.write(str(ensemble.ligand_bonds_toWrite))
     file.write('\n\n')
 
     file.write('[ angles ]\n')
-    df = topology_ligand_angles(topology_sections_dict).topology_angles
-    df.rename(columns={'ai':'; ai'}, inplace=True)
-    file.write(str(df.to_string(index=False)))
+    file.write(str(ensemble.ligand_angles_toWrite))
     file.write('\n\n')
 
     file.write('[ dihedrals ]\n')
-    df = topology_ligand_dihedrals(topology_sections_dict).topology_dihedrals
-    df.rename(columns={'ai':'; ai'}, inplace=True)
-    file.write(str(df.to_string(index=False)))
+    file.write(str(ensemble.ligand_dihedrals_toWrite))
     file.write('\n\n')
 
-    df = ''
+    file.write('[ pairs ]\n')
+    file.write(str(ensemble.ligand_pairs_toWrite))
+    file.write('\n\n')
+
+    file.write('[ exclusions ]\n')
+    file.write(str(ensemble.ligand_exclusions_toWrite))
+    file.write('\n\n')
 
     file.close()

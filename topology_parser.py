@@ -181,6 +181,12 @@ class extra_topology_ligands:
         self.ligand_c12_dict = ligand_c12_dict
     
         # ITP
+        
+        colnames = ['; Name', 'nrexcl']
+        section_dict = sections_dict_itp['[ moleculetype ]']
+        ligand_moleculetype_df = pd.DataFrame.from_dict(section_dict, orient='index', columns=colnames)
+        self.ligand_moleculetype = ligand_moleculetype_df
+
         # ATOMS
         section_dict_itp = sections_dict_itp['[ atoms ]']
         colnames = ['atom_number', 'atom_type', 'residue_number', 'residue', 'atom', 'cgnr', 'charge', 'mass', 'typeB', 'chargeB', 'massB']
@@ -199,9 +205,17 @@ class extra_topology_ligands:
         ligand_sbtype_c12_dict = ligand_sbtype_c12_dict.set_index('sb_type')['c12'].to_dict()   
         self.ligand_sbtype_c12_dict = ligand_sbtype_c12_dict
         
-        ligand_number_sbtype_dict = df_ligand_atoms[['atom_number', 'sb_type']]
-        ligand_number_sbtype_dict = ligand_number_sbtype_dict.set_index('atom_number')['sb_type'].to_dict()   
-        self.ligand_number_sbtype_dict = ligand_number_sbtype_dict
+        #ligand_number_c12_dict = df_ligand_atoms[['atom_number', 'c12']].copy()
+        #ligand_number_c12_dict = ligand_number_c12_dict.set_index('atom_number')['c12'].to_dict()   
+        #self.ligand_number_c12_dict = ligand_number_c12_dict
+        
+        sbtype_ligand_number_dict = df_ligand_atoms[['sb_type', 'atom_number']]
+        sbtype_ligand_number_dict = sbtype_ligand_number_dict.set_index('sb_type')['atom_number'].to_dict()   
+        self.sbtype_ligand_number_dict = sbtype_ligand_number_dict
+
+        ligand_sbtype_number_dict = df_ligand_atoms[['atom_number', 'sb_type']]
+        ligand_sbtype_number_dict = ligand_sbtype_number_dict.set_index('atom_number')['sb_type'].to_dict()   
+        self.ligand_sbtype_number_dict = ligand_sbtype_number_dict
 
         # BONDS
         section_dict_itp =  sections_dict_itp['[ bonds ]']
@@ -209,8 +223,9 @@ class extra_topology_ligands:
         df_ligand_bonds = pd.DataFrame.from_dict(section_dict_itp, orient='index', columns=colnames)
         df_ligand_bonds['ai'] = df_ligand_bonds['ai'].astype(int)
         df_ligand_bonds['aj'] = df_ligand_bonds['aj'].astype(int)
-        df_ligand_bonds['ai'] = df_ligand_bonds['ai'].map(ligand_number_sbtype_dict)
-        df_ligand_bonds['aj'] = df_ligand_bonds['aj'].map(ligand_number_sbtype_dict)
+        df_ligand_bonds['c1'] = df_ligand_bonds['c1'].astype(float)
+        df_ligand_bonds['ai'] = df_ligand_bonds['ai'].map(ligand_sbtype_number_dict)
+        df_ligand_bonds['aj'] = df_ligand_bonds['aj'].map(ligand_sbtype_number_dict)
         self.ligand_bonds =  df_ligand_bonds
 
         # ANGLES
@@ -220,9 +235,9 @@ class extra_topology_ligands:
         df_ligand_angles['ai'] = df_ligand_angles['ai'].astype(int)
         df_ligand_angles['aj'] = df_ligand_angles['aj'].astype(int)
         df_ligand_angles['ak'] = df_ligand_angles['ak'].astype(int)
-        df_ligand_angles['ai'] = df_ligand_angles['ai'].map(ligand_number_sbtype_dict)
-        df_ligand_angles['aj'] = df_ligand_angles['aj'].map(ligand_number_sbtype_dict)
-        df_ligand_angles['ak'] = df_ligand_angles['ak'].map(ligand_number_sbtype_dict)
+        df_ligand_angles['ai'] = df_ligand_angles['ai'].map(ligand_sbtype_number_dict)
+        df_ligand_angles['aj'] = df_ligand_angles['aj'].map(ligand_sbtype_number_dict)
+        df_ligand_angles['ak'] = df_ligand_angles['ak'].map(ligand_sbtype_number_dict)
         self.ligand_angles =  df_ligand_angles
 
         # DIHEDRALS
@@ -233,10 +248,10 @@ class extra_topology_ligands:
         df_ligand_dihedrals['aj'] = df_ligand_dihedrals['aj'].astype(int)
         df_ligand_dihedrals['ak'] = df_ligand_dihedrals['ak'].astype(int)
         df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].astype(int)
-        df_ligand_dihedrals['ai'] = df_ligand_dihedrals['ai'].map(ligand_number_sbtype_dict)
-        df_ligand_dihedrals['aj'] = df_ligand_dihedrals['aj'].map(ligand_number_sbtype_dict)
-        df_ligand_dihedrals['ak'] = df_ligand_dihedrals['ak'].map(ligand_number_sbtype_dict)
-        df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].map(ligand_number_sbtype_dict)
+        df_ligand_dihedrals['ai'] = df_ligand_dihedrals['ai'].map(ligand_sbtype_number_dict)
+        df_ligand_dihedrals['aj'] = df_ligand_dihedrals['aj'].map(ligand_sbtype_number_dict)
+        df_ligand_dihedrals['ak'] = df_ligand_dihedrals['ak'].map(ligand_sbtype_number_dict)
+        df_ligand_dihedrals['al'] = df_ligand_dihedrals['al'].map(ligand_sbtype_number_dict)
         self.ligand_dihedrals =  df_ligand_dihedrals
 
         # PAIRS
@@ -248,8 +263,8 @@ class extra_topology_ligands:
         # TODO check if they want a value of pairs
         df_ligand_pairs['ai'] = df_ligand_pairs['ai'].astype(int)
         df_ligand_pairs['aj'] = df_ligand_pairs['aj'].astype(int)
-        df_ligand_pairs['ai'] = df_ligand_pairs['ai'].map(ligand_number_sbtype_dict)
-        df_ligand_pairs['aj'] = df_ligand_pairs['aj'].map(ligand_number_sbtype_dict)
+        df_ligand_pairs['ai'] = df_ligand_pairs['ai'].map(ligand_sbtype_number_dict)
+        df_ligand_pairs['aj'] = df_ligand_pairs['aj'].map(ligand_sbtype_number_dict)
         df_ligand_pairs['c6'] = 0.000000e+00
         df_ligand_pairs['c12_ai'] = df_ligand_pairs['ai'].map(ligand_sbtype_c12_dict)
         df_ligand_pairs['c12_aj'] = df_ligand_pairs['aj'].map(ligand_sbtype_c12_dict)

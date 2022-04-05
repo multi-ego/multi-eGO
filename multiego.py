@@ -28,6 +28,8 @@ def main(argv):
         'ensemble':True,
         #
         'ligand':False,
+        # This is to reduce the kds when taking the ligand from another FF
+        'ligand_reduction':6.75, # 2*1.5*1.5*1.5
         # The following parameters are added later from input arguments
         # TODO Add descriptions
         'protein':None,
@@ -215,7 +217,7 @@ def main(argv):
             ego_ligand.get_ligand_ensemble()
             ego_ligand.ligand_MD_LJ_pairs()
             
-            multi_ego.add_ensemble_top(ego_ligand)
+            #multi_ego.add_ensemble_top(ego_ligand)
             multi_ego.add_parsed_ligand_topology(ego_ligand)
             print('- Adding MD probability matrix to multi-eGO ensemble')
             multi_ego.add_structure_based_contacts(ligand_MD_pairs = ego_ligand.ligand_atomic_mat_MD)
@@ -239,6 +241,8 @@ def main(argv):
     write_atomtypes_atp(multi_ego)        
     write_LJ(multi_ego)
     write_topology(multi_ego)
+    if parameters['ligand'] == True:
+        write_ligand_topology(multi_ego)
 
     print('- Force-Field files saved in ' + parameters['output_folder'])
     print('\nGRETA completed! Carlo is happy!\t\^o^/\n')
