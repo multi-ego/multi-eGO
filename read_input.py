@@ -40,7 +40,6 @@ def plainMD_mdmat(parameters, ensemble_parameters, idx_sbtype_dict):
     atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
     atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
     atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
-    atomic_mat_plainMD.drop(atomic_mat_plainMD[abs(atomic_mat_plainMD['residue_aj'] - atomic_mat_plainMD['residue_ai']) < parameters['distance_residue']].index, inplace=True)
     atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
     return atomic_mat_plainMD
@@ -60,7 +59,6 @@ def random_coil_mdmat(parameters, idx_sbtype_dict):
     atomic_mat_random_coil[['type_aj', 'residue_aj']] = atomic_mat_random_coil.aj.str.split("_", expand = True)
     atomic_mat_random_coil['residue_ai'] = atomic_mat_random_coil['residue_ai'].astype(int)
     atomic_mat_random_coil['residue_aj'] = atomic_mat_random_coil['residue_aj'].astype(int)
-    atomic_mat_random_coil.drop(atomic_mat_random_coil[abs(atomic_mat_random_coil['residue_aj'] - atomic_mat_random_coil['residue_ai']) < parameters["distance_residue"]].index, inplace=True)
     atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
     atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (parameters['rc_threshold'])] = parameters['rc_threshold']
 

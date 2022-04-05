@@ -11,21 +11,15 @@ def header(parameters):
     header += f"; Protein name: {parameters['protein']} \n"
     header += f"; The force field type is: {parameters['egos']} \n"
     if parameters['egos'] != 'rc':
-        if not parameters['different_epsilon']:
-            header += f"; LJ epsilon: {parameters['epsilon_input']} \n"
-        else:
-            header += f"; LJ epsilon from MD/random_coil: {parameters['epsilon_md']} \n"
-            header += f"; LJ epsilon from structure: {parameters['epsilon_structure']} \n"
+        header += f"; LJ epsilon: {parameters['epsilon_md']} \n"
     if parameters['ensemble'] == True and parameters['egos'] != 'rc':
-        header += f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
+        header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header += f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
-    header += f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
     header += "\n"
 
     return header
-
 
 def write_atomtypes_atp(multiego_ensemble):
     # This function is used to create the atomtypes.atp.
@@ -39,7 +33,7 @@ def write_atomtypes_atp(multiego_ensemble):
 
 def write_LJ(ensemble):
     pd.set_option('display.colheader_justify', 'right')
-    
+
     file = open(f'{ensemble.parameters["output_folder"]}/ffnonbonded.itp', "w")
     file.write(header(ensemble.parameters))
     file.write("[ atomtypes ]\n")
@@ -62,7 +56,7 @@ def write_topology(ensemble):
     file.write(header(ensemble.parameters))  
 
     file.write('; Include forcefield parameters\n')  
-    file.write('#include "paste/the/ff/folder/here"\n\n')  
+    file.write('#include "multi-ego-basic.ff/forcefield.itp"\n\n')  
     
     file.write('[ moleculetype ]\n')
     file.write(str(ensemble.moleculetype_toWrite))
@@ -78,7 +72,7 @@ def write_topology(ensemble):
 
     file.write('[ angles ]\n')
     file.write(str(ensemble.angles_toWrite))
-    file.write('\n\n')  
+    file.write('\n\n')
 
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.dihedrals_toWrite))
@@ -86,17 +80,17 @@ def write_topology(ensemble):
 
     file.write('[ dihedrals ]\n')
     file.write(str(ensemble.impropers_toWrite))
-    file.write('\n\n')  
+    file.write('\n\n')
 
     file.write("[ pairs ]")
     file.write("\n")
     file.write(str(ensemble.pairs_toWrite))
-    file.write("\n\n")  
+    file.write("\n\n")
 
     file.write("[ exclusions ]")
     file.write("\n")
     file.write(str(ensemble.exclusions_toWrite))
-    file.write('\n\n')       
+    file.write('\n\n')
 
     file.write('; Include Position restraint file\n')
     file.write('#ifdef POSRES\n')
