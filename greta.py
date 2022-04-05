@@ -277,7 +277,8 @@ class multiego_ensemble:
 
             ligand_atomtypes_top = self.ligand_topology[['atom_number', 'sb_type', 'residue_number', 'residue', 'atom', 'cgnr']].copy()
             #ligand_atomtypes_top['atom_number'] = list(range(1, len(ligand_atomtypes_top['atom_number'])+1))
-            #ligand_atomtypes_top['residue'] = 1
+            ligand_atomtypes_top['residue'] = 1
+            ligand_atomtypes_top['cgnr'] = 1
             ligand_atomtypes_top.rename(columns = {'atom_number':'; nr', 'sb_type':'type', 'residue_number':'resnr'}, inplace=True)
             self.ligand_atomtypes_top_toWrite = ligand_atomtypes_top.to_string(index=False)
             ligand_bonds = self.ligand_bonds
@@ -514,7 +515,7 @@ class ensemble:
         atomic_ligand_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
         
         # We are using the old equation (prior to the RC version)
-        atomic_ligand_mat['epsilon'] = self.parameters['epsilon_ligand']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(self.parameters['ratio_threshold']))))
+        atomic_ligand_mat['epsilon'] = self.parameters['epsilon_ligand']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(self.parameters['md_threshold']))))
         atomic_ligand_mat.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability'], inplace = True)
         atomic_ligand_mat.dropna(inplace=True)
         atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
