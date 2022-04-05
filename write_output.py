@@ -17,7 +17,7 @@ def header(parameters):
             header += f"; LJ epsilon from MD/random_coil: {parameters['epsilon_md']} \n"
             header += f"; LJ epsilon from structure: {parameters['epsilon_structure']} \n"
     if parameters['ensemble'] == True and parameters['egos'] != 'rc':
-        header += f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['ratio_threshold']} \n"
+        header += f"; LJ potential from a MD/random_coil ratio and threshold: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header += f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"

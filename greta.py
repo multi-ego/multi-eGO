@@ -880,7 +880,7 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[structural_LJ_intra['rc_probability'] == 1] = 0
     pd.options.mode.chained_assignment = None
     
-    u_threshold = 1-parameters['ratio_threshold']
+    u_threshold = 1-parameters['md_threshold']
 
     # Paissoni Equation 2.0
     # Attractive pairs
@@ -888,7 +888,7 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Paissoni Equation 2.1
     # Attractive pairs
-    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(0.1*parameters['ratio_threshold']))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
+    structural_LJ_intra['epsilon'].loc[(u_threshold >=  structural_LJ_intra['rc_probability'])] = -(parameters['epsilon_structure']/np.log(parameters['rc_threshold']))*(np.log(u_threshold/structural_LJ_intra['rc_probability']))
     structural_LJ_intra['epsilon'].loc[(u_threshold <  structural_LJ_intra['rc_probability'])] = 0
     # Too small epsilon will be removed
     structural_LJ_intra['epsilon'].loc[abs(structural_LJ_intra['epsilon']) < 0.01*parameters['epsilon_structure']] = 0
@@ -945,13 +945,13 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(0.1*parameters['ratio_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['ratio_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
     atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['ratio_threshold'])] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  parameters['md_threshold'])] = 0
     atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     pd.options.mode.chained_assignment = 'warn' 
 
@@ -1153,7 +1153,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
         pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
 
-	    # When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
+	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
         # Now we neeed to be sure that these are excluded intramolecularly
         # If we keep such LJ they cause severe frustration to the system and artifacts
         pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])]
@@ -1251,25 +1251,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
     backbone_nitrogen = backbone_nitrogen[backbone_nitrogen.residue != 'PRO']
 
-    # Add pair interaction for nitrogen and oxygen
-    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
-    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_backbone_n = backbone_nitrogen.loc[backbone_nitrogen['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
-        if not line_backbone_n.empty:
-            nitrogen_interactions_ai.append(line_backbone_oxygen['atom_number'])
-            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
-            nitrogen_interactions_c6.append(0)
-            nitrogen_interactions_c12.append(parameters['lj_reduction'] * 1.523e-06)    # nitrogen c12 times O c12
-
-    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
-    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
-    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
-    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
-    nitrogen_interaction_pairs['func'] = 1
-
-    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
-
     # Add pair interaction for beta carbon and nitrogen + 1
     nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
     for index, line_sidechain_cb in sidechain_cb.iterrows():
@@ -1280,24 +1261,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             nitrogen_interactions_c6.append(0)
             nitrogen_interactions_c12.append(parameters['lj_reduction'] * 7.861728e-06)    # nitrogen c12 times ala cb c12
 
-    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
-    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
-    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
-    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
-    nitrogen_interaction_pairs['func'] = 1
-
-    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
-
-    # Add pair interaction for nitrogen and nitrogen + 1
-    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
-    for index, line_backbone_n in backbone_nitrogen.iterrows():
-        line_backbone_n = backbone_nitrogen.loc[(backbone_nitrogen['residue_number']+1) == (line_backbone_n['residue_number'])].squeeze(axis=None)
-        if not line_backbone_n.empty:
-            nitrogen_interactions_ai.append(line_backbone_n['atom_number'])
-            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
-            nitrogen_interactions_c6.append(0)
-            nitrogen_interactions_c12.append(1.6 * parameters['lj_reduction'] * 2.319529e-6)    # nitrogen c12 times n + 1 c12
 
     nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
@@ -1308,7 +1271,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
-    # For each backbone oxygen take the CB of the next residue and save in a pairs tuple
+    # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
         line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
@@ -1327,17 +1290,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
+    # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
     # drop inverse duplicates
     cols = ['ai', 'aj']
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
-    pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
 
