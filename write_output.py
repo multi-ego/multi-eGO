@@ -21,7 +21,7 @@ def header(parameters):
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header += f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
-    header += f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
+    #header += f"; Enhancing C6 for left alpha dihedral by: {parameters['multiply_c6']} \n"
     header += "\n"
 
     return header
