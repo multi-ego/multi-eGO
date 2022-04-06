@@ -1159,8 +1159,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # The exclusion list was made based on the atom number
         pairs['ai'] = pairs['ai'].map(atnum_type_dict)
         pairs['aj'] = pairs['aj'].map(atnum_type_dict)
-        # Drop the NaN. We create this when adding the ligand ensemble which is not included in atnum_type_dict.
-        pairs.dropna(inplace=True)
         pairs['check'] = pairs['ai'] + '_' + pairs['aj']
 
         # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
