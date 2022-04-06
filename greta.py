@@ -174,7 +174,7 @@ class multiego_ensemble:
         # from native and MD they should be the same, the ligand will be added.
         # Then here the pairs and exclusions will be made.
 
-        bond_pairs = self.bond_pairs + self.ligand_bond_pairs
+        bond_pairs = self.bond_pairs# + self.ligand_bond_pairs
         topology_pairs, topology_exclusions = make_pairs_exclusion_topology(self.multiego_ensemble_top, bond_pairs, self.type_c12_dict, self.parameters, 
                                                                             self.greta_ffnb, self.structure_based_contacts_dict['random_coil'], self.max_eps) 
         self.pairs = topology_pairs
@@ -1148,7 +1148,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
         pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
 
-	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
+    	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
         # Now we neeed to be sure that these are excluded intramolecularly
         # If we keep such LJ they cause severe frustration to the system and artifacts
         pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])]
@@ -1159,6 +1159,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # The exclusion list was made based on the atom number
         pairs['ai'] = pairs['ai'].map(atnum_type_dict)
         pairs['aj'] = pairs['aj'].map(atnum_type_dict)
+        # Drop the NaN. We create this when adding the ligand ensemble which is not included in atnum_type_dict.
+        pairs.dropna(inplace=True)
         pairs['check'] = pairs['ai'] + '_' + pairs['aj']
 
         # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
