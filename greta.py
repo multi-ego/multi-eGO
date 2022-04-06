@@ -257,13 +257,14 @@ class multiego_ensemble:
         self.system_toWrite = self.parameters['protein']
         self.molecules_toWrite = self.molecules.to_string(index=False)
 
-        self.greta_ffnb.insert(5, '', ';')
-        self.greta_ffnb = self.greta_ffnb.rename(columns = {'ai':'; ai'})
-        self.greta_ffnb['epsilon'] = self.greta_ffnb["epsilon"].map(lambda x:'{:.6f}'.format(x))
-        self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
+        if not self.parameters['egos'] == 'rc': 
+            self.greta_ffnb.insert(5, '', ';')
+            self.greta_ffnb = self.greta_ffnb.rename(columns = {'ai':'; ai'})
+            self.greta_ffnb['epsilon'] = self.greta_ffnb["epsilon"].map(lambda x:'{:.6f}'.format(x))
+            self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
             self.ligand_moleculetype_toWrite = self.ligand_moleculetype.to_string(index=False)
