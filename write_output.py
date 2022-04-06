@@ -1,122 +1,150 @@
-import os
-import datetime
-from protein_configuration import protein, distance_residue, distance_cutoff, lj_reduction, acid_ff, greta_to_keep
-from topology_definitions import acid_atp
+from time import localtime, strftime
+from numpy import column_stack
+from topology_parser import topology_parser, topology_ligand_bonds, topology_ligand_angles, topology_ligand_dihedrals
+import pandas as pd
 
+now = strftime("%d-%m-%Y %H:%M", localtime())
 
-    # Create the folders which will be used by the script
-output_folder = 'output_%s' % (protein)
-try:
-    os.mkdir(output_folder)
-except OSError:
-    print (" Creation of the directory %s failed" % output_folder)
-else:
-    print ("Successfully created the directory %s" % output_folder)
+def header(parameters):
+    header = f'; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab \n'
+    header += f'; Created on the {now}\n'
+    header += f"; Protein name: {parameters['protein']} \n"
+    header += f"; The force field type is: {parameters['egos']} \n"
+    if parameters['egos'] != 'rc':
+        header += f"; LJ epsilon: {parameters['epsilon_md']} \n"
+    if parameters['ensemble'] == True and parameters['egos'] != 'rc':
+        header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
+    header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
+    header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
+    header += f"; Reducing the C12 N-X 1-3 C12 by: {parameters['lj_reduction']} \n"
+    header += "\n"
 
+    return header
 
-output_folder = 'FF_greta_analysis_%s' % (protein)
-try:
-    os.mkdir(output_folder)
-except OSError:
-    print (" Creation of the directory %s failed" % output_folder)
-else:
-    print ("Successfully created the directory %s" % output_folder)
-
-head = "; Made using MAGROS.FF script by Emanuele Scalone at Camilloni Lab"
-now = datetime.datetime.now()
-
-def write_greta_atomtypes_atp(atomtypes_atp):
+def write_atomtypes_atp(multiego_ensemble):
     # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/atomtypes.atp' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
+    #directory = f"outputs/output_{parameters['protein']}"
+    file = open(f'{multiego_ensemble.parameters["output_folder"]}/atomtypes.atp', "w")
+    file.write(header(multiego_ensemble.parameters))
     file.write("\n")
-    file.write('; ' + f'GRETA {protein}')
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atomtypes ]")
-    file.write("\n")
-    file.write(str(atomtypes_atp.to_string(index = False, header = False)))
+    file.write(str(multiego_ensemble.atomtypes_atp_toWrite))
     file.close()
 
-def write_greta_topology_atoms(topology_atoms):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/topology_atoms' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atoms ]")
-    file.write("\n")
-    file.write(str(topology_atoms.to_string(index = False)))
-    file.close()
 
-def write_greta_topology_pairs(pairs_topology, exclusion_topology):
-    # This function is used to create the atomtypes.atp.
-    #file = open("../../magros_test/commons/output/atomtypes.atp", "w")
-    directory = 'output_%s/topology_pairs' %(protein)
-    file = open(directory, "w")
-    file.write(str(head))
-    file.write("\n")
-    file.write('; Distance cutoff: ' + str(distance_cutoff))
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue))
-    file.write("\n")
-    file.write('; LJ_reduction: ' + str(lj_reduction))
-    file.write("\n")
-    file.write('; Protein: ' + str(protein) + str(greta_to_keep))
-    file.write("\n")
-    file.write('; ' + str(now))
+def write_LJ(ensemble):
+    pd.set_option('display.colheader_justify', 'right')
+
+    file = open(f'{ensemble.parameters["output_folder"]}/ffnonbonded.itp', "w")
+    file.write(header(ensemble.parameters))
+    file.write("[ atomtypes ]\n")
+    file.write(str(ensemble.ffnonbonded_atp_toWrite))
     file.write("\n\n")
+    file.write("[ nonbond_params ]\n")
+    if ensemble.parameters['egos'] == 'rc':
+        file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
+    else:
+        file.write(str(ensemble.greta_ffnb_toWrite))
+    file.close()
+
+def write_topology(ensemble):
+    
+    #parameters, topology_sections_dict, ego_topology, **ego_ligand):
+    pd.set_option('display.colheader_justify', 'left')
+    #top_to_write = topology_parser(topology_sections_dict)
+
+    file = open(f'{ensemble.parameters["output_folder"]}/topol_GRETA.top', "w")
+    file.write(header(ensemble.parameters))  
+
+    file.write('; Include forcefield parameters\n')  
+    file.write('#include "multi-ego-basic.ff/forcefield.itp"\n\n')  
+    
+    file.write('[ moleculetype ]\n')
+    file.write(str(ensemble.moleculetype_toWrite))
+    file.write('\n\n')
+
+    file.write("[ atoms ]\n")
+    file.write(str(ensemble.atomtypes_top_toWrite))
+    file.write('\n\n')
+
+    file.write('[ bonds ]\n')
+    file.write(str(ensemble.bonds_toWrite))
+    file.write('\n\n')
+
+    file.write('[ angles ]\n')
+    file.write(str(ensemble.angles_toWrite))
+    file.write('\n\n')
+
+    file.write('[ dihedrals ]\n')
+    file.write(str(ensemble.dihedrals_toWrite))
+    file.write('\n\n')
+
+    file.write('[ dihedrals ]\n')
+    file.write(str(ensemble.impropers_toWrite))
+    file.write('\n\n')
+
     file.write("[ pairs ]")
     file.write("\n")
-    file.write(str(pairs_topology.to_string(index = False)))
+    file.write(str(ensemble.pairs_toWrite))
     file.write("\n\n")
+
     file.write("[ exclusions ]")
     file.write("\n")
-    file.write(str(exclusion_topology.to_string(index = False)))
+    file.write(str(ensemble.exclusions_toWrite))
+    file.write('\n\n')
+
+    file.write('; Include Position restraint file\n')
+    file.write('#ifdef POSRES\n')
+    file.write('#include "posre.itp"\n')
+    file.write('#endif\n\n')
+    
+    if ensemble.parameters['ligand'] == True:
+        file.write('; Include ligand topology\n')
+        file.write('#include "topol_ligand_GRETA.itp"')
+        file.write('\n\n')
+
+    file.write('[ system ]\n')
+    file.write(str(ensemble.system_toWrite))
+    file.write('\n\n')
+
+    file.write('[ molecules ]\n')
+    file.write(str(ensemble.molecules_toWrite))
+    if ensemble.parameters['ligand'] == True:
+        file.write('\nligand')
+    file.write('\n\n')
+
     file.close()
 
+def write_ligand_topology(ensemble):
+    pd.set_option('display.colheader_justify', 'left')
+    file = open(f'{ensemble.parameters["output_folder"]}/topol_ligand_GRETA.itp', "w")
+    file.write(header(ensemble.parameters))  
+    
+    file.write('[ moleculetype ]\n')
+    file.write(str(ensemble.ligand_moleculetype_toWrite))
+    file.write('\n\n')
 
-def write_greta_LJ(atomtypes, greta_LJ):
-    if acid_ff == True and acid_atp !=0:
-        directory = "output_%s/acid_ffnonbonded.itp" %(protein)
-        file = open(directory, "w")
-        file.write(str(head))
-        file.write("\n")
-        file.write('; Distance cutoff: ' + str(distance_cutoff) + ' ACID')
-    else:
-        directory = "output_%s/ffnonbonded.itp" %(protein)
-        file = open(directory, "w")
-        file.write(str(head))
-        file.write("\n")
-        file.write('; Distance cutoff: ' + str(distance_cutoff))
+    file.write("[ atoms ]\n")
+    file.write(str(ensemble.ligand_atomtypes_top_toWrite))
+    file.write('\n\n')
 
-    file.write("\n")
-    file.write('; Residue cutoff: ' + str(distance_residue) + str(greta_to_keep) + str(protein))
-    file.write("\n")
-    file.write('; ' + str(now))
-    file.write("\n")
-    file.write("[ atomtypes ]\n")
-    file.write(str(atomtypes.to_string(index = False)))
-    file.write("\n")
-    file.write("\n")
-    file.write("[ nonbond_params ]\n")
-    file.write(str(greta_LJ.to_string(index = False)))
-    file.close()
+    file.write('[ bonds ]\n')
+    file.write(str(ensemble.ligand_bonds_toWrite))
+    file.write('\n\n')
 
-def write_pairs_list(pairs, ff_name):
-    pairs.rename(columns = {'; ai':'ai'}, inplace = True)
-    pairs_analysis = pairs[['ai', 'aj', 'sigma', 'epsilon']].copy()
-    directory = "FF_greta_analysis_%s/%s_%s_pairs_list_c%s_e%s.txt" %(protein, protein, ff_name, distance_cutoff, distance_residue)
-    file = open(directory, "w")
-    file.write(str(pairs_analysis.to_string(index = False)))
+    file.write('[ angles ]\n')
+    file.write(str(ensemble.ligand_angles_toWrite))
+    file.write('\n\n')
+
+    file.write('[ dihedrals ]\n')
+    file.write(str(ensemble.ligand_dihedrals_toWrite))
+    file.write('\n\n')
+
+    file.write('[ pairs ]\n')
+    file.write(str(ensemble.ligand_pairs_toWrite))
+    file.write('\n\n')
+
+    file.write('[ exclusions ]\n')
+    file.write(str(ensemble.ligand_exclusions_toWrite))
+    file.write('\n\n')
+
     file.close()
