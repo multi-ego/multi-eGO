@@ -30,11 +30,6 @@ gromos_atp = pd.DataFrame(
 gromos_atp.to_dict()
 gromos_atp.set_index('name', inplace=True)
 
-# native reweight for TTR and ABeta. This dictionary will rename the amber topology to gromos topology
-#gro_to_amb_dict = {'OC1_11' : 'O1_11', 'OC2_11':'O2_11'}
-#gro_to_amb_dict = {'OT1_42' : 'O1_42', 'OT2_42':'O2_42'}
-
-
 class multiego_ensemble:
     '''
     This ensemble type gathers different topologies to make a single one.
@@ -1258,9 +1253,10 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     # Here we make a dictionary of the backbone oxygen as atom number
     backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+    backbone_ca_gly = atnum_type_top.loc[(atnum_type_top['atom'] == 'CA')&(atnum_type_top['residue'] == 'GLY')]
     backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
-    # Left alphas do not occur in GLY and PRO
+    # CB not used for GLY and PRO and N of PRO
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
     backbone_nitrogen = backbone_nitrogen[backbone_nitrogen.residue != 'PRO']
@@ -1274,7 +1270,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
             nitrogen_interactions_c6.append(0)
             nitrogen_interactions_c12.append(parameters['lj_reduction'] * 7.861728e-06)    # nitrogen c12 times ala cb c12
-
 
     nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
@@ -1303,6 +1298,25 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     alpha_beta_rift_pairs['func'] = 1
 
     pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+
+    # add O-1 CA pairs for Glycines
+    oca_gly_interactions_ai, oca_gly_interactions_aj, oca_gly_interactions_c6, oca_gly_interactions_c12 = [], [], [], []
+    for index, line_backbone_ca_gly in backbone_ca_gly.iterrows():
+        line_backbone_o = backbone_oxygen.loc[(backbone_oxygen['residue_number']) == (line_backbone_ca_gly['residue_number']-1)].squeeze(axis=None)
+        if not line_backbone_o.empty:
+            oca_gly_interactions_ai.append(line_backbone_ca_gly['atom_number'])
+            oca_gly_interactions_aj.append(line_backbone_o['atom_number'])
+            oca_gly_interactions_c6.append(0)
+            oca_gly_interactions_c12.append(6.000000e-06)
+
+    oca_gly_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    oca_gly_interaction_pairs['ai'] = oca_gly_interactions_ai
+    oca_gly_interaction_pairs['aj'] = oca_gly_interactions_aj
+    oca_gly_interaction_pairs['c6'] = oca_gly_interactions_c6
+    oca_gly_interaction_pairs['c12'] = oca_gly_interactions_c12
+    oca_gly_interaction_pairs['func'] = 1
+
+    pairs = pd.concat([pairs,oca_gly_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
