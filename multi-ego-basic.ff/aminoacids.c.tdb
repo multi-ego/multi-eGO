@@ -1,0 +1,23 @@
+[ None ]
+
+[ COO- ]
+[ replace ]
+C	C	C	12.011	 0.000
+O	O1	OM	15.9994	 0.000
+OXT	O2	OM	15.9994	 0.000
+[ add ]
+2	8	O	C	CA	N
+	OM	15.9994	 0.000
+[ bonds ]
+C	O1	gb_6
+C	O2	gb_6
+[ angles ]
+O1	C	O2	ga_38
+CA	C	O1	ga_22
+CA	C	O2	ga_22
+[ dihedrals ]
+N	CA	C	O2	gd_45
+N       CA      C       O2      gd_42
+[ impropers ]
+C	CA	O2	O1	gi_1
+
