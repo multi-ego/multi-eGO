@@ -11,9 +11,9 @@ pd.options.mode.chained_assignment = None  # default='warn'
 def main(argv):
 
     parameters = {
-        # native pair distance cut-off
+        # native pair distance cut-off, used only when learning from structures
         'distance_cutoff':5.5,
-        # neighbor aminoacid to exclude < x
+        # neighbor aminoacid to exclude < x, used only when learning from structures
         'distance_residue':2,
         # this is the minimum probability for a pair to be considered
         'md_threshold':0.0001,
@@ -23,7 +23,7 @@ def main(argv):
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
         'lj_reduction':0.25,
         # This is the interaction energy of the amyloid cross beta
-        'epsilon_amyl':0.360,
+        'epsilon_amyl':0.380,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         # Default behavior is to train from a simulation
