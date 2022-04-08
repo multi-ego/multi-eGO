@@ -505,6 +505,9 @@ class ensemble:
         # Following the idea that the ligand is considered as a residue in the same chain,
         # we select ligand pairs by selecting the spare residue compared with the ligand
         atomic_ligand_mat = self.atomic_mat_MD
+        # Drop values below md_treshold, otherwise the epsilon will be negative
+        atomic_ligand_mat.drop(atomic_ligand_mat[atomic_ligand_mat['probability'] < self.parameters['md_threshold']].index, inplace=True)
+        # Filtering for the ligand
         atomic_ligand_mat = atomic_ligand_mat.loc[(atomic_ligand_mat['residue_ai'] == self.ligand_residue_number) | (atomic_ligand_mat['residue_aj'] == self.ligand_residue_number)]
         atomic_ligand_mat['sigma'] = (atomic_ligand_mat['distance']) / (2**(1/6))
         atomic_ligand_mat[['idx_ai', 'idx_aj']] = atomic_ligand_mat[['ai', 'aj']]
@@ -1171,7 +1174,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     else:
         pairs = pd.DataFrame()
-        
+    
+    # Drop NaNs. This is an issue when adding the ligand ensemble.
+    pairs.dropna(inplace=True)
     # Only 1-4 exclusions are fully reintroduced
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
     pairs_14['exclusions'] = p14
