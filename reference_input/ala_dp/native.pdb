@@ -1,0 +1,16 @@
+TITLE     GROup of MAchos and Cynical Suckers
+REMARK    THIS IS A SIMULATION BOX
+CRYST1    6.088    3.582    2.650  90.00  90.00  90.00 P 1           1
+MODEL        1
+ATOM      1  CA  ACE     1      -2.430  -2.730  -1.240  1.00  0.00            
+ATOM      2  C   ACE     1      -1.720  -1.390  -1.230  1.00  0.00            
+ATOM      3  O   ACE     1      -2.130  -0.450  -1.920  1.00  0.00            
+ATOM      4  N   ALA     2      -0.680  -1.230  -0.490  1.00  0.00            
+ATOM      5  CA  ALA     2      -0.000   0.060  -0.490  1.00  0.00            
+ATOM      6  CB  ALA     2      -0.510   0.860   0.730  1.00  0.00            
+ATOM      7  C   ALA     2       1.500  -0.110  -0.490  1.00  0.00            
+ATOM      8  O   ALA     2       2.060  -0.920   0.250  1.00  0.00            
+ATOM      9  N   NME     3       2.210   0.610  -1.290  1.00  0.00            
+ATOM     10  CA  NME     3       3.660   0.460  -1.310  1.00  0.00            
+TER
+ENDMDL

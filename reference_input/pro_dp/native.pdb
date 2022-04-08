@@ -1,0 +1,18 @@
+TITLE     Gravel Rubs Often Many Awfully Cauterized Sores
+REMARK    THIS IS A SIMULATION BOX
+CRYST1    4.640    5.262    2.870  90.00  90.00  90.00 P 1           1
+MODEL        1
+ATOM      1  CA  ACE     1       2.710  -3.350  -1.770  1.00  0.00            
+ATOM      2  C   ACE     1       1.300  -3.330  -1.140  1.00  0.00            
+ATOM      3  O   ACE     1       0.680  -4.420  -0.470  1.00  0.00            
+ATOM      4  N   PRO     2       0.390  -2.170  -1.140  1.00  0.00            
+ATOM      5  CA  PRO     2       0.890  -0.790  -1.140  1.00  0.00            
+ATOM      6  CB  PRO     2       0.320  -0.190   0.140  1.00  0.00            
+ATOM      7  CG  PRO     2       0.260  -1.340   1.100  1.00  0.00            
+ATOM      8  CD  PRO     2      -0.130  -2.540   0.280  1.00  0.00            
+ATOM      9  C   PRO     2       2.390  -0.570  -1.140  1.00  0.00            
+ATOM     10  O   PRO     2       3.080  -1.800  -1.140  1.00  0.00            
+ATOM     11  N   NME     3       3.050   0.750  -1.140  1.00  0.00            
+ATOM     12  CA  NME     3       4.510   0.840  -1.140  1.00  0.00            
+TER
+ENDMDL

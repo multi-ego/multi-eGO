@@ -1,0 +1,13 @@
+TITLE     Gallium Rubidium Oxygen Manganese Argon Carbon Silicon
+MODEL        1
+ATOM      1  CA  ACE     1       2.705  -3.353  -1.773  1.00  0.00           C
+ATOM      2  C   ACE     1       1.300  -3.325  -1.142  1.00  0.00           C
+ATOM      3  O   ACE     1       0.677  -4.420  -0.467  1.00  0.00           O
+ATOM      4  N   GLY     2       0.387  -2.174  -1.142  1.00  0.00           N
+ATOM      5  CA  GLY     2       0.891  -0.794  -1.142  1.00  0.00           C
+ATOM      6  C   GLY     2       2.394  -0.571  -1.142  1.00  0.00           C
+ATOM      7  O   GLY     2       3.077  -1.804  -1.142  1.00  0.00           O
+ATOM      8  N   NME     3       3.045   0.746  -1.142  1.00  0.00           N
+ATOM     10  CA  NME     3       4.512   0.842  -1.142  1.00  0.00           C
+TER
+ENDMDL
