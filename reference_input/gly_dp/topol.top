@@ -1,0 +1,100 @@
+;
+;	File 'topol.top' was generated
+;	By user: franbt (1002)
+;	On host: milano
+;	At date: Fri Mar 18 14:29:30 2022
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.5-plumed-2.9.0-dev (-:
+;	
+;	Executable:   /opt/gromacs-2021.5/bin/gmx_mpi
+;	Data prefix:  /opt/gromacs-2021.5
+;	Working dir:  /home/franbt/TTR_MAGROS/inputs/gly_dp
+;	Command line:
+;	  gmx_mpi pdb2gmx -f gly_dp.pdb -ter
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "./multi-ego-basic.ff/forcefield.itp"
+
+[ moleculetype ]
+; Name            nrexcl
+Protein             3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
+; residue   1 ACE rtp ACE  q  0.0
+     1        CH3      1    ACE     CA      1          0     15.035
+     2          C      1    ACE      C      1          0     12.011
+     3          O      1    ACE      O      1          0    15.9994   ; qtot 0
+; residue   2 GLY rtp GLY  q  0.0
+     4          N      2    GLY      N      2          0    15.0067
+     5        CH2      2    GLY     CA      2          0     14.027
+     6          C      2    GLY      C      2          0     12.011
+     7          O      2    GLY      O      2          0    15.9994   ; qtot 0
+; residue   3 NME rtp NME  q  0.0
+     8          N      3    NME      N      3          0    15.0067
+     9        CH3      3    NME     CA      3          0     15.035   ; qtot 0
+
+[ bonds ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     2     1    gb_27
+    2     3     1    gb_5
+    2     4     1    gb_10
+    4     5     1    gb_21
+    5     6     1    gb_27
+    6     7     1    gb_5
+    6     8     1    gb_10
+    8     9     1    gb_21
+
+[ pairs ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     5     1 
+    2     6     1 
+    3     5     1 
+    4     7     1 
+    4     8     1 
+    5     9     1 
+    7     9     1 
+
+[ angles ]
+;  ai    aj    ak funct            c0            c1            c2            c3
+    1     2     3     1    ga_30
+    1     2     4     1    ga_19
+    3     2     4     1    ga_33
+    2     4     5     1    ga_31
+    4     5     6     1    ga_13
+    5     6     7     1    ga_30
+    5     6     8     1    ga_19
+    7     6     8     1    ga_33
+    6     8     9     1    ga_31
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
+    1     2     4     5     1    gd_14
+    2     4     5     6     1    gd_49
+    2     4     5     6     1    gd_50
+    4     5     6     8     1    gd_48
+    4     5     6     8     1    gd_51
+    5     6     8     9     1    gd_14
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3
+    2     1     4     3     2    gi_1
+    6     5     8     7     2    gi_1
+
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
+
+[ system ]
+; Name
+Gallium Rubidium Oxygen Manganese Argon Carbon Silicon
+
+[ molecules ]
+; Compound        #mols
+Protein             1
