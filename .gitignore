@@ -133,4 +133,5 @@ dmypy.json
 #/inputs/*
 *.swp
 
-/analysis/
+analysis/*
+analysis/new_monomer_analysis.ipynb
