@@ -337,18 +337,17 @@
 #define gd_45 102.613 1.0643 5
 ; Backbone dihedral angle -N-CA-C-N- 
 ;
-; TODO still needs to be optimized further
-; OPT form gly_step_k3
-#define gd_48 178.6948 2.9356 2
+; OPT form gly_dp_step_2.2_loc
+#define gd_48 179.7586 1.6692 4
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49 179.1792 2.9958 1
+#define gd_49 178.8459 3.4996 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_50 179.5213 2.9977 1
+#define gd_50 -179.9826 3.4998 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 177.4001 2.9892 2
+#define gd_51 179.546 3.4996 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ; OPT from pro_dp_step_1.3
