@@ -191,6 +191,9 @@ def main(argv):
             ego_ligand = ensemble(parameters=parameters, ensemble_parameters=ego_ligand_parameters)
             ego_ligand.prepare_ensemble()
             ego_ligand.add_MD_contacts()
+            ego_ligand.convert_topology(ego_native)
+            print(f'- The following contacts were converted: {ego_ligand.conversion_dict}')
+            
             print('- Extracting ligand ensemble')
             ego_ligand.get_ligand_ensemble()
             ego_ligand.ligand_MD_LJ_pairs()
