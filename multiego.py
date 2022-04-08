@@ -102,7 +102,7 @@ def main(argv):
     else:
         epsilon_string = f"e{parameters['epsilon_md']}"
         if parameters['ligand'] == True:
-            parameters['output_folder'] = f"outputs/{parameters['protein']}_{parameters['egos']}_{epsilon_string}_ligand"
+            parameters['output_folder'] = f"outputs/{parameters['protein']}_{parameters['egos']}_{epsilon_string}_ligand{parameters['epsilon_ligand']}"
         else:
             parameters['output_folder'] = f"outputs/{parameters['protein']}_{parameters['egos']}_{epsilon_string}"
 
