@@ -931,7 +931,24 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged.dropna(inplace=True)
     atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
 
-    print("\t\t",len(atomic_mat_merged), " interactions added")
+    print("\t\t",len(atomic_mat_merged), " pairs interactions")
+    # Inverse pairs calvario
+    # this must list ALL COLUMNS!
+    inv_LJ = atomic_mat_merged[['aj', 'ai', 'sigma', 'epsilon']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
+    atomic_mat_merged = pd.concat([atomic_mat_merged, inv_LJ], axis=0, sort = False, ignore_index = True)
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    # Sorting the pairs
+    atomic_mat_merged.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    # Cleaning the duplicates
+    atomic_mat_merged = atomic_mat_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    atomic_mat_merged[cols] = np.sort(atomic_mat_merged[cols].values, axis=1)
+    atomic_mat_merged = atomic_mat_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    atomic_mat_merged[['idx_ai', 'idx_aj']] = atomic_mat_merged[['ai', 'aj']]
+    atomic_mat_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    print(f'\t\t pairs added after removing duplicates: ', len(atomic_mat_merged))
     print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].mean())
     print("\t\t maximum epsilon is ", atomic_mat_merged['epsilon'].max())
 
@@ -952,10 +969,9 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     # Here we sort all the atom pairs based on the larger energy and smaller distance
     print('\tSorting and dropping all the duplicates')
     # Sorting the pairs
-    greta_LJ.sort_values(by = ['ai', 'aj', 'epsilon', 'sigma'], ascending = [True, True, True, False], inplace = True)
-
+    greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], ascending = [True, True, True], inplace = True)
     # Cleaning the duplicates
-    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
+    greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
