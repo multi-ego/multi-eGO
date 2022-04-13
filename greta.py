@@ -965,12 +965,13 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
     greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
     print('\tDoubled pairs list: ', len(greta_LJ))
-
-    # Here we sort all the atom pairs based on the larger energy and smaller distance
+    # Here we sort all the atom pairs based on shorter distance
     print('\tSorting and dropping all the duplicates')
     # Sorting the pairs
     greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], ascending = [True, True, True], inplace = True)
-    # Cleaning the duplicates
+    # between a pair with positive and negative epsilon we keep the one with positive epsilon
+    greta_LJ=greta_LJ[~((greta_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (greta_LJ['epsilon'] < 0.))]
+    # Cleaning the duplicates choosing shorter sigmas
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
