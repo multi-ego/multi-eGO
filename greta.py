@@ -141,7 +141,8 @@ class multiego_ensemble:
         if not self.structure_based_contacts_dict['random_coil'].empty:
             if not self.structure_based_contacts_dict['atomic_mat_plainMD'].empty:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict['atomic_mat_plainMD'], self.structure_based_contacts_dict['random_coil'], self.parameters)
-                self.max_eps = greta_MD_LJ.epsilon.max()
+                if(greta_MD_LJ.epsilon.max() > 0.):
+                     self.max_eps = greta_MD_LJ.epsilon.max()
             if not self.structure_based_contacts_dict['native_pairs'].empty:
                 # TODO to compute here the sb types and not in the fibril ensemble
                 greta_native_SB_LJ = self.structure_based_contacts_dict['native_pairs']
@@ -1141,7 +1142,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         ex14 = []
 
     if not rc_pairs.empty:
-        pairs_rc = rc_pairs[['rc_ai', 'rc_aj']].loc[(rc_pairs['rc_probability']==1.0)].copy()
+        pairs_rc = rc_pairs[['rc_ai', 'rc_aj']].loc[(rc_pairs['rc_probability']>0.999)].copy()
         pairs_rc = pairs_rc.rename(columns = {'rc_ai': 'ai'})
         pairs_rc = pairs_rc.rename(columns = {'rc_aj': 'aj'})
         pairs_rc['c12_ai'] = pairs_rc['ai']
@@ -1182,7 +1183,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # Now we neeed to be sure that these are excluded intramolecularly
         # If we keep such LJ they cause severe frustration to the system and artifacts
         pairs = pairs.loc[(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])]
-
         # We remove the contact with itself
         pairs = pairs[pairs['ai'] != pairs['aj']]
 
