@@ -1030,7 +1030,7 @@ def merge_and_clean_LJ(greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, liga
     #case 4
     #pairs_LJ = greta_LJ.copy()
     # Greta prioritise intermolecular interactions
-    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'epsilon', 'sigma'], ascending = [True, True, True, False, True], inplace = True)
+    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
