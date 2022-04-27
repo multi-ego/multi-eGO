@@ -136,10 +136,13 @@ class multiego_ensemble:
         greta_native_SB_LJ = pd.DataFrame()
         greta_fibril_SB_LJ = pd.DataFrame()
         ligand_MD_LJ = pd.DataFrame()
+        self.max_eps = self.parameters['epsilon_md']
         
         if not self.structure_based_contacts_dict['random_coil'].empty:
             if not self.structure_based_contacts_dict['atomic_mat_plainMD'].empty:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict['atomic_mat_plainMD'], self.structure_based_contacts_dict['random_coil'], self.parameters)
+                if(greta_MD_LJ.epsilon.max()>0.):
+                    self.max_eps = greta_MD_LJ.epsilon.max()
             if not self.structure_based_contacts_dict['native_pairs'].empty:
                 # TODO to compute here the sb types and not in the fibril ensemble
                 greta_native_SB_LJ = self.structure_based_contacts_dict['native_pairs']
@@ -150,12 +153,13 @@ class multiego_ensemble:
             
             if not self.structure_based_contacts_dict['ligand_MD_pairs'].empty:
                 ligand_MD_LJ = self.structure_based_contacts_dict['ligand_MD_pairs']
-        
-        greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
-        if greta_LJ.empty:
-            greta_ffnb = greta_LJ
+
+        tmp = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
+        if tmp.empty:
+            greta_ffnb = tmp
+            greta_lj14 = tmp 
         else:
-            greta_ffnb, greta_lj14 = merge_and_clean_LJ(greta_LJ, self.parameters)
+            greta_ffnb, greta_lj14 = merge_and_clean_LJ(greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ, self.parameters, self.max_eps)
        
         self.greta_ffnb = greta_ffnb
         self.greta_lj14 = greta_lj14
@@ -875,7 +879,8 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = parameters['epsilon_md']
+    structural_LJ['epsilon'] = 1.0 # this is modified later 
+    #structural_LJ['epsilon'] = parameters['epsilon_md']
     # Take the contact from different chains 
     inter_mask = structural_LJ['same_chain'] == 'No'
     intra_mask = structural_LJ['same_chain'] == 'Yes'
@@ -890,9 +895,9 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     # Using inner ho un dataframe vuoto, dunque vuol dire che i contatti tra nativa e fibrilla sono completamente diversi
     # E' un caso generico da prevedere
     structural_LJ = pd.concat([structural_LJ, atomic_mat_random_coil], axis=1, join='inner')
-    structural_LJ['epsilon'].loc[(intra_mask)&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
+    structural_LJ['epsilon'].loc[(intra_mask)&(structural_LJ['rc_probability']<0.999)] = -(1.0/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
     structural_LJ['epsilon'].loc[(intra_mask)&(structural_LJ['rc_probability']>=0.999)] = 0 
-    structural_LJ['epsilon'].loc[(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
+    structural_LJ['epsilon'].loc[(structural_LJ['epsilon'] < 0.01)] = 0
     structural_LJ.dropna(inplace=True)
     structural_LJ = structural_LJ[structural_LJ.epsilon != 0]
 
@@ -969,11 +974,22 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     return atomic_mat_merged
 
 
-def merge_and_clean_LJ(greta_LJ, parameters):
+def merge_and_clean_LJ(greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ, parameters, max_eps):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
+
+    if not greta_native_SB_LJ.empty:
+        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']==1.)] *= parameters['epsilon_md']
+    if not greta_fibril_SB_LJ.empty:
+        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']==1.)] *= parameters['epsilon_md']
+    greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
+    if not greta_native_SB_LJ.empty:
+        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']==parameters['epsilon_md'])] *= max_eps/parameters['epsilon_md']
+    if not greta_fibril_SB_LJ.empty:
+        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']==parameters['epsilon_md'])] *= max_eps/parameters['epsilon_md']
+    pairs_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
 
     print('- Generate Inter and Intra moleculars interactions')
     print('\tMerged pairs list: ', len(greta_LJ))
@@ -982,6 +998,10 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'rc_probability', 'epsilon', 'same_chain']].copy()
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'rc_probability', 'epsilon', 'same_chain']
     greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
+
+    inv_LJ = pairs_LJ[['aj', 'ai', 'sigma', 'rc_probability', 'epsilon', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'rc_probability', 'epsilon', 'same_chain']
+    pairs_LJ = pd.concat([pairs_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
 
     # case 1 #
     # Sorting the pairs shortest distance with positive epsilon
@@ -1005,7 +1025,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     #greta_LJ=greta_LJ.groupby(by=['ai','aj']).agg({'sigma':'mean', 'epsilon' : lambda x: (x.prod())**(1/x.count()), 'rc_probability':'mean'}).reset_index()
 
     #case 4
-    pairs_LJ = greta_LJ.copy()
+    #pairs_LJ = greta_LJ.copy()
     # Greta prioritise intermolecular interactions
     greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'epsilon', 'sigma'], ascending = [True, True, True, False, True], inplace = True)
     # Removing the reverse duplicates
@@ -1013,6 +1033,8 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     print('\tCleaning ane Merging Complete, pairs count: ', len(greta_LJ))
+
+
     # Pairs prioritise intramolecular interactions
     pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
     pairs_LJ[cols] = np.sort(pairs_LJ[cols].values, axis=1)
