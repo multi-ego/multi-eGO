@@ -975,6 +975,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
 
+    print('- Generate Inter and Intra moleculars interactions')
     print('\tMerged pairs list: ', len(greta_LJ))
     print('\tSorting and dropping all the duplicates')
     # Inverse pairs calvario
@@ -997,6 +998,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     # greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     #case 3
+    # pairs averaging using common mix rule
     # greta_LJ.sort_values(by = ['ai', 'aj', 'sigma'], ascending = [True, True, True], inplace = True)
     # between a pair with positive and negative epsilon we keep the one with positive epsilon
     # greta_LJ=greta_LJ[~((greta_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (greta_LJ['epsilon'] < 0.))]
@@ -1037,7 +1039,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
     # So that the balance between native and fibril is less steep.
-    print('- Self interactions')
+    print('\tSelf interactions')
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
 
@@ -1053,10 +1055,10 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     atp_notdoubles.sort()
 
     if len(atp_notdoubles) == 0:
-        print('\tAll atoms interacts with themself')
+        print('\t\tAll atoms interacts with themself')
         
     else:
-        print('\tThere are', len(atp_notdoubles), 'self interactions to add')
+        print('\t\tThere are', len(atp_notdoubles), 'self interactions to add')
         # From the list of atomtypes to add, a new dataframe is created to append to the main one
         pairs_toadd = pd.DataFrame(columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
         pairs_toadd['ai'] = atp_notdoubles
@@ -1107,7 +1109,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
         pairs_toadd.dropna(inplace = True)
         # Appending the missing atom pairs to the main dataframe
         greta_LJ = pd.concat([greta_LJ,pairs_toadd], axis=0, sort = False, ignore_index = True)
-        print('\tSelf interactions added to greta_LJ ', len(pairs_toadd))
+        print('\t\tSelf interactions added to greta_LJ ', len(pairs_toadd))
 
     # Drop double, we don't need it anymore
     greta_LJ.drop(columns = ['double'], inplace = True)
@@ -1119,7 +1121,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     return greta_LJ, pairs_LJ
 
 
-def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, parameters, greta_merge):#=pd.DataFrame()):
+def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, parameters, greta_merge):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
@@ -1177,34 +1179,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             p14.append((str(str(e) + '_' + str(atom))))
         ex14 = []
 
-    #if not rc_pairs.empty:
-    #   pairs_rc = rc_pairs[['rc_ai', 'rc_aj']].loc[(rc_pairs['rc_probability']>0.999)].copy()
-    #   pairs_rc = pairs_rc.rename(columns = {'rc_ai': 'ai'})
-    #   pairs_rc = pairs_rc.rename(columns = {'rc_aj': 'aj'})
-    #   pairs_rc['c12_ai'] = pairs_rc['ai']
-    #   pairs_rc['c12_aj'] = pairs_rc['aj']
-    #   pairs_rc[['type_ai', 'resnum_ai']] = pairs_rc.ai.str.split("_", expand = True)
-    #   pairs_rc[['type_aj', 'resnum_aj']] = pairs_rc.aj.str.split("_", expand = True)
-    #   pairs_rc['resnum_ai'] = pairs_rc['resnum_ai'].astype(int)
-    #   pairs_rc['resnum_aj'] = pairs_rc['resnum_aj'].astype(int)
-    #   # We remove the contact with itself
-    #   pairs_rc = pairs_rc[pairs_rc['ai'] != pairs_rc['aj']]
-    #   # The exclusion list was made based on the atom number
-    #   pairs_rc['ai'] = pairs_rc['ai'].map(atnum_type_dict)
-    #   pairs_rc['aj'] = pairs_rc['aj'].map(atnum_type_dict)
-    #   pairs_rc['check'] = pairs_rc['ai'] + '_' + pairs_rc['aj']
-    #   # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs_rc
-    #   pairs_rc['exclude'] = ''
-    #   pairs_rc.loc[(pairs_rc['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes' 
-    #   mask = pairs_rc.exclude == 'Yes'
-    #   pairs_rc = pairs_rc[~mask]
-    #   pairs_rc['c12_ai'] = pairs_rc['c12_ai'].map(type_c12_dict)
-    #   pairs_rc['c12_aj'] = pairs_rc['c12_aj'].map(type_c12_dict)
-    #   pairs_rc['func'] = 1
-    #   pairs_rc['c6'] = 0.00000e+00
-    #   pairs_rc['c12'] = np.sqrt(pairs_rc['c12_ai'] * pairs_rc['c12_aj'])
-    #   pairs_rc.drop(columns = ['type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)    
-   
     if not greta_merge.empty:
         # pairs from greta does not have duplicates because these have been cleaned before
         pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'rc_probability', 'same_chain']].copy()
@@ -1235,22 +1209,21 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.999 >= pairs['rc_probability'])] = -(pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.999 >= pairs['rc_probability'])] = -(pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.999 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])] = 0.  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.999 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
+        # riscaliamo anche con eps_max
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 < pairs['rc_probability'])|((abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 < pairs['rc_probability'])|((abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         #pairs['c6'] = 0.00000e+00
         #pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
         pairs.drop(columns = ['rc_probability','same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude'], inplace = True)   
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
-
 
     else:
         pairs = pd.DataFrame()
     
     # Drop NaNs. This is an issue when adding the ligand ensemble.
     pairs.dropna(inplace=True)
-    #print(pairs.to_string())
     # Only 1-4 exclusions are fully reintroduced
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
     pairs_14['exclusions'] = p14
@@ -1313,8 +1286,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     # Exclusions 1-4
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
-    #if not rc_pairs.empty:
-    #    pairs = pd.concat([pairs,pairs_rc], axis=0, sort=False, ignore_index=True)
 
     # Drop duplicates
     pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
