@@ -981,14 +981,17 @@ def merge_and_clean_LJ(greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, liga
     '''
 
     if not greta_native_SB_LJ.empty:
-        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']==1.)] *= parameters['epsilon_md']
+        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']!=parameters['epsilon_amyl'])] *= parameters['epsilon_md']
     if not greta_fibril_SB_LJ.empty:
-        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']==1.)] *= parameters['epsilon_md']
+        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']!=parameters['epsilon_amyl'])] *= parameters['epsilon_md']
+    
     greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
+
     if not greta_native_SB_LJ.empty:
-        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']==parameters['epsilon_md'])] *= max_eps/parameters['epsilon_md']
+        greta_native_SB_LJ['epsilon'].loc[(greta_native_SB_LJ['epsilon']!=parameters['epsilon_amyl'])] *= max_eps/parameters['epsilon_md']
     if not greta_fibril_SB_LJ.empty:
-        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']==parameters['epsilon_md'])] *= max_eps/parameters['epsilon_md']
+        greta_fibril_SB_LJ['epsilon'].loc[(greta_fibril_SB_LJ['epsilon']!=parameters['epsilon_amyl'])] *= max_eps/parameters['epsilon_md']
+    
     pairs_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
 
     print('- Generate Inter and Intra moleculars interactions')
