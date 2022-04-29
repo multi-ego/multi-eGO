@@ -875,7 +875,6 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     num = inter_LJ.groupby(by=['ai','aj']).size().reset_index().rename(columns={0:'records'})
     # add the count of duplicates
     structural_LJ = pd.merge(structural_LJ, num, how="right", on=["ai", "aj"])
-    print(structural_LJ.to_string())
 
     # Cleaning the duplicates
     structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -898,8 +897,6 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']>=1.)] = parameters['epsilon_amyl']
     structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<1.)] = parameters['epsilon_md']
     structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<0.2)] = 0. 
-    #structural_LJ['epsilon'].loc[(intra_mask)] = parameters['epsilon_md']
-    print(structural_LJ['records'].min())
 
     # Take the contact from different chains 
     #is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O"))&
@@ -960,8 +957,9 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # Attractive
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
-    atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0. 
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
+    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
@@ -1242,10 +1240,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
         # riscaliamo anche con eps_max
-        ratio = parameters['epsilon_md']/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
-        print(ratio)
-        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
-        print(ratio)
+        #ratio = parameters['epsilon_md']/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
+        #ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
         ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()
         #pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
         #pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
