@@ -897,7 +897,9 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     #structural_LJ['epsilon'].loc[(inter_mask)] = structural_LJ['records'].pow(0.5)*parameters['epsilon_md']
     structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']>=1.)] = parameters['epsilon_amyl']
     structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<1.)] = parameters['epsilon_md']
+    structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<0.2)] = 0. 
     #structural_LJ['epsilon'].loc[(intra_mask)] = parameters['epsilon_md']
+    print(structural_LJ['records'].min())
 
     # Take the contact from different chains 
     #is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O"))&
