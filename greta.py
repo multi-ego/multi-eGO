@@ -259,7 +259,7 @@ class multiego_ensemble:
             self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability']]
+            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']]
             self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
@@ -864,18 +864,9 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diffr']].copy()
     inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diffr']
     structural_LJ = pd.concat([structural_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
-    # Here we sort all the atom pairs based on the distance and we keep the closer ones, but prioritising intermolecular contacts.
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones, prioritising intermolecular contacts.
     # Sorting the pairs
-    structural_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'distance'], ascending = [True, True, True, True], inplace = True)
-
-    inter_LJ = structural_LJ.loc[structural_LJ['same_chain'] == 'No']
-    # this is to correctly account for the double counting
-    inter_LJ[['ai', 'aj']] = np.sort(inter_LJ[['ai', 'aj']].values, axis=1)
-    # here we keep track of the duplicates only on intermolecular contacts
-    num = inter_LJ.groupby(by=['ai','aj']).size().reset_index().rename(columns={0:'records'})
-    # add the count of duplicates
-    structural_LJ = pd.merge(structural_LJ, num, how="right", on=["ai", "aj"])
-
+    structural_LJ.sort_values(by = ['ai', 'aj', 'distance', 'same_chain'], ascending = [True, True, True, True], inplace = True)
     # Cleaning the duplicates
     structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
@@ -886,27 +877,12 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace=True)
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
+    structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
+    structural_LJ['epsilon'] = parameters['epsilon_amyl']
+    # Take the contact from different chains 
     inter_mask = structural_LJ['same_chain'] == 'No'
     intra_mask = structural_LJ['same_chain'] == 'Yes'
     diff_mask =  structural_LJ['diffr'] < parameters['distance_residue']
-
-    # normalise the duplicates (only for intermolecular contacts)
-    structural_LJ['records'] /=  float(structural_LJ[inter_mask]['records'].mode())
-    structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    #structural_LJ['epsilon'].loc[(inter_mask)] = structural_LJ['records'].pow(0.5)*parameters['epsilon_md']
-    structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']>=1.)] = parameters['epsilon_amyl']
-    structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<1.)] = parameters['epsilon_md']
-    structural_LJ['epsilon'].loc[(inter_mask)&(structural_LJ['records']<0.2)] = 0. 
-
-    # Take the contact from different chains 
-    #is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O"))&
-    #          ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")))
-    
-    #is_bb_cb = ((((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O"))&(structural_LJ['type_aj']=="CB"))|
-    #            ((structural_LJ['type_ai']=="CB")&((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O"))))
-
-    #structural_LJ['epsilon'].loc[(inter_mask)&(diff_mask)&(is_bb)] = parameters['epsilon_amyl']
-    #structural_LJ['epsilon'].loc[(inter_mask)&(diff_mask)&(is_bb_cb)] = parameters['epsilon_amyl']
 
     atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
@@ -918,9 +894,10 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ['epsilon'].loc[(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
     structural_LJ.dropna(inplace=True)
     structural_LJ = structural_LJ[structural_LJ.epsilon != 0]
+    structural_LJ['source'] = 'PDB'
 
     print('\t\tSigma and epsilon completed ', len(structural_LJ))
-    structural_LJ.drop(columns = ['distance', 'chain_ai', 'chain_aj', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_residue_ai', 'rc_residue_aj', 'diffr', 'records'], inplace = True)
+    structural_LJ.drop(columns = ['distance', 'chain_ai', 'chain_aj', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_residue_ai', 'rc_residue_aj', 'diffr'], inplace = True)
 
     return structural_LJ
 
@@ -986,6 +963,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged[['idx_ai', 'idx_aj']] = atomic_mat_merged[['ai', 'aj']]
     atomic_mat_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
     atomic_mat_merged['same_chain'] = 'Yes'
+    atomic_mat_merged['source'] = 'MD'
     print(f'\t\t pairs added after removing duplicates: ', len(atomic_mat_merged))
     print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].mean())
     print("\t\t maximum epsilon is ", atomic_mat_merged['epsilon'].max())
@@ -1003,9 +981,14 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     print('\tMerged pairs list: ', len(greta_LJ))
     print('\tSorting and dropping all the duplicates')
     # Inverse pairs calvario
-    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'rc_probability', 'epsilon', 'same_chain']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'rc_probability', 'epsilon', 'same_chain']
+    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'rc_probability', 'epsilon', 'same_chain', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'rc_probability', 'epsilon', 'same_chain', 'source']
     greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
+
+    # first normalise PDB intramolecular contacts
+    ratio = greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='MD')].max()/parameters['epsilon_md']
+    if(ratio>0):
+        greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='PDB')] *= ratio
 
     # case 1 #
     # Sorting the pairs shortest distance with positive epsilon
@@ -1030,8 +1013,8 @@ def merge_and_clean_LJ(greta_LJ, parameters):
 
     #case 4
     pairs_LJ = greta_LJ.copy()
-    # Greta prioritise intermolecular interactions
-    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
+    # Greta prioritise intermolecular interactions, MD interactions, and shorter length ones
+    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, True, True, True], inplace = True)
     greta_LJ=greta_LJ[~((greta_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (greta_LJ['epsilon'] < 0.))]
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
@@ -1040,9 +1023,8 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     print('\tCleaning ane Merging Complete, pairs count: ', len(greta_LJ))
 
-
     # Pairs prioritise intramolecular interactions
-    pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
+    pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, False, True, True], inplace = True)
     pairs_LJ=pairs_LJ[~((pairs_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (pairs_LJ['epsilon'] < 0.))]
     pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs_LJ[cols] = np.sort(pairs_LJ[cols].values, axis=1)
@@ -1051,8 +1033,8 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in greta_LJ
     test = pd.merge(pairs_LJ, greta_LJ, how="right", on=["ai", "aj"])
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
-    pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y'], inplace = True)
-    pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain'}, inplace = True)
+    pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
+    pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
 
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c6', '')
@@ -1240,13 +1222,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
         # riscaliamo anche con eps_max
-        #ratio = parameters['epsilon_md']/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
-        #ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()/pairs['epsilon'].loc[(pairs['same_chain']=='No')].max()
-        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()
-        #pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        #pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()/parameters['epsilon_amyl']
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
         pairs['c6'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
         pairs['c12'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         #pairs['c6'] = 0.00000e+00
