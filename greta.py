@@ -1066,6 +1066,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     print('\tCleaning ane Merging Complete, pairs count: ', len(greta_LJ))
+    #greta_LJ = greta_LJ[greta_LJ['ai'] != greta_LJ['aj']]
 
     # Pairs prioritise intramolecular interactions
     #pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, False, True, True], inplace = True)
@@ -1269,8 +1270,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['func'] = 1
         # riscaliamo anche con eps_max
         ratio = pairs['epsilon'].loc[(pairs['source']=='MD')].max()
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability'])<0.9] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability'])<0.9] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability']<0.9)] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability']<0.9)] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
         pairs['c6'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
         pairs['c12'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         #pairs['c6'] = 0.00000e+00
