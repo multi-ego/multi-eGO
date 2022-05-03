@@ -1219,7 +1219,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     if not greta_merge.empty:
         # pairs from greta does not have duplicates because these have been cleaned before
-        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
+        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
         pairs['c12_ai'] = pairs['ai']
         pairs['c12_aj'] = pairs['aj']
         pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
@@ -1248,14 +1248,14 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
         # riscaliamo anche con eps_max
-        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c6'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
+        ratio = pairs['epsilon'].loc[(pairs['source']=='MD')].max()
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability'])<0.9] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability'])<0.9] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c6'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         #pairs['c6'] = 0.00000e+00
         #pairs['c12'] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])
-        pairs.drop(columns = ['rc_probability','same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon'], inplace = True)   
+        pairs.drop(columns = ['rc_probability','same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
 
     else:
@@ -1322,19 +1322,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14 = pairs_14[~pairs_14['aj'].isin(glycine_n)|~pairs_14['ai'].isin(glycine_next_n)]
 
     pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
-
     # Exclusions 1-4
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
-
-    # Drop duplicates
-    # pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
-    # Cleaning the duplicates (in case of doubt keep the smallest c6)
-    # pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    # Removing the reverse duplicates
-    # cols = ['ai', 'aj']
-    # pairs[cols] = np.sort(pairs[cols].values, axis=1)
-    # pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     # Adding the c6 and c12 (I do it now because later is sbatti)
     atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
@@ -1363,9 +1352,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
     nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
+    nitrogen_interaction_pairs['func'] = 1
     nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
     nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
-    nitrogen_interaction_pairs['func'] = 1
 
     pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
@@ -1382,9 +1371,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
     alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
+    alpha_beta_rift_pairs['func'] = 1
     alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
     alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
-    alpha_beta_rift_pairs['func'] = 1
 
     pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
@@ -1401,14 +1390,14 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     oca_gly_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     oca_gly_interaction_pairs['ai'] = oca_gly_interactions_ai
     oca_gly_interaction_pairs['aj'] = oca_gly_interactions_aj
+    oca_gly_interaction_pairs['func'] = 1
     oca_gly_interaction_pairs['c6'] = oca_gly_interactions_c6
     oca_gly_interaction_pairs['c12'] = oca_gly_interactions_c12
-    oca_gly_interaction_pairs['func'] = 1
 
     pairs = pd.concat([pairs,oca_gly_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
-    inv_LJ = pairs[['aj', 'ai', 'c6', 'c12', 'func']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'c6', 'c12', 'func']
+    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
     pairs.sort_values(by = ['ai', 'aj', 'c6', 'c12'], ascending = [True, True, True, True], inplace = True)
