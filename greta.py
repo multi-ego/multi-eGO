@@ -252,14 +252,33 @@ class multiego_ensemble:
         self.system_toWrite = self.parameters['protein']
         self.molecules_toWrite = self.molecules.to_string(index=False)
 
-        if not self.parameters['egos'] == 'rc': 
+        if not self.parameters['egos'] == 'rc':
+            atomtypes_top['; nr'] = atomtypes_top['; nr'].astype(str)
+            atomtypes_top['resnr'] = atomtypes_top['resnr'].astype(int)
+            # Dictionaries definitions to map values
+            atnum_type_dict = atomtypes_top.set_index('type')['; nr'].to_dict()
+            type_atnum_dict = atomtypes_top.set_index('; nr')['type'].to_dict()
+ 
+            # The exclusion list was made based on the atom number
+            self.greta_ffnb['ai_n'] = self.greta_ffnb['ai'].map(atnum_type_dict)
+            self.greta_ffnb['aj_n'] = self.greta_ffnb['aj'].map(atnum_type_dict)
+            self.greta_ffnb['ai_n'] = self.greta_ffnb['ai_n'].astype(int)
+            self.greta_ffnb['aj_n'] = self.greta_ffnb['aj_n'].astype(int)
+            # Here we want to sort so that ai is smaller than aj
+            inv_greta_ffnb = self.greta_ffnb[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'aj_n', 'ai_n']].copy()
+            inv_greta_ffnb.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']
+            self.greta_ffnb = pd.concat([self.greta_ffnb,inv_greta_ffnb], axis=0, sort = False, ignore_index = True)
+            self.greta_ffnb = self.greta_ffnb[self.greta_ffnb['ai_n']<=self.greta_ffnb['aj_n']]
+            self.greta_ffnb.sort_values(by = ['ai_n', 'aj_n'], inplace = True)
+            self.greta_ffnb = self.greta_ffnb.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
             self.greta_ffnb.insert(5, '', ';')
             self.greta_ffnb = self.greta_ffnb.rename(columns = {'ai':'; ai'})
             self.greta_ffnb['epsilon'] = self.greta_ffnb["epsilon"].map(lambda x:'{:.6f}'.format(x))
             self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']]
+            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']]
             self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
@@ -1067,6 +1086,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(4, 'c12', '')
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
+
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
