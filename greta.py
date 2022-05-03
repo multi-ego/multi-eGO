@@ -1010,7 +1010,7 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
 
     # first normalise PDB intramolecular contacts
-    ratio = greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='MD')].max()/parameters['epsilon_md']
+    ratio = greta_LJ['epsilon'].loc[(greta_LJ['source']=='MD')].max()/parameters['epsilon_md']
     if(ratio>0):
         greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='PDB')] *= ratio
 
@@ -1219,7 +1219,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     if not greta_merge.empty:
         # pairs from greta does not have duplicates because these have been cleaned before
-        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'rc_probability', 'same_chain', 'epsilon']].copy()
+        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
         pairs['c12_ai'] = pairs['ai']
         pairs['c12_aj'] = pairs['aj']
         pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
@@ -1327,14 +1327,14 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # Drop duplicates
-    pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
-    # Cleaning the duplicates (in case of doubt keep the smallest c12)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # pairs.sort_values(by = ['ai', 'aj', 'c6'], inplace = True)
+    # Cleaning the duplicates (in case of doubt keep the smallest c6)
+    # pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     # Removing the reverse duplicates
-    cols = ['ai', 'aj']
-    pairs[cols] = np.sort(pairs[cols].values, axis=1)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # cols = ['ai', 'aj']
+    # pairs[cols] = np.sort(pairs[cols].values, axis=1)
+    # pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     # Adding the c6 and c12 (I do it now because later is sbatti)
     atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
@@ -1407,8 +1407,11 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     pairs = pd.concat([pairs,oca_gly_interaction_pairs], axis=0, sort=False, ignore_index=True)
 
+    inv_LJ = pairs[['aj', 'ai', 'c6', 'c12', 'func']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'c6', 'c12', 'func']
+    pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
-    pairs.sort_values(by = ['ai', 'aj', 'c12'], inplace = True)
+    pairs.sort_values(by = ['ai', 'aj', 'c6', 'c12'], ascending = [True, True, True, True], inplace = True)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # drop inverse duplicates
     cols = ['ai', 'aj']
