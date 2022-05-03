@@ -878,11 +878,16 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
     structural_LJ['sigma'] = (structural_LJ['distance']/10) / (2**(1/6))
-    structural_LJ['epsilon'] = parameters['epsilon_amyl']
     # Take the contact from different chains 
     inter_mask = structural_LJ['same_chain'] == 'No'
     intra_mask = structural_LJ['same_chain'] == 'Yes'
     diff_mask =  structural_LJ['diffr'] < parameters['distance_residue']
+
+    is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O")|(structural_LJ['type_ai']=="O1")|(structural_LJ['type_ai']=="O2"))&
+              ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")|(structural_LJ['type_aj']=="O1")|(structural_LJ['type_aj']=="O2")))
+
+    structural_LJ['epsilon'].loc[(inter_mask)&(is_bb)] = parameters['epsilon_amyl_bb']
+    structural_LJ['epsilon'].loc[(inter_mask)&(~is_bb)] = parameters['epsilon_amyl_sc']
 
     atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
@@ -911,6 +916,9 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']) / (2**(1/6))
+    # Epsilon reweight based on probability
+    atomic_mat_plainMD['epsilon'] = ''    
+    atomic_mat_plainMD['same_chain'] = 'Yes'
     # Merge the two dataframes by ai and aj which are also indexes now
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
@@ -920,8 +928,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
 
-    # Epsilon reweight based on probability
-    atomic_mat_merged['epsilon'] = ''    
 
     # Paissoni Equation 2.0
     # Attractive pairs
@@ -948,8 +954,8 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     print("\t\t",len(atomic_mat_merged), " pairs interactions")
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = atomic_mat_merged[['aj', 'ai', 'sigma', 'epsilon']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon']
+    inv_LJ = atomic_mat_merged[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability']
     atomic_mat_merged = pd.concat([atomic_mat_merged, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
@@ -962,7 +968,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged = atomic_mat_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     atomic_mat_merged[['idx_ai', 'idx_aj']] = atomic_mat_merged[['ai', 'aj']]
     atomic_mat_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
-    atomic_mat_merged['same_chain'] = 'Yes'
     atomic_mat_merged['source'] = 'MD'
     print(f'\t\t pairs added after removing duplicates: ', len(atomic_mat_merged))
     print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].mean())
@@ -981,8 +986,8 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     print('\tMerged pairs list: ', len(greta_LJ))
     print('\tSorting and dropping all the duplicates')
     # Inverse pairs calvario
-    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'rc_probability', 'epsilon', 'same_chain', 'source']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'rc_probability', 'epsilon', 'same_chain', 'source']
+    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']
     greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
 
     # first normalise PDB intramolecular contacts
@@ -1222,9 +1227,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
         # riscaliamo anche con eps_max
-        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()/parameters['epsilon_amyl']
-        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        ratio = pairs['epsilon'].loc[(pairs['same_chain']=='Yes')].max()
+        pairs['c6'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
+        pairs['c12'].loc[(pairs['same_chain']=='No') & (0.9 >= pairs['rc_probability'])] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
         pairs['c6'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
         pairs['c12'].loc[(pairs['same_chain']=='No') & ((0.9 < pairs['rc_probability'])|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         #pairs['c6'] = 0.00000e+00

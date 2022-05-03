@@ -23,7 +23,8 @@ def main(argv):
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
         'lj_reduction':0.25,
         # This is the interaction energy of the amyloid cross beta
-        'epsilon_amyl':0.305,
+        'epsilon_amyl_bb':0.335,
+        'epsilon_amyl_sc':0.295,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         # Default behavior is to train from a simulation
