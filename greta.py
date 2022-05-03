@@ -847,7 +847,6 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ[['ai', 'chain_ai']] = structural_LJ.ai.str.split(":", expand = True)
     structural_LJ[['aj', 'chain_aj']] = structural_LJ.aj.str.split(":", expand = True)
     structural_LJ['same_chain'] = np.where(structural_LJ['chain_ai'] == structural_LJ['chain_aj'], 'Yes', 'No')
-    
     print('\t\tPairs within the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'Yes']))
     print('\t\tPairs not in the same chain: ', len(structural_LJ.loc[structural_LJ['same_chain'] == 'No']))
 
@@ -857,22 +856,23 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     # And to do that it is necessary to convert the two columns into integer
     structural_LJ = structural_LJ.astype({"resnum_ai": int, "resnum_aj": int})
     structural_LJ['diffr'] = abs(structural_LJ['resnum_aj'] - structural_LJ['resnum_ai'])
+    structural_LJ.drop(columns = ['chain_ai', 'chain_aj', 'resnum_ai', 'resnum_aj'], inplace = True) 
     structural_LJ.drop(structural_LJ[(structural_LJ['diffr'] < parameters['distance_residue']) & (structural_LJ['same_chain'] == 'Yes')].index, inplace = True)    
     
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diffr']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'chain_ai', 'chain_aj', 'same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'diffr']
+    inv_LJ = structural_LJ[['aj', 'ai', 'distance', 'sigma', 'epsilon', 'same_chain', 'type_ai', 'type_aj', 'diffr']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon', 'same_chain', 'type_ai', 'type_aj', 'diffr']
     structural_LJ = pd.concat([structural_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones, prioritising intermolecular contacts.
     # Sorting the pairs
     structural_LJ.sort_values(by = ['ai', 'aj', 'distance', 'same_chain'], ascending = [True, True, True, True], inplace = True)
     # Cleaning the duplicates
-    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
     structural_LJ[cols] = np.sort(structural_LJ[cols].values, axis=1)
-    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    structural_LJ = structural_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
     structural_LJ[['idx_ai', 'idx_aj']] = structural_LJ[['ai', 'aj']]
     structural_LJ.set_index(['idx_ai', 'idx_aj'], inplace=True)
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
@@ -902,7 +902,7 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ['source'] = 'PDB'
 
     print('\t\tSigma and epsilon completed ', len(structural_LJ))
-    structural_LJ.drop(columns = ['distance', 'chain_ai', 'chain_aj', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_residue_ai', 'rc_residue_aj', 'diffr'], inplace = True)
+    structural_LJ.drop(columns = ['distance', 'type_ai', 'type_aj', 'rc_ai',  'rc_aj',  'rc_distance', 'rc_residue_ai', 'rc_residue_aj', 'diffr'], inplace = True)
 
     return structural_LJ
 
@@ -941,8 +941,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0. 
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = (parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(atomic_mat_merged['rc_probability']/atomic_mat_merged['probability']))
-    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
@@ -1019,8 +1017,9 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     #case 4
     pairs_LJ = greta_LJ.copy()
     # Greta prioritise intermolecular interactions, MD interactions, and shorter length ones
-    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, True, True, True], inplace = True)
-    greta_LJ=greta_LJ[~((greta_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (greta_LJ['epsilon'] < 0.))]
+    #greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, True, True, True], inplace = True)
+    greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True, True], inplace = True)
+    #greta_LJ=greta_LJ[~((greta_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (greta_LJ['epsilon'] < 0.))]
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
@@ -1029,8 +1028,9 @@ def merge_and_clean_LJ(greta_LJ, parameters):
     print('\tCleaning ane Merging Complete, pairs count: ', len(greta_LJ))
 
     # Pairs prioritise intramolecular interactions
-    pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, False, True, True], inplace = True)
-    pairs_LJ=pairs_LJ[~((pairs_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (pairs_LJ['epsilon'] < 0.))]
+    #pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'source', 'sigma'], ascending = [True, True, False, True, True], inplace = True)
+    pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True, True], inplace = True)
+    #pairs_LJ=pairs_LJ[~((pairs_LJ.duplicated(subset = ['ai','aj'], keep=False)) & (pairs_LJ['epsilon'] < 0.))]
     pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     pairs_LJ[cols] = np.sort(pairs_LJ[cols].values, axis=1)
     pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
