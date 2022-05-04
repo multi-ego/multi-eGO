@@ -12,7 +12,7 @@ def header(parameters):
     header += f"; The force field type is: {parameters['egos']} \n"
     if parameters['egos'] != 'rc':
         header += f"; LJ epsilon: {parameters['epsilon_md']} \n"
-        header += f"; LJ amyloid epsilon: {parameters['epsilon_amyl_bb']} {parameters['epsilon_amyl_sc']} \n"
+        header += f"; LJ amyloid epsilon: {parameters['epsilon_amyl']} \n"
     if parameters['ensemble'] == True and parameters['egos'] != 'rc':
         header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
