@@ -921,10 +921,26 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
-    structural_LJ['epsilon'] = parameters['epsilon_amyl']
+    # Take the contact from different chains 
+    inter_mask = structural_LJ['same_chain'] == 'No'
+    intra_mask = structural_LJ['same_chain'] == 'Yes'
+    diff_mask =  structural_LJ['diffr'] < parameters['distance_residue']
+
+    is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O")|(structural_LJ['type_ai']=="O1")|(structural_LJ['type_ai']=="O2"))&
+              ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")|(structural_LJ['type_aj']=="O1")|(structural_LJ['type_aj']=="O2")))
+
+    structural_LJ['epsilon'].loc[(inter_mask)&(is_bb)] = parameters['epsilon_amyl_bb']
+    structural_LJ['epsilon'].loc[(inter_mask)&(~is_bb)] = parameters['epsilon_amyl_sc']
+
+    # in the case of non-backbone self interactions we put the c6 to zero and halv the c12
+    structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = -1
+    #structural_LJ['c6'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = 0.
+    #structural_LJ['c12'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = np.minimum(structural_LJ['ai'].map(type_c12_dict), structural_LJ['c12']/(10.*parameters['epsilon_amyl']))
+
+    #structural_LJ['epsilon'] = parameters['epsilon_amyl']
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
-    structural_LJ['epsilon'].loc[(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
+    structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
     structural_LJ.dropna(inplace=True)
     structural_LJ = structural_LJ[structural_LJ.epsilon != 0]
     structural_LJ['source'] = 'PDB'
@@ -1049,10 +1065,10 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     greta_LJ.insert(4, 'c12', '')
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
 
-    # in the case of self interactions we put the c6 to zero and halv the c12
-    greta_LJ['epsilon'].loc[greta_LJ['ai'] == greta_LJ['aj']] = 0.
-    greta_LJ['c6'].loc[greta_LJ['ai'] == greta_LJ['aj']] = 0.
-    greta_LJ['c12'].loc[greta_LJ['ai'] == greta_LJ['aj']] = np.minimum(greta_LJ['ai'].map(type_c12_dict), greta_LJ['c12']/(10.*parameters['epsilon_amyl']))
+    # in the case of non-backbone self interactions we put the c6 to zero and halv the c12
+    greta_LJ['c6'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0.
+    greta_LJ['c12'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = np.minimum(greta_LJ['ai'].map(type_c12_dict), greta_LJ['c12']/(10.*parameters['epsilon_amyl']))
+    greta_LJ['epsilon'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
