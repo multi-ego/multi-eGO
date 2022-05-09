@@ -20,12 +20,12 @@ gromos_atp = pd.DataFrame(
             'CH2', 'CH3', 'CH2r', 'NT', 'S',
             'NR', 'OM', 'NE', 'NL', 'NZ'],
      'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
-     'c12': [0.25e-06, 1.505529e-06, 0.900000e-06, 2.468642e-06, 2.468642e-06, #9.70225e-05, # CH1
-            #3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,
-            2.468642e-06, 2.468642e-06, 2.468642e-06, 5.0625e-06, 1.3075456e-05, 
-            3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06],
-     # here the 0 should be corrected with the correct c6 (anyway they are not used now)
-     'c6': [0.0022619536, 0, 0, 0, 0.00606841, 0.0074684164, 0.0096138025, 0, 0, 0, 0, 0, 0, 0, 0]
+     #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.5, 4.937284e-06/1.9, 9.70225e-05(C/2), # CH1
+     #       3.3965584e-05(C/2), 2.6646244e-05(C/2), 2.8058209e-05(C/2), 5.0625e-06/1.9, 1.3075456e-05/4.8,
+     #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
+     'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
+             2.598570e-06, 2.598570e-06, 2.598570e-06, 2.664470e-06, 0.272405e-05, 
+             1.540582e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
      }
 )
 gromos_atp.to_dict()
@@ -1330,8 +1330,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Exclusions 1-4
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
-    # Adding the c6 and c12 (I do it now because later is sbatti)
-    atnum_type_top['c6'] = atnum_type_top['atom_type'].map(gromos_atp['c6'])
+    # Adding the c12 (I do it now because later is sbatti)
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
     # Here we make a dictionary of the backbone oxygen as atom number
