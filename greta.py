@@ -20,8 +20,9 @@ gromos_atp = pd.DataFrame(
             'CH2', 'CH3', 'CH2r', 'NT', 'S',
             'NR', 'OM', 'NE', 'NL', 'NZ'],
      'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
-     'c12': [1e-06, 1.505529e-06, 2.319529e-06, 4.937284e-06, 9.70225e-05, # CH1
-            3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,
+     'c12': [0.25e-06, 1.505529e-06, 0.900000e-06, 2.468642e-06, 2.468642e-06, #9.70225e-05, # CH1
+            #3.3965584e-05, 2.6646244e-05, 2.8058209e-05, 5.0625e-06, 1.3075456e-05,
+            2.468642e-06, 2.468642e-06, 2.468642e-06, 5.0625e-06, 1.3075456e-05, 
             3.389281e-06, 7.4149321e-07, 2.319529e-06, 2.319529e-06, 2.319529e-06],
      # here the 0 should be corrected with the correct c6 (anyway they are not used now)
      'c6': [0.0022619536, 0, 0, 0, 0.00606841, 0.0074684164, 0.0096138025, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -1067,7 +1068,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
 
     # in the case of non-backbone self interactions we put the c6 to zero and halv the c12
     greta_LJ['c6'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0.
-    greta_LJ['c12'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = np.minimum(greta_LJ['ai'].map(type_c12_dict), greta_LJ['c12']/(10.*parameters['epsilon_amyl']))
+    greta_LJ['c12'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = np.minimum(greta_LJ['ai'].map(type_c12_dict), greta_LJ['c12']/(20.*parameters['epsilon_amyl']))
     greta_LJ['epsilon'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0
 
     pairs_LJ.insert(2, 'type', 1)
@@ -1298,7 +1299,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 1.6
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2.0
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = ego_topology['residue'].to_list()
@@ -1343,25 +1344,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
     backbone_nitrogen = backbone_nitrogen[backbone_nitrogen.residue != 'PRO']
 
-    # Add pair interaction for beta carbon and nitrogen + 1
-    nitrogen_interactions_ai, nitrogen_interactions_aj, nitrogen_interactions_c6, nitrogen_interactions_c12 = [], [], [], []
-    for index, line_sidechain_cb in sidechain_cb.iterrows():
-        line_backbone_n = backbone_nitrogen.loc[(backbone_nitrogen['residue_number']) == (line_sidechain_cb['residue_number']+1)].squeeze(axis=None)
-        if not line_backbone_n.empty:
-            nitrogen_interactions_ai.append(line_sidechain_cb['atom_number'])
-            nitrogen_interactions_aj.append(line_backbone_n['atom_number'])
-            nitrogen_interactions_c6.append(0)
-            nitrogen_interactions_c12.append(parameters['lj_reduction'] * 7.861728e-06)    # nitrogen c12 times ala cb c12
-
-    nitrogen_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    nitrogen_interaction_pairs['ai'] = nitrogen_interactions_ai
-    nitrogen_interaction_pairs['aj'] = nitrogen_interactions_aj
-    nitrogen_interaction_pairs['func'] = 1
-    nitrogen_interaction_pairs['c6'] = nitrogen_interactions_c6
-    nitrogen_interaction_pairs['c12'] = nitrogen_interactions_c12
-
-    pairs = pd.concat([pairs,nitrogen_interaction_pairs], axis=0, sort=False, ignore_index=True)
-
     # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
@@ -1370,7 +1352,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
             alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
             alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append((0.000005162090)*0.2)
+            alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
 
     alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai

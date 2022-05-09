@@ -21,9 +21,11 @@ def main(argv):
         'rc_threshold':0.00001, # 0.0000001
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
-        'lj_reduction':0.25,
+        'lj_reduction':0.50,
         # This is the interaction energy of the amyloid cross beta
-        'epsilon_amyl':0.320,
+        'epsilon_amyl':0.300,
+        'epsilon_amyl_bb':0.310,
+        'epsilon_amyl_sc':0.310,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         # Default behavior is to train from a simulation
