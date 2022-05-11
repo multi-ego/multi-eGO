@@ -351,16 +351,16 @@
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ; OPT from pro_dp_step_1.3
-#define gd_52 -165.6242 1.3801 3
+#define gd_52 140.1894 3.2674 2
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_53 -2.9311 0.5911 4
+#define gd_53 -175.4083 1.804 2
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_54 105.3325 3.0001 2
+#define gd_54 -110.4281 3.0173 1
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_55 147.329 1.6843 2
+#define gd_55 -68.2025 0.3191 1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_56    180.000     31.0     2
