@@ -324,18 +324,18 @@
 #define gd_41     0.000       3.77          6
 ; -CHn-NT-	0.9
 ;
-; OPT from ala_dp_step_2.5_loc
-#define gd_42 -164.7618 3.498 2 
-; Backbone dihedral angle -N-CA-C-N- 
+; OPT from 1.5_loc
+#define gd_42 -137.1025 3.1780 1
+; Backbone dihedral angle -N-CA-C-N- ALA
 ; 
-#define gd_43 179.9119 3.4983 1
-; Backbone dihedral angle -C-N-CA-C- 
+#define gd_43 168.0247 2.1181 1
+; Backbone dihedral angle -C-N-CA-C- ALA
 ; 
-#define gd_44 -1.3057 2.4354 3
-; Backbone dihedral angle -C-N-CA-C- 
+#define gd_44 -104.6130 1.0553 4
+; Backbone dihedral angle -C-N-CA-C- ALA
 ; 
-#define gd_45 102.613 1.0643 5
-; Backbone dihedral angle -N-CA-C-N- 
+#define gd_45 161.4243 3.1851 2
+; Backbone dihedral angle -N-CA-C-N- ALA
 ;
 ; OPT form gly_dp_step_2.2_loc
 #define gd_48 179.7586 1.6692 4
