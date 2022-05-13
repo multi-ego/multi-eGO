@@ -931,10 +931,9 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
               ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")|(structural_LJ['type_aj']=="O1")|(structural_LJ['type_aj']=="O2")))
 
     structural_LJ['epsilon'] = parameters['epsilon_amyl']
-    # in the case of non-backbone self interactions we put the c6 to zero and halv the c12
-    structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = -1
+    # we remove non-backbone self interactions (they will have the standard c12 term)  
+    structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = 0.
 
-    #structural_LJ['epsilon'] = parameters['epsilon_amyl']
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
@@ -984,7 +983,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0. 
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold']) & (atomic_mat_merged['probability'] > atomic_mat_merged['rc_probability']) ] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
     atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     atomic_mat_merged.drop(columns = ['distance', 'rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_distance'], inplace = True)
     atomic_mat_merged.dropna(inplace=True)
@@ -1009,7 +1008,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
     atomic_mat_merged['source'] = 'MD'
     print(f'\t\t pairs added after removing duplicates: ', len(atomic_mat_merged))
-    print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].loc[atomic_mat_merged['epsilon']>0.].mean())
+    print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].mean())
     print("\t\t maximum epsilon is ", atomic_mat_merged['epsilon'].max())
 
     return atomic_mat_merged
@@ -1062,22 +1061,11 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     greta_LJ.insert(4, 'c12', '')
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
 
-    # in the case of non-backbone self interactions we put the c6 to zero and halv the c12
-    greta_LJ['c6'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0.
-    greta_LJ['c12'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = np.minimum(greta_LJ['ai'].map(type_c12_dict), greta_LJ['c12']/(20.*parameters['epsilon_amyl']))
-    greta_LJ['epsilon'].loc[(greta_LJ['ai'] == greta_LJ['aj'])&(greta_LJ['epsilon']==-1)] = 0
-    # we don't want repulsive interactions as intermolecular interactions
-    # greta_LJ=greta_LJ[~(greta_LJ['epsilon'] < 0.)]
-
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
     pairs_LJ['c6'] = 4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 6)
     pairs_LJ.insert(4, 'c12', '')
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
-    # repulsive intramolecular interactions
-    #pairs_LJ['c6'].loc[(pairs_LJ['source']=='MD')&(pairs_LJ['epsilon']==-1)] = 0.
-    #pairs_LJ['c12'].loc[(pairs_LJ['source']=='MD')&(pairs_LJ['epsilon']==-1)] = np.maximum(pairs_LJ['ai'].map(type_c12_dict), pairs_LJ['c12']*parameters['epsilon_md'])
-    #pairs_LJ['epsilon'].loc[(pairs_LJ['source']=='MD')&(pairs_LJ['epsilon']==-1)] = 0.
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
