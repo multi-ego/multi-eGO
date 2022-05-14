@@ -16,14 +16,14 @@ def main(argv):
         # neighbor aminoacid to exclude < x, used only when learning from structures
         'distance_residue':2,
         # this is the minimum probability for a pair to be considered
-        'md_threshold':0.001, # 0.0001, 
+        'md_threshold':0.001, 
         # this is the minimum probability for the random-coil matrix
-        'rc_threshold':0.00001, # 0.0000001
+        'rc_threshold':0.00001,
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
-        'lj_reduction':0.25,
+        'lj_reduction':0.50,
         # This is the interaction energy of the amyloid cross beta
-        'epsilon_amyl':0.430,
+        'epsilon_amyl':0.300,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         # Default behavior is to train from a simulation
@@ -46,13 +46,13 @@ def main(argv):
     readall=0
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=","egos=","epsilon=", "ligand=", "noensemble","help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand=", "noensemble", "help"])
     except getopt.GetoptError:
-        print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)')
+        print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --epsilon_amyloid=0.x (optional) --noensemble (optional)')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '--help':
-            print('multiego.py --protein <protein> --egos <single|merge|rc> --epsilon=0.x (not used with --egos=rc) --noensemble (optional)')
+            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --epsilon_amyloid=0.x (optional) --noensemble (optional)')
             sys.exit()
         elif opt in ("--protein"):
             if not arg:
@@ -80,6 +80,13 @@ def main(argv):
             else:
                 parameters['epsilon_md'] = float(arg)
                 readall +=1
+        elif opt in ("--epsilon_amyloid"):
+            arg = float(arg)
+            if arg > 1 or arg < 0:
+                print('Epsilon values must be chosen between 0 and 1')
+                sys.exit()
+            else:
+                parameters['epsilon_amyl'] = float(arg)
         elif opt in ("--ligand"):
             arg = float(arg)
             if arg > 1 or arg < 0:
