@@ -259,8 +259,14 @@ class multiego_ensemble:
             # Dictionaries definitions to map values
             atnum_type_dict = atomtypes_top.set_index('type')['; nr'].to_dict()
             type_atnum_dict = atomtypes_top.set_index('; nr')['type'].to_dict()
- 
-            # The exclusion list was made based on the atom number
+
+            if self.parameters['ligand'] == True:
+            
+                ligand_atnum_type_df = self.ligand_topology[['sb_type']].copy()
+                ligand_atnum_type_df['new_index'] = self.ligand_topology.index+1
+                ligand_atnum_type_dict = ligand_atnum_type_df.set_index('sb_type')['new_index'].to_dict()
+                atnum_type_dict = {**atnum_type_dict, **ligand_atnum_type_dict}
+
             self.greta_ffnb['ai_n'] = self.greta_ffnb['ai'].map(atnum_type_dict)
             self.greta_ffnb['aj_n'] = self.greta_ffnb['aj'].map(atnum_type_dict)
             self.greta_ffnb['ai_n'] = self.greta_ffnb['ai_n'].astype(int)
@@ -554,7 +560,6 @@ class ensemble:
         atomic_ligand_mat.dropna(inplace=True)
         atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
         self.ligand_atomic_mat_MD = atomic_ligand_mat
-
         return self
 
 

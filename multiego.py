@@ -18,7 +18,7 @@ def main(argv):
         # this is the minimum probability for a pair to be considered
         'md_threshold':0.001, 
         # this is the minimum probability for the random-coil matrix
-        'rc_threshold':0.00001,
+        'rc_threshold':0.0001, #0.00001
         # Settings for LJ 1-4. We introduce some LJ interactions otherwise lost with the removal of explicit H
         # The c12 of a LJ 1-4 is too big, therefore we reduce by a factor
         'lj_reduction':0.50,

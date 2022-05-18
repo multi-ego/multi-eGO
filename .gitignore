@@ -135,3 +135,4 @@ dmypy.json
 
 analysis/*
 analysis/new_monomer_analysis.ipynb
+charmm22star.ff/
