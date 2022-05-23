@@ -1299,8 +1299,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     if 'PRO' in residue_list:
         proline_n = ego_topology.loc[(ego_topology['residue'] == 'PRO') & (ego_topology['atom'] == 'N'), 'atom_number'].to_list()
 
-    pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)]
-    pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)]
+    pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)|(pairs_14['c12_tozero'] == True)]
+    pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)|(pairs_14['c12_tozero'] == True)]
 
     # Removing the interactions between the glycine N and the N of the following aminoacid 
     glycine_n = []
