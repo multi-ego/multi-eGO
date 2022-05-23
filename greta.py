@@ -1291,7 +1291,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2.0
+    #pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2.0
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = ego_topology['residue'].to_list()
@@ -1328,31 +1328,29 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Here we make a dictionary of the backbone oxygen as atom number
     backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
     backbone_ca_gly = atnum_type_top.loc[(atnum_type_top['atom'] == 'CA')&(atnum_type_top['residue'] == 'GLY')]
-    backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
     # CB not used for GLY and PRO and N of PRO
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
-    backbone_nitrogen = backbone_nitrogen[backbone_nitrogen.residue != 'PRO']
 
     # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
-    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
-    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
-        if not line_sidechain_cb.empty:
-            alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
-            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
-            alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+    #alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
+    #for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+    #    line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+    #    if not line_sidechain_cb.empty:
+    #        alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
+    #        alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
+    #        alpha_beta_rift_c6.append(0.0)
+    #        alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12'])*parameters['lj_reduction'])
 
-    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
-    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
-    alpha_beta_rift_pairs['func'] = 1
-    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
-    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
+    #alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    #alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
+    #alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
+    #alpha_beta_rift_pairs['func'] = 1
+    #alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
+    #alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
 
-    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+    #pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
     # add O-1 CA pairs for Glycines
     oca_gly_interactions_ai, oca_gly_interactions_aj, oca_gly_interactions_c6, oca_gly_interactions_c12 = [], [], [], []
