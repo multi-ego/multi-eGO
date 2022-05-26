@@ -1276,10 +1276,11 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     # NOT 1-4 N-X interactions will be dropped
     pairs_14.loc[(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
+    #pairs_14.loc[(pairs_14['ai_type'] == 'O') | (pairs_14['aj_type'] == 'O'), 'c12_tozero'] = False
     # Here we take a particular interest of the interaction between two N, because both should have an explicit H
     pairs_14.loc[(pairs_14['ai_type'] == 'N') & (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = True
     # Only the pairs with an N involved are retained
-    pairs_14.dropna(inplace=True)#(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
+    # pairs_14.dropna(inplace=True)#(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
 
     # Thus, only N with X LJ 1-4 interactions will be kept
     # All the other 1-4 interactions will NOT interact with each others
@@ -1287,11 +1288,15 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_c12_dict)
     pairs_14['func'] = 1
     pairs_14['c6'] = 0.00000e+00
+    pairs_14['c12'] = 0.00000e+00
     # in general 1-4 interactions are excluded, N-X 1-4 interactions are retained but scaled down
-    pairs_14['c12'] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
+    #pairs_14['c12'].loc[(pairs_14['c12_tozero'].isnull())] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*0.1*parameters['lj_reduction']
+    pairs_14['c12'].loc[(pairs_14['c12_tozero'].notnull())] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
+    #pairs_14['c12'].loc[(pairs_14['c12_tozero'].notnull())&(pairs_14['ai_type'] != 'N') & (pairs_14['aj_type'] != 'N')] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*0.5*parameters['lj_reduction']
     
     # The N-N interactions are less scaled down, double the c12
-    #pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] *= 2.0
+    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] = 0
+    pairs_14 = pairs_14[pairs_14.c12!=0]
 
     # Removing the interactions with the proline N becasue this does not have the H
     residue_list = ego_topology['residue'].to_list()
@@ -1334,23 +1339,23 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
 
     # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
-    #alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
-    #for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-    #    line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
-    #    if not line_sidechain_cb.empty:
-    #        alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
-    #        alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
-    #        alpha_beta_rift_c6.append(0.0)
-    #        alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12'])*parameters['lj_reduction'])
+    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
+            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
+            alpha_beta_rift_c6.append(0.0)
+            alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12'])*parameters['lj_reduction'])
 
-    #alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    #alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
-    #alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
-    #alpha_beta_rift_pairs['func'] = 1
-    #alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
-    #alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
+    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
+    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
+    alpha_beta_rift_pairs['func'] = 1
+    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
+    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
 
-    #pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+    # pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
     # add O-1 CA pairs for Glycines
     oca_gly_interactions_ai, oca_gly_interactions_aj, oca_gly_interactions_c6, oca_gly_interactions_c12 = [], [], [], []
