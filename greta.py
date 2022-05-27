@@ -245,10 +245,16 @@ class multiego_ensemble:
         self.impropers_toWrite = impropers.to_string(index=False)
         pairs = self.pairs
         pairs.rename(columns = {'ai':'; ai'}, inplace=True)
-        self.pairs_toWrite = pairs.to_string(index=False)
+        if(not pairs.empty):
+            self.pairs_toWrite = pairs.to_string(index=False)
+        else:
+            self.pairs_toWrite = "" 
         exclusions = self.exclusions
         exclusions.rename(columns = {'ai':'; ai'}, inplace=True)
-        self.exclusions_toWrite = exclusions.to_string(index=False)
+        if(not exclusions.empty):
+            self.exclusions_toWrite = exclusions.to_string(index=False)
+        else:
+            self.exclusions_toWrite = "" 
         #self.system_toWrite = self.system.to_string(index=False)
         self.system_toWrite = self.parameters['protein']
         self.molecules_toWrite = self.molecules.to_string(index=False)
@@ -1260,93 +1266,24 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     
     # Drop NaNs. This is an issue when adding the ligand ensemble.
     pairs.dropna(inplace=True)
-    # Only 1-4 exclusions are fully reintroduced
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'exclusions'])
-    pairs_14['exclusions'] = p14
-    pairs_14[['ai', 'aj']] = pairs_14.exclusions.str.split("_", expand = True)
-
-    pairs_14['c12_ai'] = pairs_14['ai']
-    pairs_14['c12_aj'] = pairs_14['aj']
-    pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_atnum_dict)
-    pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_atnum_dict)
-
-    # Adding an atom column because we want to flag NOT N N interactions, this because the N should have an explicit H we removed
-    pairs_14[['ai_type', 'ai_resid']] = pairs_14.c12_ai.str.split("_", expand = True)
-    pairs_14[['aj_type', 'aj_resid']] = pairs_14.c12_aj.str.split("_", expand = True)
-
-    # NOT 1-4 N-X interactions will be dropped
-    pairs_14.loc[(pairs_14['ai_type'] == 'N') | (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = False
-    #pairs_14.loc[(pairs_14['ai_type'] == 'O') | (pairs_14['aj_type'] == 'O'), 'c12_tozero'] = False
-    # Here we take a particular interest of the interaction between two N, because both should have an explicit H
-    pairs_14.loc[(pairs_14['ai_type'] == 'N') & (pairs_14['aj_type'] == 'N'), 'c12_tozero'] = True
-    # Only the pairs with an N involved are retained
-    # pairs_14.dropna(inplace=True)#(pairs_14[pairs_14.c12_tozero != False].index, inplace=True)
-
-    # Thus, only N with X LJ 1-4 interactions will be kept
-    # All the other 1-4 interactions will NOT interact with each others
-    pairs_14['c12_ai'] = pairs_14['c12_ai'].map(type_c12_dict)
-    pairs_14['c12_aj'] = pairs_14['c12_aj'].map(type_c12_dict)
-    pairs_14['func'] = 1
-    pairs_14['c6'] = 0.00000e+00
-    pairs_14['c12'] = 0.00000e+00
-    # in general 1-4 interactions are excluded, N-X 1-4 interactions are retained but scaled down
-    #pairs_14['c12'].loc[(pairs_14['c12_tozero'].isnull())] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*0.1*parameters['lj_reduction']
-    pairs_14['c12'].loc[(pairs_14['c12_tozero'].notnull())] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*parameters['lj_reduction']
-    #pairs_14['c12'].loc[(pairs_14['c12_tozero'].notnull())&(pairs_14['ai_type'] != 'N') & (pairs_14['aj_type'] != 'N')] = (np.sqrt(pairs_14['c12_ai'] * pairs_14['c12_aj']))*0.5*parameters['lj_reduction']
-    
-    # The N-N interactions are less scaled down, double the c12
-    pairs_14.loc[(pairs_14['c12_tozero'] == True), 'c12'] = 0
-    pairs_14 = pairs_14[pairs_14.c12!=0]
-
-    # Removing the interactions with the proline N becasue this does not have the H
-    residue_list = ego_topology['residue'].to_list()
-    proline_n = []
-    if 'PRO' in residue_list:
-        proline_n = ego_topology.loc[(ego_topology['residue'] == 'PRO') & (ego_topology['atom'] == 'N'), 'atom_number'].to_list()
-
-    pairs_14 = pairs_14[~pairs_14['ai'].isin(proline_n)|(pairs_14['c12_tozero'] == True)]
-    pairs_14 = pairs_14[~pairs_14['aj'].isin(proline_n)|(pairs_14['c12_tozero'] == True)]
-
-    # Removing the interactions between the glycine N and the N of the following aminoacid 
-    glycine_n = []
-    glycine_ri = []
-    glycine_next_n = []
-    if 'GLY' in residue_list:
-        glycine_n = ego_topology.loc[(ego_topology['residue'] == 'GLY') & (ego_topology['atom'] == 'N'), 'atom_number'].to_list()
-        glycine_ri = ego_topology.loc[(ego_topology['residue'] == 'GLY') & (ego_topology['atom'] == 'N'), 'residue_number'].to_list()
- 
-    resid_list = ego_topology['residue_number'].to_list()
-    
-    for i in glycine_ri: 
-        glycine_next_n.append(ego_topology.loc[(ego_topology['residue_number'] == i+1) & (ego_topology['atom'] == 'N'), 'atom_number'].to_list()[0])
- 
-    pairs_14 = pairs_14[~pairs_14['ai'].isin(glycine_n)|~pairs_14['aj'].isin(glycine_next_n)]
-    pairs_14 = pairs_14[~pairs_14['aj'].isin(glycine_n)|~pairs_14['ai'].isin(glycine_next_n)]
-
-    pairs_14.drop(columns = ['exclusions', 'c12_ai', 'c12_aj', 'ai_type', 'ai_resid','aj_type', 'aj_resid', 'c12_tozero'], inplace = True)    
-    # Exclusions 1-4
-    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # Adding the c12 (I do it now because later is sbatti)
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
 
     # Here we make a dictionary of the backbone oxygen as atom number
-    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
-    backbone_ca_gly = atnum_type_top.loc[(atnum_type_top['atom'] == 'CA')&(atnum_type_top['residue'] == 'GLY')]
+    backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
+    backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
-    # CB not used for GLY and PRO and N of PRO
-    sidechain_cb = sidechain_cb[sidechain_cb.residue != 'PRO']
-    sidechain_cb = sidechain_cb[sidechain_cb.residue != 'GLY']
 
-    # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
+    # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
     alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
-    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+    for index, line_backbone_carbonyl in backbone_carbonyl.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_carbonyl['residue_number']+1)].squeeze(axis=None)
         if not line_sidechain_cb.empty:
-            alpha_beta_rift_ai.append(line_backbone_oxygen['atom_number'])
+            alpha_beta_rift_ai.append(line_backbone_carbonyl['atom_number'])
             alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
             alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12'])*parameters['lj_reduction'])
+            alpha_beta_rift_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
 
     alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
@@ -1355,26 +1292,26 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
     alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
 
-    # pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
-    # add O-1 CA pairs for Glycines
-    oca_gly_interactions_ai, oca_gly_interactions_aj, oca_gly_interactions_c6, oca_gly_interactions_c12 = [], [], [], []
-    for index, line_backbone_ca_gly in backbone_ca_gly.iterrows():
-        line_backbone_o = backbone_oxygen.loc[(backbone_oxygen['residue_number']) == (line_backbone_ca_gly['residue_number']-1)].squeeze(axis=None)
-        if not line_backbone_o.empty:
-            oca_gly_interactions_ai.append(line_backbone_ca_gly['atom_number'])
-            oca_gly_interactions_aj.append(line_backbone_o['atom_number'])
-            oca_gly_interactions_c6.append(0)
-            oca_gly_interactions_c12.append(6.000000e-06)
+    # For each backbone nitrogen take the CB of the previous residue and save in a pairs tuple
+    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
+    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_nitrogen['residue_number']-1)].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            alpha_beta_rift_ai.append(line_backbone_nitrogen['atom_number'])
+            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
+            alpha_beta_rift_c6.append(0.0)
+            alpha_beta_rift_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
 
-    oca_gly_interaction_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
-    oca_gly_interaction_pairs['ai'] = oca_gly_interactions_ai
-    oca_gly_interaction_pairs['aj'] = oca_gly_interactions_aj
-    oca_gly_interaction_pairs['func'] = 1
-    oca_gly_interaction_pairs['c6'] = oca_gly_interactions_c6
-    oca_gly_interaction_pairs['c12'] = oca_gly_interactions_c12
+    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
+    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
+    alpha_beta_rift_pairs['func'] = 1
+    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
+    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
 
-    pairs = pd.concat([pairs,oca_gly_interaction_pairs], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
 
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
