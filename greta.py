@@ -1167,10 +1167,6 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
 def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, parameters, greta_merge):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
-    Here we define the GROMACS exclusion list and drop from the LJ list made using GRETA so that all the remaining
-    contacts will be defined in pairs and exclusions as particular cases.
-    Since we are not defining explicit H, the 1-4 list is defined by 2 bonds and not 3 bonds.
-    This function also fixes the dihedral issue of the left alpha to be explored.
     '''
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
@@ -1232,10 +1228,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
         pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
         
-     	# When generating LJ interactions we kept intermolecular interactions between atoms belonging to residues closer than distance residues
-        # Now we neeed to be sure that these are excluded intramolecularly
-        # If we keep such LJ they cause severe frustration to the system and artifacts
-        # pairs = pairs.loc[((abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue'])|(pairs['same_chain'] == 'No'))]
         # We remove the contact with itself
         pairs = pairs[pairs['ai'] != pairs['aj']]
         
@@ -1285,7 +1277,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             alpha_beta_rift_c6.append(0.0)
             alpha_beta_rift_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
 
-    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
     alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
     alpha_beta_rift_pairs['func'] = 1
@@ -1304,7 +1296,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             alpha_beta_rift_c6.append(0.0)
             alpha_beta_rift_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
 
-    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'c6', 'c12'])
+    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
     alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
     alpha_beta_rift_pairs['func'] = 1
