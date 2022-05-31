@@ -24,8 +24,8 @@ gromos_atp = pd.DataFrame(
      #       3.3965584e-05(C/2), 2.6646244e-05(C/2), 2.8058209e-05(C/2), 5.0625e-06/1.9, 1.3075456e-05/4.8,
      #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
      'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
-             2.598570e-06, 2.598570e-06, 2.598570e-06, 2.664470e-06, 0.272405e-05, 
-             1.540582e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
+             2.598570e-06, 2.598570e-06, 2.598570e-06, 0.892126e-06, 0.272405e-05, 
+             0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
      }
 )
 gromos_atp.to_dict()
@@ -1268,42 +1268,23 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
 
     # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
-    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_backbone_carbonyl in backbone_carbonyl.iterrows():
         line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_carbonyl['residue_number']+1)].squeeze(axis=None)
         if not line_sidechain_cb.empty:
-            alpha_beta_rift_ai.append(line_backbone_carbonyl['atom_number'])
-            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
-            alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
 
-    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
-    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
-    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
-    alpha_beta_rift_pairs['func'] = 1
-    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
-    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
 
-    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
-
-    # For each backbone nitrogen take the CB of the previous residue and save in a pairs tuple
-    alpha_beta_rift_ai, alpha_beta_rift_aj, alpha_beta_rift_c6, alpha_beta_rift_c12 = [], [], [], []
-    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_nitrogen['residue_number']-1)].squeeze(axis=None)
-        if not line_sidechain_cb.empty:
-            alpha_beta_rift_ai.append(line_backbone_nitrogen['atom_number'])
-            alpha_beta_rift_aj.append(line_sidechain_cb['atom_number'])
-            alpha_beta_rift_c6.append(0.0)
-            alpha_beta_rift_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
-
-    alpha_beta_rift_pairs = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
-    alpha_beta_rift_pairs['ai'] = alpha_beta_rift_ai
-    alpha_beta_rift_pairs['aj'] = alpha_beta_rift_aj
-    alpha_beta_rift_pairs['func'] = 1
-    alpha_beta_rift_pairs['c6'] = alpha_beta_rift_c6
-    alpha_beta_rift_pairs['c12'] = alpha_beta_rift_c12
-
-    pairs = pd.concat([pairs,alpha_beta_rift_pairs], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
