@@ -1286,6 +1286,25 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_nitrogen['residue_number']-1)].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
