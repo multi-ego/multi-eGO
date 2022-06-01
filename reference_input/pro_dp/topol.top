@@ -1,19 +1,19 @@
 ;
 ;	File 'topol.top' was generated
-;	By user: franbt (1002)
-;	On host: milano
-;	At date: Wed Mar  9 15:47:09 2022
+;	By user: carlo (501)
+;	On host: CarloMB
+;	At date: Mon May 23 21:58:05 2022
 ;
 ;	This is a standalone topology file
 ;
 ;	Created by:
-;	            :-) GROMACS - gmx pdb2gmx, 2021.5-plumed-2.9.0-dev (-:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.4-plumed-2.9.0-dev (-:
 ;	
-;	Executable:   /opt/gromacs-2021.5/bin/gmx_mpi
-;	Data prefix:  /opt/gromacs-2021.5
-;	Working dir:  /home/franbt/TTR_MAGROS/inputs/pro_dp
+;	Executable:   /Users/carlo/Codes/gromacs-2021.4/exe/bin/gmx_mpi
+;	Data prefix:  /Users/carlo/Codes/gromacs-2021.4/exe
+;	Working dir:  /Users/carlo/Projects/2-Emanuele/pro_dp/run_now
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f pro_dp.pdb -ter -ignh
+;	  gmx_mpi pdb2gmx -f pro_db.pdb -ignh -ter
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
@@ -121,7 +121,7 @@ Protein             3
 
 [ system ]
 ; Name
-Gravel Rubs Often Many Awfully Cauterized Sores
+Protein
 
 [ molecules ]
 ; Compound        #mols
