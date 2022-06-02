@@ -17,7 +17,6 @@ def header(parameters):
         header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
     header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
-    header += f"; Reducing the C12 N-X 1-4 C12 by: {parameters['lj_reduction']} \n"
     header += "\n"
 
     return header
