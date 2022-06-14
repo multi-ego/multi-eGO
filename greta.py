@@ -1069,7 +1069,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
     pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
-    # now we copy the lines with negative epsilon from greta to pairs because we want repuslive interactions only intermolecularly
+    # now we copy the lines with negative epsilon from greta to pairs because we want repuslive interactions only intramolecularly
     pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
     # and we remove the same lines from greta_LJ
     greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
