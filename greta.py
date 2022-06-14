@@ -1069,19 +1069,23 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
     pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
+    # now we copy the lines with negative epsilon from greta to pairs because we want repuslive interactions only intermolecularly
+    pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
+    # and we remove the same lines from greta_LJ
+    greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
 
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(4, 'c12', '')
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
-    greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
     pairs_LJ['c6'] = 4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 6)
     pairs_LJ.insert(4, 'c12', '')
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
+    # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
 
     # SELF INTERACTIONS
