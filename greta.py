@@ -933,7 +933,13 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
+    is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O")|(structural_LJ['type_ai']=="O1")|(structural_LJ['type_ai']=="O2"))&
+               ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")|(structural_LJ['type_aj']=="O1")|(structural_LJ['type_aj']=="O2")))
+
+
     structural_LJ['epsilon'] = parameters['epsilon_amyl']
+     # we remove non-backbone self interactions (they will have the standard c12 term)  
+    #structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = 0.
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
@@ -982,7 +988,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # Repulsive
     atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0. 
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -1. 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-0.001)&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -0.625 
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
@@ -1034,6 +1040,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     #ratio = greta_LJ['epsilon'].loc[(greta_LJ['source']=='MD')].max()/parameters['epsilon_md']
     #if(ratio>0):
     #    greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='PDB')] *= ratio
+
 
     pairs_LJ = greta_LJ.copy()
     # Greta prioritise intermolecular interactions and shorter length ones
