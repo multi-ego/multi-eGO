@@ -51,8 +51,8 @@ def random_coil_mdmat(parameters, idx_sbtype_dict):
     print('\tReading ', contact_map_file)        
     atomic_mat_random_coil = pd.read_csv(contact_map_file, header=None, sep = '\s+')
     atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
-    atomic_mat_random_coil.drop(columns=['distance_NMR'], inplace=True)
-
+    atomic_mat_random_coil.drop(columns=['distance'], inplace=True)
+    atomic_mat_random_coil.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
     atomic_mat_random_coil = atomic_mat_random_coil.replace({'ai':idx_sbtype_dict})
     atomic_mat_random_coil = atomic_mat_random_coil.replace({'aj':idx_sbtype_dict})
     atomic_mat_random_coil[['type_ai', 'residue_ai']] = atomic_mat_random_coil.ai.str.split("_", expand = True)
