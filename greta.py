@@ -976,24 +976,14 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
 
-
-    # Paissoni Equation 2.0
-    # Attractive pairs
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >=  atomic_mat_merged['rc_probability'])] = epsilon_md*(1-((np.log(atomic_mat_merged['probability']))/(np.log(atomic_mat_merged['rc_probability']))))
-    # Repulsive pairs test
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = -(epsilon_md*(1-((np.log(atomic_mat_merged['rc_probability']))/(np.log(atomic_mat_merged['probability'])))))
-    #atomic_mat_merged['sigma'].loc[(atomic_mat_merged['probability'] <  atomic_mat_merged['rc_probability'])] = atomic_mat_merged['rc_distance']/(2**(1/6))
-
     # Paissoni Equation 2.1
     # Attractive
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
     atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0. 
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-0.01)&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -0.625 
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-0.001)] = -parameters['epsilon_md']/4. 
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-0.001)] = -0.5/4. 
-
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0.
+    # this is a repulsive energy of 0.5 kj/mol at a distance equal to sigma 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
@@ -1146,16 +1136,12 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
                 media_sigma = sigma.mean()
                 sd_sigma = sigma.std()
                 media_epsilon = eps.mean()
-                media_c12 = c12.mean()
-                media_c6 = c6.mean()
                 print('\t\tThere are {:<3} {:<3} with an average Sigma of: {:>17.10f} +/- {} epsilon {}'.format((len(sigma)), (str(a)[:-1]), media_sigma, sd_sigma, media_epsilon))
                 
                 # Creation of new c6 and c12
                 # Epsilon structure because those are self
-                # new_c6 = 4 * media_epsilon * (media_sigma ** 6)
-                # new_c12 = 4 *media_epsilon * (media_sigma ** 12)
-                new_c6 = media_c6
-                new_c12 = media_c12
+                new_c6 = 4 * media_epsilon * (media_sigma ** 6)
+                new_c12 = 4 *media_epsilon * (media_sigma ** 12)
 
                 # In the pairs to add dataframe all those new information are inserted
                 pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6
@@ -1258,13 +1244,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
-        # riscaliamo anche con eps_max
-        #ratio = pairs['epsilon'].loc[(pairs['source']=='MD')].max()
-        #ratio = parameters['epsilon_md']
-        #pairs['c6'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability']<0.9)] = -(ratio/pairs['epsilon']*pairs['c6']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        #pairs['c12'].loc[(pairs['same_chain']=='No') & (pairs['rc_probability']<0.9)] = -(ratio/pairs['epsilon']*pairs['c12']/np.log(parameters['rc_threshold']))*(np.log(0.999/pairs['rc_probability']))  
-        #pairs['c6'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = 0.  
-        #pairs['c12'].loc[(pairs['same_chain']=='No') & ((pairs['rc_probability']>=0.9)|(abs(pairs['resnum_aj'] - pairs['resnum_ai']) < parameters['distance_residue']))] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
+        # Intermolecular interactions learned from PDB are excluded 
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.  
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         pairs.drop(columns = ['rc_probability','same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
