@@ -19,8 +19,12 @@ def main(argv):
         'md_threshold':0.001, 
         # this is the minimum probability for the random-coil matrix
         'rc_threshold':0.0001,
+        # this is the interaction energy, by default this value is propagated to all following epsilons
+        'epsilon_md':0.300,
         # This is the interaction energy of the amyloid cross beta
         'epsilon_amyl':0.300,
+        # This is the protein-ligand interaction energy 
+        'epsilon_ligand':0.300,
         # Acid FFnonbondend it only works on the native pairs
         'acid_ff':False,
         # Default behavior is to train from a simulation
@@ -29,12 +33,13 @@ def main(argv):
         'ligand':False,
         # This is to reduce the kds when taking the ligand from another FF
         'ligand_reduction':6.75, # 2*1.5*1.5*1.5
-        # The following parameters are added later from input arguments
-        # TODO Add descriptions
+        # This is the project name used to read inputs and write outputs
         'protein':None,
+        # This is the force-field mode: random coil, single reference, multi reference
         'egos':None,
-        'epsilon_md':None,
+        # Input files folder
         'input_folder':None,
+        # Output files folder
         'output_folder':None
     }
 
@@ -43,13 +48,17 @@ def main(argv):
     readall=0
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand=", "noensemble", "help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
     except getopt.GetoptError:
-        print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --epsilon_amyloid=0.x (optional) --noensemble (optional)')
+        print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
         sys.exit(2)
+    if(len(opts)==0):
+            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
+            sys.exit()
+
     for opt, arg in opts:
         if opt == '--help':
-            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --epsilon_amyloid=0.x (optional) --noensemble (optional)')
+            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
             sys.exit()
         elif opt in ("--protein"):
             if not arg:
@@ -76,8 +85,11 @@ def main(argv):
                 sys.exit()
             else:
                 parameters['epsilon_md'] = float(arg)
+                parameters['epsilon_amyl'] = float(arg)
+                parameters['epsilon_ligand'] = float(arg)
                 readall +=1
         elif opt in ("--epsilon_amyloid"):
+            # if set this overwrite the epsilon_md value
             arg = float(arg)
             if arg > 1 or arg < 0:
                 print('Epsilon values must be chosen between 0 and 1')
@@ -85,11 +97,13 @@ def main(argv):
             else:
                 parameters['epsilon_amyl'] = float(arg)
         elif opt in ("--ligand"):
+            parameters['ligand'] = True
+        elif opt in ("--epsilon_ligand"):
+            # if set this overwrite the epsilon_md value
             arg = float(arg)
             if arg > 1 or arg < 0:
                 print('Epsilon values must be chosen between 0 and 1')
             else:
-                parameters['ligand'] = True
                 parameters['epsilon_ligand'] = float(arg)
         
         elif opt in ("--noensemble"):
