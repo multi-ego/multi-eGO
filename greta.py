@@ -982,8 +982,9 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # Repulsive
     atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0.
-    # this is a repulsive energy of 0.5 kj/mol at a distance equal to sigma 
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
+    # this is a repulsive energy of 2.49 kj/mol at a distance equal to sigma only for neighbour resiudes
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/4. 
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
