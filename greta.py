@@ -984,6 +984,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0.
     # this is a repulsive energy of 2.49 kj/mol at a distance equal to sigma only for neighbour resiudes
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/4. 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/3./4. 
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
@@ -1077,6 +1078,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
+    #greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
