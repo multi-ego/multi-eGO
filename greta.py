@@ -965,7 +965,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # Add sigma, add epsilon reweighted, add c6 and c12
     atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']) / (2**(1/6))
     # Epsilon reweight based on probability
-    atomic_mat_plainMD['epsilon'] = ''    
+    atomic_mat_plainMD['epsilon'] = 0.    
     atomic_mat_plainMD['same_chain'] = 'Yes'
     # Merge the two dataframes by ai and aj which are also indexes now
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
@@ -978,17 +978,18 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= parameters['md_threshold'])&(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
     # Repulsive
     atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0.
     # this is a repulsive energy of 2.49 kj/mol at a distance equal to sigma only for neighbour resiudes
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/4. 
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/3./4. 
+    # this is a repulsive energy of 2.49/6. kj/mol at a distance equal to sigma only for next to neighbour resiudes
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/6./4. 
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
+    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0
     atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
     atomic_mat_merged.drop(columns = ['distance', 'rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_distance', 'diffr'], inplace = True)
     atomic_mat_merged.dropna(inplace=True)
