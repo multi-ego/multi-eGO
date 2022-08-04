@@ -20,12 +20,18 @@ gromos_atp = pd.DataFrame(
             'CH2', 'CH3', 'CH2r', 'NT', 'S',
             'NR', 'OM', 'NE', 'NL', 'NZ'],
      'at.num': [8, 8, 7, 6, 6, 6, 6, 6, 7, 16, 7, 8, 7, 7, 7],
+     #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.5, 4.937284e-06/1.9, 9.70225e-05/1.48), # CH1
+     #       3.3965584e-05/2.2, 2.6646244e-05/3.1, 2.8058209e-05/2.35, 5.0625e-06/1.9, 1.3075456e-05/4.8,
+     #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
+     'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 6.555574e-05, # CH1
+             1.543890e-05, 8.595562e-06, 1.193966e-05, 0.892126e-06, 0.272405e-05, 
+             0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
      #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.5, 4.937284e-06/1.9, 9.70225e-05(C/2), # CH1
      #       3.3965584e-05(C/2), 2.6646244e-05(C/2), 2.8058209e-05(C/2), 5.0625e-06/1.9, 1.3075456e-05/4.8,
      #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
-     'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
-             2.598570e-06, 2.598570e-06, 2.598570e-06, 0.892126e-06, 0.272405e-05, 
-             0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
+     #'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
+     #        2.598570e-06, 2.598570e-06, 2.598570e-06, 0.892126e-06, 0.272405e-05, 
+     #        0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
      }
 )
 gromos_atp.to_dict()
@@ -985,7 +991,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     # this is a repulsive energy of 2.49 kj/mol at a distance equal to sigma only for neighbour resiudes
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/4. 
     # this is a repulsive energy of 2.49/6. kj/mol at a distance equal to sigma only for next to neighbour resiudes
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/6./4. 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/2./4. 
     #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
@@ -1275,7 +1281,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            #pairs_14_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(2.598570e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1294,7 +1301,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+            #pairs_14_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(1.522581e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
