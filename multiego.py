@@ -118,7 +118,7 @@ def main(argv):
     if parameters['egos'] == 'rc':
         parameters['output_folder'] = f"outputs/{parameters['protein']}_{parameters['egos']}"
     else:
-        epsilon_string = f"e{parameters['epsilon_md']}"
+        epsilon_string = f"e{parameters['epsilon_md']}_{parameters['epsilon_amyl']}"
         if parameters['ligand'] == True:
             parameters['output_folder'] = f"outputs/{parameters['protein']}_{parameters['egos']}_{epsilon_string}_ligand{parameters['epsilon_ligand']}"
         else:
@@ -179,7 +179,9 @@ def main(argv):
 
         if parameters['egos'] == 'merge':
             print('- Merge = True: creating fibril ensemble')
+            #TODO fix the fibril temp folder -> in general fix all the inputs with an automated script
             ego_fibril_parameters = {
+                #'topology_file':f"{parameters['input_folder']}/fibril_2m5m/topol.top",
                 'topology_file':f"{parameters['input_folder']}/fibril_temp/topol.top",
                 'structure_file': f"{parameters['input_folder']}/fibril.pdb",
             }
