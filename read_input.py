@@ -41,6 +41,7 @@ def plainMD_mdmat(parameters, ensemble_parameters, idx_sbtype_dict):
     atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
     atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
     atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
+    atomic_mat_plainMD['distance'].loc[(atomic_mat_plainMD['distance']==0.0)&(atomic_mat_plainMD['probability']==0.0)] = parameters['distance_cutoff']/10.
 
     return atomic_mat_plainMD
 
