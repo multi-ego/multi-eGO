@@ -61,7 +61,7 @@ def random_coil_mdmat(parameters, idx_sbtype_dict):
     atomic_mat_random_coil['residue_ai'] = atomic_mat_random_coil['residue_ai'].astype(int)
     atomic_mat_random_coil['residue_aj'] = atomic_mat_random_coil['residue_aj'].astype(int)
     atomic_mat_random_coil.drop(columns=['type_ai', 'type_aj'], inplace=True)
-    atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (parameters['rc_threshold'])] = parameters['rc_threshold']
+    atomic_mat_random_coil['probability'].loc[atomic_mat_random_coil['probability'] < (0.000001)] = 0.000001 
 
     new_colnames = []
     for colname in atomic_mat_random_coil.columns:

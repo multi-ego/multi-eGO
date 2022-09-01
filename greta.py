@@ -938,16 +938,9 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
 
     print(f'\t\tAll the pairs after removing duplicates: ', len(structural_LJ))
 
-    is_bb =  (((structural_LJ['type_ai']=="N")|(structural_LJ['type_ai']=="CA")|(structural_LJ['type_ai']=="C")|(structural_LJ['type_ai']=="O")|(structural_LJ['type_ai']=="O1")|(structural_LJ['type_ai']=="O2"))&
-               ((structural_LJ['type_aj']=="N")|(structural_LJ['type_aj']=="CA")|(structural_LJ['type_aj']=="C")|(structural_LJ['type_aj']=="O")|(structural_LJ['type_aj']=="O1")|(structural_LJ['type_aj']=="O2")))
-
-
     structural_LJ['epsilon'] = parameters['epsilon_amyl']
-     # we remove non-backbone self interactions (they will have the standard c12 term)  
-    #structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])&(~is_bb)] = 0.
-    #structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])] = 0.
 
-    structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/structural_LJ['rc_probability']))
+    structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/np.maximum(structural_LJ['rc_probability'],parameters['rc_threshold'])))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
     structural_LJ.dropna(inplace=True)
@@ -980,22 +973,21 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
     atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
+    atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/atomic_mat_merged['rc_probability']))
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])&(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0 
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])&(atomic_mat_merged['probability'] >= parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/np.maximum(atomic_mat_merged['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0.
-    # this is a repulsive energy of 2.49 kj/mol at a distance equal to sigma only for neighbour resiudes
+    # this is a repulsive energy of 2.49/2. kj/mol at a distance equal to sigma only for neighbour resiudes
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/2./4. 
-    # this is a repulsive energy of 2.49/6. kj/mol at a distance equal to sigma only for next to neighbour resiudes
+    # this is a repulsive energy of 2.49/2.5 kj/mol at a distance equal to sigma only for next to neighbour resiudes
     atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/2.5/4. 
-    #atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < (atomic_mat_merged['rc_probability']-parameters['md_threshold']))] = -0.5/4. 
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < parameters['md_threshold'])&(atomic_mat_merged['epsilon']>0.)] = 0
-    atomic_mat_merged['epsilon'].loc[abs(atomic_mat_merged['epsilon']) < 0.01*parameters['epsilon_md']] = 0
+    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['epsilon'] < 0.01*parameters['epsilon_md'])&(atomic_mat_merged['epsilon']>0.)] = 0
     atomic_mat_merged.dropna(inplace=True)
     atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
     atomic_mat_merged.drop(columns = ['distance', 'rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_distance', 'diffr'], inplace = True)
@@ -1031,7 +1023,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
 
-    print('- Generate Inter and Intra moleculars interactions')
+    print('- Generate Inter and Intra molecular interactions')
     print('\tMerged pairs list: ', len(greta_LJ))
     print('\tSorting and dropping all the duplicates')
     # Inverse pairs calvario
@@ -1053,7 +1045,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    print('\tCleaning ane Merging Complete, pairs count: ', len(greta_LJ))
+    print('\tCleaning and Merging Complete, pairs count: ', len(greta_LJ))
 
     # Pairs prioritise intramolecular interactions
     pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
@@ -1105,7 +1097,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     atp_notdoubles.sort()
 
     if len(atp_notdoubles) == 0:
-        print('\t\tAll atoms interacts with themself')
+        print('\t\tAll atoms interacts with themselves')
         
     else:
         print('\t\tThere are', len(atp_notdoubles), 'self interactions to add')
