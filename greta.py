@@ -943,6 +943,8 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/np.maximum(structural_LJ['rc_probability'],parameters['rc_threshold'])))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
+    # remove self interactions
+    structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])] = parameters['epsilon_md']
     structural_LJ.dropna(inplace=True)
     structural_LJ = structural_LJ[structural_LJ.epsilon != 0]
     structural_LJ['source'] = 'PDB'
@@ -1262,7 +1264,28 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Here we make a dictionary of the backbone oxygen as atom number
     backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
+    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
+
+    # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(0.275*np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+            #pairs_14_c12.append(2.598570e-06)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
@@ -1272,8 +1295,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            #pairs_14_c12.append(np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
-            pairs_14_c12.append(2.598570e-06)
+            pairs_14_c12.append(0.275*np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            #pairs_14_c12.append(2.598570e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1292,8 +1315,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            #pairs_14_c12.append(np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
-            pairs_14_c12.append(1.522581e-06)
+            pairs_14_c12.append(0.35*np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+            #pairs_14_c12.append(1.522581e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
