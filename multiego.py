@@ -1,11 +1,10 @@
 import os
 import pandas as pd
 import sys, getopt
-from read_input import read_pdbs, plainMD_mdmat, random_coil_mdmat#, read_topology_atoms, read_topology_bonds
+from read_input import find_files
 from write_output import write_LJ, write_atomtypes_atp, write_topology, write_ligand_topology
-from greta import make_pairs_exclusion_topology, PDB_LJ_pairs, MD_LJ_pairs, merge_and_clean_LJ, make_pdb_atomtypes, make_more_atomtypes, topology_check
-from topology_parser import read_topology, topology_parser
-from greta import ensemble, multiego_ensemble, sb_type_conversion#, add_ligand_atomic_mat
+from topology_parser import read_topology
+from greta import ensemble, multiego_ensemble
 pd.options.mode.chained_assignment = None  # default='warn'
 
 def main(argv):
@@ -45,12 +44,23 @@ def main(argv):
 
     print('\n\nMulti-eGO (codename: GRETA)\n')
 
-    readall=0
+    #readall=0
+    md_ensembles_list = []
+    pdb_ensembles_list = []
+
+# TODO Vanessa: qui si fa un elenco degli ensemble in base alle flag.
+# Ad esempio se abbiamo due MD sarebbe --MD=[MD1, MD2] oppure --MD=MD1 --MD=MD2
+# Ciclare per ogni input in modo da fare un ensemble multiego in questo modo abbiamo due ensemble soliti ma possono esserne usati di piu',
+# come diverse fibrille o informazioni parziali sui complessi.
+# Dunque niente più egos.
+# https://stackoverflow.com/questions/32761999/how-to-pass-an-entire-list-as-command-line-argument-in-python
+# Questo vuol dire che c'è da rinominare le cartelle di input in qualche modo standard.
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon1=", "epsilon2=", "ligand", "epsilon_ligand=", "noensemble", "help"])
+        #opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
     except getopt.GetoptError:
-        print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
+        print('multiego.py --MD1=path/to/folder --MD2=path/to/folder --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
         sys.exit(2)
     if(len(opts)==0):
             print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
@@ -60,42 +70,51 @@ def main(argv):
         if opt == '--help':
             print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
             sys.exit()
+
         elif opt in ("--protein"):
             if not arg:
                 print('Provide a protein name')
                 sys.exit()
             else:
                 parameters['protein'] = arg
-                readall +=1
+
         elif opt in ("--egos"):
-            if arg in ('single', 'merge', 'rc'):
+            if arg in ('all', 'split', 'rc'):
                 parameters['egos'] = arg
-                if arg == 'rc':
-                    readall +=2
-                else:
-                    readall +=1
             else:
-                print('--egos accepts <single|merge|rc> options')
+                print('--egos accepts <all|split|rc> options')
+                # TODO mettere una guida
                 sys.exit()
+
+        elif opt in ("--md_ensembles"):
+            if not arg:
+                print('Provide a path for the first MD simulation')
+                sys.exit()
+            md_ensembles_list = arg.split(',')
+
+            for n, e in enumerate(md_ensembles_list, start=1):
+                parameters[f'md_ensemble{n}'] = e
 
         elif opt in ("--epsilon"):
             arg = float(arg)
             if arg > 1 or arg < 0:
+                # TODO mettere una guida
                 print('Epsilon values must be chosen between 0 and 1')
                 sys.exit()
             else:
-                parameters['epsilon_md'] = float(arg)
-                parameters['epsilon_amyl'] = float(arg)
+                epsilon_list = arg.split(',')
+                parameters['epsilon1'] = float(arg)
+                parameters['epsilon2'] = float(arg)
                 parameters['epsilon_ligand'] = float(arg)
-                readall +=1
-        elif opt in ("--epsilon_amyloid"):
+                #readall +=1
+        elif opt in ("--epsilon2"):
             # if set this overwrite the epsilon_md value
             arg = float(arg)
             if arg > 1 or arg < 0:
                 print('Epsilon values must be chosen between 0 and 1')
                 sys.exit()
             else:
-                parameters['epsilon_amyl'] = float(arg)
+                parameters['epsilon2'] = float(arg)
         elif opt in ("--ligand"):
             parameters['ligand'] = True
         elif opt in ("--epsilon_ligand"):
@@ -134,27 +153,78 @@ def main(argv):
     except OSError as error:
         pass
 
-    multi_ego = multiego_ensemble(parameters)
 
-    print('- Creating native ensemble')
-    ego_native_parameters = {
-        'topology_file':f"{parameters['input_folder']}/topol.top",
-        'structure_file': f"{parameters['input_folder']}/native.pdb",
-    }
-    ego_native = ensemble(parameters=parameters, ensemble_parameters=ego_native_parameters)
-    ego_native.prepare_ensemble()
-    ego_native.get_parsed_topology()
 
-    print('Adding native topology to multi-eGO ensemble')
-    multi_ego.add_ensemble_top(ego_native)
-    multi_ego.add_parsed_topology(ego_native)
+    # TODO ego_native diventa una inizializzazione di multi-eGO:
+    # Bisogna partire da una topologia pdb2gmx con il nostro force field e poi verranno aggiunte cose
 
+    # initialize multiego
+    print('- Initializing multi-eGO')
+    multi_ego = multiego_ensemble(parameters)   
+    
+
+    print('- Adding the reference structure')
+    # Read di partenza per top e pdb di multiego
+    file_paths = find_files(ensemble='reference', parameters=parameters)
+    reference = ensemble(parameters=parameters, ensemble_parameters=file_paths, name='reference')
+    reference.prepare_ensemble()
+    reference.get_parsed_topology()
+    
     if parameters['egos'] != 'rc':
         print('- Adding Random Coil probability matrix to multi-eGO ensemble')
         # Multi-eGO always require the random coil probability
-        ego_native.add_random_coil()
-        multi_ego.add_structure_based_contacts(random_coil = ego_native.atomic_mat_random_coil)
+        reference.add_random_coil()
+        multi_ego.add_structure_based_contacts('random_coil', reference.atomic_mat_random_coil)
+            
+    multi_ego.add_ensemble_top(reference)
+    multi_ego.add_parsed_topology(reference)
     
+    # TODO delete reference saving the information of convert topology
+    reference_atoms_size = reference.atoms_size
+    #del reference
+
+
+    print('- Creating md ensembles')
+    for ensemble_name in md_ensembles_list:        
+        file_paths = find_files(ensemble_name, parameters=parameters)
+        md_ensemble = ensemble(parameters=parameters, ensemble_parameters=file_paths, name=ensemble_name)
+        md_ensemble.prepare_ensemble()
+        md_ensemble.assign_chains(reference_atoms_size)
+        md_ensemble.add_MD_contacts()
+        md_ensemble.convert_topology(reference)
+        print(f'- The following contacts were converted: {md_ensemble.conversion_dict}')
+        print('- Adding MD probability matrix to multi-eGO ensemble')
+        multi_ego.add_structure_based_contacts(ensemble_name, md_ensemble.atomic_mat_MD)
+        
+
+
+    print('- Generating multi-eGO LJ')
+    multi_ego.generate_multiego_LJ()
+
+    print('- Generating pairs and exclusions for multi-eGO topology')
+    multi_ego.generate_pairs_exclusions()
+    print('- Generating writable')
+    multi_ego.generate_outputs_toWrite()  
+
+    print('- Writing multi-eGO Force-Field')
+    write_atomtypes_atp(multi_ego)        
+    write_LJ(multi_ego)
+    write_topology(multi_ego)
+    if parameters['ligand'] == True:
+        write_ligand_topology(multi_ego)
+
+    print('- Force-Field files saved in ' + parameters['output_folder'])
+    print('\nGRETA completed! Carlo is happy!\t\^o^/\n')
+
+    exit()
+
+    #if parameters['egos'] != 'rc':
+    #    print('- Adding Random Coil probability matrix to multi-eGO ensemble')
+    #    # Multi-eGO always require the random coil probability
+    #    ego_native.add_random_coil()
+    #    multi_ego.add_structure_based_contacts(random_coil = ego_native.atomic_mat_random_coil)
+    if parameters['egos'] != 'rc':
+
         if parameters['ensemble'] == True:
             print('- Ensemble = True: creating MD ensemble')         
             ego_md_parameters = {
