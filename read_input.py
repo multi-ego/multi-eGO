@@ -1,4 +1,3 @@
-from symbol import except_clause
 import pandas as pd
 import MDAnalysis as mda
 import warnings
