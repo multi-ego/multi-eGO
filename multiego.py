@@ -57,10 +57,10 @@ def main(argv):
 # Questo vuol dire che c'è da rinominare le cartelle di input in qualche modo standard.
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon1=", "epsilon2=", "ligand", "epsilon_ligand=", "noensemble", "help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon=", "ligand", "epsilon_ligand=", "noensemble", "help"])
         #opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
     except getopt.GetoptError:
-        print('multiego.py --MD1=path/to/folder --MD2=path/to/folder --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
+        print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
         sys.exit(2)
     if(len(opts)==0):
             print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
@@ -85,7 +85,7 @@ def main(argv):
                 print('--egos accepts <all|split|rc> options')
                 # TODO mettere una guida
                 sys.exit()
-
+                
         elif opt in ("--md_ensembles"):
             if not arg:
                 print('Provide a path for the first MD simulation')
@@ -102,19 +102,18 @@ def main(argv):
                 print('Epsilon values must be chosen between 0 and 1')
                 sys.exit()
             else:
-                epsilon_list = arg.split(',')
-                parameters['epsilon1'] = float(arg)
-                parameters['epsilon2'] = float(arg)
+                parameters['epsilon_md'] = float(arg)
+                parameters['epsilon_amyl'] = float(arg)
                 parameters['epsilon_ligand'] = float(arg)
                 #readall +=1
-        elif opt in ("--epsilon2"):
+        elif opt in ("--epsilon_amyloid"):
             # if set this overwrite the epsilon_md value
             arg = float(arg)
             if arg > 1 or arg < 0:
                 print('Epsilon values must be chosen between 0 and 1')
                 sys.exit()
             else:
-                parameters['epsilon2'] = float(arg)
+                parameters['epsilon_amyl'] = float(arg)
         elif opt in ("--ligand"):
             parameters['ligand'] = True
         elif opt in ("--epsilon_ligand"):
