@@ -136,3 +136,5 @@ dmypy.json
 analysis/*
 analysis/new_monomer_analysis.ipynb
 charmm22star.ff/
+amber99SBdisp.ff
+temp_read.md
