@@ -57,7 +57,7 @@ def main(argv):
 # Questo vuol dire che c'è da rinominare le cartelle di input in qualche modo standard.
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon=", "ligand", "epsilon_ligand=", "noensemble", "help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon=", "epsilon_amyloid=","ligand", "epsilon_ligand=", "intra=", "inter=", "noensemble", "help"])
         #opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
     except getopt.GetoptError:
         print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
@@ -86,6 +86,20 @@ def main(argv):
                 # TODO mettere una guida
                 sys.exit()
                 
+        elif opt in ("--intra") and parameters['egos'] == 'split':
+            if arg:
+                parameters['intra'] = arg
+            else:
+                print('Usign --egos split requires the definition of the intramolecular ensemble')
+                sys.exit()
+        
+        elif opt in ("--inter") and parameters['egos'] == 'split':
+            if arg:
+                parameters['inter'] = arg
+            else:
+                print('Usign --egos split requires the definition of the intermolecular ensemble')
+                sys.exit()
+
         elif opt in ("--md_ensembles"):
             if not arg:
                 print('Provide a path for the first MD simulation')
@@ -160,7 +174,6 @@ def main(argv):
     # initialize multiego
     print('- Initializing multi-eGO')
     multi_ego = multiego_ensemble(parameters)   
-    
 
     print('- Adding the reference structure')
     # Read di partenza per top e pdb di multiego
