@@ -833,7 +833,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     This function reads the probabilities obtained using mdmat on the plainMD and the random coil simulations.
     For each atom contact the sigma and epsilon are obtained.
     '''
-    print('\tAddition of MD derived LJ-pairs')
+    print('\t- Addition of MD derived LJ-pairs')
 
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
@@ -892,15 +892,29 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({np.min,np.max})
 
-
     # DISTANZA MINIMA E PROBABILITà MEDIA == distanza minima una migliore geometria però si sballano le probabilità
+
+    # Here we are taking the minimum value of distance and the consequent standard deviation
+    intra_mat_distance_std = atomic_mat_plainMD['distance'].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'std'])
+    intra_mat_distance_std.columns = ['distance_min', 'distance_std']
+    # Here I replace NaN with 0 otherwise we loose all the contacts represented once in the case of a single chain of the ensemble.
+    # 0 will allow to keep the distance cutoff the same as the minimum distance
+    # If the contacts is still low represented, other filters are applied later.
+    intra_mat_distance_std['distance_std'] = intra_mat_distance_std['distance_std'].fillna(0)
+
+    intra_mat_distance_std['distance_cutoff'] = intra_mat_distance_std['distance_min'] + intra_mat_distance_std['distance_std']
+    intra_mat_probability = pd.concat([atomic_mat_plainMD, intra_mat_distance_std], axis=1)
+    intra_mat_probability = intra_mat_probability.loc[intra_mat_probability['distance'] <= intra_mat_probability['distance_cutoff']]
+
 
     # MEDIE PER OGNI CONTATTO
 
     #intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
     #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({'std', 'std'})
-    intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
-    
+    #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
+
+    intra_mat_probability = intra_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
+
     #intra_mat_probability.columns = ['probability', 'distance']
 
     # FLAG MINS MEANS
@@ -1005,36 +1019,58 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
 def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
 
-    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
-    #for coso1, coso2 in inter_mat_probability:
+    #histo = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
+    #for coso1, coso2 in histo:
     #    #print(coso1)
     #    #print(coso2)
     #    fig = px.histogram(coso2, nbins=50)
     #    fig.write_html(f'plots/inter_{coso1}.html')
 
-    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({np.min,np.max})
+    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({np.min,np.max})  
+    #print(atomic_mat_plainMD.filter(like='OG_8', axis=0).to_string())
+    #print(atomic_mat_plainMD.filter(like='O_8', axis=0).to_string())
+
+    #exit()
     
+
+
+    # NEW METHOD
+        
+    # Here we are taking the minimum value of distance and the consequent standard deviation
+    inter_mat_distance_std = atomic_mat_plainMD['distance'].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'std'])
+    inter_mat_distance_std.columns = ['distance_min', 'distance_std']
+    # Here I replace NaN with 0 otherwise we loose all the contacts represented once in the case of a single chain of the ensemble.
+    # 0 will allow to keep the distance cutoff the same as the minimum distance
+    # If the contacts is still low represented, other filters are applied later.
+    inter_mat_distance_std['distance_std'] = inter_mat_distance_std['distance_std'].fillna(0)
+    inter_mat_distance_std['distance_cutoff'] = inter_mat_distance_std['distance_min'] + inter_mat_distance_std['distance_std']
+    inter_mat_probability = pd.concat([atomic_mat_plainMD, inter_mat_distance_std], axis=1)
+    inter_mat_probability = inter_mat_probability.loc[inter_mat_probability['distance'] <= inter_mat_probability['distance_cutoff']]
     
-    
-    
+
     # MEDIE PER OGNI CONTATTO
 
     #inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
-    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({'std', 'std'})
-    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({'mean', 'mean'})
-    inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
+    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
+    
+    #histo2 = inter_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
+    #for coso1, coso2 in histo2:
+    #    #print(coso1)
+    #    #print(coso2)
+    #    fig = px.histogram(coso2, nbins=50)
+    #    fig.write_html(f'plots2/intra_plots_{coso1}.html')
+
+
+
+    # TODO TEST MEDIE DELLA PROBABILITA' PER CONTATTO (QUELLO CON LA RADICE)
+
+    inter_mat_probability = inter_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
     #inter_mat_probability.columns = ['probability', 'distance']
-
-
-
 
     # FLAG MINS MEANS
 
-    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std']
-    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
-
-
-
+    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std']
+    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
     inter_mat_probability['probability_std'] = inter_mat_probability['probability_std'].fillna(0)
     inter_mat_probability['distance_std'] = inter_mat_probability['distance_std'].fillna(0)
     inter_mat_probability = pd.concat([inter_mat_probability, atomic_mat_random_coil], axis=1)
@@ -1042,17 +1078,12 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
 
     # FLAG MINS MEANS
-
-    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    
-    
-    
+    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
+    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
     
     
     inter_mat_probability.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     inter_mat_probability['same_chain'] = 'No'
-
 
 
 
