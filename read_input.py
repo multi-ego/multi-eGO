@@ -80,6 +80,13 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
     atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
     atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
 
+
+    # DEBUG
+    #file = open(f'analysis/plainMD_mat_multiego.csv', 'w')
+    #file.write(atomic_mat_plainMD.to_string())
+    #file.close()
+
+
     # TODO qui c'e' da controllare perche' questa informazione la stiamo perdendo durante il clean della fibrilla
     atomic_mat_plainMD['distance'].loc[(atomic_mat_plainMD['distance']==0.0)&(atomic_mat_plainMD['probability']==0.0)] = parameters['distance_cutoff']/10.
 

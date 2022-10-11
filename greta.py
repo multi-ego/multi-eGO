@@ -874,7 +874,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     else:
         print("egos is not either 'all' or 'split")
         exit()
-    
+
     atomic_mat_merged = pd.concat([intra_mat_probability, inter_mat_probability], axis=0, sort = False, ignore_index = True)
 
     return atomic_mat_merged
@@ -907,6 +907,17 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat_probability = intra_mat_probability.loc[intra_mat_probability['distance'] <= intra_mat_probability['distance_cutoff']]
 
 
+    #print(inter_mat_probability.loc[(inter_mat_probability['ai'] == 'CA_1') & (inter_mat_probability['aj'] == 'CB_1')].to_string())
+    intra_mat_probability_count = intra_mat_probability['probability'].groupby(by=['idx_ai', 'idx_aj']).count()
+    #print(inter_mat_probability_count)
+    intra_mat_probability_wmean = intra_mat_probability['probability'].groupby(by=['idx_ai', 'idx_aj']).prod()
+    #print(inter_mat_probability_wmean)
+    probability_reweighted = pd.concat([intra_mat_probability_wmean, intra_mat_probability_count], axis=1)
+    probability_reweighted.columns = ['product', 'count']
+    probability_reweighted['reweight'] = probability_reweighted['product'] ** (1/probability_reweighted['count'])
+    #print(probability_reweighted)
+
+
     # MEDIE PER OGNI CONTATTO
 
     #intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
@@ -919,27 +930,27 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # FLAG MINS MEANS
 
-    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std']
-    intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
+    intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance_mean', 'distance_std']
+    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
     
     
     intra_mat_probability['probability_std'] = intra_mat_probability['probability_std'].fillna(0)
     intra_mat_probability['distance_std'] = intra_mat_probability['distance_std'].fillna(0)
+    intra_mat_probability['probability_reweighted'] = probability_reweighted['reweight']
+    intra_mat_probability = intra_mat_probability[['probability_min', 'probability', 'probability_reweighted', 'probability_std', 'distance_min', 'distance_mean', 'distance_std']]
+
     intra_mat_probability = pd.concat([intra_mat_probability, atomic_mat_random_coil], axis=1)
     #intra_mat_probability.columns = ['probability',  'distance',  'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
     
     # FLAG MINS MEANS
-
+    intra_mat_probability.columns = ['probability_min', 'probability_mean', 'probability', 'probability_std' , 'distance_min', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
     #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
+    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
     
 
 
     intra_mat_probability.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     intra_mat_probability['same_chain'] = 'Yes'
-
-
-
 
     # DROP DEI DUPLICATI IN BASE ALLA DISTANZA
 
@@ -957,7 +968,7 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    intra_mat_probability['sigma'] = (intra_mat_probability['distance']) / (2**(1/6))
+    intra_mat_probability['sigma'] = (intra_mat_probability['distance_mean']) / (2**(1/6))
     # Epsilon reweight based on probability
     intra_mat_probability['epsilon'] = np.nan 
     intra_mat_probability['diffr'] = abs(intra_mat_probability['residue_aj'] - intra_mat_probability['residue_ai'])
@@ -977,7 +988,7 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat_probability['epsilon'].loc[(intra_mat_probability['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_probability['epsilon']>0.)] = 0
     intra_mat_probability.dropna(inplace=True)
     intra_mat_probability = intra_mat_probability[intra_mat_probability.epsilon != 0]
-    intra_mat_probability.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability', 'rc_distance', 'diffr'], inplace = True)
+    #intra_mat_probability.drop(columns = ['distance_min', 'residue_ai', 'residue_aj', 'probability', 'rc_distance', 'diffr'], inplace = True)
 
     print(f"\t\t- There are {len(intra_mat_probability)} intramolecular pairs interactions")
 
@@ -1031,128 +1042,121 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     #print(atomic_mat_plainMD.filter(like='O_8', axis=0).to_string())
 
     #exit()
+
+    # Filtering by probability treshold
+    inter_mat = atomic_mat_plainMD.copy()   
+    # groupby 3807
+    #counter = 1
+    #for coso1, coso2 in inter_mat.groupby(by=['idx_ai', 'idx_aj']):
+    #    print(counter)
+    #    counter += 1
+
+    print('first',len(inter_mat))
+    #inter_mat.drop(inter_mat[inter_mat['probability'] < parameters['md_threshold']].index, inplace=True)
+    inter_mat = inter_mat[inter_mat['probability'] > parameters['md_threshold']]
+    print('tresh filter',len(inter_mat))
+
+    # groupby = 734
+    #counter = 1
+    #for coso1, coso2 in inter_mat.groupby(by=['idx_ai', 'idx_aj']):
+    #    print(counter)
+    #    counter += 1
     
-
-
-    # NEW METHOD
-        
-    # Here we are taking the minimum value of distance and the consequent standard deviation
-    inter_mat_distance_std = atomic_mat_plainMD['distance'].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'std'])
+    
+    
+    # Select the first histogram peak based on minimum distance plus standard deviation (to be improved)
+    inter_mat_distance_std = inter_mat['distance'].groupby(by=['idx_ai', 'idx_aj']).agg(['min', 'std'])
     inter_mat_distance_std.columns = ['distance_min', 'distance_std']
     # Here I replace NaN with 0 otherwise we loose all the contacts represented once in the case of a single chain of the ensemble.
     # 0 will allow to keep the distance cutoff the same as the minimum distance
     # If the contacts is still low represented, other filters are applied later.
     inter_mat_distance_std['distance_std'] = inter_mat_distance_std['distance_std'].fillna(0)
     inter_mat_distance_std['distance_cutoff'] = inter_mat_distance_std['distance_min'] + inter_mat_distance_std['distance_std']
-    inter_mat_probability = pd.concat([atomic_mat_plainMD, inter_mat_distance_std], axis=1)
-    inter_mat_probability = inter_mat_probability.loc[inter_mat_probability['distance'] <= inter_mat_probability['distance_cutoff']]
+    inter_mat = pd.concat([atomic_mat_plainMD, inter_mat_distance_std], axis=1)
+    #print(inter_mat[:10000].to_string())
+    #print((inter_mat.loc[(inter_mat['ai'] == 'N_1') & (inter_mat['aj'] == 'CG_1')]).to_string())
+    inter_mat = inter_mat.loc[inter_mat['distance'] <= inter_mat['distance_cutoff']]
+    print('distance cutoff',len(inter_mat))
+    inter_mat_reweighted = pd.DataFrame()
+    inter_mat_groupby = inter_mat[['distance', 'probability']].groupby(by=['idx_ai', 'idx_aj'])
+    # groupby 734
     
+    for pair, data in inter_mat_groupby:
+        # (p*d+p*d)/p+p
+        # Distance reweight by probability
+        dist_prob_prod_sum = (data['distance']*data['probability']).sum()
+        probability_sum = data['probability'].sum()
+        distance_reweighted = dist_prob_prod_sum/probability_sum
 
-    # MEDIE PER OGNI CONTATTO
-
-    #inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
-    #inter_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
+        # Geometrical mean of probability
+        probability_count = data['probability'].count()
+        probability_prod = data['probability'].prod()
+        probability_reweighted = probability_prod ** (1/probability_count)
+        
+        temp_dict = {
+            'ai' : [pair[0]],
+            'aj' : [pair[1]],
+            'distance' : [distance_reweighted],
+            'probability' : [probability_reweighted]
+        }
+        
+        temp_df = pd.DataFrame.from_dict(temp_dict)
+        temp_df[['idx_ai', 'idx_aj']] = temp_df[['ai', 'aj']]
+        temp_df.set_index(['idx_ai', 'idx_aj'], inplace = True)
+        
+        inter_mat_reweighted = pd.concat([inter_mat_reweighted, temp_df])
     
-    #histo2 = inter_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
-    #for coso1, coso2 in histo2:
-    #    #print(coso1)
-    #    #print(coso2)
-    #    fig = px.histogram(coso2, nbins=50)
-    #    fig.write_html(f'plots2/intra_plots_{coso1}.html')
+    print('reweight',len(inter_mat_reweighted))
+    inter_mat_reweighted = pd.concat([inter_mat_reweighted, atomic_mat_random_coil], axis=1)
 
-
-
-    # TODO TEST MEDIE DELLA PROBABILITA' PER CONTATTO (QUELLO CON LA RADICE)
-
-    inter_mat_probability = inter_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
-    #inter_mat_probability.columns = ['probability', 'distance']
 
     # FLAG MINS MEANS
-
-    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std']
-    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
-    inter_mat_probability['probability_std'] = inter_mat_probability['probability_std'].fillna(0)
-    inter_mat_probability['distance_std'] = inter_mat_probability['distance_std'].fillna(0)
-    inter_mat_probability = pd.concat([inter_mat_probability, atomic_mat_random_coil], axis=1)
-    #inter_mat_probability.columns = ['probability',  'distance',  'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-
-
-    # FLAG MINS MEANS
-    inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    #inter_mat_probability.columns = ['probability_min', 'probability', 'probability_std' , 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
     
-    
-    inter_mat_probability.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
-    inter_mat_probability['same_chain'] = 'No'
+    inter_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    inter_mat_reweighted['same_chain'] = 'No'
 
-
-
-    # DROP DEI DUPLICATI IN BASE ALLA DISTANZA
-
-    #inter_mat_probability = atomic_mat_plainMD.copy()
-    ## Sorting the pairs
-    #inter_mat_probability.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    ## Cleaning the duplicates
-    ##print(inter_mat_probability.to_string())
-    #inter_mat_probability = inter_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    #inter_mat_probability = pd.concat([inter_mat_probability, atomic_mat_random_coil], axis=1)
-    
-
-    
-    
     # Add sigma, add epsilon reweighted, add c6 and c12
-    inter_mat_probability['sigma'] = (inter_mat_probability['distance']) / (2**(1/6))
-    #inter_mat_probability['sigma_mean'] = (inter_mat_probability['distance_mean']) / (2**(1/6))
-    #print(inter_mat_probability['sigma'] == inter_mat_probability['sigma_mean'])
-    #exit()
+    inter_mat_reweighted['sigma'] = (inter_mat_reweighted['distance']) / (2**(1/6))
+
     # Epsilon reweight based on probability
-    inter_mat_probability['epsilon'] = np.nan 
-    inter_mat_probability.drop(inter_mat_probability[inter_mat_probability['probability'] < parameters['md_threshold']].index, inplace=True)
-    #inter_mat_probability['epsilon'] = parameters['epsilon_amyl']*(1-((np.log(inter_mat_probability['probability']))/(np.log(parameters['md_threshold']))))
+    inter_mat_reweighted['epsilon'] = np.nan 
     
     
     # Paissoni Equation 2.1
-    inter_mat_probability['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat_probability['probability']/parameters['md_threshold']))
-    inter_mat_probability.dropna(inplace=True)
-    inter_mat_probability['epsilon'].loc[(inter_mat_probability['epsilon'] < 0.01*parameters['epsilon_amyl'])] = 0
-    inter_mat_probability = inter_mat_probability[inter_mat_probability.epsilon != 0]
-    inter_mat_probability.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability', 'rc_distance'], inplace = True)
+    inter_mat_reweighted['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat_reweighted['probability']/parameters['md_threshold']))
+    inter_mat_reweighted.dropna(inplace=True)
+    inter_mat_reweighted['epsilon'].loc[(inter_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_amyl'])] = 0
+    inter_mat_reweighted = inter_mat_reweighted[inter_mat_reweighted.epsilon != 0]
 
-    print(f"\t\t- There are {len(inter_mat_probability)} intermolecular pairs interactions")
-
-    # Retrieving the ai aj information from the index and reindexing
-    inter_mat_probability = inter_mat_probability.reset_index()
-    inter_mat_probability[['ai', 'aj']] = inter_mat_probability[['idx_ai', 'idx_aj']]
-    inter_mat_probability.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    print(f"\t\t- There are {len(inter_mat_reweighted)} intermolecular pairs interactions")
 
     # Changing the columns order
-    #inter_mat_probability = inter_mat_probability[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
-    inter_mat_probability = inter_mat_probability[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']]
+    inter_mat_reweighted = inter_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    
 
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    #inv_LJ = inter_mat_probability[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
-    inv_LJ = inter_mat_probability[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']
-    inter_mat_probability = pd.concat([inter_mat_probability, inv_LJ], axis=0, sort = False, ignore_index = True)
+    inv_LJ = inter_mat_reweighted[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    inter_mat_reweighted = pd.concat([inter_mat_reweighted, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
-    inter_mat_probability.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    inter_mat_reweighted.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
     # Cleaning the duplicates
-    inter_mat_probability = inter_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    inter_mat_reweighted = inter_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
-    inter_mat_probability[cols] = np.sort(inter_mat_probability[cols].values, axis=1)
-    inter_mat_probability = inter_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    inter_mat_probability[['idx_ai', 'idx_aj']] = inter_mat_probability[['ai', 'aj']]
-    inter_mat_probability.set_index(['idx_ai', 'idx_aj'], inplace=True)
-    inter_mat_probability['source'] = name
-    print(f'\t\t- Pairs added after removing duplicates: ', len(inter_mat_probability))
+    inter_mat_reweighted[cols] = np.sort(inter_mat_reweighted[cols].values, axis=1)
+    inter_mat_reweighted = inter_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    inter_mat_reweighted[['idx_ai', 'idx_aj']] = inter_mat_reweighted[['ai', 'aj']]
+    inter_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    inter_mat_reweighted['source'] = name
+    print(f'\t\t- Pairs added after removing duplicates: ', len(inter_mat_reweighted))
     print("\t\t\t- Epsilon input:", parameters['epsilon_amyl'])
-    print("\t\t\t- Average intermolecular epsilon is", inter_mat_probability['epsilon'].loc[(inter_mat_probability['epsilon']>0.)].mean())
-    print("\t\t\t- Maximum intermolecular epsilon is", inter_mat_probability['epsilon'].max())
+    print("\t\t\t- Average intermolecular epsilon is", inter_mat_reweighted['epsilon'].loc[(inter_mat_reweighted['epsilon']>0.)].mean())
+    print("\t\t\t- Maximum intermolecular epsilon is", inter_mat_reweighted['epsilon'].max())
 
-    return inter_mat_probability
+    return inter_mat_reweighted
 
 
 
