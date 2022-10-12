@@ -7,6 +7,7 @@ import parmed as pmd
 from read_input import random_coil_mdmat, plainMD_mdmat
 from topology_parser import read_topology, topology_parser, extra_topology_ligands
 import plotly.express as px
+from tqdm import tqdm
 
 pd.options.mode.chained_assignment = None  # default='warn'
 pd.options.mode.chained_assignment = 'warn' 
@@ -1030,7 +1031,8 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
 def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
 
-    #histo = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
+    histo = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
+    #histo.to_csv('plots/atomic_mat_plainMD')
     #for coso1, coso2 in histo:
     #    #print(coso1)
     #    #print(coso2)
@@ -1045,45 +1047,87 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # Filtering by probability treshold
     inter_mat = atomic_mat_plainMD.copy()   
-    # groupby 3807
-    #counter = 1
-    #for coso1, coso2 in inter_mat.groupby(by=['idx_ai', 'idx_aj']):
-    #    print(counter)
-    #    counter += 1
+
+    # SEED DEBUG
+    inter_mat.to_csv(f'analysis/inter_mat_{name}')
+
 
     print('first',len(inter_mat))
     #inter_mat.drop(inter_mat[inter_mat['probability'] < parameters['md_threshold']].index, inplace=True)
     inter_mat = inter_mat[inter_mat['probability'] > parameters['md_threshold']]
+    
+    # SCAMUFFOH
+    inter_mat = inter_mat[inter_mat['probability'] > 0.5]
+
     print('tresh filter',len(inter_mat))
 
-    # groupby = 734
-    #counter = 1
-    #for coso1, coso2 in inter_mat.groupby(by=['idx_ai', 'idx_aj']):
-    #    print(counter)
-    #    counter += 1
+    #histo = inter_mat[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
     
-    
+    # SEED DEBUG
+    inter_mat.to_csv(f'analysis/inter_mat_mdtreshold_{name}')
+    #for coso1, coso2 in histo:
+    #    #print(coso1)
+    #    #print(coso2)
+    #    fig = px.histogram(coso2, nbins=50)
+    #    fig.write_html(f'plots2/inter_{coso1}.html')
+
     
     # Select the first histogram peak based on minimum distance plus standard deviation (to be improved)
-    inter_mat_distance_std = inter_mat['distance'].groupby(by=['idx_ai', 'idx_aj']).agg(['min', 'std'])
-    inter_mat_distance_std.columns = ['distance_min', 'distance_std']
-    # Here I replace NaN with 0 otherwise we loose all the contacts represented once in the case of a single chain of the ensemble.
-    # 0 will allow to keep the distance cutoff the same as the minimum distance
-    # If the contacts is still low represented, other filters are applied later.
+    inter_mat_distance_std = inter_mat['distance'].groupby(by=['idx_ai', 'idx_aj']).agg(['median', 'std'])
+    inter_mat_distance_std.columns = ['distance_median', 'distance_std']
     inter_mat_distance_std['distance_std'] = inter_mat_distance_std['distance_std'].fillna(0)
-    inter_mat_distance_std['distance_cutoff'] = inter_mat_distance_std['distance_min'] + inter_mat_distance_std['distance_std']
-    inter_mat = pd.concat([atomic_mat_plainMD, inter_mat_distance_std], axis=1)
-    #print(inter_mat[:10000].to_string())
-    #print((inter_mat.loc[(inter_mat['ai'] == 'N_1') & (inter_mat['aj'] == 'CG_1')]).to_string())
-    inter_mat = inter_mat.loc[inter_mat['distance'] <= inter_mat['distance_cutoff']]
-    print('distance cutoff',len(inter_mat))
-    inter_mat_reweighted = pd.DataFrame()
-    inter_mat_groupby = inter_mat[['distance', 'probability']].groupby(by=['idx_ai', 'idx_aj'])
-    # groupby 734
+    pairs_mono_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] < 0.025]
+    pairs_bi_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] >= 0.025]
+
+    mono_distance_reweighted = pd.DataFrame()
+    for pair, data in tqdm(pairs_mono_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
+        # Here we take the mean for each pairs with a low std = monomodal
+        # Distance cutoff
+        pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
+        distance_mean = pair_subset['distance'].mean()
+        low_dist = distance_mean - data['distance_std'][0]
+        high_dist = distance_mean + data['distance_std'][0]
+        pair_subset = pair_subset.loc[(pair_subset['distance'] >= low_dist) & (pair_subset['distance'] <= high_dist)]
+        mono_distance_reweighted = pd.concat([mono_distance_reweighted, pair_subset], axis=0)
     
-    for pair, data in inter_mat_groupby:
-        # (p*d+p*d)/p+p
-        # Distance reweight by probability
+    # SEED DEBUG
+    mono_distance_reweighted.to_csv(f'analysis/mono_mat_{name}')
+    # SEED DEBUG
+    dump_second_peak = pd.DataFrame()
+    
+    bi_distance_reweighted = pd.DataFrame()
+    for pair, data in tqdm(pairs_bi_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
+    
+        # Here we take the min+std for bimodals
+        # Distance cutoff
+        pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
+        distance_cutoff = data['distance_median']
+
+
+
+
+        # SEED DEBUG
+        temp_dump = pair_subset.loc[pair_subset['distance'] > distance_cutoff[0]]
+        dump_second_peak = pd.concat([dump_second_peak, temp_dump], axis=0)
+
+
+
+        pair_subset = pair_subset.loc[pair_subset['distance'] <= distance_cutoff[0]]
+        bi_distance_reweighted = pd.concat([bi_distance_reweighted, pair_subset], axis=0)
+
+
+    # SEED DEBUG
+    bi_distance_reweighted.to_csv(f'analysis/bi_mat_{name}')
+    dump_second_peak.to_csv(f'analysis/bi_dump_mat_{name}')
+    
+    inter_mat_distance_reweighted = pd.concat([mono_distance_reweighted, bi_distance_reweighted], axis=0)
+    
+    # SEED DEBUG
+    inter_mat_distance_reweighted.to_csv(f'analysis/inter_mat_dist_reweight_{name}')
+
+    inter_mat_reweighted = pd.DataFrame()
+    for pair, data in tqdm(inter_mat_distance_reweighted.groupby(by=['idx_ai', 'idx_aj'])):
+        # Distance reweight based on probability
         dist_prob_prod_sum = (data['distance']*data['probability']).sum()
         probability_sum = data['probability'].sum()
         distance_reweighted = dist_prob_prod_sum/probability_sum
@@ -1092,7 +1136,7 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
         probability_count = data['probability'].count()
         probability_prod = data['probability'].prod()
         probability_reweighted = probability_prod ** (1/probability_count)
-        
+
         temp_dict = {
             'ai' : [pair[0]],
             'aj' : [pair[1]],
@@ -1108,9 +1152,9 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     
     print('reweight',len(inter_mat_reweighted))
     inter_mat_reweighted = pd.concat([inter_mat_reweighted, atomic_mat_random_coil], axis=1)
-
-
-    # FLAG MINS MEANS
+    
+    # SEED DEBUG
+    inter_mat_reweighted.to_csv(f'analysis/inter_mat_reweight_{name}')
     
     inter_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     inter_mat_reweighted['same_chain'] = 'No'

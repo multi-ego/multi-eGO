@@ -82,9 +82,9 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
 
 
     # DEBUG
-    #file = open(f'analysis/plainMD_mat_multiego.csv', 'w')
-    #file.write(atomic_mat_plainMD.to_string())
-    #file.close()
+    file = open(f'analysis/plainMD_mat_multiego.csv', 'w')
+    file.write(atomic_mat_plainMD.to_string())
+    file.close()
 
 
     # TODO qui c'e' da controllare perche' questa informazione la stiamo perdendo durante il clean della fibrilla
