@@ -1054,10 +1054,10 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     print('first',len(inter_mat))
     #inter_mat.drop(inter_mat[inter_mat['probability'] < parameters['md_threshold']].index, inplace=True)
-    inter_mat = inter_mat[inter_mat['probability'] > parameters['md_threshold']]
+    #inter_mat = inter_mat[inter_mat['probability'] > parameters['md_threshold']]
     
     # SCAMUFFOH
-    inter_mat = inter_mat[inter_mat['probability'] > 0.5]
+    #inter_mat = inter_mat[inter_mat['probability'] > 0.5]
 
     print('tresh filter',len(inter_mat))
 
@@ -1071,30 +1071,54 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     #    fig = px.histogram(coso2, nbins=50)
     #    fig.write_html(f'plots2/inter_{coso1}.html')
 
-    
+
+
+    # STANDARD DEVIATIONS AND TRESHOLDS COMPUTED PAIRWISE
     # Select the first histogram peak based on minimum distance plus standard deviation (to be improved)
     inter_mat_distance_std = inter_mat['distance'].groupby(by=['idx_ai', 'idx_aj']).agg(['median', 'std'])
     inter_mat_distance_std.columns = ['distance_median', 'distance_std']
     inter_mat_distance_std['distance_std'] = inter_mat_distance_std['distance_std'].fillna(0)
+
+    # TODO std delle probabilita'
+    # TODO printa tutto l'elenco in ordine di std in crescita
+
+    #inter_mat_probability_std = inter_mat['probability'].groupby(by=['idx_ai', 'idx_aj']).agg(['min', 'max', 'median', 'std'])
+    #inter_mat_probability_std.columns = ['probability_min', 'probability_max', 'probability_median', 'probability_std']
+    #inter_mat_probability_std['probability_std'] = inter_mat_probability_std['probability_std'].fillna(0)
+    #inter_mat_probability_std.sort_values(by=['probability_std'], inplace=True)
+    ##print(inter_mat_probability_std.to_string())
+    
+
+
+
+
+
+    # SEED DEBUG
+    #inter_mat_probability_std.to_csv(f'analysis/probability_std_{name}')
+    
     pairs_mono_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] < 0.025]
     pairs_bi_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] >= 0.025]
 
-    mono_distance_reweighted = pd.DataFrame()
-    for pair, data in tqdm(pairs_mono_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
-        # Here we take the mean for each pairs with a low std = monomodal
-        # Distance cutoff
-        pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
-        distance_mean = pair_subset['distance'].mean()
-        low_dist = distance_mean - data['distance_std'][0]
-        high_dist = distance_mean + data['distance_std'][0]
-        pair_subset = pair_subset.loc[(pair_subset['distance'] >= low_dist) & (pair_subset['distance'] <= high_dist)]
-        mono_distance_reweighted = pd.concat([mono_distance_reweighted, pair_subset], axis=0)
-    
-    # SEED DEBUG
-    mono_distance_reweighted.to_csv(f'analysis/mono_mat_{name}')
+    #mono_distance_reweighted = pd.DataFrame()
+    #for pair, data in tqdm(pairs_mono_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
+    #    # Here we take the mean for each pairs with a low std = monomodal
+    #    # Distance cutoff
+    #    pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
+    #    distance_mean = pair_subset['distance'].mean()
+    #    low_dist = distance_mean - data['distance_std'][0]
+    #    high_dist = distance_mean + data['distance_std'][0]
+    #    pair_subset = pair_subset.loc[(pair_subset['distance'] >= low_dist) & (pair_subset['distance'] <= high_dist)]
+    #    mono_distance_reweighted = pd.concat([mono_distance_reweighted, pair_subset], axis=0)
+    #
+    ## SEED DEBUG
+    #mono_distance_reweighted.to_csv(f'analysis/mono_mat_{name}')
     # SEED DEBUG
     dump_second_peak = pd.DataFrame()
     
+
+
+
+
     bi_distance_reweighted = pd.DataFrame()
     for pair, data in tqdm(pairs_bi_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
     
@@ -1113,12 +1137,68 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
 
         pair_subset = pair_subset.loc[pair_subset['distance'] <= distance_cutoff[0]]
+        # PICCO SELEZIONATO
         bi_distance_reweighted = pd.concat([bi_distance_reweighted, pair_subset], axis=0)
+
+
+    # Filter by the frustration of the probability:
+    # Qui prendiamo la std e la aggiungiamo ai minimi e ai massimi.
+    # Si ricalcola la std e se uno dei due riduce la propria std ulteriormente allora abbiamo preso un picco
+    # Altrimenti e' un contatto molto rumoroso e frustrato e dunque lo buttiamo via
+    # Molti dei mono possono essere un po' rumorosi ma hanno delle distanze ben definite, provo direttamente con i bi
+
+    probability_bi_std = bi_distance_reweighted['probability'].groupby(by=['idx_ai', 'idx_aj']).agg(['std'])
+    probability_bi_std.columns = ['probability_std']
+    #print(probability_bi_std.to_string())
+    probability_bi_std.sort_values(by=['probability_std'], inplace=True)
+    print(probability_bi_std.to_string())
+    exit()
+    #probability_bi_std = probability_bi_std.loc[probability_bi_std['probability_std'] < ]
+
+    for pair, data in tqdm(bi_distance_reweighted.groupby(by=['idx_ai', 'idx_aj'])):
+
+        pair_subset = bi_distance_reweighted.loc[(bi_distance_reweighted['ai'] == pair[0]) & (bi_distance_reweighted['aj'] == pair[1])]
+        
+    
+        
+        probability_min_treshold = data['probability_min'] + data['probability_std']
+        probability_max_treshold = data['probability_max'] - data['probability_std']
+        
+        #print(pair_subset.to_string())
+        
+        min_pair_subset = pair_subset.loc[pair_subset['probability'] < probability_min_treshold[0]]
+        max_pair_subset = pair_subset.loc[pair_subset['probability'] > probability_max_treshold[0]]
+        
+        #print(probability_min_treshold)
+        #print(min_pair_subset.to_string())
+
+        #print(probability_max_treshold)
+        #print(max_pair_subset.to_string())
+
+        min_std2 = min_pair_subset['probability'].std()
+        max_std2 = max_pair_subset['probability'].std()
+
+        #print(min_std2, data['probability_std'][0])
+        #print(max_std2, data['probability_std'][0])
+        if (min_std2 >= data['probability_std'][0]/2) or (max_std2 >= data['probability_std'][0]/2):
+            print(pair)
+            print(min_std2, data['probability_std'][0])
+            print(max_std2, data['probability_std'][0])
+            exit()
+        
+
+    #    #exit()
+
+
 
 
     # SEED DEBUG
     bi_distance_reweighted.to_csv(f'analysis/bi_mat_{name}')
     dump_second_peak.to_csv(f'analysis/bi_dump_mat_{name}')
+    
+    
+    # SPEGNIMENTO DEI BIMODALI
+    #bi_distance_reweighted = pd.DataFrame()
     
     inter_mat_distance_reweighted = pd.concat([mono_distance_reweighted, bi_distance_reweighted], axis=0)
     
@@ -1155,7 +1235,14 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     
     # SEED DEBUG
     inter_mat_reweighted.to_csv(f'analysis/inter_mat_reweight_{name}')
-    
+
+    inter_mat_reweighted = inter_mat_reweighted[inter_mat_reweighted['probability'] > parameters['md_threshold']]
+    #inter_mat_reweighted = inter_mat_reweighted[inter_mat_reweighted['probability'] > 0.5]
+
+    # SEED DEBUG
+    inter_mat_reweighted.to_csv(f'analysis/inter_mat_lasttreshold_{name}')
+
+
     inter_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     inter_mat_reweighted['same_chain'] = 'No'
 
