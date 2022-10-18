@@ -1089,35 +1089,29 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     ##print(inter_mat_probability_std.to_string())
     
 
-
-
-
-
     # SEED DEBUG
     #inter_mat_probability_std.to_csv(f'analysis/probability_std_{name}')
     
     pairs_mono_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] < 0.025]
     pairs_bi_inter_mat_distance_std = inter_mat_distance_std.loc[inter_mat_distance_std['distance_std'] >= 0.025]
 
-    #mono_distance_reweighted = pd.DataFrame()
-    #for pair, data in tqdm(pairs_mono_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
-    #    # Here we take the mean for each pairs with a low std = monomodal
-    #    # Distance cutoff
-    #    pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
-    #    distance_mean = pair_subset['distance'].mean()
-    #    low_dist = distance_mean - data['distance_std'][0]
-    #    high_dist = distance_mean + data['distance_std'][0]
-    #    pair_subset = pair_subset.loc[(pair_subset['distance'] >= low_dist) & (pair_subset['distance'] <= high_dist)]
-    #    mono_distance_reweighted = pd.concat([mono_distance_reweighted, pair_subset], axis=0)
-    #
+    mono_distance_reweighted = pd.DataFrame()
+    for pair, data in tqdm(pairs_mono_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
+        # Here we take the mean for each pairs with a low std = monomodal
+        # Distance cutoff
+        pair_subset = inter_mat.loc[(inter_mat['ai'] == pair[0]) & (inter_mat['aj'] == pair[1])]
+        distance_mean = pair_subset['distance'].mean()
+        low_dist = distance_mean - data['distance_std'][0]
+        high_dist = distance_mean + data['distance_std'][0]
+        pair_subset = pair_subset.loc[(pair_subset['distance'] >= low_dist) & (pair_subset['distance'] <= high_dist)]
+        mono_distance_reweighted = pd.concat([mono_distance_reweighted, pair_subset], axis=0)
+    
+    
     ## SEED DEBUG
-    #mono_distance_reweighted.to_csv(f'analysis/mono_mat_{name}')
+    mono_distance_reweighted.to_csv(f'analysis/mono_mat_{name}')
     # SEED DEBUG
     dump_second_peak = pd.DataFrame()
     
-
-
-
 
     bi_distance_reweighted = pd.DataFrame()
     for pair, data in tqdm(pairs_bi_inter_mat_distance_std.groupby(by=['idx_ai', 'idx_aj'])):
@@ -1128,12 +1122,9 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
         distance_cutoff = data['distance_median']
 
 
-
-
         # SEED DEBUG
         temp_dump = pair_subset.loc[pair_subset['distance'] > distance_cutoff[0]]
         dump_second_peak = pd.concat([dump_second_peak, temp_dump], axis=0)
-
 
 
         pair_subset = pair_subset.loc[pair_subset['distance'] <= distance_cutoff[0]]
@@ -1147,44 +1138,43 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Altrimenti e' un contatto molto rumoroso e frustrato e dunque lo buttiamo via
     # Molti dei mono possono essere un po' rumorosi ma hanno delle distanze ben definite, provo direttamente con i bi
 
-    probability_bi_std = bi_distance_reweighted['probability'].groupby(by=['idx_ai', 'idx_aj']).agg(['std'])
-    probability_bi_std.columns = ['probability_std']
-    #print(probability_bi_std.to_string())
-    probability_bi_std.sort_values(by=['probability_std'], inplace=True)
-    print(probability_bi_std.to_string())
-    exit()
+    #probability_bi_std = bi_distance_reweighted['probability'].groupby(by=['idx_ai', 'idx_aj']).agg(['std'])
+    #probability_bi_std.columns = ['probability_std']
+    ##print(probability_bi_std.to_string())
+    #probability_bi_std.sort_values(by=['probability_std'], inplace=True)
+    ##print(probability_bi_std.to_string())
+
     #probability_bi_std = probability_bi_std.loc[probability_bi_std['probability_std'] < ]
 
-    for pair, data in tqdm(bi_distance_reweighted.groupby(by=['idx_ai', 'idx_aj'])):
-
-        pair_subset = bi_distance_reweighted.loc[(bi_distance_reweighted['ai'] == pair[0]) & (bi_distance_reweighted['aj'] == pair[1])]
-        
-    
-        
-        probability_min_treshold = data['probability_min'] + data['probability_std']
-        probability_max_treshold = data['probability_max'] - data['probability_std']
-        
-        #print(pair_subset.to_string())
-        
-        min_pair_subset = pair_subset.loc[pair_subset['probability'] < probability_min_treshold[0]]
-        max_pair_subset = pair_subset.loc[pair_subset['probability'] > probability_max_treshold[0]]
-        
-        #print(probability_min_treshold)
-        #print(min_pair_subset.to_string())
-
-        #print(probability_max_treshold)
-        #print(max_pair_subset.to_string())
-
-        min_std2 = min_pair_subset['probability'].std()
-        max_std2 = max_pair_subset['probability'].std()
-
-        #print(min_std2, data['probability_std'][0])
-        #print(max_std2, data['probability_std'][0])
-        if (min_std2 >= data['probability_std'][0]/2) or (max_std2 >= data['probability_std'][0]/2):
-            print(pair)
-            print(min_std2, data['probability_std'][0])
-            print(max_std2, data['probability_std'][0])
-            exit()
+    #for pair, data in tqdm(bi_distance_reweighted.groupby(by=['idx_ai', 'idx_aj'])):
+    #
+    #    pair_subset = bi_distance_reweighted.loc[(bi_distance_reweighted['ai'] == pair[0]) & (bi_distance_reweighted['aj'] == pair[1])]
+    #    
+    #    
+    #    probability_min_treshold = data['probability_min'] + data['probability_std']
+    #    probability_max_treshold = data['probability_max'] - data['probability_std']
+    #    
+    #    #print(pair_subset.to_string())
+    #    
+    #    min_pair_subset = pair_subset.loc[pair_subset['probability'] < probability_min_treshold[0]]
+    #    max_pair_subset = pair_subset.loc[pair_subset['probability'] > probability_max_treshold[0]]
+    #    
+    #    #print(probability_min_treshold)
+    #    #print(min_pair_subset.to_string())
+    #
+    #    #print(probability_max_treshold)
+    #    #print(max_pair_subset.to_string())
+    #
+    #    min_std2 = min_pair_subset['probability'].std()
+    #    max_std2 = max_pair_subset['probability'].std()
+    #
+    #    #print(min_std2, data['probability_std'][0])
+    #    #print(max_std2, data['probability_std'][0])
+    #    if (min_std2 >= data['probability_std'][0]/2) or (max_std2 >= data['probability_std'][0]/2):
+    #        print(pair)
+    #        print(min_std2, data['probability_std'][0])
+    #        print(max_std2, data['probability_std'][0])
+    #        exit()
         
 
     #    #exit()
