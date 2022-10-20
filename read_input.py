@@ -1,3 +1,4 @@
+import chunk
 import pandas as pd
 import MDAnalysis as mda
 import warnings
@@ -60,25 +61,35 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
     # TODO da ricordarsi che quando si fa l'mdmat bisogna utilizzare traiettoria e struttura ripuliti degli H per la numerazione giusta
     # Altrimenti succede che si tengono gli atom number considerando la numerazione con gli H e non SB
 
+    # TODO togliere l'ultima colonna del pdb con gli atomtypes aggiuntivi e pure gli spazi. 
+
     print(f'\t- Reading {contact_map_file}') 
-    atomic_mat_plainMD = pd.read_csv(contact_map_file, header=None, sep=',', engine='pyarrow')
-    atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
-    # The fibril is a huge file, this next distance filter could be done by parsing the file and then load with pandas
-    atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
-    atomic_mat_plainMD.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
-    atomic_mat_plainMD['chain_ai'] = atomic_mat_plainMD['ai'].map(idx_chain_dict)
-    atomic_mat_plainMD['chain_aj'] = atomic_mat_plainMD['aj'].map(idx_chain_dict)
-    atomic_mat_plainMD['same_chain'] = 'No'
-    atomic_mat_plainMD['same_chain'].loc[atomic_mat_plainMD['chain_ai'] == atomic_mat_plainMD['chain_aj']] = 'Yes'
-    # idx_sbtype_dict does not include Hydrogens, mdmat should be created without them
-    atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':idx_sbtype_dict})
-    atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':idx_sbtype_dict})
-    atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)
-    atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
-    #print(atomic_mat_plainMD['residue_ai'].to_list())
-    atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
-    atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
-    atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
+    # TODO chunks per la progress bar
+    atomic_mat_plainMD = pd.DataFrame()
+
+    for mat_chunk in pd.read_csv(contact_map_file, header=None, sep=',', engine='c', chunksize=100000):
+        mat_chunk.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+        # The fibril is a huge file, this next distance filter could be done by parsing the file and then load with pandas
+        mat_chunk.drop(columns=['distance'], inplace=True)
+        mat_chunk.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'probability']
+        mat_chunk['chain_ai'] = mat_chunk['ai'].map(idx_chain_dict)
+        mat_chunk['chain_aj'] = mat_chunk['aj'].map(idx_chain_dict)
+        mat_chunk['same_chain'] = 'No'
+        mat_chunk['same_chain'].loc[mat_chunk['chain_ai'] == mat_chunk['chain_aj']] = 'Yes'
+        # idx_sbtype_dict does not include Hydrogens, mdmat should be created without them
+        mat_chunk = mat_chunk.replace({'ai':idx_sbtype_dict})
+        mat_chunk = mat_chunk.replace({'aj':idx_sbtype_dict})
+        #print(idx_sbtype_dict)
+        #print(len(idx_sbtype_dict))
+        #print(mat_chunk.tail(n=10).to_string())
+        print(mat_chunk['probability'].min())
+        mat_chunk[['type_ai', 'residue_ai']] = mat_chunk.ai.str.split("_", expand = True)
+        mat_chunk[['type_aj', 'residue_aj']] = mat_chunk.aj.str.split("_", expand = True)
+        mat_chunk['residue_ai'] = mat_chunk['residue_ai'].astype(int)
+        mat_chunk['residue_aj'] = mat_chunk['residue_aj'].astype(int)
+        mat_chunk.drop(columns=['type_ai', 'type_aj'], inplace=True)
+
+        atomic_mat_plainMD = pd.concat([atomic_mat_plainMD, mat_chunk], axis=0)
 
 
     # DEBUG
