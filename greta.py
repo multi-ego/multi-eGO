@@ -484,10 +484,15 @@ class ensemble:
 
     def get_structure_pairs(self, ego_native):
         print('\t- Reading pdb structure for pairs')
-        mda_structure = mda.Universe(self.ensemble_parameters['structure_file'], guess_bonds = False)#, topology_format='PDB')
-        print('\t- Making pairs')
-        structure_pairs = PDB_LJ_pairs(mda_structure, ego_native.atomic_mat_random_coil, self.native_atomtypes, self.parameters)
-        self.structure_pairs = structure_pairs
+        #mda_structure = mda.Universe(self.ensemble_parameters['structure_file'], guess_bonds = False)#, topology_format='PDB')
+        
+        structure_pairs = generate_structure_based_pairs()
+
+
+        # TODO questa parte in teoria andrebbe fatta in generate multi-eGO
+        #print('\t- Making pairs')
+        #structure_pairs = PDB_LJ_pairs(mda_structure, ego_native.atomic_mat_random_coil, self.native_atomtypes, self.parameters)
+        #self.structure_pairs = structure_pairs
 
 
     def get_ligand_ensemble(self): # TODO change name
@@ -708,6 +713,34 @@ def sb_type_conversion(multiego_ensemble, md_ensemble):
     updated_mat_plainMD = updated_mat_plainMD.replace({'aj':merged_atoms_dict})
 
     return updated_mat_plainMD, merged_atoms_dict
+
+
+def generate_structure_based_pairs(path_structure_pdb, native_atomtypes, parameters):
+    
+    structure_pdb = mda.Universe(path_structure_pdb, guess_bonds=True)
+    atom_selection = structure_pdb.select_atoms('all')
+    distance_matrix = distances.self_distance_array(atom_selection.positions)
+    print('\t\tNumber of distances measured :', len(distance_matrix))
+
+    pairs_list = list(itertools.combinations(native_atomtypes, 2))
+
+    pairs_ai, pairs_aj = [], []
+    for n in range(0, len(pairs_list)):
+        i = pairs_list[n][0]
+        pairs_ai.append(i)
+        j = pairs_list[n][1]
+        pairs_aj.append(j)
+
+    structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon'])
+    structural_LJ['ai'] = pairs_ai
+    structural_LJ['aj'] = pairs_aj
+    structural_LJ['distance'] = distance_matrix
+
+    structural_LJ = structural_LJ[structural_LJ.distance < parameters["distance_cutoff"]] # PROTEIN CONFIGURATION
+    print(f'\t\tPairs below cutoff {parameters["distance_cutoff"]}: ', len(structural_LJ))
+
+
+    pass
 
 
 def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
@@ -984,9 +1017,7 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] >= intra_mat_probability['rc_probability'])&(intra_mat_probability['probability'] >= parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_probability['probability']/np.maximum(intra_mat_probability['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     # this is a repulsive energy of 2.49/2. kj/mol at a distance equal to sigma only for neighbour resiudes
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] < intra_mat_probability['rc_probability']-parameters['md_threshold'])&(intra_mat_probability['diffr']<parameters['distance_residue'])] = -2.494339/2./4. 
-    # this is a repulsive energy of 2.49/2.5 kj/mol at a distance equal to sigma only for next to neighbour resiudes
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] < intra_mat_probability['rc_probability']-parameters['md_threshold'])&(intra_mat_probability['diffr']==parameters['distance_residue'])] = -2.494339/2.5/4. 
+    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] < intra_mat_probability['rc_probability'])&(intra_mat_probability['diffr']<=parameters['distance_residue'])&(intra_mat_probability['probability']> 0.)] = np.log(intra_mat_probability['probability']/intra_mat_probability['rc_probability'])*(intra_mat_probability['distance_mean']**12) 
 
     # Treshold vari ed eventuali
     intra_mat_probability['epsilon'].loc[(intra_mat_probability['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_probability['epsilon']>0.)] = 0
@@ -1185,6 +1216,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['epsilon']
     #greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
 
     # SELF INTERACTIONS
@@ -1354,6 +1386,11 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         check = pairs.loc[pairs['same_chain']=='No']
         if not check.empty:
             pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
+        
+        check = pairs.loc[pairs['epsilon']<0]
+        if not check.empty:
+            pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
+        
         pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
     else:

@@ -197,12 +197,14 @@ def main(argv):
 
 
     print('- Creating md ensembles')
-    for ensemble_name in md_ensembles_list:        
+    for ensemble_name in md_ensembles_list: # TODO qui perche' per forza MD? gli posso dire di non leggere il nat-all e dovrebbe stare a posto e fare il PDB LJ     
         file_paths = find_files(ensemble_name, parameters=parameters)
         md_ensemble = ensemble(parameters=parameters, ensemble_parameters=file_paths, name=ensemble_name)
         md_ensemble.prepare_ensemble()
         md_ensemble.assign_chains(reference_atoms_size)
+        # TODO qui mettere un bel IF per fargli leggere gli MD qualora fosse indicato un .ndx in lettura
         md_ensemble.add_MD_contacts()
+        #md_ensemble.get_structure_pairs()
         md_ensemble.convert_topology(reference)
         print(f'- The following contacts were converted: {md_ensemble.conversion_dict}')
         print('- Adding MD probability matrix to multi-eGO ensemble')

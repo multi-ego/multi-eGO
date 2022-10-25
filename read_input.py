@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
-def find_files(ensemble, parameters):
+def find_files(ensemble, parameters, is_md=True):
 
     file_paths = {}
     directory = f'inputs/{parameters["protein"]}/{ensemble}'
@@ -28,13 +28,16 @@ def find_files(ensemble, parameters):
     except:
         raise Exception(f'Missing PDB structure in {directory}')
     
-    if parameters['egos'] != 'rc':
-        try:
-            file_paths[f'{ensemble}_contacts'] = f'{directory}/{[f for f in file_list if ".ndx" in f][0]}'
-            #file_paths[f'{ensemble}_contacts'] = f'{directory}/{[f for f in file_list if ".parquet" in f][0]}'
-        except:
-            # Read file and make parquet
-            raise Exception(f'Missing mdmat file in {directory}. Either check the file path or perform an initial Random Coil (rc) is required')
+    if (parameters['egos'] != 'rc'):
+        if is_md == True:
+            try:
+                # TODO qui mettere l'opzione che se non legge un file potrebbe andare a farsi il PDB_LJ
+                file_paths[f'{ensemble}_contacts'] = f'{directory}/{[f for f in file_list if ".ndx" in f][0]}'
+                print(file_paths)
+            except:
+                raise Exception(f'Missing mdmat file in {directory}. Either check the file path or perform an initial Random Coil (rc) is required')
+        else:
+            print('No Random Coil selected for this ensemble')
 
     return file_paths
 
@@ -67,7 +70,10 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
     # TODO chunks per la progress bar
     atomic_mat_plainMD = pd.DataFrame()
 
+    counter = 1
     for mat_chunk in pd.read_csv(contact_map_file, header=None, sep=',', engine='c', chunksize=100000):
+        print(f'\t\t- Reading chunk {counter}')
+        counter += 1
         mat_chunk.columns = ['residue_ai', 'ai', 'residue_aj', 'aj', 'distance', 'distance_NMR', 'probability']
         # The fibril is a huge file, this next distance filter could be done by parsing the file and then load with pandas
         mat_chunk.drop(columns=['distance'], inplace=True)
@@ -79,10 +85,6 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
         # idx_sbtype_dict does not include Hydrogens, mdmat should be created without them
         mat_chunk = mat_chunk.replace({'ai':idx_sbtype_dict})
         mat_chunk = mat_chunk.replace({'aj':idx_sbtype_dict})
-        #print(idx_sbtype_dict)
-        #print(len(idx_sbtype_dict))
-        #print(mat_chunk.tail(n=10).to_string())
-        print(mat_chunk['probability'].min())
         mat_chunk[['type_ai', 'residue_ai']] = mat_chunk.ai.str.split("_", expand = True)
         mat_chunk[['type_aj', 'residue_aj']] = mat_chunk.aj.str.split("_", expand = True)
         mat_chunk['residue_ai'] = mat_chunk['residue_ai'].astype(int)
