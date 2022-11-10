@@ -923,15 +923,18 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # Paissoni Equation 2.1
     # Attractive
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])|(intra_mat_reweighted['probability']<parameters['md_threshold'])] = 0 
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']>intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['probability']>parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_reweighted['probability']/np.maximum(intra_mat_reweighted['rc_probability'],parameters['rc_threshold'])))
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']>intra_mat_reweighted['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_reweighted['probability']/np.maximum(intra_mat_reweighted['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     intra_mat_reweighted['diffr'] = abs(intra_mat_reweighted['rc_residue_aj'] - intra_mat_reweighted['rc_residue_ai'])
+    # c12new = c12 - l(newprob/prob)*r12, here we calculate the correction term
     intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(intra_mat_reweighted['distance']**12) 
 
-    # Treshold vari ed eventuali
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_reweighted['epsilon']>0.)] = 0
+    # clean NaN 
     intra_mat_reweighted.dropna(inplace=True)
+    # remove positive but small epsilons
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_reweighted['epsilon']>0.)] = 0
+    # remove negative but small epsilons
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] > -1e-7)&(intra_mat_reweighted['epsilon']<0.)] = 0
     intra_mat_reweighted = intra_mat_reweighted[intra_mat_reweighted.epsilon != 0]
     
     print(f"\t\t- There are {len(intra_mat_reweighted)} intramolecular pairs interactions")
