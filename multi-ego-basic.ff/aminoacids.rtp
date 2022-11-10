@@ -72,6 +72,7 @@
   -CA    -C     N    CA     gd_14   
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42
 
@@ -127,6 +128,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
@@ -177,6 +179,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND2     gd_40   
@@ -224,6 +227,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   OD1     gd_40   
@@ -263,6 +267,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    SG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
 
@@ -301,6 +306,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    SG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
 
@@ -350,6 +356,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
@@ -401,6 +408,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
@@ -492,6 +500,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   ND1     gd_40   
@@ -539,6 +548,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB   CG1     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB   CG1    CD     gd_34   
@@ -586,6 +596,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_34   
@@ -634,6 +645,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG    CD     gd_34   
@@ -681,6 +693,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG    SD     gd_34   
@@ -747,6 +760,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_40   
@@ -835,6 +849,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    OG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
 
@@ -878,6 +893,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB   OG1     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
 
@@ -963,6 +979,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD2     gd_40   
@@ -1033,6 +1050,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB    CG     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
    CA    CB    CG   CD1     gd_40   
@@ -1077,6 +1095,7 @@
    -C     N    CA     C     gd_44   
    -C     N    CA     C     gd_43
     N    CA    CB   CG1     gd_34   
+    N    CA     C    +N     gd_46   
     N    CA     C    +N     gd_45   
     N    CA     C    +N     gd_42   
 

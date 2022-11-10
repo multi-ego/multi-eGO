@@ -1,15 +1,16 @@
-from operator import concat
+from multiprocessing.dummy import Pool
+from turtle import distance
 import MDAnalysis as mda
-from MDAnalysis.lib.util import parse_residue
 from MDAnalysis.analysis import distances
 import numpy as np
-from pandas.core.frame import DataFrame
 import pandas as pd
 import itertools
 import parmed as pmd
 from read_input import random_coil_mdmat, plainMD_mdmat
-import mdtraj as md
 from topology_parser import read_topology, topology_parser, extra_topology_ligands
+import plotly.express as px
+from tqdm import tqdm
+from multiprocessing import pool
 
 pd.options.mode.chained_assignment = None  # default='warn'
 pd.options.mode.chained_assignment = 'warn' 
@@ -23,21 +24,16 @@ gromos_atp = pd.DataFrame(
      #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.65, 4.937284e-06/1.9, 9.70225e-05/1.48), # CH1
      #       3.3965584e-05/2.2, 2.6646244e-05/3.1, 2.8058209e-05/2.35, 5.0625e-06/1.95, 1.3075456e-05/4.8,
      #       3.389281e-06/2.25, 7.4149321e-07/4.3, 2.319529e-06/2.65, 2.319529e-06/2.65, 2.319529e-06/2.65],
-     'c12': [0.263158e-06, 0.501843e-06, 0.875294e-06, 2.598570e-06, 6.555574e-05, # CH1
-             1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 0.272405e-05, 
-             1.506347e-06, 1.724403e-07, 0.875294e-06, 0.875294e-06, 0.875294e-06]
-     #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.5, 4.937284e-06/1.9, 9.70225e-05(C/2), # CH1
-     #       3.3965584e-05(C/2), 2.6646244e-05(C/2), 2.8058209e-05(C/2), 5.0625e-06/1.9, 1.3075456e-05/4.8,
-     #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
-     #'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
-     #        2.598570e-06, 2.598570e-06, 2.598570e-06, 0.892126e-06, 0.272405e-05, 
-     #        0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
+     'c12': [2.631580e-07, 5.018430e-07, 8.752940e-07, 2.598570e-06, 6.555574e-05, # CH1
+             1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 2.724050e-06, 
+             1.506347e-06, 1.724403e-07, 8.752940e-07, 8.752940e-07, 8.752940e-07]
      }
 )
 gromos_atp.to_dict()
 gromos_atp.set_index('name', inplace=True)
 
 class multiego_ensemble:
+    #TODO insert the ego_native part since it is redundant
     '''
     This ensemble type gathers different topologies to make a single one.
     '''
@@ -60,12 +56,13 @@ class multiego_ensemble:
     exclusions = pd.DataFrame()
 
     structure_based_contacts_dict = {
-        'random_coil' : pd.DataFrame(),
-        'atomic_mat_plainMD' : pd.DataFrame(),
-        'native_pairs' : pd.DataFrame(),
-        'fibril_pairs' : pd.DataFrame(),
-        'ligand_MD_pairs' : pd.DataFrame()
     }
+    #    'random_coil' : pd.DataFrame(),
+    #    'atomic_mat_plainMD' : pd.DataFrame(),
+    #    'native_pairs' : pd.DataFrame(),
+    #    'fibril_pairs' : pd.DataFrame(),
+    #    'ligand_MD_pairs' : pd.DataFrame()
+    #}
 
     greta_LJ = pd.DataFrame(columns=['; ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
     
@@ -121,44 +118,48 @@ class multiego_ensemble:
         return self
 
         
-    def add_structure_based_contacts(self, **contacts):
+    def add_structure_based_contacts(self, name, contacts):
         '''
         Names to use: random_coil, atomic_mat_plainMD, native_pairs, fibril_pairs, ligand_MD_pairs
         '''
-        for name, value in contacts.items():
-            self.structure_based_contacts_dict[name] = value
+        self.structure_based_contacts_dict[name] = contacts
+        # TODO questa funzione sotto si potrebbe anche togliere, mi sa che e' ridondante a quella sopra
         self.structure_based_contacts_dict = self.structure_based_contacts_dict
         return self
 
         
-    def generate_multiego_LJ(self):
+    def generate_multiego_LJ(self): # TODO nel self bisogna mettere i nomi degli MD ensembles
         
         # TODO ACID DEMMERDA
         #if parameters['acid_ff'] == True and top.acid_atp !=0:
         #        greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
         #        greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
 
-        #print(self.structure_based_contacts_dict)
+        greta_LJ = pd.DataFrame()
         greta_MD_LJ = pd.DataFrame()
         greta_native_SB_LJ = pd.DataFrame()
         greta_fibril_SB_LJ = pd.DataFrame()
         ligand_MD_LJ = pd.DataFrame()
         
-        if not self.structure_based_contacts_dict['random_coil'].empty:
-            if not self.structure_based_contacts_dict['atomic_mat_plainMD'].empty:
-                greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict['atomic_mat_plainMD'], self.structure_based_contacts_dict['random_coil'], self.parameters)
-            if not self.structure_based_contacts_dict['native_pairs'].empty:
-                # TODO to compute here the sb types and not in the fibril ensemble
-                greta_native_SB_LJ = self.structure_based_contacts_dict['native_pairs']
-            
-            if not self.structure_based_contacts_dict['fibril_pairs'].empty:
-                # TODO to compute here the sb types and not in the fibril ensemble
-                greta_fibril_SB_LJ = self.structure_based_contacts_dict['fibril_pairs']
-            
-            if not self.structure_based_contacts_dict['ligand_MD_pairs'].empty:
-                ligand_MD_LJ = self.structure_based_contacts_dict['ligand_MD_pairs']
-
-        greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
+        # Get the md ensembles names
+        for param, value in self.parameters.items():
+            if 'md_ensemble' in param:
+                greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict[value], self.structure_based_contacts_dict['random_coil'], self.parameters, self.parameters[param])
+                greta_LJ = pd.concat([greta_LJ, greta_MD_LJ], axis=0, sort=False, ignore_index=True)
+    #    if not self.structure_based_contacts_dict['random_coil'].empty:
+    #        if not self.structure_based_contacts_dict['atomic_mat_plainMD'].empty:
+    #            greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict['atomic_mat_plainMD'], self.structure_based_contacts_dict['random_coil'], self.parameters)
+    #        if not self.structure_based_contacts_dict['native_pairs'].empty:
+    #            # TODO to compute here the sb types and not in the fibril ensemble
+    #            greta_native_SB_LJ = self.structure_based_contacts_dict['native_pairs']
+    #        
+    #        if not self.structure_based_contacts_dict['fibril_pairs'].empty:
+    #            # TODO to compute here the sb types and not in the fibril ensemble
+    #            greta_fibril_SB_LJ = self.structure_based_contacts_dict['fibril_pairs']
+    #        
+    #        if not self.structure_based_contacts_dict['ligand_MD_pairs'].empty:
+    #            ligand_MD_LJ = self.structure_based_contacts_dict['ligand_MD_pairs']
+    #    greta_LJ = pd.concat([greta_MD_LJ, greta_native_SB_LJ, greta_fibril_SB_LJ, ligand_MD_LJ], axis=0, sort=False, ignore_index=True)
 
         if greta_LJ.empty:
             greta_ffnb = greta_LJ 
@@ -205,9 +206,9 @@ class multiego_ensemble:
         # ACID pH
         # Selection of the aminoacids and the charged atoms (used for B2m)
         # TODO add some options for precise pH setting
-        acid_ASP = self.ensemble_top[(ensemble_top['residue'] == "ASP") & ((self.ensemble_top['atom'] == "OD1") | (self.ensemble_top['atom'] == "OD2") | (self.ensemble_top['atom'] == "CG"))]
-        acid_GLU = self.ensemble_top[(ensemble_top['residue'] == "GLU") & ((self.ensemble_top['atom'] == "OE1") | (self.ensemble_top['atom'] == "OE2") | (self.ensemble_top['atom'] == "CD"))]
-        acid_HIS = self.ensemble_top[(ensemble_top['residue'] == "HIS") & ((self.ensemble_top['atom'] == "ND1") | (self.ensemble_top['atom'] == "CE1") | (self.ensemble_top['atom'] == "NE2") | (self.ensemble_top['atom'] == "CD2") | (self.ensemble_top['atom'] == "CG"))]
+        acid_ASP = self.ensemble_top[(self.ensemble_top['residue'] == "ASP") & ((self.ensemble_top['atom'] == "OD1") | (self.ensemble_top['atom'] == "OD2") | (self.ensemble_top['atom'] == "CG"))]
+        acid_GLU = self.ensemble_top[(self.ensemble_top['residue'] == "GLU") & ((self.ensemble_top['atom'] == "OE1") | (self.ensemble_top['atom'] == "OE2") | (self.ensemble_top['atom'] == "CD"))]
+        acid_HIS = self.ensemble_top[(self.ensemble_top['residue'] == "HIS") & ((self.ensemble_top['atom'] == "ND1") | (self.ensemble_top['atom'] == "CE1") | (self.ensemble_top['atom'] == "NE2") | (self.ensemble_top['atom'] == "CD2") | (self.ensemble_top['atom'] == "CG"))]
         frames = [acid_ASP, acid_GLU, acid_HIS]
         acid_atp = pd.concat(frames, ignore_index = True)
         #this is used
@@ -297,7 +298,7 @@ class multiego_ensemble:
             self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']]
+            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']]#, 'probability_std', 'distance_std']]
             self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
@@ -340,22 +341,25 @@ class ensemble:
     '''
     Ensemble class: aggregates all the parameters used in the script.
     '''
-    def __init__(self, parameters, ensemble_parameters):        
+    def __init__(self, parameters, ensemble_parameters, name):        
         # Topology Section
         # Atoms
         print('\t- Generating ensemble Atomtypes')
         print('\t- Reading topology and structure')
+        self.name = name
         self.parameters = parameters
         self.ensemble_parameters = ensemble_parameters
-        self.topology = pmd.load_file(ensemble_parameters['topology_file'], parametrize=False)
-        self.structure = pmd.load_file(ensemble_parameters['structure_file'])
+        self.topology = pmd.load_file(ensemble_parameters[f'{name}_topology'], parametrize=False)
+        self.structure = pmd.load_file(ensemble_parameters[f'{name}_structure'])
 
 
     def prepare_ensemble(self, add_native_ensemble = False):
         ensemble_top = prepare_ensemble_topology(self.topology, self.structure, self.ensemble_parameters, self.parameters)
         self.ensemble_top = ensemble_top
         print('\t- Ensemble topology generated')
-        
+
+        self.atoms_size = len(ensemble_top)
+
         sbtype_idx_dict = ensemble_top[['atom_number', 'sb_type']].copy()
         sbtype_idx_dict = sbtype_idx_dict.set_index('sb_type')['atom_number'].to_dict()
         self.sbtype_idx_dict = sbtype_idx_dict
@@ -371,16 +375,40 @@ class ensemble:
         idx_sbtype_dict = ensemble_top[['atom_number', 'sb_type']].copy()
         idx_sbtype_dict = idx_sbtype_dict.set_index('atom_number')['sb_type'].to_dict()
         self.idx_sbtype_dict = idx_sbtype_dict
+    
 
-        return self
+    def assign_chains(self, atoms_size):
+        print(f'\t- Reference structure size is {atoms_size} atoms')
+        print(f'\t- This MD ensemble contains {self.atoms_size} atoms')
+        if self.atoms_size%(atoms_size) == 0:
+            number_of_chains = int(self.atoms_size/(atoms_size))
+        else:
+            print('Atoms does not allow chain assignment')
+            exit()
 
+        self.number_of_chains = number_of_chains
+
+        print(f'\t- Number of chains {number_of_chains}')
+        chain_column_list = []
+        for chain in list(range(1, (number_of_chains+1))):
+            for atom in range(atoms_size):
+                chain_column_list.append(chain)
+
+        ensemble_top = self.ensemble_top
+        ensemble_top['chain'] = chain_column_list
+        self.ensemble_top = ensemble_top
+        
+        idx_chain_dict = ensemble_top[['atom_number', 'chain']].copy()
+        idx_chain_dict = idx_chain_dict.set_index('atom_number')['chain'].to_dict()
+        self.idx_chain_dict = idx_chain_dict
+        
 
     def get_parsed_topology(self):
         '''
         Topol.top sort of things except atoms. Namely bonds, angles, dihedrals, impropers, pairs and exclusions.
         This method uses the parser i wrote and not ParmEd.
         '''
-        parsed_topology = topology_parser(read_topology(self.ensemble_parameters['topology_file']))
+        parsed_topology = topology_parser(read_topology(self.ensemble_parameters[f'{self.name}_topology']))
 
         # This one is self so i wrote less things in multiego and here
         self.parsed_topology = parsed_topology
@@ -392,8 +420,6 @@ class ensemble:
         self.dihedrals = parsed_topology.dihedrals
         self.impropers = parsed_topology.impropers
 
-        return self
-
 
     def match_native_topology(self, sbtype_idx_dict):
         '''
@@ -403,7 +429,6 @@ class ensemble:
 
         print('\t- Renumbering the fibril atom numbers')
         self.ensemble_top['atom_number'] = self.ensemble_top['sb_type'].map(sbtype_idx_dict)
-        return self
     
     def convert_topology(self, ego_native):
         '''
@@ -437,31 +462,31 @@ class ensemble:
         self.atomic_mat_MD = updated_mat_plainMD
         self.conversion_dict = merged_atoms_dict
 
-        return self
-
 
     def add_random_coil(self):
         # The random coil should come from the same native ensemble
         #if not ensemble_parameters['not_matching_native']:
-        atomic_mat_random_coil = random_coil_mdmat(self.parameters, self.idx_sbtype_dict)
+        atomic_mat_random_coil = random_coil_mdmat(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
         self.atomic_mat_random_coil = atomic_mat_random_coil
-        return self
         
         
     def add_MD_contacts(self):
         # MD_contacts
-        atomic_mat_MD = plainMD_mdmat(self.parameters, self.ensemble_parameters, self.idx_sbtype_dict)
+        atomic_mat_MD = plainMD_mdmat(self.parameters, self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict, self.idx_chain_dict)
         self.atomic_mat_MD = atomic_mat_MD
-        return self
     
 
     def get_structure_pairs(self, ego_native):
         print('\t- Reading pdb structure for pairs')
-        mda_structure = mda.Universe(self.ensemble_parameters['structure_file'], guess_bonds = False)#, topology_format='PDB')
-        print('\t- Making pairs')
-        structure_pairs = PDB_LJ_pairs(mda_structure, ego_native.atomic_mat_random_coil, self.native_atomtypes, self.parameters)
-        self.structure_pairs = structure_pairs
-        return self
+        #mda_structure = mda.Universe(self.ensemble_parameters['structure_file'], guess_bonds = False)#, topology_format='PDB')
+        
+        structure_pairs = generate_structure_based_pairs()
+
+
+        # TODO questa parte in teoria andrebbe fatta in generate multi-eGO
+        #print('\t- Making pairs')
+        #structure_pairs = PDB_LJ_pairs(mda_structure, ego_native.atomic_mat_random_coil, self.native_atomtypes, self.parameters)
+        #self.structure_pairs = structure_pairs
 
 
     def get_ligand_ensemble(self): # TODO change name
@@ -536,8 +561,6 @@ class ensemble:
         update_ligand_pairs['ai'] = update_ligand_pairs['ai'].astype(int)
         update_ligand_pairs['aj'] = update_ligand_pairs['aj'].astype(int)
         self.ligand_pairs = update_ligand_pairs
-        
-        return self
      
 
     def ligand_MD_LJ_pairs(self):
@@ -572,9 +595,6 @@ class ensemble:
         atomic_ligand_mat.dropna(inplace=True)
         atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
         self.ligand_atomic_mat_MD = atomic_ligand_mat
-        return self
-
-
 
 # END CLASS
 
@@ -592,6 +612,9 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
     
     topology_df = topology.to_dataframe()
     structure_df = structure.to_dataframe()
+
+    # Removing solvent from the dataframe
+    topology_df.drop(topology_df[topology_df.resname == 'SOL'].index, inplace=True) 
     print('\t\t- Generating multi-eGO topology')
     multiego_top = pd.DataFrame()
     multiego_top['atom_number'] = structure_df['number']
@@ -653,48 +676,6 @@ def prepare_ensemble_topology(topology, structure, ensemble_parameters, paramete
     return multiego_top
 
 
-def make_file_dictionary_todelete(filename):
-    file_dict = {}
-    with open(filename) as f:
-        for line_number, line in enumerate(f):
-            if line.startswith('ATOM'):
-                file_dict[line_number+1] = line.strip()
-    return file_dict
-
-
-def rename_chains_todelete(structure_dict, chain_ids, file_name):
-    # Change the column number 22 which is the chain id in the pdb
-    column = 22 - 1
-    file_name = file_name.split('/')
-    file_path = file_name[:-1]
-    file_name = file_name[-1]
-    file_name = file_name.split('.')
-    file_name = '/'.join(file_path)+'/'+file_name[0]+'_renamed.'+file_name[1]
-    with open(file_name, 'w') as scrivi:
-        for (line, string), chain_id in zip(structure_dict.items(), chain_ids):
-            new_string = string[0:column]+str(chain_id)+string[column+1:]
-            scrivi.write(f"{new_string}\n")
-    
-    return file_name
-
-
-def get_topology_bonds_todelete(topology):
-    bond_atom1, bond_atom2, bond_funct = [], [], []
-    for bond in topology.bonds:
-        bond_atom1.append(bond.atom1.idx+1)
-        bond_atom2.append(bond.atom2.idx+1)
-        bond_funct.append(bond.funct)
-        # TODO Here is missing the gd_definition, maybe in writing the input will solve this
-        #print(dir(bond))
-        #print(bond.type)
-
-    bonds_df = pd.DataFrame()
-    bonds_df['ai'] = bond_atom1
-    bonds_df['aj'] = bond_atom2
-    bonds_df['funct'] = bond_funct
-
-    return bonds_df
-
 # TODO this one might be included in the ensemble class
 def sb_type_conversion(multiego_ensemble, md_ensemble):
     '''
@@ -728,107 +709,32 @@ def sb_type_conversion(multiego_ensemble, md_ensemble):
     return updated_mat_plainMD, merged_atoms_dict
 
 
-def ligand_MD_LJ_pairs_todelete(ego_ligand, parameters):
-    # TODO this one will be moved in multiego_ensemble
-    print('\t- Adding the ligand LJ potential')
-
-    # Following the idea that the ligand is considered as a residue in the same chain,
-    # we select ligand pairs by selecting the spare residue compared with the ligand
-    atomic_ligand_mat = ego_ligand.atomic_mat_MD
-    atomic_ligand_mat = atomic_ligand_mat.loc[(atomic_ligand_mat['residue_ai'] == ego_ligand.ligand_residue_number) | (atomic_ligand_mat['residue_aj'] == ego_ligand.ligand_residue_number)]
-    atomic_ligand_mat['sigma'] = (atomic_ligand_mat['distance']) / (2**(1/6))
-    atomic_ligand_mat[['idx_ai', 'idx_aj']] = atomic_ligand_mat[['ai', 'aj']]
-    atomic_ligand_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
+def generate_structure_based_pairs(path_structure_pdb, native_atomtypes, parameters):
     
-    # We are using the old equation (prior to the RC version)
-    atomic_ligand_mat['epsilon'] = parameters['epsilon_input']*(1-((np.log(atomic_ligand_mat['probability']))/(np.log(parameters['ratio_threshold']))))
-    atomic_ligand_mat.drop(columns = ['distance', 'residue_ai', 'residue_aj', 'probability'], inplace = True)
-    atomic_ligand_mat.dropna(inplace=True)
-    atomic_ligand_mat = atomic_ligand_mat[atomic_ligand_mat.epsilon != 0]
+    structure_pdb = mda.Universe(path_structure_pdb, guess_bonds=True)
+    atom_selection = structure_pdb.select_atoms('all')
+    distance_matrix = distances.self_distance_array(atom_selection.positions)
+    print('\t\tNumber of distances measured :', len(distance_matrix))
 
-    return atomic_ligand_mat
+    pairs_list = list(itertools.combinations(native_atomtypes, 2))
+
+    pairs_ai, pairs_aj = [], []
+    for n in range(0, len(pairs_list)):
+        i = pairs_list[n][0]
+        pairs_ai.append(i)
+        j = pairs_list[n][1]
+        pairs_aj.append(j)
+
+    structural_LJ = pd.DataFrame(columns = ['ai', 'aj', 'distance', 'sigma', 'epsilon'])
+    structural_LJ['ai'] = pairs_ai
+    structural_LJ['aj'] = pairs_aj
+    structural_LJ['distance'] = distance_matrix
+
+    structural_LJ = structural_LJ[structural_LJ.distance < parameters["distance_cutoff"]] # PROTEIN CONFIGURATION
+    print(f'\t\tPairs below cutoff {parameters["distance_cutoff"]}: ', len(structural_LJ))
 
 
-# TODO todelete
-def make_pdb_atomtypes(native_pdb, topology_atoms, parameters):
-    '''
-    This function prepares the ffnonbonded.itp section of Multi-ego.ff.
-    The topology of the plainMD is read, and custom c12 are added.
-    The native .pdb is read and a list of the atoms is prepared to use in PDB_LJ_pairs.
-    It also provides a dictionary based on atom_type and c12 used in make_pairs_exclusion_topology.
-    '''
-    native_sel = native_pdb.select_atoms('all')
-    native_atomtypes, ffnb_sb_type = [], []
-
-    for atom in native_sel:
-        '''
-        This loop is required for the atom list to be used in PDB_LJ_pairs.
-        '''
-        # Native atomtypes will be used to create the pairs list
-        #TODO print another for check
-        atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
-        native_atomtypes.append(atp)
-
-        # This part is for attaching to FFnonbonded.itp
-        # ffnb_sb_type is the first column
-        # check gromologist
-        sb_type = str(atom.name) + '_' + str(atom.resnum)
-        ffnb_sb_type.append(sb_type)
-
-    check_topology = DataFrame(ffnb_sb_type, columns=['sb_type'])
-    check_topology = check_topology.drop_duplicates(subset=['sb_type'])
-    check_topology['check'] = np.where(topology_atoms.sb_type == check_topology.sb_type, 'same', 'different')
-    
-    # Just checking that the pdb and the topology have the same number of atoms
-    if len(np.unique(check_topology.check)) != 1:
-        print('\n\tCheck PDB and topology because they have different numbers of atoms')
-        exit()
-        
-    # ffnonbonded making
-    # Making a dictionary with atom number and type
-    ffnb_atomtype = pd.DataFrame(columns = ['; type', 'chem', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12'])
-    ffnb_atomtype['; type'] = topology_atoms['sb_type']
-    ffnb_atomtype['chem'] = topology_atoms['atom_type']
-    ffnb_atomtype['at.num'] = ffnb_atomtype['chem'].map(gromos_atp['at.num'])
-    ffnb_atomtype['mass'] = topology_atoms['mass']
-    ffnb_atomtype['charge'] = '0.000000'
-    ffnb_atomtype['ptype'] = 'A'
-    ffnb_atomtype['c6'] = '0.00000e+00'
-    ffnb_atomtype['c12'] = ffnb_atomtype['chem'].map(gromos_atp['c12'])
-    
-    
-    # This will be needed for exclusion and pairs to paste in topology
-    # A dictionary with the c12 of each atom in the system
-    type_c12_dict = ffnb_atomtype.set_index('; type')['c12'].to_dict()
-    
-    ffnb_atomtype['c12'] = ffnb_atomtype["c12"].map(lambda x:'{:.6e}'.format(x))
-    ffnb_atomtype.drop(columns = ['chem'], inplace = True)
-
-    atomtypes_atp = ffnb_atomtype[['; type', 'mass']].copy()
-
-    return native_atomtypes, ffnb_atomtype, atomtypes_atp, type_c12_dict
-
-# TODO todelete
-def make_more_atomtypes(fibril_pdb):
-    '''
-    Like the previous one, this part is needed in PDB_LJ_pairs when computing the pairs.
-    '''
-    fibril_sel = fibril_pdb.select_atoms('all')
-    fibril_atomtypes = []
-    for atom in fibril_sel:
-        atp = str(atom.name) + '_' + str(atom.resnum) + ':' + str(atom.segid)
-        fibril_atomtypes.append(atp)
-
-    return fibril_atomtypes
-
-# TODO todelete
-def topology_check(top1, top2):
-    if top1 == top2:
-        print('- Same topology definitions')
-    else:
-        difference = set(top1).symmetric_difference(set(top2))
-        atom_difference = list(difference)
-        #print(atom_difference)
+    pass
 
 
 def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
@@ -943,8 +849,6 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']<0.999)] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(0.999/np.maximum(structural_LJ['rc_probability'],parameters['rc_threshold'])))
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['rc_probability']>=0.999)] = 0 
     structural_LJ['epsilon'].loc[(structural_LJ['same_chain']=='Yes')&(structural_LJ['epsilon'] < 0.01*parameters['epsilon_md'])] = 0
-    # remove self interactions
-    structural_LJ['epsilon'].loc[(structural_LJ['ai'] == structural_LJ['aj'])] = parameters['epsilon_md']
     structural_LJ.dropna(inplace=True)
     structural_LJ = structural_LJ[structural_LJ.epsilon != 0]
     structural_LJ['source'] = 'PDB'
@@ -955,68 +859,245 @@ def PDB_LJ_pairs(structure_pdb, atomic_mat_random_coil, atomtypes, parameters):
     return structural_LJ
 
 
-def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters):
+def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     '''
     This function reads the probabilities obtained using mdmat on the plainMD and the random coil simulations.
     For each atom contact the sigma and epsilon are obtained.
     '''
-    print('\tAddition of MD derived LJ-pairs')
+    print('\t- Addition of MD derived LJ-pairs')
 
-    # Add sigma, add epsilon reweighted, add c6 and c12
-    atomic_mat_plainMD['sigma'] = (atomic_mat_plainMD['distance']) / (2**(1/6))
-    # Epsilon reweight based on probability
-    atomic_mat_plainMD['epsilon'] = np.nan 
-    atomic_mat_plainMD['same_chain'] = 'Yes'
-    # Merge the two dataframes by ai and aj which are also indexes now
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
     atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
-    atomic_mat_merged = pd.concat([atomic_mat_plainMD, atomic_mat_random_coil], axis=1)
-    atomic_mat_merged['diffr'] = abs(atomic_mat_merged['residue_aj'] - atomic_mat_merged['residue_ai'])
+    intra_mat_probability = pd.DataFrame()
+    inter_mat_probability = pd.DataFrame()
+
+    # TODO define based the command in input
+    # TODO define functions based on the choise of inter-intra parametrisation
+    
+    if parameters['egos'] == 'all':
+        print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
+    elif parameters['egos'] == 'split':
+        print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
+    else:
+        print("egos is not either 'all' or 'split")
+        exit()
+
+    # Retrieving the intramolecular contacts
+    intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
+    inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
+
+    if not intra_atomic_mat_plainMD.empty:
+        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+    if not inter_atomic_mat_plainMD.empty:
+        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+
+    #elif parameters['egos'] == 'split':
+        # It is similar as egos=all but the contacts are obtained from separate ensembles
+    #    if name == parameters['intra']:
+    #        print('\t\t- Intramolecular contacts handling')
+            # This one uses Paissoni Equation 2.1 with the random coil
+    #        intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
+    #        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+    #    if name == parameters['inter']:
+    #        print('\t\t- Intermolecular contacts handling')
+            # This one uses Paissoni Equation 1.0 without the random coil (still supplied in the function input for reasons)
+    #        inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
+    #        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+    #else:
+    #    print("egos is not either 'all' or 'split")
+    #    exit()
+
+    atomic_mat_merged = pd.concat([intra_mat_probability, inter_mat_probability], axis=0, sort = False, ignore_index = True)
+
+    return atomic_mat_merged
+
+
+def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
+    
+    intra_mat = atomic_mat_plainMD.copy()
+    intra_mat.to_csv(f'analysis/intra_mat_{name}')
+    intra_mat = intra_mat.loc[intra_mat['probability']>parameters['rc_threshold']]
+    
+    intra_mat['counts'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    drop_treshold = (intra_mat['counts'].max()/100)*10
+    intra_mat = intra_mat.loc[intra_mat['counts'] > drop_treshold]
+
+    intra_mat['distance_std'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('std')
+    intra_mat['distance_std'] = intra_mat['distance_std'].fillna(0)
+    intra_mat['distance_sep'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform(bimodal_split)
+    intra_mat['mode'] = np.where(intra_mat['distance_std'] < 0.023, 'uni', 'bi')
+    intra_mat['mode'].loc[(intra_mat['mode'] == 'bi') & (intra_mat['distance'] < intra_mat['distance_sep'])] = 'bi_keep'
+    intra_mat['mode'].loc[(intra_mat['mode'] == 'bi') & (intra_mat['distance'] >= intra_mat['distance_sep'])] = 'bi_drop'
+    # keep only the first peak of the bimodal
+    intra_mat = intra_mat.loc[(intra_mat['mode'] == 'uni') | (intra_mat['mode'] == 'bi_keep')]
+
+    # update counts
+    # intra_mat['counts'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    # drop_treshold = (intra_mat['counts'].max()/100)*10
+    # intra_mat = intra_mat.loc[intra_mat['counts'] > drop_treshold]
+ 
+    #intra_mat['temp_probability_mean'] = intra_mat.groupby(by=['idx_ai', 'idx_aj', 'mode'])['probability'].transform('mean')
+    #intra_mat['probability_diff'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['temp_probability_mean'].transform(bimodal_probability_diff)
+    #intra_mat = intra_mat.loc[intra_mat['probability_diff'] < 0.45]
+    
+    intra_mat_distance_reweighted = intra_mat.groupby(by=['idx_ai', 'idx_aj']).apply(weighted_distances)
+    intra_mat_probability_reweighted = intra_mat.groupby(by=['idx_ai', 'idx_aj']).apply(geometric_mean)
+
+    intra_mat_reweighted = pd.concat([intra_mat_distance_reweighted, intra_mat_probability_reweighted], axis=1)
+    intra_mat_reweighted.columns = ['distance', 'probability']
+
+    intra_mat_reweighted = pd.concat([intra_mat_reweighted, atomic_mat_random_coil], axis=1)
+    intra_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    intra_mat_reweighted['same_chain'] = 'Yes'
+
+    # Add sigma, add epsilon reweighted, add c6 and c12
+    intra_mat_reweighted['sigma'] = (intra_mat_reweighted['distance']) / (2**(1/6))
+
+    # Epsilon reweight based on probability
+    intra_mat_reweighted['epsilon'] = np.nan 
 
     # Paissoni Equation 2.1
     # Attractive
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability'])] = 0
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])&(atomic_mat_merged['probability'] < parameters['md_threshold'])] = 0 
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] >= atomic_mat_merged['rc_probability'])&(atomic_mat_merged['probability'] >= parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(atomic_mat_merged['probability']/np.maximum(atomic_mat_merged['rc_probability'],parameters['rc_threshold'])))
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])|(intra_mat_reweighted['probability']<parameters['md_threshold'])] = 0 
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']>intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['probability']>parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_reweighted['probability']/np.maximum(intra_mat_reweighted['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    # this is a repulsive energy of 2.49/2. kj/mol at a distance equal to sigma only for neighbour resiudes
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']<parameters['distance_residue'])] = -2.494339/2./4. 
-    # this is a repulsive energy of 2.49/2.5 kj/mol at a distance equal to sigma only for next to neighbour resiudes
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['probability'] < atomic_mat_merged['rc_probability']-parameters['md_threshold'])&(atomic_mat_merged['diffr']==parameters['distance_residue'])] = -2.494339/2.5/4. 
+    intra_mat_reweighted['diffr'] = abs(intra_mat_reweighted['rc_residue_aj'] - intra_mat_reweighted['rc_residue_ai'])
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=parameters['distance_residue'])] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(intra_mat_reweighted['distance']**12) 
 
     # Treshold vari ed eventuali
-    atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['epsilon'] < 0.01*parameters['epsilon_md'])&(atomic_mat_merged['epsilon']>0.)] = 0
-    atomic_mat_merged.dropna(inplace=True)
-    atomic_mat_merged = atomic_mat_merged[atomic_mat_merged.epsilon != 0]
-    atomic_mat_merged.drop(columns = ['distance', 'rc_residue_ai', 'rc_residue_aj', 'residue_ai', 'residue_aj', 'probability', 'rc_ai', 'rc_aj', 'rc_distance', 'diffr'], inplace = True)
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_reweighted['epsilon']>0.)] = 0
+    intra_mat_reweighted.dropna(inplace=True)
+    intra_mat_reweighted = intra_mat_reweighted[intra_mat_reweighted.epsilon != 0]
+    
+    print(f"\t\t- There are {len(intra_mat_reweighted)} intramolecular pairs interactions")
 
-    print("\t\t",len(atomic_mat_merged), " pairs interactions")
+    # Retrieving the ai and aj information from the index and reindexing back again
+    # TODO maybe there's a better way to do the same thing
+    intra_mat_reweighted = intra_mat_reweighted.reset_index()
+    intra_mat_reweighted[['ai', 'aj']] = intra_mat_reweighted[['idx_ai', 'idx_aj']]
+    intra_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace = True)
+
+    # Changing the columns order
+    intra_mat_reweighted = intra_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = atomic_mat_merged[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability']
-    atomic_mat_merged = pd.concat([atomic_mat_merged, inv_LJ], axis=0, sort = False, ignore_index = True)
+    inv_LJ = intra_mat_reweighted[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    intra_mat_reweighted = pd.concat([intra_mat_reweighted, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
-    atomic_mat_merged.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    intra_mat_reweighted.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
     # Cleaning the duplicates
-    atomic_mat_merged = atomic_mat_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    intra_mat_reweighted = intra_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
-    atomic_mat_merged[cols] = np.sort(atomic_mat_merged[cols].values, axis=1)
-    atomic_mat_merged = atomic_mat_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    atomic_mat_merged[['idx_ai', 'idx_aj']] = atomic_mat_merged[['ai', 'aj']]
-    atomic_mat_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
-    atomic_mat_merged['source'] = 'MD'
-    print(f'\t\t pairs added after removing duplicates: ', len(atomic_mat_merged))
-    print("\t\t average epsilon is ", atomic_mat_merged['epsilon'].loc[(atomic_mat_merged['epsilon']>0.)].mean())
-    print("\t\t maximum epsilon is ", atomic_mat_merged['epsilon'].max())
+    intra_mat_reweighted[cols] = np.sort(intra_mat_reweighted[cols].values, axis=1)
+    intra_mat_reweighted = intra_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    intra_mat_reweighted[['idx_ai', 'idx_aj']] = intra_mat_reweighted[['ai', 'aj']]
+    intra_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    intra_mat_reweighted['source'] = name
 
-    return atomic_mat_merged
+    print(f'\t\t- Pairs added after removing duplicates: ', len(intra_mat_reweighted))
+    print("\t\t\t- Epsilon input:", parameters['epsilon_md']) 
+    print("\t\t\t- Average intramolecular epsilon is", intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon']>0.)].mean())
+    print("\t\t\t- Maximum intramolecular epsilon is", intra_mat_reweighted['epsilon'].max())
+
+    return intra_mat_reweighted
+
+
+def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
+
+    inter_mat = atomic_mat_plainMD.copy()
+    inter_mat.to_csv(f'analysis/inter_mat_{name}')
+    inter_mat = inter_mat.loc[inter_mat['probability']>parameters['md_threshold']]
+    
+    inter_mat['counts'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    drop_treshold = (inter_mat['counts'].max()/100)*10
+    inter_mat = inter_mat.loc[inter_mat['counts'] > drop_treshold]
+
+    inter_mat['distance_std'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('std')
+    inter_mat['distance_std'] = inter_mat['distance_std'].fillna(0)
+    inter_mat['distance_sep'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform(bimodal_split)
+    inter_mat['mode'] = np.where(inter_mat['distance_std'] < 0.023, 'uni', 'bi')
+    inter_mat['mode'].loc[(inter_mat['mode'] == 'bi') & (inter_mat['distance'] < inter_mat['distance_sep'])] = 'bi_keep'
+    inter_mat['mode'].loc[(inter_mat['mode'] == 'bi') & (inter_mat['distance'] >= inter_mat['distance_sep'])] = 'bi_drop'
+    # keep only the first peak of the bimodal
+    inter_mat = inter_mat.loc[(inter_mat['mode'] == 'uni') | (inter_mat['mode'] == 'bi_keep')]
+
+    # update counts
+    # inter_mat['counts'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    # drop_treshold = (inter_mat['counts'].max()/100)*10
+    # inter_mat = inter_mat.loc[inter_mat['counts'] > drop_treshold]
+ 
+    #inter_mat['temp_probability_mean'] = inter_mat.groupby(by=['idx_ai', 'idx_aj', 'mode'])['probability'].transform('mean')
+    #inter_mat['probability_diff'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['temp_probability_mean'].transform(bimodal_probability_diff)
+    #inter_mat = inter_mat.loc[inter_mat['probability_diff'] < 0.45]
+    
+    inter_mat_distance_reweighted = inter_mat.groupby(by=['idx_ai', 'idx_aj']).apply(weighted_distances)
+    inter_mat_probability_reweighted = inter_mat.groupby(by=['idx_ai', 'idx_aj']).apply(geometric_mean)
+
+    inter_mat_reweighted = pd.concat([inter_mat_distance_reweighted, inter_mat_probability_reweighted], axis=1)
+    inter_mat_reweighted.columns = ['distance', 'probability']
+
+    inter_mat_reweighted = pd.concat([inter_mat_reweighted, atomic_mat_random_coil], axis=1)
+    inter_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    inter_mat_reweighted['same_chain'] = 'No'
+
+    # Add sigma, add epsilon reweighted, add c6 and c12
+    inter_mat_reweighted['sigma'] = (inter_mat_reweighted['distance']) / (2**(1/6))
+
+    # Epsilon reweight based on probability
+    inter_mat_reweighted['epsilon'] = np.nan 
+    
+    # Paissoni Equation 2.1
+    inter_mat_reweighted['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat_reweighted['probability']/parameters['md_threshold']))
+    inter_mat_reweighted.dropna(inplace=True)
+    inter_mat_reweighted['epsilon'].loc[(inter_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_amyl'])] = 0
+    inter_mat_reweighted = inter_mat_reweighted[inter_mat_reweighted.epsilon != 0]
+
+    print(f"\t\t- There are {len(inter_mat_reweighted)} intermolecular pairs interactions")
+
+    # Retrieving the ai and aj information from the index and reindexing back again
+    # TODO maybe there's a better way to do the same thing
+    inter_mat_reweighted = inter_mat_reweighted.reset_index()
+    inter_mat_reweighted[['ai', 'aj']] = inter_mat_reweighted[['idx_ai', 'idx_aj']]
+    inter_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace = True)
+
+    # Changing the columns order
+    inter_mat_reweighted = inter_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    
+    # Inverse pairs calvario
+    # this must list ALL COLUMNS!
+    inv_LJ = inter_mat_reweighted[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    inter_mat_reweighted = pd.concat([inter_mat_reweighted, inv_LJ], axis=0, sort = False, ignore_index = True)
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    # Sorting the pairs
+    inter_mat_reweighted.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    # Cleaning the duplicates
+    inter_mat_reweighted = inter_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    inter_mat_reweighted[cols] = np.sort(inter_mat_reweighted[cols].values, axis=1)
+    inter_mat_reweighted = inter_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    inter_mat_reweighted[['idx_ai', 'idx_aj']] = inter_mat_reweighted[['ai', 'aj']]
+    inter_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    inter_mat_reweighted['source'] = name
+    print(f'\t\t- Pairs added after removing duplicates: ', len(inter_mat_reweighted))
+    print("\t\t\t- Epsilon input:", parameters['epsilon_amyl'])
+    print("\t\t\t- Average intermolecular epsilon is", inter_mat_reweighted['epsilon'].loc[(inter_mat_reweighted['epsilon']>0.)].mean())
+    print("\t\t\t- Maximum intermolecular epsilon is", inter_mat_reweighted['epsilon'].max())
+
+    return inter_mat_reweighted
+
 
 
 def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
@@ -1025,21 +1106,27 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
 
-    print('- Generate Inter and Intra molecular interactions')
-    print('\tMerged pairs list: ', len(greta_LJ))
-    print('\tSorting and dropping all the duplicates')
+    print('- Merging Inter and Intra molecular interactions')
+    print('\t- Merged pairs list: ', len(greta_LJ))
+    print('\t- Sorting and dropping all the duplicates')
     # Inverse pairs calvario
     inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
     inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']
-    greta_LJ = pd.concat([greta_LJ,inv_LJ], axis=0, sort = False, ignore_index = True)
 
-    # first normalise PDB intramolecular contacts
-    ratio = greta_LJ['epsilon'].loc[(greta_LJ['source']=='MD')].max()/parameters['epsilon_md']
-    if(ratio>0):
-        greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='PDB')] *= ratio
+    greta_LJ = pd.concat([greta_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
 
+    if parameters['egos'] == 'split':
+        # in this case we use intra and inter molecular contacts from specific simulations
+        # yet we check the compatibility of the distances
+        greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
+        # not use repulsive interaction if sigma can be shorter than what it is 
+        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        greta_LJ['sigma'] = greta_LJ['new_sigma']
+        greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
     pairs_LJ = greta_LJ.copy()
+
     # Greta prioritise intermolecular interactions and shorter length ones
     greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -1047,7 +1134,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    print('\tCleaning and Merging Complete, pairs count: ', len(greta_LJ))
+    print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
 
     # Pairs prioritise intramolecular interactions
     pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
@@ -1060,7 +1147,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
     pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
-    # now we copy the lines with negative epsilon from greta to pairs because we want repuslive interactions only intramolecularly
+    # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
     pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
     # and we remove the same lines from greta_LJ
     greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
@@ -1078,12 +1165,12 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    #greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['epsilon']
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
     # So that the balance between native and fibril is less steep.
-    print('\tSelf interactions')
+    print('\t- Self interactions')
     atomtypes = set(greta_LJ['ai'])
     greta_LJ['double'] = ''
 
@@ -1103,6 +1190,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
         
     else:
         print('\t\tThere are', len(atp_notdoubles), 'self interactions to add')
+        print(atp_notdoubles)
         # From the list of atomtypes to add, a new dataframe is created to append to the main one
         pairs_toadd = pd.DataFrame(columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
         pairs_toadd['ai'] = atp_notdoubles
@@ -1160,9 +1248,9 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     # Drop double, we don't need it anymore
     greta_LJ.drop(columns = ['double'], inplace = True)
 
-    print('\tLJ Merging completed: ', len(greta_LJ))
-    print("\t\t average epsilon is ", greta_LJ['epsilon'].mean())
-    print("\t\t maximum epsilon is ", greta_LJ['epsilon'].max())
+    print('\t- LJ Merging completed: ', len(greta_LJ))
+    print("\t\t- Average epsilon is ", greta_LJ['epsilon'].mean())
+    print("\t\t- Maximum epsilon is ", greta_LJ['epsilon'].max())
 
     return greta_LJ, pairs_LJ
 
@@ -1171,8 +1259,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     '''
-    if not greta_merge.empty:
-        greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
 
     ego_topology['atom_number'] = ego_topology['atom_number'].astype(str)
     atnum_type_top = ego_topology[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
@@ -1182,7 +1268,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
 
-    #TODO this should be in topology_definitions.py
+    # Adding the c12
+    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
+
     # Building the exclusion bonded list
     # exclusion_bonds are all the interactions within 3 bonds
     # p14 are specifically the interactions at exactly 3 bonds
@@ -1222,17 +1310,11 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         ex14 = []
 
     if not greta_merge.empty:
+        greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
         # pairs from greta does not have duplicates because these have been cleaned before
         pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
         pairs['c12_ai'] = pairs['ai']
         pairs['c12_aj'] = pairs['aj']
-        pairs[['type_ai', 'resnum_ai']] = pairs.ai.str.split("_", expand = True)
-        pairs[['type_aj', 'resnum_aj']] = pairs.aj.str.split("_", expand = True)
-        pairs['resnum_ai'] = pairs['resnum_ai'].astype(int)
-        pairs['resnum_aj'] = pairs['resnum_aj'].astype(int)
-        
-        # We remove the contact with itself
-        pairs = pairs[pairs['ai'] != pairs['aj']]
         
         # The exclusion list was made based on the atom number
         pairs['ai'] = pairs['ai'].map(atnum_type_dict)
@@ -1247,10 +1329,15 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
-        # Intermolecular interactions learned from PDB are excluded 
-        pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.  
+        # Intermolecular interactions are excluded 
+        pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
-        pairs.drop(columns = ['rc_probability','same_chain', 'type_ai', 'resnum_ai', 'type_aj', 'resnum_aj', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
+        # Repulsive interactions are finalised 
+        pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
+        # this is a safety check 
+        pairs = pairs[pairs['c12']>0.]
+ 
+        pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
     else:
         pairs = pd.DataFrame()
@@ -1258,25 +1345,32 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Drop NaNs. This is an issue when adding the ligand ensemble.
     pairs.dropna(inplace=True)
 
-    # Adding the c12 (I do it now because later is sbatti)
-    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-
-    # Here we make a dictionary of the backbone oxygen as atom number
+    # Here we make a dictionary of the atoms used for local geometry 
     backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
-    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom']=='O']
+    ct_oxygen = atnum_type_top.loc[(atnum_type_top['atom']=='O1')|(atnum_type_top['atom']=='O2')]
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
+    pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
 
-    # For each backbone oxygen take the CB of the same residue and save in a pairs tuple
+    # For proline CD take the CB and the N of the previous residue and save in a pairs tuple
+    # CB-1-CD is related to the extended region of the ramachandran
+    # N-1-CD is related to the alpha region of the ramachandran
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
-    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+    for index, line_pro_cd in pro_cd.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
         if not line_sidechain_cb.empty:
-            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_ai.append(line_pro_cd['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(0.275*np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(2.598570e-06)
+            pairs_14_c12.append(2.715402e-06)
+
+        line_backbone_nitrogen = backbone_nitrogen.loc[(backbone_nitrogen['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
+        if not line_backbone_nitrogen.empty:
+            pairs_14_ai.append(line_pro_cd['atom_number'])
+            pairs_14_aj.append(line_backbone_nitrogen['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(1.077585e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1284,7 +1378,24 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For proline backbone oxygen take the CB of the same residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_backbone_oxygen['residue_number'])&(sidechain_cb['residue']=='PRO')].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
@@ -1295,8 +1406,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(0.275*np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(2.598570e-06)
+            #pairs_14_c12.append(0.52*np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(2.457603e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1304,7 +1415,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
-
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
@@ -1315,8 +1425,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(0.35*np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(1.522581e-06)
+            #pairs_14_c12.append(0.612*np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(1.680007e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1324,19 +1434,56 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
-
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For each backbone oxygen take the O of the next residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_next_o = backbone_oxygen.loc[backbone_oxygen['residue_number'] == (line_backbone_oxygen['residue_number']+1)].squeeze(axis=None)
+        if not line_next_o.empty:
+            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_aj.append(line_next_o['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # now we add the pair between the penultimate oxygen and the two CT ones
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_ct_oxygen in ct_oxygen.iterrows():
+        line_prev_o = backbone_oxygen.loc[backbone_oxygen['residue_number'] == (line_ct_oxygen['residue_number']-1)].squeeze(axis=None)
+        if not line_prev_o.empty:
+            pairs_14_ai.append(line_ct_oxygen['atom_number'])
+            pairs_14_aj.append(line_prev_o['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+
+    # remove duplicates
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
+    # in case of duplicates we keep the last occurrence this because in the input pairs there are not duplicates,
+    # duplicates can results due to the addition of local geometry pairs that then should superseed the former
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
-    # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
-    pairs.sort_values(by = ['ai', 'aj', 'c6', 'c12'], ascending = [True, True, True, True], inplace = True)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     # drop inverse duplicates
     cols = ['ai', 'aj']
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
 
@@ -1354,3 +1501,30 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     exclusion = pairs[['; ai', 'aj']].copy()
 
     return pairs, exclusion
+
+
+def rename_chains():
+    pass
+
+
+
+def weighted_distances(pair_subset):
+    distance_sum =  (pair_subset['distance']*pair_subset['probability']).sum()
+    probability_sum = pair_subset['probability'].sum()
+    
+    return distance_sum/probability_sum
+
+
+def geometric_mean(pair_subset):
+    probability_count = pair_subset['probability'].count()
+    probability_prod = pair_subset['probability'].prod()
+
+    return probability_prod ** (1.0/probability_count)
+
+
+def bimodal_split(pair_subset):
+    return ((pair_subset.max() - pair_subset.min())/2) + pair_subset.min()
+
+
+def bimodal_probability_diff(pair_subset):
+    return pair_subset.max() - pair_subset.min()
