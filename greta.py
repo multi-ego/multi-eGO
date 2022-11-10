@@ -24,15 +24,9 @@ gromos_atp = pd.DataFrame(
      #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.65, 4.937284e-06/1.9, 9.70225e-05/1.48), # CH1
      #       3.3965584e-05/2.2, 2.6646244e-05/3.1, 2.8058209e-05/2.35, 5.0625e-06/1.95, 1.3075456e-05/4.8,
      #       3.389281e-06/2.25, 7.4149321e-07/4.3, 2.319529e-06/2.65, 2.319529e-06/2.65, 2.319529e-06/2.65],
-     'c12': [0.263158e-06, 0.501843e-06, 0.875294e-06, 2.598570e-06, 6.555574e-05, # CH1
-             1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 0.272405e-05, 
-             1.506347e-06, 1.724403e-07, 0.875294e-06, 0.875294e-06, 0.875294e-06]
-     #'c12': [1e-06/3.8, 1.505529e-06/3, 2.319529e-06/2.5, 4.937284e-06/1.9, 9.70225e-05(C/2), # CH1
-     #       3.3965584e-05(C/2), 2.6646244e-05(C/2), 2.8058209e-05(C/2), 5.0625e-06/1.9, 1.3075456e-05/4.8,
-     #       3.389281e-06/2.2, 7.4149321e-07/4.3, 2.319529e-06/2.5, 2.319529e-06/2.5, 2.319529e-06/2.5],
-     #'c12': [0.263158e-06, 0.501843e-06, 0.892126e-06, 2.598570e-06, 2.598570e-06, # CH1
-     #        2.598570e-06, 2.598570e-06, 2.598570e-06, 0.892126e-06, 0.272405e-05, 
-     #        0.892126e-06, 1.724403e-07, 0.892126e-06, 0.892126e-06, 0.892126e-06]
+     'c12': [2.631580e-07, 5.018430e-07, 8.752940e-07, 2.598570e-06, 6.555574e-05, # CH1
+             1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 2.724050e-06, 
+             1.506347e-06, 1.724403e-07, 8.752940e-07, 8.752940e-07, 8.752940e-07]
      }
 )
 gromos_atp.to_dict()
@@ -885,32 +879,40 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     # TODO define functions based on the choise of inter-intra parametrisation
     
     if parameters['egos'] == 'all':
-        print('\t- egos = all. Intra and inter molecular contacts will be learned from all the ensembles')
-        # Retrieving the intramolecular contacts
-        intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
-        inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
-        
-        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
-        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
-
-
+        print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
     elif parameters['egos'] == 'split':
-        # It is similar as egos=all but the contacts are obtained from separate ensembles
-        if name == parameters['intra']:
-            print('\t\t- Intramolecular contacts handling')
-            # This one uses Paissoni Equation 2.1 with the random coil
-            intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
-            intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
-
-        if name == parameters['inter']:
-            print('\t\t- Intermolecular contacts handling')
-            # This one uses Paissoni Equation 1.0 without the random coil (still supplied in the function input for reasons)
-            inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
-            inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
-
+        print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
     else:
         print("egos is not either 'all' or 'split")
         exit()
+
+    # Retrieving the intramolecular contacts
+    intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
+    inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
+
+    if not intra_atomic_mat_plainMD.empty:
+        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+    if not inter_atomic_mat_plainMD.empty:
+        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+
+    #elif parameters['egos'] == 'split':
+        # It is similar as egos=all but the contacts are obtained from separate ensembles
+    #    if name == parameters['intra']:
+    #        print('\t\t- Intramolecular contacts handling')
+            # This one uses Paissoni Equation 2.1 with the random coil
+    #        intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
+    #        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+    #    if name == parameters['inter']:
+    #        print('\t\t- Intermolecular contacts handling')
+            # This one uses Paissoni Equation 1.0 without the random coil (still supplied in the function input for reasons)
+    #        inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
+    #        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+
+    #else:
+    #    print("egos is not either 'all' or 'split")
+    #    exit()
 
     atomic_mat_merged = pd.concat([intra_mat_probability, inter_mat_probability], axis=0, sort = False, ignore_index = True)
 
@@ -919,182 +921,131 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
 
 def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     
-    #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"])
-    #for coso1, coso2 in intra_mat_probability:
-    #    #print(coso1)
-    #    #print(coso2)
-    #    fig = px.histogram(coso2, nbins=50)
-    #    fig.write_html(f'plots/intra_plots_{coso1}.html')
-
-
-    #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({np.min,np.max})
-
-    # DISTANZA MINIMA E PROBABILITà MEDIA == distanza minima una migliore geometria però si sballano le probabilità
-
-    # Here we are taking the minimum value of distance and the consequent standard deviation
-    intra_mat_distance_std = atomic_mat_plainMD['distance'].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'std'])
-    intra_mat_distance_std.columns = ['distance_min', 'distance_std']
-    # Here I replace NaN with 0 otherwise we loose all the contacts represented once in the case of a single chain of the ensemble.
-    # 0 will allow to keep the distance cutoff the same as the minimum distance
-    # If the contacts is still low represented, other filters are applied later.
-    intra_mat_distance_std['distance_std'] = intra_mat_distance_std['distance_std'].fillna(0)
-
-    intra_mat_distance_std['distance_cutoff'] = intra_mat_distance_std['distance_min'] + intra_mat_distance_std['distance_std']
-    intra_mat_probability = pd.concat([atomic_mat_plainMD, intra_mat_distance_std], axis=1)
-    intra_mat_probability = intra_mat_probability.loc[intra_mat_probability['distance'] <= intra_mat_probability['distance_cutoff']]
-
-
-    #print(inter_mat_probability.loc[(inter_mat_probability['ai'] == 'CA_1') & (inter_mat_probability['aj'] == 'CB_1')].to_string())
-    intra_mat_probability_count = intra_mat_probability['probability'].groupby(by=['idx_ai', 'idx_aj']).count()
-    #print(inter_mat_probability_count)
-    intra_mat_probability_wmean = intra_mat_probability['probability'].groupby(by=['idx_ai', 'idx_aj']).prod()
-    #print(inter_mat_probability_wmean)
-    probability_reweighted = pd.concat([intra_mat_probability_wmean, intra_mat_probability_count], axis=1)
-    probability_reweighted.columns = ['product', 'count']
-    probability_reweighted['reweight'] = probability_reweighted['product'] ** (1/probability_reweighted['count'])
-    #print(probability_reweighted)
-
-
-    # MEDIE PER OGNI CONTATTO
-
-    #intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
-    #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg({'std', 'std'})
-    #intra_mat_probability = atomic_mat_plainMD[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
-
-    intra_mat_probability = intra_mat_probability[['probability', 'distance']].groupby(by=["idx_ai", "idx_aj"]).agg(['min', 'mean', 'std'])
-
-    #intra_mat_probability.columns = ['probability', 'distance']
-
-    # FLAG MINS MEANS
-
-    intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance_mean', 'distance_std']
-    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std']
+    intra_mat = atomic_mat_plainMD.copy()
+    intra_mat.to_csv(f'analysis/intra_mat_{name}')
+    intra_mat = intra_mat.loc[intra_mat['probability']>parameters['rc_threshold']]
     
+    intra_mat['counts'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    drop_treshold = (intra_mat['counts'].max()/100)*10
+    intra_mat = intra_mat.loc[intra_mat['counts'] > drop_treshold]
+
+    intra_mat['distance_std'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('std')
+    intra_mat['distance_std'] = intra_mat['distance_std'].fillna(0)
+    intra_mat['distance_sep'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform(bimodal_split)
+    intra_mat['mode'] = np.where(intra_mat['distance_std'] < 0.023, 'uni', 'bi')
+    intra_mat['mode'].loc[(intra_mat['mode'] == 'bi') & (intra_mat['distance'] < intra_mat['distance_sep'])] = 'bi_keep'
+    intra_mat['mode'].loc[(intra_mat['mode'] == 'bi') & (intra_mat['distance'] >= intra_mat['distance_sep'])] = 'bi_drop'
+    # keep only the first peak of the bimodal
+    intra_mat = intra_mat.loc[(intra_mat['mode'] == 'uni') | (intra_mat['mode'] == 'bi_keep')]
+
+    # update counts
+    # intra_mat['counts'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    # drop_treshold = (intra_mat['counts'].max()/100)*10
+    # intra_mat = intra_mat.loc[intra_mat['counts'] > drop_treshold]
+ 
+    #intra_mat['temp_probability_mean'] = intra_mat.groupby(by=['idx_ai', 'idx_aj', 'mode'])['probability'].transform('mean')
+    #intra_mat['probability_diff'] = intra_mat.groupby(by=['idx_ai', 'idx_aj'])['temp_probability_mean'].transform(bimodal_probability_diff)
+    #intra_mat = intra_mat.loc[intra_mat['probability_diff'] < 0.45]
     
-    intra_mat_probability['probability_std'] = intra_mat_probability['probability_std'].fillna(0)
-    intra_mat_probability['distance_std'] = intra_mat_probability['distance_std'].fillna(0)
-    intra_mat_probability['probability_reweighted'] = probability_reweighted['reweight']
-    intra_mat_probability = intra_mat_probability[['probability_min', 'probability', 'probability_reweighted', 'probability_std', 'distance_min', 'distance_mean', 'distance_std']]
+    intra_mat_distance_reweighted = intra_mat.groupby(by=['idx_ai', 'idx_aj']).apply(weighted_distances)
+    intra_mat_probability_reweighted = intra_mat.groupby(by=['idx_ai', 'idx_aj']).apply(geometric_mean)
 
-    intra_mat_probability = pd.concat([intra_mat_probability, atomic_mat_random_coil], axis=1)
-    #intra_mat_probability.columns = ['probability',  'distance',  'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    
-    # FLAG MINS MEANS
-    intra_mat_probability.columns = ['probability_min', 'probability_mean', 'probability', 'probability_std' , 'distance_min', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance', 'distance_mean', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    #intra_mat_probability.columns = ['probability_min', 'probability', 'probability_std', 'distance_min', 'distance', 'distance_std', 'residue_ai', 'rc_ai',  'residue_aj',  'rc_aj',  'rc_distance',  'rc_probability']
-    
+    intra_mat_reweighted = pd.concat([intra_mat_distance_reweighted, intra_mat_probability_reweighted], axis=1)
+    intra_mat_reweighted.columns = ['distance', 'probability']
 
-
-    intra_mat_probability.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
-    intra_mat_probability['same_chain'] = 'Yes'
-
-    # DROP DEI DUPLICATI IN BASE ALLA DISTANZA
-
-    #intra_mat_probability = atomic_mat_plainMD.copy()
-    #intra_mat_probability.drop(intra_mat_probability[intra_mat_probability['distance'] == 0].index, inplace=True)
-    ## Sorting the pairs
-    #intra_mat_probability.sort_values(by = ['ai', 'aj', 'distance'], inplace = True)
-    ## Cleaning the duplicates
-    #intra_mat_probability = intra_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    #intra_mat_probability = pd.concat([intra_mat_probability, atomic_mat_random_coil], axis=1)
-
-
-
-
-
+    intra_mat_reweighted = pd.concat([intra_mat_reweighted, atomic_mat_random_coil], axis=1)
+    intra_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    intra_mat_reweighted['same_chain'] = 'Yes'
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    intra_mat_probability['sigma'] = (intra_mat_probability['distance_mean']) / (2**(1/6))
+    intra_mat_reweighted['sigma'] = (intra_mat_reweighted['distance']) / (2**(1/6))
+
     # Epsilon reweight based on probability
-    intra_mat_probability['epsilon'] = np.nan 
-    intra_mat_probability['diffr'] = abs(intra_mat_probability['residue_aj'] - intra_mat_probability['residue_ai'])
+    intra_mat_reweighted['epsilon'] = np.nan 
 
     # Paissoni Equation 2.1
     # Attractive
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] < intra_mat_probability['rc_probability'])] = 0
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] >= intra_mat_probability['rc_probability'])&(intra_mat_probability['probability'] < parameters['md_threshold'])] = 0 
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] >= intra_mat_probability['rc_probability'])&(intra_mat_probability['probability'] >= parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_probability['probability']/np.maximum(intra_mat_probability['rc_probability'],parameters['rc_threshold'])))
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])|(intra_mat_reweighted['probability']<parameters['md_threshold'])] = 0 
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']>intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['probability']>parameters['md_threshold'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_reweighted['probability']/np.maximum(intra_mat_reweighted['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    # this is a repulsive energy of 2.49/2. kj/mol at a distance equal to sigma only for neighbour resiudes
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['probability'] < intra_mat_probability['rc_probability'])&(intra_mat_probability['diffr']<=parameters['distance_residue'])&(intra_mat_probability['probability']> 0.)] = np.log(intra_mat_probability['probability']/intra_mat_probability['rc_probability'])*(intra_mat_probability['distance_mean']**12) 
+    intra_mat_reweighted['diffr'] = abs(intra_mat_reweighted['rc_residue_aj'] - intra_mat_reweighted['rc_residue_ai'])
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=parameters['distance_residue'])] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(intra_mat_reweighted['distance']**12) 
 
     # Treshold vari ed eventuali
-    intra_mat_probability['epsilon'].loc[(intra_mat_probability['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_probability['epsilon']>0.)] = 0
-    intra_mat_probability.dropna(inplace=True)
-    intra_mat_probability = intra_mat_probability[intra_mat_probability.epsilon != 0]
-    #intra_mat_probability.drop(columns = ['distance_min', 'residue_ai', 'residue_aj', 'probability', 'rc_distance', 'diffr'], inplace = True)
-
-    print(f"\t\t- There are {len(intra_mat_probability)} intramolecular pairs interactions")
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_reweighted['epsilon']>0.)] = 0
+    intra_mat_reweighted.dropna(inplace=True)
+    intra_mat_reweighted = intra_mat_reweighted[intra_mat_reweighted.epsilon != 0]
+    
+    print(f"\t\t- There are {len(intra_mat_reweighted)} intramolecular pairs interactions")
 
     # Retrieving the ai and aj information from the index and reindexing back again
     # TODO maybe there's a better way to do the same thing
-    intra_mat_probability = intra_mat_probability.reset_index()
-    intra_mat_probability[['ai', 'aj']] = intra_mat_probability[['idx_ai', 'idx_aj']]
-    intra_mat_probability.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    intra_mat_reweighted = intra_mat_reweighted.reset_index()
+    intra_mat_reweighted[['ai', 'aj']] = intra_mat_reweighted[['idx_ai', 'idx_aj']]
+    intra_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
-    # Changing the columns order to more human readable
-    #intra_mat_probability = intra_mat_probability[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
-    intra_mat_probability = intra_mat_probability[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']]
-
-
+    # Changing the columns order
+    intra_mat_reweighted = intra_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = intra_mat_probability[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain', 'probability_std', 'distance_std']
-    intra_mat_probability = pd.concat([intra_mat_probability, inv_LJ], axis=0, sort = False, ignore_index = True)
+    inv_LJ = intra_mat_reweighted[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    intra_mat_reweighted = pd.concat([intra_mat_reweighted, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
-    intra_mat_probability.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    intra_mat_reweighted.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
     # Cleaning the duplicates
-    intra_mat_probability = intra_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    intra_mat_reweighted = intra_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
-    intra_mat_probability[cols] = np.sort(intra_mat_probability[cols].values, axis=1)
-    intra_mat_probability = intra_mat_probability.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    intra_mat_probability[['idx_ai', 'idx_aj']] = intra_mat_probability[['ai', 'aj']]
-    intra_mat_probability.set_index(['idx_ai', 'idx_aj'], inplace=True)
-    intra_mat_probability['source'] = name
-    print(f'\t\t- Pairs added after removing duplicates: ', len(intra_mat_probability))
-    print("\t\t\t- Epsilon input:", parameters['epsilon_md']) 
-    print("\t\t\t- Average intramolecular epsilon is", intra_mat_probability['epsilon'].loc[(intra_mat_probability['epsilon']>0.)].mean())
-    print("\t\t\t- Maximum intramolecular epsilon is", intra_mat_probability['epsilon'].max())
+    intra_mat_reweighted[cols] = np.sort(intra_mat_reweighted[cols].values, axis=1)
+    intra_mat_reweighted = intra_mat_reweighted.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    intra_mat_reweighted[['idx_ai', 'idx_aj']] = intra_mat_reweighted[['ai', 'aj']]
+    intra_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    intra_mat_reweighted['source'] = name
 
-    return intra_mat_probability
+    print(f'\t\t- Pairs added after removing duplicates: ', len(intra_mat_reweighted))
+    print("\t\t\t- Epsilon input:", parameters['epsilon_md']) 
+    print("\t\t\t- Average intramolecular epsilon is", intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon']>0.)].mean())
+    print("\t\t\t- Maximum intramolecular epsilon is", intra_mat_reweighted['epsilon'].max())
+
+    return intra_mat_reweighted
 
 
 def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
 
     inter_mat = atomic_mat_plainMD.copy()
-
     inter_mat.to_csv(f'analysis/inter_mat_{name}')
-    
-    
-    #test = inter_mat.copy()
-    #test_gb = test.groupby(by=['idx_ai', 'idx_aj'])
-    #test_gb_w = test_gb.apply(weighted_distances)
-    #test_gb_p = test_gb.apply(geometric_mean)
-    #merge_test = pd.concat([test_gb_w, test_gb_p],axis=1)
-
+    inter_mat = inter_mat.loc[inter_mat['probability']>parameters['md_threshold']]
     
     inter_mat['counts'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
-    drop_treshold = (inter_mat['counts'].max()/100)*5
+    drop_treshold = (inter_mat['counts'].max()/100)*10
     inter_mat = inter_mat.loc[inter_mat['counts'] > drop_treshold]
+
     inter_mat['distance_std'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('std')
+    inter_mat['distance_std'] = inter_mat['distance_std'].fillna(0)
     inter_mat['distance_sep'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform(bimodal_split)
-    inter_mat['mode'] = np.where(inter_mat['distance_std'] < 0.025, 'uni', 'bi')
+    inter_mat['mode'] = np.where(inter_mat['distance_std'] < 0.023, 'uni', 'bi')
     inter_mat['mode'].loc[(inter_mat['mode'] == 'bi') & (inter_mat['distance'] < inter_mat['distance_sep'])] = 'bi_keep'
     inter_mat['mode'].loc[(inter_mat['mode'] == 'bi') & (inter_mat['distance'] >= inter_mat['distance_sep'])] = 'bi_drop'
-    inter_mat['temp_probability_mean'] = inter_mat.groupby(by=['idx_ai', 'idx_aj', 'mode'])['probability'].transform('mean')
-    inter_mat['probability_diff'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['temp_probability_mean'].transform(bimodal_probability_diff)
-    inter_mat = inter_mat.loc[inter_mat['probability_diff'] < 0.45]
+    # keep only the first peak of the bimodal
+    inter_mat = inter_mat.loc[(inter_mat['mode'] == 'uni') | (inter_mat['mode'] == 'bi_keep')]
+
+    # update counts
+    # inter_mat['counts'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['distance'].transform('count')
+    # drop_treshold = (inter_mat['counts'].max()/100)*10
+    # inter_mat = inter_mat.loc[inter_mat['counts'] > drop_treshold]
+ 
+    #inter_mat['temp_probability_mean'] = inter_mat.groupby(by=['idx_ai', 'idx_aj', 'mode'])['probability'].transform('mean')
+    #inter_mat['probability_diff'] = inter_mat.groupby(by=['idx_ai', 'idx_aj'])['temp_probability_mean'].transform(bimodal_probability_diff)
+    #inter_mat = inter_mat.loc[inter_mat['probability_diff'] < 0.45]
     
     inter_mat_distance_reweighted = inter_mat.groupby(by=['idx_ai', 'idx_aj']).apply(weighted_distances)
     inter_mat_probability_reweighted = inter_mat.groupby(by=['idx_ai', 'idx_aj']).apply(geometric_mean)
 
     inter_mat_reweighted = pd.concat([inter_mat_distance_reweighted, inter_mat_probability_reweighted], axis=1)
     inter_mat_reweighted.columns = ['distance', 'probability']
-
 
     inter_mat_reweighted = pd.concat([inter_mat_reweighted, atomic_mat_random_coil], axis=1)
     inter_mat_reweighted.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
@@ -1106,7 +1057,6 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Epsilon reweight based on probability
     inter_mat_reweighted['epsilon'] = np.nan 
     
-    
     # Paissoni Equation 2.1
     inter_mat_reweighted['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat_reweighted['probability']/parameters['md_threshold']))
     inter_mat_reweighted.dropna(inplace=True)
@@ -1115,19 +1065,14 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     print(f"\t\t- There are {len(inter_mat_reweighted)} intermolecular pairs interactions")
 
-
     # Retrieving the ai and aj information from the index and reindexing back again
     # TODO maybe there's a better way to do the same thing
     inter_mat_reweighted = inter_mat_reweighted.reset_index()
     inter_mat_reweighted[['ai', 'aj']] = inter_mat_reweighted[['idx_ai', 'idx_aj']]
     inter_mat_reweighted.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
-
-
-
     # Changing the columns order
     inter_mat_reweighted = inter_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
-    
 
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
@@ -1165,19 +1110,23 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     print('\t- Merged pairs list: ', len(greta_LJ))
     print('\t- Sorting and dropping all the duplicates')
     # Inverse pairs calvario
-    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'probability_std', 'distance_std']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'probability_std', 'distance_std']
+    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']
+
     greta_LJ = pd.concat([greta_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
 
-    # first normalise PDB intramolecular contacts
-    #for param, value in self.parameters.items():
-    #    if 'md_ensemble' in param:
-    #ratio = greta_LJ['epsilon'].loc[(greta_LJ['source']=='fibril_MD') | greta_LJ['source']=='native_MD'].max()/parameters['epsilon_md']
-    #if(ratio>0):
-    #    greta_LJ['epsilon'].loc[(greta_LJ['same_chain']=='Yes')&(greta_LJ['source']=='PDB')] *= ratio
-
+    if parameters['egos'] == 'split':
+        # in this case we use intra and inter molecular contacts from specific simulations
+        # yet we check the compatibility of the distances
+        greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
+        # not use repulsive interaction if sigma can be shorter than what it is 
+        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        greta_LJ['sigma'] = greta_LJ['new_sigma']
+        greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
     pairs_LJ = greta_LJ.copy()
+
     # Greta prioritise intermolecular interactions and shorter length ones
     greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -1217,7 +1166,6 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
     pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['epsilon']
-    #greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -1311,8 +1259,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
     '''
-    if not greta_merge.empty:
-        greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
 
     ego_topology['atom_number'] = ego_topology['atom_number'].astype(str)
     atnum_type_top = ego_topology[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
@@ -1322,7 +1268,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
 
-    #TODO this should be in topology_definitions.py
+    # Adding the c12
+    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
+
     # Building the exclusion bonded list
     # exclusion_bonds are all the interactions within 3 bonds
     # p14 are specifically the interactions at exactly 3 bonds
@@ -1362,6 +1310,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         ex14 = []
 
     if not greta_merge.empty:
+        greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
         # pairs from greta does not have duplicates because these have been cleaned before
         pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
         pairs['c12_ai'] = pairs['ai']
@@ -1380,17 +1329,14 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
         pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
         pairs['func'] = 1
-        # Intermolecular interactions learned from PDB are excluded 
+        # Intermolecular interactions are excluded 
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
-        # If we don't have any other chain the next c12 loc throws an error, so I made this check
-        check = pairs.loc[pairs['same_chain']=='No']
-        if not check.empty:
-            pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
-        
-        check = pairs.loc[pairs['epsilon']<0]
-        if not check.empty:
-            pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
-        
+        pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
+        # Repulsive interactions are finalised 
+        pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
+        # this is a safety check 
+        pairs = pairs[pairs['c12']>0.]
+ 
         pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
     else:
@@ -1399,25 +1345,32 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # Drop NaNs. This is an issue when adding the ligand ensemble.
     pairs.dropna(inplace=True)
 
-    # Adding the c12 (I do it now because later is sbatti)
-    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-
-    # Here we make a dictionary of the backbone oxygen as atom number
+    # Here we make a dictionary of the atoms used for local geometry 
     backbone_nitrogen = atnum_type_top.loc[atnum_type_top['atom'] == 'N']
     backbone_carbonyl = atnum_type_top.loc[atnum_type_top['atom'] == 'C']
-    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom'] == 'O']
+    backbone_oxygen = atnum_type_top.loc[atnum_type_top['atom']=='O']
+    ct_oxygen = atnum_type_top.loc[(atnum_type_top['atom']=='O1')|(atnum_type_top['atom']=='O2')]
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
+    pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
 
-# For each backbone oxygen take the CB of the same residue and save in a pairs tuple
+    # For proline CD take the CB and the N of the previous residue and save in a pairs tuple
+    # CB-1-CD is related to the extended region of the ramachandran
+    # N-1-CD is related to the alpha region of the ramachandran
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
-    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == (line_backbone_oxygen['residue_number'])].squeeze(axis=None)
+    for index, line_pro_cd in pro_cd.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
         if not line_sidechain_cb.empty:
-            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_ai.append(line_pro_cd['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(0.275*np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(2.598570e-06)
+            pairs_14_c12.append(2.715402e-06)
+
+        line_backbone_nitrogen = backbone_nitrogen.loc[(backbone_nitrogen['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
+        if not line_backbone_nitrogen.empty:
+            pairs_14_ai.append(line_pro_cd['atom_number'])
+            pairs_14_aj.append(line_backbone_nitrogen['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(1.077585e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1425,9 +1378,25 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
-
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For proline backbone oxygen take the CB of the same residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_backbone_oxygen['residue_number'])&(sidechain_cb['residue']=='PRO')].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
@@ -1437,9 +1406,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-
-            pairs_14_c12.append(0.275*np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(2.598570e-06)
+            #pairs_14_c12.append(0.52*np.sqrt(line_backbone_carbonyl['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(2.457603e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1447,7 +1415,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
-
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
@@ -1458,9 +1425,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            
-            pairs_14_c12.append(0.35*np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
-            #pairs_14_c12.append(1.522581e-06)
+            #pairs_14_c12.append(0.612*np.sqrt(line_backbone_nitrogen['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(1.680007e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1468,19 +1434,56 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
-
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For each backbone oxygen take the O of the next residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_oxygen in backbone_oxygen.iterrows():
+        line_next_o = backbone_oxygen.loc[backbone_oxygen['residue_number'] == (line_backbone_oxygen['residue_number']+1)].squeeze(axis=None)
+        if not line_next_o.empty:
+            pairs_14_ai.append(line_backbone_oxygen['atom_number'])
+            pairs_14_aj.append(line_next_o['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # now we add the pair between the penultimate oxygen and the two CT ones
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_ct_oxygen in ct_oxygen.iterrows():
+        line_prev_o = backbone_oxygen.loc[backbone_oxygen['residue_number'] == (line_ct_oxygen['residue_number']-1)].squeeze(axis=None)
+        if not line_prev_o.empty:
+            pairs_14_ai.append(line_ct_oxygen['atom_number'])
+            pairs_14_aj.append(line_prev_o['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+
+    # remove duplicates
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
+    # in case of duplicates we keep the last occurrence this because in the input pairs there are not duplicates,
+    # duplicates can results due to the addition of local geometry pairs that then should superseed the former
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
-    # Cleaning the duplicates (the left alpha pairs win on pairs that may be previously defined)
-    pairs.sort_values(by = ['ai', 'aj', 'c6', 'c12'], ascending = [True, True, True, True], inplace = True)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     # drop inverse duplicates
     cols = ['ai', 'aj']
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
-    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
     pairs['ai'] = pairs['ai'].astype(int)
     pairs['aj'] = pairs['aj'].astype(int)
 
