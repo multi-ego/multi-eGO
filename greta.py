@@ -1073,7 +1073,7 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # Changing the columns order
     inter_mat_reweighted = inter_mat_reweighted[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
-    
+
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inv_LJ = inter_mat_reweighted[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
