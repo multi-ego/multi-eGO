@@ -926,17 +926,16 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']>intra_mat_reweighted['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat_reweighted['probability']/np.maximum(intra_mat_reweighted['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     intra_mat_reweighted['diffr'] = abs(intra_mat_reweighted['rc_residue_aj'] - intra_mat_reweighted['rc_residue_ai'])
-    # c12new = c12 - l(newprob/prob)*r12, here we calculate the correction term
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(intra_mat_reweighted['distance']**12) 
+    # c12new = l(newprob/prob)*r12, here we calculate the correction term
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(np.minimum(intra_mat_reweighted['rc_distance'],intra_mat_reweighted['distance'])**12)
+    intra_mat_reweighted['sigma'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = (np.minimum(intra_mat_reweighted['rc_distance'],intra_mat_reweighted['distance'])) / (2**(1/6)) 
 
     # clean NaN 
     intra_mat_reweighted.dropna(inplace=True)
     # remove positive but small epsilons
     intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] < 0.01*parameters['epsilon_md'])&(intra_mat_reweighted['epsilon']>0.)] = 0
-    # remove negative but small epsilons
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['epsilon'] > -1e-7)&(intra_mat_reweighted['epsilon']<0.)] = 0
     intra_mat_reweighted = intra_mat_reweighted[intra_mat_reweighted.epsilon != 0]
-    
+
     print(f"\t\t- There are {len(intra_mat_reweighted)} intramolecular pairs interactions")
 
     # Retrieving the ai and aj information from the index and reindexing back again
@@ -1100,6 +1099,8 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
     # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
+    # and we use same-chain as a flag to keep track of them
+    greta_LJ['same_chain'].loc[greta_LJ['epsilon']<0.] = 'Move'
     pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
     # and we remove the same lines from greta_LJ
     greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
@@ -1117,7 +1118,7 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['epsilon']
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.nan 
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -1284,8 +1285,11 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # Intermolecular interactions are excluded 
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
-        # Repulsive interactions are finalised 
+        # Repulsive interactions are finalised
         pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
+        # pairs['c12'].loc[(pairs['epsilon']<0.)] = np.maximum(np.sqrt(pairs['c12_ai'] * pairs['c12_aj']),-pairs['epsilon'])
+        # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
+        pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
         # this is a safety check 
         pairs = pairs[pairs['c12']>0.]
  
@@ -1335,12 +1339,31 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     # For proline backbone oxygen take the CB of the same residue and save in a pairs tuple
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
-        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_backbone_oxygen['residue_number'])&(sidechain_cb['residue']=='PRO')].squeeze(axis=None)
+        #line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_backbone_oxygen['residue_number'])&(sidechain_cb['residue']=='PRO')].squeeze(axis=None)
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_backbone_oxygen['residue_number'])].squeeze(axis=None)
         if not line_sidechain_cb.empty:
             pairs_14_ai.append(line_backbone_oxygen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(np.sqrt(line_backbone_oxygen['c12']*line_sidechain_cb['c12']))
+            pairs_14_c12.append(2.386000e-07)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # now we add the pair between the last CB and the two CT ones
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_ct_oxygen in ct_oxygen.iterrows():
+        line_last_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == line_ct_oxygen['residue_number']].squeeze(axis=None)
+        if not line_last_cb.empty:
+            pairs_14_ai.append(line_ct_oxygen['atom_number'])
+            pairs_14_aj.append(line_last_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(2.386000e-07)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1396,7 +1419,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_oxygen['atom_number'])
             pairs_14_aj.append(line_next_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(5.*line_backbone_oxygen['c12'])
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1414,7 +1437,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_ct_oxygen['atom_number'])
             pairs_14_aj.append(line_prev_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(10.*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(5.*line_backbone_oxygen['c12'])
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
