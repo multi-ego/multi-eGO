@@ -1355,6 +1355,24 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = pairs_14_c12
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # now we add the pair between the last CB and the two CT ones
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_ct_oxygen in ct_oxygen.iterrows():
+        line_last_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == line_ct_oxygen['residue_number']].squeeze(axis=None)
+        if not line_last_cb.empty:
+            pairs_14_ai.append(line_ct_oxygen['atom_number'])
+            pairs_14_aj.append(line_last_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(2.386000e-07)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
     # For each backbone carbonyl take the CB of the following residue and save in a pairs tuple
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_backbone_carbonyl in backbone_carbonyl.iterrows():
