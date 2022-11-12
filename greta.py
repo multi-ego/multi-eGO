@@ -927,8 +927,8 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Repulsive
     intra_mat_reweighted['diffr'] = abs(intra_mat_reweighted['rc_residue_aj'] - intra_mat_reweighted['rc_residue_ai'])
     # c12new = l(newprob/prob)*r12, here we calculate the correction term
-    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(intra_mat_reweighted['rc_distance']**12)
-    intra_mat_reweighted['sigma'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = (intra_mat_reweighted['rc_distance']) / (2**(1/6)) 
+    intra_mat_reweighted['epsilon'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = np.log(intra_mat_reweighted['probability']/intra_mat_reweighted['rc_probability'])*(np.minimum(intra_mat_reweighted['rc_distance'],intra_mat_reweighted['distance'])**12)
+    intra_mat_reweighted['sigma'].loc[(intra_mat_reweighted['probability']<intra_mat_reweighted['rc_probability'])&(intra_mat_reweighted['diffr']<=2)] = (np.minimum(intra_mat_reweighted['rc_distance'],intra_mat_reweighted['distance'])) / (2**(1/6)) 
 
     # clean NaN 
     intra_mat_reweighted.dropna(inplace=True)
