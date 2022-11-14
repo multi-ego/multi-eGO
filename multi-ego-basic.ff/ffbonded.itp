@@ -328,10 +328,10 @@
 #define gd_42 162.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- ALA
 ;
-#define gd_43 3.0000 1.0000 3
+#define gd_43 5.0000 2.0000 3
 ; Backbone dihedral angle -C-N-CA-C- ALA
 ;
-#define gd_44 -166.000 2.0000 1
+#define gd_44 -180.000 2.7500 1
 ; Backbone dihedral angle -C-N-CA-C- ALA
 ;
 #define gd_45 0.000 1.0000 1
