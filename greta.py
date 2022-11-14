@@ -1287,7 +1287,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         # Repulsive interactions are finalised
         pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
-        # pairs['c12'].loc[(pairs['epsilon']<0.)] = np.maximum(np.sqrt(pairs['c12_ai'] * pairs['c12_aj']),-pairs['epsilon'])
         # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
         pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
         # this is a safety check 
@@ -1311,7 +1310,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
 
     # For proline CD take the CB and the N of the previous residue and save in a pairs tuple
     # CB-1-CD is related to the extended region of the ramachandran
-    # N-1-CD is related to the alpha region of the ramachandran
+    # N-1-CD is related to the alpha region of the ramachandran (not used)
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_pro_cd in pro_cd.iterrows():
         line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
@@ -1320,13 +1319,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(2.715402e-06)
-
-        line_backbone_nitrogen = backbone_nitrogen.loc[(backbone_nitrogen['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
-        if not line_backbone_nitrogen.empty:
-            pairs_14_ai.append(line_pro_cd['atom_number'])
-            pairs_14_aj.append(line_backbone_nitrogen['atom_number'])
-            pairs_14_c6.append(0.0)
-            pairs_14_c12.append(1.077585e-06)
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
