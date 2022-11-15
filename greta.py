@@ -1374,7 +1374,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(1.680007e-06)
+            #pairs_14_c12.append(1.680007e-06)
+            pairs_14_c12.append(0.65*np.sqrt(line_sidechain_cb['c12']*line_backbone_nitrogen['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
