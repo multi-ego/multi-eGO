@@ -110,6 +110,48 @@ def plainMD_mdmat(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict)
     print('\t- Contact map read')
     return atomic_mat_plainMD
 
+def plainMD_mdmat_new(parameters, contact_map_file, idx_sbtype_dict, idx_chain_dict):
+    # Reading PlainMD contacts
+#    if ensemble_parameters['is_ligand']:
+#        contact_map_file = f'{parameters["input_folder"]}/ligandMD_contacts.ndx'
+#    else:
+#        contact_map_file = f'{parameters["input_folder"]}/plainMD_contacts.ndx'
+
+
+    # TODO da ricordarsi che quando si fa l'mdmat bisogna utilizzare traiettoria e struttura ripuliti degli H per la numerazione giusta
+    # Altrimenti succede che si tengono gli atom number considerando la numerazione con gli H e non SB
+
+    # TODO togliere l'ultima colonna del pdb con gli atomtypes aggiuntivi e pure gli spazi. 
+
+    print(f'\t- Reading {contact_map_file}') 
+    # TODO chunks per la progress bar
+    atomic_mat_plainMD = pd.DataFrame()
+
+    print('\tReading ', contact_map_file)        
+    atomic_mat_plainMD = pd.read_csv(contact_map_file, header=None, sep = '\s+')
+    atomic_mat_plainMD.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'probability']
+    atomic_mat_plainMD.drop(columns=['distance'], inplace=True)
+    atomic_mat_plainMD.columns = ['ai', 'aj', 'distance', 'probability']
+    atomic_mat_plainMD['chain_ai'] = atomic_mat_plainMD['ai'].map(idx_chain_dict)
+    atomic_mat_plainMD['chain_aj'] = atomic_mat_plainMD['aj'].map(idx_chain_dict)
+    atomic_mat_plainMD['same_chain'] = 'No'
+    atomic_mat_plainMD['same_chain'].loc[atomic_mat_plainMD['chain_ai'] == atomic_mat_plainMD['chain_aj']] = 'Yes'
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'ai':idx_sbtype_dict})
+    atomic_mat_plainMD = atomic_mat_plainMD.replace({'aj':idx_sbtype_dict})
+    atomic_mat_plainMD[['type_ai', 'residue_ai']] = atomic_mat_plainMD.ai.str.split("_", expand = True)
+    atomic_mat_plainMD[['type_aj', 'residue_aj']] = atomic_mat_plainMD.aj.str.split("_", expand = True)
+    atomic_mat_plainMD['residue_ai'] = atomic_mat_plainMD['residue_ai'].astype(int)
+    atomic_mat_plainMD['residue_aj'] = atomic_mat_plainMD['residue_aj'].astype(int)
+    atomic_mat_plainMD.drop(columns=['type_ai', 'type_aj'], inplace=True)
+
+    # DEBUG
+    file = open(f'analysis/plainMD_mat_multiego.csv', 'w')
+    file.write(atomic_mat_plainMD.to_string())
+    file.close()
+
+    print('\t- Contact map read')
+    return atomic_mat_plainMD
+
 
 def random_coil_mdmat(contact_map_file, idx_sbtype_dict):
     # Reading Random Coil contacts
