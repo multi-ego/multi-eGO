@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import itertools
 import parmed as pmd
-from read_input import random_coil_mdmat, plainMD_mdmat_new
+from read_input import random_coil_mdmat, plainMD_mdmat, plainMD_mdmat_new
 from topology_parser import read_topology, topology_parser, extra_topology_ligands
 import plotly.express as px
 from tqdm import tqdm
