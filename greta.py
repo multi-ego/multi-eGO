@@ -35,6 +35,8 @@ gromos_atp.set_index('name', inplace=True)
 from_ff_to_multiego = {
     'OC1' : 'O1',
     'OC2' : 'O2',
+    'OT1' : 'O1',
+    'OT2' : 'O2',
 }
 
 class multiego_ensemble:
