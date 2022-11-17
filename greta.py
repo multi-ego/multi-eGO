@@ -611,17 +611,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     intra_mat_probability = pd.DataFrame()
     inter_mat_probability = pd.DataFrame()
 
-    # TODO define based the command in input
-    # TODO define functions based on the choise of inter-intra parametrisation
-    
-    if parameters['egos'] == 'all':
-        print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
-    elif parameters['egos'] == 'split':
-        print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
-    else:
-        print("egos is not either 'all' or 'split")
-        exit()
-
     # Retrieving the intramolecular contacts
     intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
     inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
