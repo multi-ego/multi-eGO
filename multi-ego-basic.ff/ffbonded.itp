@@ -331,7 +331,7 @@
 #define gd_43 20.0000 2.0000 3
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
-#define gd_44 -175.000 3.5000 1
+#define gd_44 -180.000 3.2500 1
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
 #define gd_45 0.000 0.7500 1
