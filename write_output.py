@@ -13,10 +13,8 @@ def header(parameters):
     if parameters['egos'] != 'rc':
         header += f"; LJ epsilon: {parameters['epsilon_md']} \n"
         header += f"; LJ amyloid epsilon: {parameters['epsilon_amyl']} \n"
-    if parameters['ensemble'] == True and parameters['egos'] != 'rc':
         header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
     header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
-    header += f"; Skipping contacts within {parameters['distance_residue']} residues \n"
     header += "\n"
 
     return header
