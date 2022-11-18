@@ -4,7 +4,7 @@ import sys, getopt
 from read_input import find_files
 from write_output import write_LJ, write_atomtypes_atp, write_topology, write_ligand_topology
 from topology_parser import read_topology
-from greta import ensemble, multiego_ensemble
+from greta import ensemble, multiego_ensemble, convert_topology, from_ff_to_multiego
 pd.options.mode.chained_assignment = None  # default='warn'
 
 
@@ -195,8 +195,10 @@ def main(argv):
         print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
     elif parameters['egos'] == 'split':
         print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
+    elif parameters['egos'] == 'rc':
+        print('\t- egos = rc: no molecular contacts will be parametrized')
     else:
-        print("egos is not either 'all' or 'split")
+        print("egos is not either 'all', 'split', or 'rc'")
         exit()
 
     print('- Creating md ensembles')
@@ -204,13 +206,13 @@ def main(argv):
         file_paths = find_files(ensemble_name, parameters=parameters)
         md_ensemble = ensemble(parameters=parameters, ensemble_parameters=file_paths, name=ensemble_name)
         md_ensemble.prepare_ensemble()
-        # TODO qui mettere un bel IF per fargli leggere gli MD qualora fosse indicato un .ndx in lettura
+
+        convert_topology(from_ff_to_multiego, reference.ensemble_top, md_ensemble.ensemble_top)
+
         md_ensemble.add_MD_contacts()
-        #md_ensemble.convert_topology(reference)
-        #print(f'- The following contacts were converted: {md_ensemble.conversion_dict}')
         print('- Adding MD probability matrix to multi-eGO ensemble')
         multi_ego.add_structure_based_contacts(ensemble_name, md_ensemble.atomic_mat_MD)
-        
+
 
 
     print('- Generating multi-eGO LJ')

@@ -399,8 +399,7 @@ class ensemble:
 
         print('\t\t- Defining multi-eGO atomtypes')
         topology_df['sb_type'] = topology_df['atom'] + '_' + topology_df['residue_number'].astype(str)        
-        
-        
+                
         # Definition of the different dictionaries
         self.ensemble_top = topology_df
 
@@ -1169,3 +1168,24 @@ def bimodal_split(pair_subset):
 
 def bimodal_probability_diff(pair_subset):
     return pair_subset.max() - pair_subset.min()
+
+def convert_topology(from_ff_to_multiego, *ensembles):
+    '''
+    This function is required to check the different atomtypes between different force fields.
+    The atom types MUST match otherwise a proper ffnobonded cannot be created.
+    '''
+
+    dict_set = set(from_ff_to_multiego.keys())
+
+
+    diff_atoms_set = set([])
+    for topology in ensembles:
+        topology = topology[~topology['atom_type'].astype(str).str.startswith('H')]
+        atoms_set = set(topology['atom'].to_list())
+        diff_atoms_set = atoms_set - diff_atoms_set
+        
+    check_dictionary = diff_atoms_set - dict_set
+
+    if check_dictionary:
+        print(f'The following atomtypes are not converted. \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts \n{check_dictionary}')
+        exit()
