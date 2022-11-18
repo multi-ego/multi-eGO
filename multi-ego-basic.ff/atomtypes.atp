@@ -13,3 +13,8 @@
   CH3  15.03500 ;     aliphatic CH3-group
  CH2r  14.02700 ;     CH2-group in a ring
     S  32.06000 ;     sulfur
+; LIPIDS
+ CH3p  15.03500 ;     Polar aliphatic CH3-group 
+    P  30.97380 ;     phosphor
+   OE  15.99940 ;     ether or ester oxygen
+  CR1  13.01900 ;     aromatic CH-group    
