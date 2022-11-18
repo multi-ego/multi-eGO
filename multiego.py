@@ -195,8 +195,10 @@ def main(argv):
         print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
     elif parameters['egos'] == 'split':
         print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
+    elif parameters['egos'] == 'rc':
+        print('\t- egos = rc: no molecular contacts will be parametrized')
     else:
-        print("egos is not either 'all' or 'split")
+        print("egos is not either 'all', 'split', or 'rc'")
         exit()
 
     print('- Creating md ensembles')
