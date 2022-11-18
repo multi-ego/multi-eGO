@@ -13,7 +13,7 @@ POPC     3
     1  CH3p    1    POPC    CN1    1    0.000  15.0350 
     2  CH3p    1    POPC    CN2    1    0.000  15.0350 
     3  CH3p    1    POPC    CN3    1    0.000  15.0350 
-    4    NL    1    POPC    NTM    1    0.000  14.0067 
+    4    NL    1    POPC      N    1    0.000  14.0067 
     5   CH2    1    POPC     CA    1    0.000  14.0270      ;  1.000
     6   CH2    1    POPC     CB    2    0.000  14.0270 
     7    OA    1    POPC     OA    2    0.000  15.9994 
