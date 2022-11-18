@@ -29,11 +29,11 @@ def find_files(ensemble, parameters, is_md=True):
         raise Exception('\n\n\nIt is required a .ndx file to continue. \nTry egos=rc first.')        
     not_random_coil_contacts = {}
     try:
-        not_random_coil_contacts['intra'] = f'{directory}/{[f for f in list_ndx if "intra.ndx" in f][0]}'
+        not_random_coil_contacts['intra'] = f'{directory}/{[f for f in list_ndx if "intramat.ndx" in f][0]}'
     except:
         pass
     try:
-        not_random_coil_contacts['inter'] = f'{directory}/{[f for f in list_ndx if "inter.ndx" in f][0]}'
+        not_random_coil_contacts['inter'] = f'{directory}/{[f for f in list_ndx if "intermat.ndx" in f][0]}'
     except:
         pass
     file_paths[f'{ensemble}_contacts'] = not_random_coil_contacts

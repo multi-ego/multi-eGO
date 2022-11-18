@@ -40,6 +40,58 @@ from_ff_to_multiego = {
     'OC2' : 'O2',
     'OT1' : 'O1',
     'OT2' : 'O2',
+    'C13' :'CN1',
+    'C14' :'CN2',
+    'C15' :'CN3',
+    'N'   :'NTM',
+    'C12' :'CA',
+    'C11' :'CB',
+    'O12' :'OA',
+    'P'   :'P',
+    'O13' :'OB',
+    'O14' :'OC',
+    'O11' :'OD',
+    'C1'  :'CC',
+    'C2'  :'CD',
+    'O21' :'OE',
+    'C21' :'C1A',
+    'O22' :'OF',
+    'C22' :'C1B',
+    'C23' :'C1C',
+    'C24' :'C1D',
+    'C25' :'C1E',
+    'C26' :'C1F',
+    'C27' :'C1G',
+    'C28' :'C1H',
+    'C29' :'C1I',
+    'C210':'C1J',
+    'C211':'C1K',
+    'C212':'C1L',
+    'C213':'C1M',
+    'C214':'C1N',
+    'C215':'C1O',
+    'C216':'C1P',
+    'C217':'C1Q',
+    'C218':'C1R',
+    'C3'  :'CE',
+    'O31' :'OG',
+    'C31' :'C2A',
+    'O32' :'OH',
+    'C32' :'C2B',
+    'C33' :'C2C',
+    'C34' :'C2D',
+    'C35' :'C2E',
+    'C36' :'C2F',
+    'C37' :'C2G',
+    'C38' :'C2H',
+    'C39' :'C2I',
+    'C310':'C2J',
+    'C311':'C2K',
+    'C312':'C2L',
+    'C313':'C2M',
+    'C314':'C2N',
+    'C315':'C2O',
+    'C316':'C2P',
 }
 
 class multiego_ensemble:
@@ -352,13 +404,11 @@ class ensemble:
 
         print('\t\t- Generating multi-eGO topology')
 
-        topology_df = self.topology.to_dataframe()
         # Removing solvent from the dataframe
-        #topology_df.drop(topology_df[topology_df.resname == 'SOL'].index, inplace=True) 
+        atom_selection = self.topology["!((:TIP3)|(:SOL)|(:WAT))"]
+        topology_df = atom_selection.to_dataframe()
 
-        #print(dir(topology))
-        #print(len(topology.molecules))
-        topology_df['number'] = list(range(1, len(self.topology.atoms)+1))
+        topology_df['number'] = list(range(1, len(atom_selection.atoms)+1))
         topology_df['resid'] = topology_df['resid'] + 1
         topology_df['resnum'] = topology_df['resid']
         topology_df['cgnr'] = topology_df['resid']
@@ -605,7 +655,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     For each atom contact the sigma and epsilon are obtained.
     '''
     print('\t- Addition of MD derived LJ-pairs')
-
+    print(atomic_mat_plainMD)
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
