@@ -399,9 +399,7 @@ class ensemble:
 
         print('\t\t- Defining multi-eGO atomtypes')
         topology_df['sb_type'] = topology_df['atom'] + '_' + topology_df['residue_number'].astype(str)        
-        
-        print(topology_df)
-        
+                
         # Definition of the different dictionaries
         self.ensemble_top = topology_df
 
