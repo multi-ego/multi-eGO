@@ -260,7 +260,10 @@
 ; 
 ; 
 ; ICP(H)[N]  CP[N] PD[N] NP[N]
-; 
+;
+#define gd_4    180.000       5.86          1
+; N-CHn-CHn-OA (lipid)	1.4
+;
 #define gd_10   180.000       5.86          2
 ; -C-C-	1.4
 ;
@@ -269,6 +272,9 @@
 ;
 #define gd_12   180.000       16.7          2
 ; -C-OA,OE- (carboxyl)	4.0
+;
+#define gd_13   180.000       24.0          2
+; CHn-OE-C-CHn (ester lipid)	5.7
 ;
 #define gd_14   180.000       33.5          2
 ; -C-N,NT,NE,NZ,NR-	8.0
@@ -285,6 +291,9 @@
 #define gd_19     0.000       3.14          2
 ; -OA-P-	0.75
 ;
+#define gd_20     0.000       5.09          2
+; O-P-O- (dna, lipids)	1.2
+;
 #define gd_21     0.000       16.7          2
 ; -S-S-	4.0
 ;
@@ -300,6 +309,9 @@
 #define gd_26     0.000       2.93          3
 ; -CH2-S-	0.7
 ;
+#define gd_27     0.000       3.19          3
+; O-P-O- (dna, lipids)	0.8
+;
 #define gd_29     0.000       3.77          3
 ; -C,CHn,SI-	0.9
 ;
@@ -311,6 +323,9 @@
 ;
 #define gd_34     0.000       5.92          3
 ; -CHn,SI-CHn-	1.4
+;
+#define gd_36     0.000       8.62          3
+; N-CHn-CHn-OA (lipid)	2.1
 ;
 #define gd_38     0.000        0.0          4
 ; -NR-FE-	0.0
