@@ -12,14 +12,11 @@ pd.options.mode.chained_assignment = None  # default='warn'
 # Non serve più la chain e il residue number per la lettura delle matrici
 
 
-
 def main(argv):
 
     parameters = {
         # native pair distance cut-off, used only when learning from structures
         'distance_cutoff':5.5,
-        # neighbor aminoacid to exclude < x, used only when learning from structures
-        'distance_residue':2,
         # this is the minimum probability for a pair to be considered
         'md_threshold':0.001, 
         # this is the minimum probability for the random-coil matrix
@@ -30,10 +27,6 @@ def main(argv):
         'epsilon_amyl':0.300,
         # This is the protein-ligand interaction energy 
         'epsilon_ligand':0.300,
-        # Acid FFnonbondend it only works on the native pairs
-        'acid_ff':False,
-        # Default behavior is to train from a simulation
-        'ensemble':True,
         # Does the model include the interaction with a ligand
         'ligand':False,
         # This is to reduce the kds when taking the ligand from another FF
@@ -63,18 +56,18 @@ def main(argv):
 # Questo vuol dire che c'è da rinominare le cartelle di input in qualche modo standard.
 
     try:
-        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "PDB1=", "PDB2=", "egos=", "epsilon=", "epsilon_amyloid=","ligand", "epsilon_ligand=", "intra=", "inter=", "noensemble", "help"])
-        #opts, args = getopt.getopt(argv,"",["protein=", "egos=", "epsilon=", "epsilon_amyloid=", "ligand", "epsilon_ligand=", "noensemble", "help"])
+        opts, args = getopt.getopt(argv,"",["protein=", "md_ensembles=", "egos=", "epsilon=", "epsilon_amyloid=","ligand", "epsilon_ligand=", "intra=", "inter=", "help"])
     except getopt.GetoptError:
-        print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
+        print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional)')
         sys.exit(2)
+
     if(len(opts)==0):
-            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
-            sys.exit()
+        print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional)')
+        sys.exit()
 
     for opt, arg in opts:
         if opt == '--help':
-            print('multiego.py --protein=<protein> --egos=<single|merge|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional) --noensemble (optional)')
+            print('multiego.py --md_ensembles=md1,md2,... --egos=<all|split|rc> --epsilon=0.x (not used with --egos=rc) --ligand (optional) --epsilon_amyloid=0.x (optional) --epsilon_ligand=0.x (optional)')
             sys.exit()
 
         elif opt in ("--protein"):
@@ -96,14 +89,14 @@ def main(argv):
             if arg:
                 parameters['intra'] = arg
             else:
-                print('Usign --egos split requires the definition of the intramolecular ensemble')
+                print('--egos=split requires the definition of the intramolecular ensemble')
                 sys.exit()
         
         elif opt in ("--inter") and parameters['egos'] == 'split':
             if arg:
                 parameters['inter'] = arg
             else:
-                print('Usign --egos split requires the definition of the intermolecular ensemble')
+                print('Using --egos split requires the definition of the intermolecular ensemble')
                 sys.exit()
 
         elif opt in ("--md_ensembles"):
@@ -144,9 +137,6 @@ def main(argv):
             else:
                 parameters['epsilon_ligand'] = float(arg)
         
-        elif opt in ("--noensemble"):
-            parameters['ensemble'] = False 
-  
     # TODO figure out valid parameter combinations
     # check if input parameter combination is valid
 
@@ -201,6 +191,13 @@ def main(argv):
     reference_atoms_size = reference.atoms_size
     #del reference
 
+    if parameters['egos'] == 'all':
+        print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
+    elif parameters['egos'] == 'split':
+        print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
+    else:
+        print("egos is not either 'all' or 'split")
+        exit()
 
     print('- Creating md ensembles')
     for ensemble_name in md_ensembles_list: # TODO qui perche' per forza MD? gli posso dire di non leggere il nat-all e dovrebbe stare a posto e fare il PDB LJ     

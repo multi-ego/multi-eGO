@@ -614,17 +614,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     intra_mat_probability = pd.DataFrame()
     inter_mat_probability = pd.DataFrame()
 
-    # TODO define based the command in input
-    # TODO define functions based on the choise of inter-intra parametrisation
-    
-    if parameters['egos'] == 'all':
-        print('\t- egos = all: intra and inter molecular contacts will be learned from all the ensembles')
-    elif parameters['egos'] == 'split':
-        print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
-    else:
-        print("egos is not either 'all' or 'split")
-        exit()
-
     # Retrieving the intramolecular contacts
     intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
     inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
@@ -660,8 +649,8 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Repulsive
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
     # c12new = l(newprob/prob)*r12, here we calculate the correction term
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.minimum(intra_mat['rc_distance'],intra_mat['distance'])**12)
-    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.minimum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6)) 
+    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
+    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6)) 
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
