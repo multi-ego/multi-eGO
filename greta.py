@@ -43,7 +43,7 @@ from_ff_to_multiego = {
     'C13' :'CN1',
     'C14' :'CN2',
     'C15' :'CN3',
-#    'N'   :'NTM',
+    'N'   :'N',
     'C12' :'CA',
     'C11' :'CB',
     'O12' :'OA',

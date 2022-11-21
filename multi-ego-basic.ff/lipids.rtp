@@ -8,7 +8,7 @@
   CN1   CH3p    0.000    0    
   CN2   CH3p    0.000    0    
   CN3   CH3p    0.000    0    
-  NTM     NL    0.000    0    
+    N     NL    0.000    0    
    CA    CH2    0.000    0    
    CB    CH2    0.000    1    
    OA     OA    0.000    1    
@@ -58,10 +58,10 @@
   C2O    CH2    0.000   34    
   C2P    CH3    0.000   35    
  [ bonds ]
-  CN1  NTM   gb_21
-  CN2  NTM   gb_21
-  CN3  NTM   gb_21
-  NTM   CA   gb_21
+  CN1    N   gb_21
+  CN2    N   gb_21
+  CN3    N   gb_21
+    N   CA   gb_21
    CA   CB   gb_27
    CB   OA   gb_18
    OA    P   gb_28
@@ -111,13 +111,13 @@
   C2O  C2P   gb_27
  [ angles ]
 ;  ai    aj    ak   gromos type
-  CN1  NTM  CN2    ga_13
-  CN1  NTM  CN3    ga_13
-  CN1  NTM   CA    ga_13
-  CN2  NTM  CN3    ga_13
-  CN2  NTM   CA    ga_13
-  CN3  NTM   CA    ga_13
-  NTM   CA   CB    ga_15
+  CN1    N  CN2    ga_13
+  CN1    N  CN3    ga_13
+  CN1    N   CA    ga_13
+  CN2    N  CN3    ga_13
+  CN2    N   CA    ga_13
+  CN3    N   CA    ga_13
+    N   CA   CB    ga_15
    CA   CB   OA    ga_15
    CB   OA    P    ga_26
    OA    P   OB    ga_14
@@ -178,9 +178,9 @@
   C2A   OG   OH  C2B   gi_1 ; planarity of sn-1 carbonyl
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
-  CN1  NTM   CA   CB    gd_29
-  NTM   CA   CB   OA    gd_4
-  NTM   CA   CB   OA    gd_36
+  CN1    N   CA   CB    gd_29
+    N   CA   CB   OA    gd_4
+    N   CA   CB   OA    gd_36
    CA   CB   OA    P    gd_29
    CB   OA    P   OD    gd_20
    CB   OA    P   OD    gd_27
@@ -228,7 +228,7 @@
   CN1   CH3p    0.40000     0
   CN2   CH3p    0.40000     0
   CN3   CH3p    0.40000     0
-  NTM    NL    -0.50000     0
+    N    NL    -0.50000     0
    CA   CH2     0.30000     0
    CB   CH2     0.40000     1
    OA    OA    -0.80000     1
@@ -276,10 +276,10 @@
   C2O   CH2     0.00000    32
   C2P   CH3     0.00000    33
  [ bonds ]
-  CN1   NTM    gb_21   
-  CN2   NTM    gb_21   
-  CN3   NTM    gb_21   
-  NTM    CA    gb_21   
+  CN1     N    gb_21   
+  CN2     N    gb_21   
+  CN3     N    gb_21   
+    N    CA    gb_21   
    CA    CB    gb_27   
    CB    OA    gb_18   
    OA     P    gb_28   
@@ -327,13 +327,13 @@
   C2O   C2P    gb_27   
  [ angles ]
 ;  ai    aj    ak   gromos type
-  CN1   NTM   CN2     ga_13   
-  CN1   NTM   CN3     ga_13   
-  CN1   NTM    CA     ga_13   
-  CN2   NTM   CN3     ga_13   
-  CN2   NTM    CA     ga_13   
-  CN3   NTM    CA     ga_13   
-  NTM    CA    CB     ga_15   
+  CN1     N   CN2     ga_13   
+  CN1     N   CN3     ga_13   
+  CN1     N    CA     ga_13   
+  CN2     N   CN3     ga_13   
+  CN2     N    CA     ga_13   
+  CN3     N    CA     ga_13   
+    N    CA    CB     ga_15   
    CA    CB    OA     ga_15   
    CB    OA     P     ga_26   
    OA     P    OB     ga_14   
@@ -391,9 +391,9 @@
   C2A    OG   C2B    OH     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
-  CN1   NTM    CA    CB     gd_29   
-  NTM    CA    CB    OA     gd_4    
-  NTM    CA    CB    OA     gd_36   
+  CN1     N    CA    CB     gd_29   
+    N    CA    CB    OA     gd_4    
+    N    CA    CB    OA     gd_36   
    CA    CB    OA     P     gd_29   
    CB    OA     P    OD     gd_20   
    CB    OA     P    OD     gd_27   
