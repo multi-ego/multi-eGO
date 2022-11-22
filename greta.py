@@ -1060,7 +1060,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
     pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
 
-    # For proline CD take the CB and the N of the previous residue and save in a pairs tuple
+    # For proline CD take the CB, N of the previous residue and save in a pairs tuple
     # CB-1-CD is related to the extended region of the ramachandran
     # N-1-CD is related to the alpha region of the ramachandran (not used)
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
@@ -1071,6 +1071,24 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_aj.append(line_sidechain_cb['atom_number'])
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(2.715402e-06)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_carbonyl in backbone_carbonyl.iterrows():
+        line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == (line_backbone_carbonyl['residue_number']+1))].squeeze(axis=None)
+        if not line_sidechain_cb.empty:
+            pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
+            pairs_14_aj.append(line_sidechain_cb['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(0.275*np.sqrt(line_sidechain_cb['c12']*line_backbone_carbonyl['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1098,7 +1116,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = pairs_14_c12
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
-    # now we add the pair between the last CB and the two CT ones
+    # now we add the pair between the last CB and the two OCT ones
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_ct_oxygen in ct_oxygen.iterrows():
         line_last_cb = sidechain_cb.loc[sidechain_cb['residue_number'] == line_ct_oxygen['residue_number']].squeeze(axis=None)
@@ -1134,6 +1152,24 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs_14['c12'] = pairs_14_c12
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
+    # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_backbone_nitrogen in backbone_nitrogen.iterrows():
+        line_next_n = backbone_nitrogen.loc[backbone_nitrogen['residue_number'] == (line_backbone_nitrogen['residue_number']+1)].squeeze(axis=None)
+        if not line_next_n.empty:
+            pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
+            pairs_14_aj.append(line_next_n['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(3.e-7)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
     # For each backbone oxygen take the O of the next residue and save in a pairs tuple
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_backbone_oxygen in backbone_oxygen.iterrows():
@@ -1142,7 +1178,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_oxygen['atom_number'])
             pairs_14_aj.append(line_next_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(7.*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
@@ -1160,7 +1196,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_ct_oxygen['atom_number'])
             pairs_14_aj.append(line_prev_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(7.*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
