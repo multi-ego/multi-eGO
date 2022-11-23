@@ -378,17 +378,17 @@
 #define gd_51 -180 2 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-; OPT November, 21 2022
+; OPT November, 23 2022
 #define gd_52 150.0000 4.0000 2
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_53    0.0000 4.000 4
+#define gd_53 0.0000 4.000 4
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
 #define gd_54 -110.4281 0.0000 1
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_55 -60.0000   0.8000 1
+#define gd_55 -60.0000   1.000 1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_56    180.000     31.0     2
