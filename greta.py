@@ -700,8 +700,10 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Repulsive
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
     # c12new = l(newprob/prob)*r12, here we calculate the correction term
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.minimum(intra_mat['rc_distance'],intra_mat['distance'])**12)
-    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.minimum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
+    #intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.minimum(intra_mat['rc_distance'],intra_mat['distance'])**12)
+    #intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.minimum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
+    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
+    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
@@ -1059,6 +1061,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     ct_oxygen = atnum_type_top.loc[(atnum_type_top['atom']=='O1')|(atnum_type_top['atom']=='O2')]
     sidechain_cb = atnum_type_top.loc[atnum_type_top['atom'] == 'CB']
     pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
+    sidechain_cgs = atnum_type_top.loc[(atnum_type_top['atom'] == 'CG')|(atnum_type_top['atom'] == 'CG1')|(atnum_type_top['atom'] == 'CG2')|(atnum_type_top['atom'] == 'SG')|(atnum_type_top['atom'] == 'OG')|(atnum_type_top['atom'] == 'OG1')&(atnum_type_top['residue'] != 'PRO')]
 
     # For proline CD take the CB, N of the previous residue and save in a pairs tuple
     # CB-1-CD is related to the extended region of the ramachandran
@@ -1215,6 +1218,42 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_aj.append(line_prev_c['atom_number'])
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(1.3e-6)
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_sidechain_cgs in sidechain_cgs.iterrows():
+        line_c = backbone_carbonyl.loc[backbone_carbonyl['residue_number'] == (line_sidechain_cgs['residue_number'])].squeeze(axis=None)
+        if not line_c.empty:
+            pairs_14_ai.append(line_sidechain_cgs['atom_number'])
+            pairs_14_aj.append(line_c['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(0.078*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
+
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14['ai'] = pairs_14_ai
+    pairs_14['aj'] = pairs_14_aj
+    pairs_14['func'] = 1
+    pairs_14['c6'] = pairs_14_c6
+    pairs_14['c12'] = pairs_14_c12
+    pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
+
+    # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
+    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
+    for index, line_sidechain_cgs in sidechain_cgs.iterrows():
+        line_c = backbone_nitrogen.loc[backbone_nitrogen['residue_number'] == (line_sidechain_cgs['residue_number'])].squeeze(axis=None)
+        if not line_c.empty:
+            pairs_14_ai.append(line_sidechain_cgs['atom_number'])
+            pairs_14_aj.append(line_c['atom_number'])
+            pairs_14_c6.append(0.0)
+            pairs_14_c12.append(0.087*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
     pairs_14['ai'] = pairs_14_ai
