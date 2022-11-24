@@ -352,7 +352,7 @@
 #define gd_45 -105.00 0.2200 1
 ; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ; 
-; OPT November 23, 22 
+; OPT November 24, 22 
 #define gd_42b 130.0000 2.5000 2 
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ;
@@ -362,7 +362,7 @@
 #define gd_44b -110.000 3.90 1 
 ; Backbone dihedral angle -C-N-CA-C- BULKYAA
 ;
-#define gd_45b 180.000 0.13 1
+#define gd_45b 180.000 0.05 1
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ; 
 ; OPT November, 23 2022 
