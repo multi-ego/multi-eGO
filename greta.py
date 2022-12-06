@@ -695,7 +695,6 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # Paissoni Equation 2.1
     # Attractive
-    # Ma la virgola che vuol dire? e non c'è un maggiore uguale
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
