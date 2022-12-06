@@ -206,9 +206,7 @@ def main(argv):
         file_paths = find_files(ensemble_name, parameters=parameters)
         md_ensemble = ensemble(parameters=parameters, ensemble_parameters=file_paths, name=ensemble_name)
         md_ensemble.prepare_ensemble()
-        print(ensemble_name)
         convert_topology(from_ff_to_multiego, reference.ensemble_top, md_ensemble.ensemble_top)
-
         md_ensemble.add_MD_contacts()
         print('- Adding MD probability matrix to multi-eGO ensemble')
         multi_ego.add_structure_based_contacts(ensemble_name, md_ensemble.atomic_mat_MD)

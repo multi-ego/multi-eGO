@@ -405,7 +405,7 @@ class ensemble:
         print('\t\t- Generating multi-eGO topology')
 
         # Removing solvent from the dataframe
-        atom_selection = self.topology["!((:TIP3)|(:SOL)|(:WAT))"]
+        atom_selection = self.topology["!((:TIP3)|(:SOL)|(:WAT)|(:NA))"]
         topology_df = atom_selection.to_dataframe()
 
         topology_df['number'] = list(range(1, len(atom_selection.atoms)+1))
