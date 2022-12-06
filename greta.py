@@ -655,7 +655,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     For each atom contact the sigma and epsilon are obtained.
     '''
     print('\t- Addition of MD derived LJ-pairs')
-    print(atomic_mat_plainMD)
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
@@ -699,9 +698,6 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
-    # c12new = l(newprob/prob)*r12, here we calculate the correction term
-    #intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.minimum(intra_mat['rc_distance'],intra_mat['distance'])**12)
-    #intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.minimum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
     intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
     intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
 
@@ -823,11 +819,16 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     if parameters['egos'] == 'split':
         # in this case we use intra and inter molecular contacts from specific simulations
         # yet we check the compatibility of the distances
+        # first we remove the repulsive interactions learned from source inter
+        greta_LJ = greta_LJ.loc[~((greta_LJ['epsilon']<0)&(greta_LJ['source']==parameters['inter']))]
+        # second we evaluate the minimum sigma for each contact
         greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
         # not use repulsive interaction if sigma can be shorter than what it is 
         greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        # update the sigmas
         greta_LJ['sigma'] = greta_LJ['new_sigma']
         greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
     pairs_LJ = greta_LJ.copy()
