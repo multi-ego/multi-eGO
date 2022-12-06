@@ -405,7 +405,7 @@ class ensemble:
         print('\t\t- Generating multi-eGO topology')
 
         # Removing solvent from the dataframe
-        atom_selection = self.topology["!((:TIP3)|(:SOL)|(:WAT))"]
+        atom_selection = self.topology["!((:TIP3)|(:SOL)|(:WAT)|(:NA))"]
         topology_df = atom_selection.to_dataframe()
 
         topology_df['number'] = list(range(1, len(atom_selection.atoms)+1))
@@ -655,7 +655,6 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     For each atom contact the sigma and epsilon are obtained.
     '''
     print('\t- Addition of MD derived LJ-pairs')
-    print(atomic_mat_plainMD)
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
@@ -696,6 +695,7 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
 
     # Paissoni Equation 2.1
     # Attractive
+    # Ma la virgola che vuol dire? e non c'è un maggiore uguale
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
