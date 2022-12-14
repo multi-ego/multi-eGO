@@ -200,7 +200,7 @@ class multiego_ensemble:
             greta_ffnb = greta_LJ 
             greta_lj14 = greta_LJ
         else:
-            greta_ffnb, greta_lj14 = merge_and_clean_LJ(greta_LJ, self.type_c12_dict, self.parameters)
+            greta_ffnb, greta_lj14 = merge_and_clean_LJ(self.multiego_ensemble_top, greta_LJ, self.type_c12_dict, self.parameters)
        
         self.greta_ffnb = greta_ffnb
         self.greta_lj14 = greta_lj14
@@ -801,11 +801,22 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     return inter_mat
 
 
-def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
+def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
     '''
+    ego_topology['atom_number'] = ego_topology['atom_number'].astype(str)
+    atnum_type_top = ego_topology[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
+    atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
+
+    # Dictionaries definitions to map values
+    atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
+    type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
+
+    # Adding the c12
+    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
+
 
     print('- Merging Inter and Intra molecular interactions')
     print('\t- Merged pairs list: ', len(greta_LJ))
@@ -873,7 +884,19 @@ def merge_and_clean_LJ(greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.nan 
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = 1000. 
+
+    # Cleaning of too small c12
+    greta_LJ['c12ij'] = np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
+    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>0.2*greta_LJ['c12ij'])]
+    pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+    # I cannot remove from pairs because some can be there in place of other contacts, alternatively we substitute the value 
+    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = 0. 
+    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
+
+    # Rules for intermolecular repulsions
+    # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
+    # examples include: S_OG/T_OG1/Y_OH - OT1/OT2 - NT
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
