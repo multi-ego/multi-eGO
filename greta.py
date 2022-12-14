@@ -888,11 +888,11 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
 
     # Cleaning of too small c12
     greta_LJ['c12ij'] = np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
-    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>0.2*greta_LJ['c12ij'])]
-    pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>=0.15*greta_LJ['c12ij'])]
     # I cannot remove from pairs because some can be there in place of other contacts, alternatively we substitute the value 
-    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = 0. 
-    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
+    pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.15*pairs_LJ['c12ij'])] = 0. 
+    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.15*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
 
     # Rules for intermolecular repulsions
     # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
