@@ -1,6 +1,6 @@
 [ NH3+ ]
 [ replace ]
-N		NL	17.0067	0.000  ; weight includes the 3 hydrogens
+N		NL	17.0067	1.000  ; weight and charge include the 3 hydrogens
 
 [ None ]
 

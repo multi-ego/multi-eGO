@@ -385,7 +385,7 @@
 #define gd_53 0.0000 4.000 4
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_54 -110.4281 0.0000 1
+;#define gd_54 -110.4281 0.0000 1
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
 #define gd_55 -60.0000   1.000 1

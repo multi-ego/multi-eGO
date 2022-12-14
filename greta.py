@@ -151,6 +151,11 @@ class multiego_ensemble:
         type_c12_dict = type_c12_dict.set_index('; type')['c12'].to_dict()
         self.type_c12_dict = type_c12_dict
 
+        type_q_dict = self.multiego_ensemble_top[['sb_type', 'charge']].copy()
+        type_q_dict.rename(columns={'sb_type':'; type'}, inplace=True)
+        type_q_dict = type_q_dict.set_index('; type')['charge'].to_dict()
+        self.type_q_dict = type_q_dict
+
         return self
     
     
@@ -200,7 +205,7 @@ class multiego_ensemble:
             greta_ffnb = greta_LJ 
             greta_lj14 = greta_LJ
         else:
-            greta_ffnb, greta_lj14 = merge_and_clean_LJ(self.multiego_ensemble_top, greta_LJ, self.type_c12_dict, self.parameters)
+            greta_ffnb, greta_lj14 = merge_and_clean_LJ(self.multiego_ensemble_top, greta_LJ, self.type_c12_dict, self.type_q_dict, self.parameters)
        
         self.greta_ffnb = greta_ffnb
         self.greta_lj14 = greta_lj14
@@ -262,6 +267,8 @@ class multiego_ensemble:
         ffnonbonded_atp = self.multiego_ensemble_top[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
         ffnb_colnames = ['; type', 'at.num', 'mass', 'charge', 'ptype', 'c6', 'c12']
         ffnonbonded_atp.columns = ffnb_colnames
+        # set charges to zero because they are only used internally
+        ffnonbonded_atp['charge'] = 0.0
         ffnonbonded_atp['c12'] = ffnonbonded_atp['c12'].map(lambda x:'{:.6e}'.format(x))
         self.ffnonbonded_atp_toWrite = ffnonbonded_atp.to_string(index = False)
         
@@ -466,6 +473,11 @@ class ensemble:
         type_c12_dict.rename(columns={'sb_type':'; type'}, inplace=True)
         type_c12_dict = type_c12_dict.set_index('; type')['c12'].to_dict()
         self.type_c12_dict = type_c12_dict
+        
+        type_q_dict = topology_df[['sb_type', 'charge']].copy()
+        type_q_dict.rename(columns={'sb_type':'; type'}, inplace=True)
+        type_q_dict = type_q_dict.set_index('; type')['charge'].to_dict()
+        self.type_q_dict = type_q_dict
 
         idx_sbtype_dict = topology_df[['atom_number', 'sb_type']].copy()
         idx_sbtype_dict = idx_sbtype_dict.set_index('atom_number')['sb_type'].to_dict()
@@ -801,7 +813,7 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     return inter_mat
 
 
-def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
+def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
@@ -814,9 +826,9 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
 
-    # Adding the c12
+    # Adding the c12 and charge
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-
+    atnum_type_top['q'] = atnum_type_top['sb_type'].map(type_q_dict)
 
     print('- Merging Inter and Intra molecular interactions')
     print('\t- Merged pairs list: ', len(greta_LJ))
@@ -888,15 +900,27 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
 
     # Cleaning of too small c12
     greta_LJ['c12ij'] = np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
-    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>0.2*greta_LJ['c12ij'])]
-    pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>=0.15*greta_LJ['c12ij'])]
     # I cannot remove from pairs because some can be there in place of other contacts, alternatively we substitute the value 
-    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = 0. 
-    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
+    pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.15*pairs_LJ['c12ij'])] = 0. 
+    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.15*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
 
     # Rules for intermolecular repulsions
     # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
     # examples include: S_OG/T_OG1/Y_OH - OT1/OT2 - NT
+    greta_LJ['charge'] = greta_LJ['ai'].map(type_q_dict)*greta_LJ['aj'].map(type_q_dict)
+    greta_LJ['repulsive'] = 0
+    greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)] = 1
+    greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
+
+    pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
+    pairs_LJ['repulsive'] = 0
+    pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)] = 1
+    pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
+
+    greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
+    pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -994,7 +1018,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     ego_topology['atom_number'] = ego_topology['atom_number'].astype(str)
     atnum_type_top = ego_topology[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
     atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
-
     # Dictionaries definitions to map values
     atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
     type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()

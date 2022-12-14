@@ -1,11 +1,11 @@
 [ COO- ]
 [ replace ]
 C	C	C	12.011	 0.000
-O	O1	OM	15.9994	 0.000
-OXT	O2	OM	15.9994	 0.000
+O	O1	OM	15.9994	-0.635
+OXT	O2	OM	15.9994	-0.635
 [ add ]
 2	8	O	C	CA	N
-	OM	15.9994	 0.000
+	OM	15.9994	-0.635
 [ bonds ]
 C	O1	gb_6
 C	O2	gb_6

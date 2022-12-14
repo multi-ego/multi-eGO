@@ -31,7 +31,7 @@
 
 [ NH2 ]
  [ atoms ]
-     N    NT   0.000    0
+     N    NT  -0.830    0
  [ bonds ]
      -C    N   gb_9
  [ angles ]
@@ -43,9 +43,9 @@
 
 [ ALA ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -77,15 +77,15 @@
 
 [ ARG ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH2     0.00000     0
-   CD   CH2     0.00000     0
-   NE    NE     0.00000     0
-   CZ     C     0.00000     0
-  NH1    NZ     0.00000     0
-  NH2    NZ     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH2       0.000     0
+   CD   CH2       0.000     0
+   NE    NE       0.000     0
+   CZ     C       0.000     0
+  NH1    NZ       0.000     0
+  NH2    NZ       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -132,16 +132,16 @@
    CA    CB    CG    CD     gd_34   
    CB    CG    CD    NE     gd_34   
    CG    CD    NE    CZ     gd_39   
-   CD    NE    CZ   NH1     gd_14   
-                                  
+   CD    NE    CZ   NH1     gd_14  
+ 
 [ ASN ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  OD1     O     0.00000     0
-  ND2    NT     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  OD1     O       0.000     0
+  ND2    NT      -0.720     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -183,12 +183,12 @@
 
 [ ASP ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  OD1    OM     0.00000     0
-  OD2    OM     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  OD1    OM      -0.635     0
+  OD2    OM      -0.635     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -230,10 +230,10 @@
 
 [ CYS ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   SG     S     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   SG     S       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -268,10 +268,10 @@
 
 [ CYS2 ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   SG     S     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   SG     S       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -306,13 +306,13 @@
 
 [ GLN ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH2     0.00000     0
-   CD     C     0.00000     0
-  OE1     O     0.00000     0
-  NE2    NT     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH2       0.000     0
+   CD     C       0.000     0
+  OE1     O       0.000     0
+  NE2    NT      -0.720     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -357,13 +357,13 @@
 
 [ GLU ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH2     0.00000     0
-   CD     C     0.00000     0
-  OE1    OM     0.00000     0
-  OE2    OM     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH2       0.000     0
+   CD     C       0.000     0
+  OE1    OM      -0.635     0
+  OE2    OM      -0.635     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -408,8 +408,8 @@
 
 [ GLY ] 
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH2     0.00000     0
+    N     N       0.000     0
+   CA   CH2       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -437,14 +437,14 @@
 
 [ HIS ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  ND1    NR     0.00000     0
-  CD2     C     0.00000     0
-  CE1     C     0.00000     0
-  NE2    NR     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  ND1    NR       0.000     0
+  CD2     C       0.000     0
+  CE1     C       0.000     0
+  NE2    NR       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -498,12 +498,12 @@
   
 [ ILE ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH1     0.00000     0
-  CG1   CH2     0.00000     0
-  CG2   CH3     0.00000     0
-   CD   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH1       0.000     0
+  CG1   CH2       0.000     0
+  CG2   CH3       0.000     0
+   CD   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -545,12 +545,12 @@
 
 [ LEU ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH1     0.00000     0
-  CD1   CH3     0.00000     0
-  CD2   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH1       0.000     0
+  CD1   CH3       0.000     0
+  CD2   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -592,13 +592,13 @@
 
 [ LYS ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH2     0.00000     0
-   CD   CH2     0.00000     0
-   CE   CH2     0.00000     0
-   NZ    NT     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH2       0.000     0
+   CD   CH2       0.000     0
+   CE   CH2       0.000     0
+   NZ    NT      -0.640     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -642,12 +642,12 @@
 
 [ MET ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG   CH2     0.00000     0
-   SD     S     0.00000     0
-   CE   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG   CH2       0.000     0
+   SD     S       0.000     0
+   CE   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -688,15 +688,15 @@
 
 [ PHE ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  CD1     C     0.00000     0
-  CD2     C     0.00000     0
-  CE1     C     0.00000     0
-  CE2     C     0.00000     0
-   CZ     C     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  CD1     C       0.000     0
+  CD2     C       0.000     0
+  CE1     C       0.000     0
+  CE2     C       0.000     0
+   CZ     C       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -753,11 +753,11 @@
 
 [ PRO ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB  CH2r     0.00000     0
-   CG  CH2r     0.00000     0
-   CD  CH2r     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB  CH2r       0.000     0
+   CG  CH2r       0.000     0
+   CD  CH2r       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -791,7 +791,7 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_56
-   -C     N    CA     C     gd_54   
+;  -C     N    CA     C     gd_54   
    -C     N    CA     C     gd_53
    CA     N    CD    CG     gd_39   
     N    CA    CB    CG     gd_34   
@@ -802,10 +802,10 @@
 
 [ SER ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   OG    OA     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   OG    OA      -0.674     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -840,11 +840,11 @@
 
 [ THR ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH1     0.00000     0
-  OG1    OA     0.00000     0
-  CG2   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH1       0.000     0
+  OG1    OA      -0.674     0
+  CG2   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -883,18 +883,18 @@
 
 [ TRP ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  CD1     C     0.00000     0
-  CD2     C     0.00000     0
-  NE1    NR     0.00000     0
-  CE2     C     0.00000     0
-  CE3     C     0.00000     0
-  CZ2     C     0.00000     0
-  CZ3     C     0.00000     0
-  CH2     C     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  CD1     C       0.000     0
+  CD2     C       0.000     0
+  NE1    NR       0.000     0
+  CE2     C       0.000     0
+  CE3     C       0.000     0
+  CZ2     C       0.000     0
+  CZ3     C       0.000     0
+  CH2     C       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -969,16 +969,16 @@
 
 [ TYR ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH2     0.00000     0
-   CG     C     0.00000     0
-  CD1     C     0.00000     0
-  CD2     C     0.00000     0
-  CE1     C     0.00000     0
-  CE2     C     0.00000     0
-   CZ     C     0.00000     0
-   OH    OA     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH2       0.000     0
+   CG     C       0.000     0
+  CD1     C       0.000     0
+  CD2     C       0.000     0
+  CE1     C       0.000     0
+  CE2     C       0.000     0
+   CZ     C       0.000     0
+   OH    OA      -0.611     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -1039,11 +1039,11 @@
 
 [ VAL ]
  [ atoms ]
-    N     N     0.00000     0
-   CA   CH1     0.00000     0
-   CB   CH1     0.00000     0
-  CG1   CH3     0.00000     0
-  CG2   CH3     0.00000     0
+    N     N       0.000     0
+   CA   CH1       0.000     0
+   CB   CH1       0.000     0
+  CG1   CH3       0.000     0
+  CG2   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
