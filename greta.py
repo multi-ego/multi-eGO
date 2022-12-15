@@ -911,13 +911,15 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     # examples include: S_OG/T_OG1/Y_OH - OT1/OT2 - NT
     greta_LJ['charge'] = greta_LJ['ai'].map(type_q_dict)*greta_LJ['aj'].map(type_q_dict)
     greta_LJ['repulsive'] = 0
-    greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)] = 1
+    greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)&(greta_LJ['sigma']>0.27)] = 1
     greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
+    #greta_LJ['c12'].loc[(greta_LJ['repulsive']==1)] *= 4.
 
     pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
     pairs_LJ['repulsive'] = 0
-    pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)] = 1
+    pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)&(pairs_LJ['sigma']>0.27)] = 1
     pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
+    #pairs_LJ['c12'].loc[(pairs_LJ['repulsive']==1)] *= 4.
 
     greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
     pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
