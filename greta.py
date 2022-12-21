@@ -709,10 +709,10 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Attractive
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive case 2
-    intra_mat['epsilon'].loc[(intra_mat['type']<0.)] = -np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold']))*(intra_mat['distance']**12) 
+    intra_mat['epsilon'].loc[(intra_mat['type']<0.)] = -np.abs(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))*(intra_mat['distance']**12) 
     # Repulsive case 1 can override case 1 for neighbour interactions
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<3)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
+    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
