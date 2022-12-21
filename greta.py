@@ -708,10 +708,11 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Paissoni Equation 2.1
     # Attractive
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
-    # Repulsive
+    # Repulsive case 2
+    intra_mat['epsilon'].loc[(intra_mat['type']<0.)] = -np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold']))*(intra_mat['distance']**12) 
+    # Repulsive case 1 can override case 1 for neighbour interactions
     intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
-    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
+    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<3)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
@@ -752,7 +753,7 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     print("\t\t\t- Epsilon input:", parameters['epsilon_md']) 
     print("\t\t\t- Average intramolecular epsilon is", intra_mat['epsilon'].loc[(intra_mat['epsilon']>0.)].mean())
     print("\t\t\t- Maximum intramolecular epsilon is", intra_mat['epsilon'].max())
-
+    
     return intra_mat
 
 
@@ -773,8 +774,11 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     
     # Paissoni Equation 2.1
     inter_mat['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat['probability']/parameters['md_threshold']))
+    # Repulsive case 2
+    inter_mat['epsilon'].loc[(inter_mat['type']<0.)] = -np.log(inter_mat['probability']/parameters['md_threshold'])*(inter_mat['distance']**12) 
+
     inter_mat.dropna(inplace=True)
-    inter_mat['epsilon'].loc[(inter_mat['epsilon'] < 0.01*parameters['epsilon_amyl'])] = 0
+    inter_mat['epsilon'].loc[(inter_mat['epsilon'] < 0.01*parameters['epsilon_amyl']) & (inter_mat['epsilon'] > 0.)] = 0
     inter_mat = inter_mat[inter_mat.epsilon != 0]
 
     print(f"\t\t- There are {len(inter_mat)} intermolecular pairs interactions")
@@ -842,15 +846,15 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     if parameters['egos'] == 'split':
         # in this case we use intra and inter molecular contacts from specific simulations
         # yet we check the compatibility of the distances
-        # first we remove the repulsive interactions learned from source inter
-        greta_LJ = greta_LJ.loc[~((greta_LJ['epsilon']<0)&(greta_LJ['source']==parameters['inter']))]
+        # first we remove the repulsive intramol-interactions learned from source inter
+        # greta_LJ = greta_LJ.loc[~((greta_LJ['epsilon']<0)&(greta_LJ['source']==parameters['inter'])&(greta_LJ['same_chain']=='Yes'))]
         # second we evaluate the minimum sigma for each contact
-        greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        # not use repulsive interaction if sigma can be shorter than what it is 
-        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        #greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
+        # not use repulsive interaction if sigma can be shorter than what it is
+        # greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
         # update the sigmas
-        greta_LJ['sigma'] = greta_LJ['new_sigma']
-        greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        #greta_LJ['sigma'] = greta_LJ['new_sigma']
+        #greta_LJ.drop('new_sigma', axis=1, inplace=True)
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
@@ -876,18 +880,21 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
     pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
-    # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
+    # now we copy the lines with negative intramolecular epsilon from greta to pairs because we want repulsive interactions only intramolecularly
     # and we use same-chain as a flag to keep track of them
-    greta_LJ['same_chain'].loc[greta_LJ['epsilon']<0.] = 'Move'
-    pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
+    greta_LJ['same_chain'].loc[(greta_LJ['epsilon']<0.)&(greta_LJ['same_chain']=='Yes')] = 'Move'
+    pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[(greta_LJ['epsilon']<0.)&(greta_LJ['same_chain']=='Move')]], axis=0, sort=False, ignore_index = True)
     # and we remove the same lines from greta_LJ
-    greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
+    greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)|(greta_LJ['same_chain']=='No')]
 
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c6', '')
     greta_LJ['c6'] = 4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 6)
     greta_LJ.insert(4, 'c12', '')
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
+    # repulsive interactions have just a very large C12
+    greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = 1000. 
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
@@ -906,23 +913,27 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = 0. 
     pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
 
+    # Repulsive interactions are finalised
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = greta_LJ['c12ij']-greta_LJ['epsilon'] 
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['c12ij']-pairs_LJ['epsilon'] 
+    # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
+    pairs_LJ['c12'].loc[((pairs_LJ['epsilon']<0.)&((-pairs_LJ['epsilon'])/pairs_LJ['c12ij'])<0.05)&(pairs_LJ['same_chain']=='Move')] = 0.
+ 
     # Rules for intermolecular repulsions
     # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
     # examples include: S_OG/T_OG1/Y_OH - OT1/OT2 - NT
-    greta_LJ['charge'] = greta_LJ['ai'].map(type_q_dict)*greta_LJ['aj'].map(type_q_dict)
-    greta_LJ['repulsive'] = 0
-    greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)&(greta_LJ['sigma']>0.27)] = 1
-    greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
-    #greta_LJ['c12'].loc[(greta_LJ['repulsive']==1)] *= 4.
+    #greta_LJ['charge'] = greta_LJ['ai'].map(type_q_dict)*greta_LJ['aj'].map(type_q_dict)
+    #greta_LJ['repulsive'] = 0
+    #greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)&(greta_LJ['sigma']>0.27)] = 1
+    #greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
 
-    pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
-    pairs_LJ['repulsive'] = 0
-    pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)&(pairs_LJ['sigma']>0.27)] = 1
-    pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
-    #pairs_LJ['c12'].loc[(pairs_LJ['repulsive']==1)] *= 4.
+    #pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
+    #pairs_LJ['repulsive'] = 0
+    #pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)&(pairs_LJ['sigma']>0.27)] = 1
+    #pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
 
-    greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
-    pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
+    #greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
+    #pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -1089,9 +1100,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
         # Repulsive interactions are finalised
-        pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
+        # pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
         # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
-        pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
+        # pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
         # this is a safety check 
         pairs = pairs[pairs['c12']>0.]
  

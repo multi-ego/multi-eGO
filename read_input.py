@@ -62,9 +62,9 @@ def plainMD_mdmat(contact_map_files, idx_sbtype_dict):
 
 def read_mdmat_dataframe(contact_type, directory, idx_sbtype_dict):
     temp_mat_df = pd.read_csv(directory, header=None, sep = '\s+')
-    temp_mat_df.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'probability']
-    temp_mat_df.drop(columns=['distance'], inplace=True)
-    temp_mat_df.columns = ['ai', 'aj', 'distance', 'probability']
+    temp_mat_df.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'distance_ok', 'probability', 'type']
+    temp_mat_df.drop(columns=['distance', 'distance_NMR'], inplace=True)
+    temp_mat_df.columns = ['ai', 'aj', 'distance', 'probability', 'type']
     if contact_type == 'intra':
         temp_mat_df['same_chain'] = 'Yes'
     elif contact_type == 'inter':
@@ -82,8 +82,8 @@ def random_coil_mdmat(contact_map_file, idx_sbtype_dict):
     # Reading Random Coil contacts
     print('\tReading ', contact_map_file)        
     atomic_mat_random_coil = pd.read_csv(contact_map_file, header=None, sep = '\s+')
-    atomic_mat_random_coil.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'probability']
-    atomic_mat_random_coil.drop(columns=['distance'], inplace=True)
+    atomic_mat_random_coil.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'distance_ok', 'probability', 'type']
+    atomic_mat_random_coil.drop(columns=['distance', 'distance_NMR', 'type'], inplace=True)
     atomic_mat_random_coil.columns = ['ai', 'aj', 'distance', 'probability']
     atomic_mat_random_coil = atomic_mat_random_coil.replace({'ai':idx_sbtype_dict})
     atomic_mat_random_coil = atomic_mat_random_coil.replace({'aj':idx_sbtype_dict})
@@ -100,24 +100,6 @@ def random_coil_mdmat(contact_map_file, idx_sbtype_dict):
     atomic_mat_random_coil.columns = new_colnames
 
     return atomic_mat_random_coil
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 def random_coil_mdmat_old(contact_map_file, idx_sbtype_dict):
