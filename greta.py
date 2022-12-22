@@ -710,9 +710,8 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive case 2
     intra_mat['epsilon'].loc[(intra_mat['type']<0.)] = -np.abs(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))*(intra_mat['distance']**12) 
-    # Repulsive case 1 can override case 1 for neighbour interactions
-    intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
+    # Repulsive case 1 
+    intra_mat['epsilon'].loc[((intra_mat['rc_probability']-intra_mat['probability'])>0.1)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
@@ -775,7 +774,7 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Paissoni Equation 2.1
     inter_mat['epsilon'] = -(parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*(np.log(inter_mat['probability']/parameters['md_threshold']))
     # Repulsive case 2
-    inter_mat['epsilon'].loc[(inter_mat['type']<0.)] = -np.log(inter_mat['probability']/parameters['md_threshold'])*(inter_mat['distance']**12) 
+    inter_mat['epsilon'].loc[(inter_mat['type']<0.)] = (parameters['epsilon_amyl']/np.log(parameters['md_threshold']))*np.log(inter_mat['probability']/parameters['md_threshold'])*(inter_mat['distance']**12) 
 
     inter_mat.dropna(inplace=True)
     inter_mat['epsilon'].loc[(inter_mat['epsilon'] < 0.01*parameters['epsilon_amyl']) & (inter_mat['epsilon'] > 0.)] = 0
@@ -914,26 +913,9 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
 
     # Repulsive interactions are finalised
-    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = greta_LJ['c12ij']-greta_LJ['epsilon'] 
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)&(greta_LJ['same_chain']=='No')] = np.maximum(-greta_LJ['epsilon'],greta_LJ['c12ij'])
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)&(greta_LJ['same_chain']=='Yes')] = greta_LJ['c12ij']-greta_LJ['epsilon'] 
     pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = pairs_LJ['c12ij']-pairs_LJ['epsilon'] 
-    # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
-    pairs_LJ['c12'].loc[((pairs_LJ['epsilon']<0.)&((-pairs_LJ['epsilon'])/pairs_LJ['c12ij'])<0.05)&(pairs_LJ['same_chain']=='Move')] = 0.
- 
-    # Rules for intermolecular repulsions
-    # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
-    # examples include: S_OG/T_OG1/Y_OH - OT1/OT2 - NT
-    #greta_LJ['charge'] = greta_LJ['ai'].map(type_q_dict)*greta_LJ['aj'].map(type_q_dict)
-    #greta_LJ['repulsive'] = 0
-    #greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)&(greta_LJ['sigma']>0.27)] = 1
-    #greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
-
-    #pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
-    #pairs_LJ['repulsive'] = 0
-    #pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)&(pairs_LJ['sigma']>0.27)] = 1
-    #pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
-
-    #greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
-    #pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
 
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
@@ -1099,10 +1081,6 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # Intermolecular interactions are excluded 
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
-        # Repulsive interactions are finalised
-        # pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
-        # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
-        # pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
         # this is a safety check 
         pairs = pairs[pairs['c12']>0.]
  
