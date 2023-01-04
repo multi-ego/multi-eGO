@@ -293,6 +293,7 @@ class multiego_ensemble:
         impropers.rename(columns = {'ai':'; ai'}, inplace=True)
         self.impropers_toWrite = impropers.to_string(index=False)
         pairs = self.pairs
+        pairs.insert(5, '', ';')
         pairs.rename(columns = {'ai':'; ai'}, inplace=True)
         if(not pairs.empty):
             self.pairs_toWrite = pairs.to_string(index=False)
@@ -327,8 +328,8 @@ class multiego_ensemble:
             self.greta_ffnb['ai_n'] = self.greta_ffnb['ai_n'].astype(int)
             self.greta_ffnb['aj_n'] = self.greta_ffnb['aj_n'].astype(int)
             # Here we want to sort so that ai is smaller than aj
-            inv_greta_ffnb = self.greta_ffnb[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'aj_n', 'ai_n']].copy()
-            inv_greta_ffnb.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']
+            inv_greta_ffnb = self.greta_ffnb[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'aj_n', 'ai_n']].copy()
+            inv_greta_ffnb.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']
             self.greta_ffnb = pd.concat([self.greta_ffnb,inv_greta_ffnb], axis=0, sort = False, ignore_index = True)
             self.greta_ffnb = self.greta_ffnb[self.greta_ffnb['ai_n']<=self.greta_ffnb['aj_n']]
             self.greta_ffnb.sort_values(by = ['ai_n', 'aj_n'], inplace = True)
@@ -340,7 +341,7 @@ class multiego_ensemble:
             self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
             self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source', 'ai_n', 'aj_n']]
+            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']]
             self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
@@ -709,9 +710,8 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     # Attractive
     intra_mat['epsilon'].loc[(intra_mat['probability']>intra_mat['rc_probability'])] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    intra_mat['diffr'] = abs(intra_mat['rc_residue_aj'] - intra_mat['rc_residue_ai'])
-    intra_mat['epsilon'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
-    intra_mat['sigma'].loc[(intra_mat['probability']<intra_mat['rc_probability'])&(intra_mat['diffr']<=2)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
+    intra_mat['epsilon'].loc[((intra_mat['rc_probability']-intra_mat['probability'])>0.001)] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(np.maximum(intra_mat['rc_distance'],intra_mat['distance'])**12)
+    intra_mat['sigma'].loc[((intra_mat['rc_probability']-intra_mat['probability'])>0.001)] = (np.maximum(intra_mat['rc_distance'],intra_mat['distance'])) / (2**(1/6))
 
     # clean NaN 
     intra_mat.dropna(inplace=True)
@@ -728,12 +728,12 @@ def reweight_intramolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     intra_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
     # Changing the columns order
-    intra_mat = intra_mat[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    intra_mat = intra_mat[['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']]
     
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = intra_mat[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    inv_LJ = intra_mat[['aj', 'ai', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']
     intra_mat = pd.concat([intra_mat, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
@@ -786,12 +786,12 @@ def reweight_intermolecular_contacts(atomic_mat_plainMD, atomic_mat_random_coil,
     inter_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
     # Changing the columns order
-    inter_mat = inter_mat[['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']]
+    inter_mat = inter_mat[['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']]
 
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = inter_mat[['aj', 'ai', 'sigma', 'epsilon', 'rc_probability', 'same_chain']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'rc_probability', 'same_chain']
+    inv_LJ = inter_mat[['aj', 'ai', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']
     inter_mat = pd.concat([inter_mat, inv_LJ], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
@@ -834,8 +834,8 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     print('\t- Merged pairs list: ', len(greta_LJ))
     print('\t- Sorting and dropping all the duplicates')
     # Inverse pairs calvario
-    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'rc_probability', 'source']
+    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']
 
     greta_LJ = pd.concat([greta_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
 
@@ -874,8 +874,8 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in greta_LJ
     test = pd.merge(pairs_LJ, greta_LJ, how="right", on=["ai", "aj"])
     pairs_LJ = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
-    pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'rc_probability_y', 'source_y'], inplace = True)
-    pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
+    pairs_LJ.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y'], inplace = True)
+    pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
     # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
     # and we use same-chain as a flag to keep track of them
     greta_LJ['same_chain'].loc[greta_LJ['epsilon']<0.] = 'Move'
@@ -900,11 +900,15 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
 
     # Cleaning of too small c12
     greta_LJ['c12ij'] = np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
-    greta_LJ = greta_LJ.loc[(greta_LJ['c12']>=0.1*greta_LJ['c12ij'])]
+    #greta_LJ = greta_LJ.loc[(greta_LJ['c12']>=0.1*greta_LJ['c12ij'])]
+    greta_LJ['c6'].loc[(greta_LJ['c12']<0.2*greta_LJ['c12ij'])] = 0. 
+    greta_LJ['c12'].loc[(greta_LJ['c12']<0.2*greta_LJ['c12ij'])] = 0.2*greta_LJ['c12ij']
     # I cannot remove from pairs because some can be there in place of other contacts, alternatively we substitute the value 
     pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
-    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = 0. 
-    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
+    #pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = 0. 
+    #pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
+    pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = 0. 
+    pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.2*pairs_LJ['c12ij'])] = 0.2*pairs_LJ['c12ij']
 
     # Rules for intermolecular repulsions
     # for some atom type (those with large partial charge) we remove the interactions with the same type by turning of the C6
@@ -913,13 +917,11 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     greta_LJ['repulsive'] = 0
     greta_LJ['repulsive'].loc[(greta_LJ['ai'].astype(str).str[0]==greta_LJ['aj'].astype(str).str[0])&(greta_LJ['charge']>0.)&(greta_LJ['sigma']>0.27)] = 1
     greta_LJ['c6'].loc[(greta_LJ['repulsive']==1)] = 0.
-    #greta_LJ['c12'].loc[(greta_LJ['repulsive']==1)] *= 4.
 
     pairs_LJ['charge'] = pairs_LJ['ai'].map(type_q_dict)*pairs_LJ['aj'].map(type_q_dict)
     pairs_LJ['repulsive'] = 0
     pairs_LJ['repulsive'].loc[(pairs_LJ['ai'].astype(str).str[0]==pairs_LJ['aj'].astype(str).str[0])&(pairs_LJ['charge']>0.)&(pairs_LJ['sigma']>0.27)] = 1
     pairs_LJ['c6'].loc[(pairs_LJ['repulsive']==1)] = 0.
-    #pairs_LJ['c12'].loc[(pairs_LJ['repulsive']==1)] *= 4.
 
     greta_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
     pairs_LJ.drop(columns = ['c12ij', 'charge', 'repulsive'], inplace = True)
@@ -1068,7 +1070,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
         # pairs from greta does not have duplicates because these have been cleaned before
-        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'rc_probability', 'source']].copy()
+        pairs = greta_merge[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']].copy()
         pairs['c12_ai'] = pairs['ai']
         pairs['c12_aj'] = pairs['aj']
         
@@ -1095,8 +1097,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # this is a safety check 
         pairs = pairs[pairs['c12']>0.]
  
-        pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
-        pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12']]
+        #pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
+        pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
+        pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']]
     else:
         pairs = pd.DataFrame()
     
@@ -1124,7 +1127,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(2.715402e-06)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1142,7 +1145,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.275*np.sqrt(line_sidechain_cb['c12']*line_backbone_carbonyl['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1160,7 +1163,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.1*np.sqrt(line_sidechain_cb['c12']*line_backbone_oxygen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1178,7 +1181,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.1*np.sqrt(line_last_cb['c12']*line_ct_oxygen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1196,7 +1199,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.65*np.sqrt(line_sidechain_cb['c12']*line_backbone_nitrogen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1214,7 +1217,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(3.e-7)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1232,7 +1235,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1250,7 +1253,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1268,7 +1271,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(1.3e-6)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1286,7 +1289,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.078*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1304,7 +1307,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.087*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
@@ -1313,8 +1316,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # remove duplicates
-    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12']
+    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']
     # in case of duplicates we keep the last occurrence this because in the input pairs there are not duplicates,
     # duplicates can results due to the addition of local geometry pairs that then should superseed the former
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
@@ -1327,8 +1330,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs['aj'] = pairs['aj'].astype(int)
 
     # Here we want to sort so that ai is smaller than aj
-    inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12']].copy()
-    inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12']
+    inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability']].copy()
+    inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']
     pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
     pairs = pairs[pairs['ai']<pairs['aj']]
     
