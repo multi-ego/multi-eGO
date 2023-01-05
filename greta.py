@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import itertools
 import parmed as pmd
-from read_input import random_coil_mdmat, plainMD_mdmat
+from read_input import read_ensemble_mdmat_contacs
 from topology_parser import read_topology, topology_parser, extra_topology_ligands
 import plotly.express as px
 from tqdm import tqdm
@@ -538,17 +538,18 @@ class ensemble:
         self.conversion_dict = merged_atoms_dict
 
 
+    # TODO queste due sotto possono essere unite se ci piace avere anche un inter rc
     def add_random_coil(self):
         # The random coil should come from the same native ensemble
         #if not ensemble_parameters['not_matching_native']:
-        atomic_mat_random_coil = random_coil_mdmat(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
+        atomic_mat_random_coil = read_ensemble_mdmat_contacs(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
         self.atomic_mat_random_coil = atomic_mat_random_coil
         
         
     def add_MD_contacts(self):
         # MD_contacts
         #atomic_mat_MD = plainMD_mdmat(self.parameters, self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict, self.idx_chain_dict)
-        atomic_mat_MD = plainMD_mdmat(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
+        atomic_mat_MD = read_ensemble_mdmat_contacs(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
         self.atomic_mat_MD = atomic_mat_MD
 
 
@@ -677,14 +678,26 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     intra_mat_probability = pd.DataFrame()
     inter_mat_probability = pd.DataFrame()
 
+    print(atomic_mat_plainMD)
+    print(atomic_mat_random_coil)
+
     # Retrieving the intramolecular contacts
     intra_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'Yes']
+    intra_atomic_mat_rc = atomic_mat_random_coil.loc[atomic_mat_random_coil['rc_same_chain'] == 'Yes']
     inter_atomic_mat_plainMD = atomic_mat_plainMD.loc[atomic_mat_plainMD['same_chain'] == 'No']
+    inter_atomic_mat_rc = atomic_mat_random_coil.loc[atomic_mat_random_coil['rc_same_chain'] == 'No']
+
+    # Le sto tenendo separate perché non sto mettendo regole specifiche intra-inter all'interno della funzione
+    # Adesso per comodità sto usando intramolecular per entrambi
+    # TODO controllare con Carlo dove mettere bene la separazione di same_chain all'interno di reweight intramolecular 
+    # E rinominarla di conseguenza
+
 
     if not intra_atomic_mat_plainMD.empty:
-        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+        intra_mat_probability = reweight_intramolecular_contacts(intra_atomic_mat_plainMD, intra_atomic_mat_rc, parameters, name)
     if not inter_atomic_mat_plainMD.empty:
-        inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+        #inter_mat_probability = reweight_intermolecular_contacts(inter_atomic_mat_plainMD, atomic_mat_random_coil, parameters, name)
+        inter_mat_probability = reweight_intramolecular_contacts(inter_atomic_mat_plainMD, inter_atomic_mat_rc, parameters, name)
 
     atomic_mat_merged = pd.concat([intra_mat_probability, inter_mat_probability], axis=0, sort = False, ignore_index = True)
 
