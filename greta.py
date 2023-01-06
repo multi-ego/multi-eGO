@@ -853,14 +853,6 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
     pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.maximum(-pairs_LJ['epsilon'],pairs_LJ['c12ij'])  
 
-
-    # Cleaning of too small c12
-    # greta_LJ = greta_LJ.loc[(greta_LJ['c12']>=0.1*greta_LJ['c12ij'])]
-    # I cannot remove from pairs because some can be there in place of other contacts, alternatively we substitute the value 
-    # pairs_LJ['c6'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = 0. 
-    # pairs_LJ['c12'].loc[(pairs_LJ['c12']<0.1*pairs_LJ['c12ij'])] = pairs_LJ['c12ij']
-
-
     # SELF INTERACTIONS
     # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
     # So that the balance between native and fibril is less steep.
