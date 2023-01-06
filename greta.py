@@ -1025,8 +1025,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         pairs = pairs[pairs['c12']>0.]
  
         #pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
-        pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
-        pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']]
+        pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon'], inplace = True)
+        pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']]
     else:
         pairs = pd.DataFrame()
     
@@ -1054,12 +1054,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(2.715402e-06)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
@@ -1072,12 +1073,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.275*np.sqrt(line_sidechain_cb['c12']*line_backbone_carbonyl['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For backbone oxygen take the CB of the same residue and save in a pairs tuple
@@ -1090,12 +1092,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.1*np.sqrt(line_sidechain_cb['c12']*line_backbone_oxygen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # now we add the pair between the last CB and the two OCT ones
@@ -1108,12 +1111,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.1*np.sqrt(line_last_cb['c12']*line_ct_oxygen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
@@ -1126,12 +1130,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.65*np.sqrt(line_sidechain_cb['c12']*line_backbone_nitrogen['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
@@ -1144,12 +1149,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(3.e-7)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone oxygen take the O of the next residue and save in a pairs tuple
@@ -1162,12 +1168,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # now we add the pair between the penultimate oxygen and the two CT ones
@@ -1180,12 +1187,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
@@ -1198,12 +1206,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(1.3e-6)
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
@@ -1216,12 +1225,13 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.078*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
@@ -1234,17 +1244,18 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_c6.append(0.0)
             pairs_14_c12.append(0.087*np.sqrt(line_c['c12']*line_sidechain_cgs['c12']))
 
-    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability'])
+    pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
     pairs_14['func'] = 1
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
+    pairs_14['source'] = '1-4' 
     pairs = pd.concat([pairs,pairs_14], axis=0, sort=False, ignore_index=True)
 
     # remove duplicates
-    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']
+    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
     # in case of duplicates we keep the last occurrence this because in the input pairs there are not duplicates,
     # duplicates can results due to the addition of local geometry pairs that then should superseed the former
     pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
@@ -1257,8 +1268,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs['aj'] = pairs['aj'].astype(int)
 
     # Here we want to sort so that ai is smaller than aj
-    inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability']].copy()
-    inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability']
+    inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
+    inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
     pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
     pairs = pairs[pairs['ai']<pairs['aj']]
     
@@ -1269,29 +1280,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
     exclusion = pairs[['; ai', 'aj']].copy()
 
+
     return pairs, exclusion
 
-
-def weighted_distances(pair_subset):
-    distance_sum =  (pair_subset['distance']*pair_subset['probability']).sum()
-    probability_sum = pair_subset['probability'].sum()
-    
-    return distance_sum/probability_sum
-
-
-def geometric_mean(pair_subset):
-    probability_count = pair_subset['probability'].count()
-    probability_prod = pair_subset['probability'].prod()
-
-    return probability_prod ** (1.0/probability_count)
-
-
-def bimodal_split(pair_subset):
-    return ((pair_subset.max() - pair_subset.min())/2) + pair_subset.min()
-
-
-def bimodal_probability_diff(pair_subset):
-    return pair_subset.max() - pair_subset.min()
 
 def convert_topology(from_ff_to_multiego, *ensembles):
     '''
