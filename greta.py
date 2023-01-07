@@ -709,58 +709,58 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
 
 def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     
-    intra_mat = atomic_mat_plainMD.copy()
-    intra_mat.to_csv(f'analysis/intra_mat_{name}')
-    intra_mat = intra_mat.loc[(intra_mat['probability']>parameters['md_threshold'])]
+    rew_mat = atomic_mat_plainMD.copy()
+    rew_mat.to_csv(f'analysis/rew_mat_{name}')
 
-    intra_mat = pd.concat([intra_mat, atomic_mat_random_coil], axis=1)
-    intra_mat.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    rew_mat = pd.concat([rew_mat, atomic_mat_random_coil], axis=1)
+    rew_mat.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
+    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
+    #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<rew_mat['rc_probability'])&(rew_mat['probability']>parameters['rc_threshold']))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    intra_mat['sigma'] = (intra_mat['distance']) / (2**(1/6))
+    rew_mat['sigma'] = (rew_mat['distance']) / (2**(1/6))
+    rew_mat['epsilon'] = np.nan 
 
     # Epsilon reweight based on probability
-    intra_mat['epsilon'] = np.nan 
-
     # Paissoni Equation 2.1
     # Attractive
-    intra_mat['epsilon'].loc[(intra_mat['probability']>1.2*intra_mat['rc_probability'])&(intra_mat['same_chain']=='Yes')] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['rc_threshold'])))
-    intra_mat['epsilon'].loc[(intra_mat['probability']>1.2*intra_mat['rc_probability'])&(intra_mat['same_chain']=='No')] = -(parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(intra_mat['probability']/np.maximum(intra_mat['rc_probability'],parameters['md_threshold'])))
+    rew_mat['epsilon'].loc[(rew_mat['probability']>1.2*rew_mat['rc_probability'])&(rew_mat['same_chain']=='Yes')] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
+    rew_mat['epsilon'].loc[(rew_mat['probability']>1.2*rew_mat['rc_probability'])&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_md']/np.log(parameters['md_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['md_threshold'])))
     # Repulsive
-    intra_mat['epsilon'].loc[(intra_mat['probability']<(1./1.2)*intra_mat['rc_probability'])] = np.log(intra_mat['probability']/intra_mat['rc_probability'])*(intra_mat['distance']**12)
+    rew_mat['epsilon'].loc[(rew_mat['probability']<(1./1.2)*rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
 
     # clean NaN and zeros 
-    intra_mat.dropna(inplace=True)
-    intra_mat = intra_mat[intra_mat.epsilon != 0]
+    rew_mat.dropna(inplace=True)
+    rew_mat = rew_mat[rew_mat.epsilon != 0]
 
     # Retrieving the ai and aj information from the index and reindexing back again
     # TODO maybe there's a better way to do the same thing
-    intra_mat = intra_mat.reset_index()
-    intra_mat[['ai', 'aj']] = intra_mat[['idx_ai', 'idx_aj']]
-    intra_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
+    rew_mat = rew_mat.reset_index()
+    rew_mat[['ai', 'aj']] = rew_mat[['idx_ai', 'idx_aj']]
+    rew_mat.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
     # Changing the columns order
-    intra_mat = intra_mat[['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']]
+    rew_mat = rew_mat[['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']]
     
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
-    inv_LJ = intra_mat[['aj', 'ai', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']
-    intra_mat = pd.concat([intra_mat, inv_LJ], axis=0, sort = False, ignore_index = True)
+    inv_mat = rew_mat[['aj', 'ai', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']].copy()
+    inv_mat.columns = ['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain']
+    rew_mat = pd.concat([rew_mat, inv_mat], axis=0, sort = False, ignore_index = True)
     # Here we sort all the atom pairs based on the distance and we keep the closer ones.
     # Sorting the pairs
-    intra_mat.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
+    rew_mat.sort_values(by = ['ai', 'aj', 'sigma'], inplace = True)
     # Cleaning the duplicates
-    intra_mat = intra_mat.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    rew_mat = rew_mat.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
     cols = ['ai', 'aj']
-    intra_mat[cols] = np.sort(intra_mat[cols].values, axis=1)
-    intra_mat = intra_mat.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    intra_mat[['idx_ai', 'idx_aj']] = intra_mat[['ai', 'aj']]
-    intra_mat.set_index(['idx_ai', 'idx_aj'], inplace=True)
-    intra_mat['source'] = name
+    rew_mat[cols] = np.sort(rew_mat[cols].values, axis=1)
+    rew_mat = rew_mat.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    rew_mat[['idx_ai', 'idx_aj']] = rew_mat[['ai', 'aj']]
+    rew_mat.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    rew_mat['source'] = name
 
-    return intra_mat
+    return rew_mat
 
 
 def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, parameters):
@@ -795,12 +795,12 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
         # first we remove the repulsive interactions learned from source inter
         # greta_LJ = greta_LJ.loc[~((greta_LJ['epsilon']<0)&(greta_LJ['source']==parameters['inter']))]
         # second we evaluate the minimum sigma for each contact
-        #greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
+        greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
         # not use repulsive interaction if sigma can be shorter than what it is
-        # greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
         # update the sigmas
-        #greta_LJ['sigma'] = greta_LJ['new_sigma']
-        #greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        greta_LJ['sigma'] = greta_LJ['new_sigma']
+        greta_LJ.drop('new_sigma', axis=1, inplace=True)
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
@@ -813,7 +813,6 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
 
     # Pairs prioritise intramolecular interactions
     pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
@@ -828,10 +827,10 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
     # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
     # and we use same-chain as a flag to keep track of them
-    #greta_LJ['same_chain'].loc[greta_LJ['epsilon']<0.] = 'Move'
-    #pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[greta_LJ['epsilon']<0.]], axis=0, sort=False, ignore_index = True)
+    greta_LJ['same_chain'].loc[(greta_LJ['epsilon']<0.0)&(greta_LJ['same_chain']=='Yes')] = 'Move'
+    pairs_LJ = pd.concat([pairs_LJ, greta_LJ.loc[(greta_LJ['same_chain']=='Move')]], axis=0, sort=False, ignore_index = True)
     # and we remove the same lines from greta_LJ
-    #greta_LJ = greta_LJ[(greta_LJ['epsilon']>0.)]
+    greta_LJ = greta_LJ[(greta_LJ['same_chain']!='Move')]
 
     greta_LJ.insert(2, 'type', 1)
     greta_LJ.insert(3, 'c6', '')
@@ -853,87 +852,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
     pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.maximum(-pairs_LJ['epsilon'],pairs_LJ['c12ij'])  
 
-    # SELF INTERACTIONS
-    # In the case of fibrils which are not fully modelled we add self interactions which is a feature of amyloids
-    # So that the balance between native and fibril is less steep.
-    print('\t- Self interactions')
-    atomtypes = set(greta_LJ['ai'])
-    greta_LJ['double'] = ''
-
-    for i in atomtypes:
-        # Selection of already known atoms which contacts with themself
-        greta_LJ.loc[(greta_LJ['ai'] == i) & (greta_LJ['aj'] == i), 'double'] = 'True'
-
-    # Create a subset of the main dataframe of the self interactions.
-    doubles = greta_LJ.loc[(greta_LJ['double'] == 'True')]
-    atp_doubles = list(doubles['ai'])
-    # The list is used to obtain all the atomtypes which does not make a self interaction
-    atp_notdoubles = list(set(set(atomtypes) - set(atp_doubles)))
-    atp_notdoubles.sort()
-
-    if len(atp_notdoubles) == 0:
-        print('\t\tAll atoms interacts with themselves')
-        
-    else:
-        print('\t\tThere are', len(atp_notdoubles), 'self interactions to add')
-        print(atp_notdoubles)
-        # From the list of atomtypes to add, a new dataframe is created to append to the main one
-        pairs_toadd = pd.DataFrame(columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon'])
-        pairs_toadd['ai'] = atp_notdoubles
-        pairs_toadd['aj'] = atp_notdoubles
-        pairs_toadd['type'] = '1'
-
-        # Here i want to check every value for all the atom type and if they're similar
-        # make an average and paste into the main dataframe
-        # I am checking every doubles based on the atomtype (except the information of the residue number) and make an average of the sigma
-        # since all the epsilon are equal
-        atomtypes_toadd = pairs_toadd['ai'].str.split('_', n = 1, expand = True)
-        atomtypes_toadd = atomtypes_toadd[0].drop_duplicates()
-        atomtypes_toadd = atomtypes_toadd.to_list()
-        atomtypes_toadd = [x + '_' for x in atomtypes_toadd]
-
-        for a in atomtypes_toadd:
-            # Selects the atom pairs from the double pairs 
-            doubles_a = doubles.loc[(doubles['ai'].str.contains(a)) & (doubles['aj'].str.contains(a))]
-            # All the epsilon are the same, therefore the average sigma will be added on the self interaction
-            sigma = doubles_a['sigma']
-            eps = doubles_a['epsilon']
-            c12 = doubles_a['c12']
-            c6 = doubles_a['c6']
-            
-            if len(sigma) == 1:
-                # If there is only onw sigma for the averages it will be skipped
-                print('\t\tOnly one self interacting pair available for {} ==> {}'.format((str(a)[:-1]), 'Skip'))
-            elif len(sigma) == 0:
-                # If the missing atom pairs is not represented in the strcture there are not
-                # sigmas to average
-                print('\t\tThere are not self interactions for {:<12} ==> {}'.format((str(a)[:-1]), 'Skip'))
-            else:
-                # If there are enough sigmas to make an average then it creates the missing atom pairs
-                media_sigma = sigma.mean()
-                sd_sigma = sigma.std()
-                media_epsilon = eps.mean()
-                print('\t\tThere are {:<3} {:<3} with an average Sigma of: {:>17.10f} +/- {} epsilon {}'.format((len(sigma)), (str(a)[:-1]), media_sigma, sd_sigma, media_epsilon))
-                
-                # Creation of new c6 and c12
-                # Epsilon structure because those are self
-                new_c6 = 4 * media_epsilon * (media_sigma ** 6)
-                new_c12 = 4 *media_epsilon * (media_sigma ** 12)
-
-                # In the pairs to add dataframe all those new information are inserted
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c6'] = new_c6
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'c12'] = new_c12
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'sigma'] = media_sigma
-                pairs_toadd.loc[(pairs_toadd['ai'].str.contains(a)) & (pairs_toadd['aj'].str.contains(a)), 'epsilon'] = media_epsilon 
-
-        pairs_toadd.dropna(inplace = True)
-        # Appending the missing atom pairs to the main dataframe
-        greta_LJ = pd.concat([greta_LJ,pairs_toadd], axis=0, sort = False, ignore_index = True)
-        print('\t\tSelf interactions added to greta_LJ ', len(pairs_toadd))
-
-    # Drop double, we don't need it anymore
-    greta_LJ.drop(columns = ['double'], inplace = True)
-
+    print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
     print('\t- LJ Merging completed: ', len(greta_LJ))
     print("\t\t- Average epsilon is ", greta_LJ['epsilon'].mean())
     print("\t\t- Maximum epsilon is ", greta_LJ['epsilon'].max())
@@ -1017,14 +936,9 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
         # Intermolecular interactions are excluded 
         pairs['c6'].loc[(pairs['same_chain']=='No')] = 0.
         pairs['c12'].loc[(pairs['same_chain']=='No')] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
-        # Repulsive interactions are finalised
-        #pairs['c12'].loc[(pairs['epsilon']<0.)] = (np.sqrt(pairs['c12_ai'] * pairs['c12_aj']))-pairs['epsilon'] 
-        # if this pair is flagged as 'Move' it means that it is not in ffnonbonded, so if we use the default c12 values we do not need to include it here
-        # pairs['c12'].loc[((pairs['epsilon']<0.)&(-pairs['epsilon'])/np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])<0.05)&(pairs['same_chain']=='Move')] = 0. 
         # this is a safety check 
         pairs = pairs[pairs['c12']>0.]
  
-        #pairs.drop(columns = ['rc_probability','same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon', 'source'], inplace = True)
         pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon'], inplace = True)
         pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']]
     else:
