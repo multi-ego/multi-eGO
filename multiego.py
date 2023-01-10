@@ -78,7 +78,7 @@ def main(argv):
                 parameters['protein'] = arg
 
         elif opt in ("--egos"):
-            if arg in ('all', 'split', 'rc'):
+            if arg in ('all', 'split', 'rc', 'inter_rc'):
                 parameters['egos'] = arg
             else:
                 print('--egos accepts <all|split|rc> options')
@@ -197,6 +197,8 @@ def main(argv):
         print('\t- egos = split: intra and inter molecular contacts will be learned from the corresponding ensembles')
     elif parameters['egos'] == 'rc':
         print('\t- egos = rc: no molecular contacts will be parametrized')
+    elif parameters['egos'] == 'inter_rc':
+        print('\t- egos = inter_rc: inter-molecular contacts will not be parametrized')
     else:
         print("egos is not either 'all', 'split', or 'rc'")
         exit()
