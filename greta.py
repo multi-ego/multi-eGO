@@ -806,6 +806,30 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
 
     pairs_LJ = greta_LJ.copy()
 
+    if(parameters['egos'] == 'inter_rc'):
+
+        # Pairs prioritise intramolecular interactions
+        pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
+        pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+        cols = ['ai', 'aj']
+        pairs_LJ[cols] = np.sort(pairs_LJ[cols].values, axis=1)
+        pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    
+        pairs_LJ.insert(2, 'type', 1)
+        pairs_LJ.insert(3, 'c6', '')
+        pairs_LJ['c6'] = 4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 6)
+        pairs_LJ.insert(4, 'c12', '')
+        pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
+        # repulsive interactions have just a very large C12
+        pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
+        pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
+        pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.maximum(-pairs_LJ['epsilon'],pairs_LJ['c12ij'])
+
+        tmp_LJ = pd.DataFrame(columns=pairs_LJ.columns)
+
+        return tmp_LJ, pairs_LJ
+ 
+
     # Greta prioritise intermolecular interactions and shorter length ones
     greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
