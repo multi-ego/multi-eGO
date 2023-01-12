@@ -203,7 +203,7 @@ class multiego_ensemble:
             greta_ffnb = greta_LJ 
             greta_lj14 = greta_LJ
         else:
-            greta_ffnb, greta_lj14 = merge_and_clean_LJ(self.multiego_ensemble_top, greta_LJ, self.type_c12_dict, self.type_q_dict, self.parameters)
+            greta_ffnb, greta_lj14 = merge_and_clean_LJ(self.multiego_ensemble_top, greta_LJ, self.type_c12_dict, self.parameters)
        
         self.greta_ffnb = greta_ffnb
         self.greta_lj14 = greta_lj14
@@ -763,7 +763,7 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     return rew_mat
 
 
-def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, parameters):
+def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
     Also, in case of missing residues in the structure, predicts the self contacts based on the contacts available.
@@ -778,7 +778,6 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
 
     # Adding the c12 and charge
     atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-    atnum_type_top['q'] = atnum_type_top['sb_type'].map(type_q_dict)
 
     print('- Merging Inter and Intra molecular interactions')
     print('\t- Merged pairs list: ', len(greta_LJ))
