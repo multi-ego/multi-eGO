@@ -183,9 +183,7 @@ class multiego_ensemble:
 
         
     def generate_multiego_LJ(self): # TODO nel self bisogna mettere i nomi degli MD ensembles
-        '''
         
-        '''
         # TODO ACID DEMMERDA
         #if parameters['acid_ff'] == True and top.acid_atp !=0:
         #        greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
@@ -397,7 +395,7 @@ class ensemble:
         self.topology = pmd.load_file(ensemble_parameters[f'{name}_topology'], parametrize=False)
         #self.structure = pmd.load_file(ensemble_parameters[f'{name}_structure'])
 
-    def prepare_ensemble(self, add_native_ensemble = False): # TODO inserita
+    def prepare_ensemble(self, add_native_ensemble = False):
         '''
         This function creates a dataframe from the topol.top file read using ParmEd.
         The ensemble dataframe contains all the topology details we need in one place and it will be used to
@@ -505,15 +503,48 @@ class ensemble:
         self.impropers = parsed_topology.impropers
 
 
+    def convert_topology(self, ego_native):
+        '''
+        This functions is needed to convert the structure based atomtypes from a force field to gromos.
+        It is tested using charmm were the only different atomtypes are OT1 and OT2 which has to be renamed to O1 and O2.
+        Other differences are on the atom index which is solved using the structure based atomtype.
+        Here a dictionary is made by charmm key: gromos value.
+        '''
+        multiego_topology = ego_native.ensemble_top
+        md_topology = self.ensemble_top
+
+        multiego_atoms = set(multiego_topology['atom'].to_list())
+        md_atoms = set(md_topology['atom'].to_list())
+        diff_atoms = list(multiego_atoms - md_atoms)
+        
+        merged_atoms = pd.DataFrame()
+        merged_atoms['atoms_multiego'] = multiego_topology['atom']
+        merged_atoms['multiego_resnum'] = multiego_topology['residue_number']
+        merged_atoms['atoms_md'] = md_topology['atom']
+        merged_atoms['md_resnum'] = md_topology['residue_number']
+        merged_atoms = merged_atoms.loc[merged_atoms['atoms_multiego'].isin(diff_atoms)]
+        merged_atoms['sb_multiego'] = merged_atoms['atoms_multiego']+'_'+merged_atoms['multiego_resnum'].astype(str)
+        merged_atoms['sb_md'] = merged_atoms['atoms_md']+'_'+merged_atoms['md_resnum'].astype(str)
+        merged_atoms_dict = merged_atoms.set_index('sb_md')['sb_multiego'].to_dict()
+
+        md_topology = md_topology.replace({'sb_type':merged_atoms_dict})
+        self.ensemble_top = md_topology
+        updated_mat_plainMD = self.atomic_mat_MD
+        updated_mat_plainMD = updated_mat_plainMD.replace({'ai':merged_atoms_dict})
+        updated_mat_plainMD = updated_mat_plainMD.replace({'aj':merged_atoms_dict})
+        self.atomic_mat_MD = updated_mat_plainMD
+        self.conversion_dict = merged_atoms_dict
+
+
     # TODO queste due sotto possono essere unite se ci piace avere anche un inter rc
-    def add_random_coil(self): # TODO inserita
+    def add_random_coil(self):
         # The random coil should come from the same native ensemble
         #if not ensemble_parameters['not_matching_native']:
         atomic_mat_random_coil = read_ensemble_mdmat_contacs(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
         self.atomic_mat_random_coil = atomic_mat_random_coil
         
         
-    def add_MD_contacts(self): # TODO inserita
+    def add_MD_contacts(self):
         # MD_contacts
         #atomic_mat_MD = plainMD_mdmat(self.parameters, self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict, self.idx_chain_dict)
         atomic_mat_MD = read_ensemble_mdmat_contacs(self.ensemble_parameters[f'{self.name}_contacts'], self.idx_sbtype_dict)
@@ -638,7 +669,7 @@ def MD_LJ_pairs(atomic_mat_plainMD, atomic_mat_random_coil, parameters, name):
     print('\t- Addition of MD derived LJ-pairs')
     atomic_mat_plainMD[['idx_ai', 'idx_aj']] = atomic_mat_plainMD[['ai', 'aj']]
     atomic_mat_plainMD.set_index(['idx_ai', 'idx_aj'], inplace = True)
-    print(atomic_mat_random_coil)
+
     atomic_mat_random_coil[['idx_ai', 'idx_aj']] = atomic_mat_random_coil[['rc_ai', 'rc_aj']]
     atomic_mat_random_coil.set_index(['idx_ai', 'idx_aj'], inplace = True)
 
@@ -774,30 +805,6 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, type_q_dict, param
         greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
 
     pairs_LJ = greta_LJ.copy()
-
-    if(parameters['egos'] == 'inter_rc'):
-
-        # Pairs prioritise intramolecular interactions
-        pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
-        pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        cols = ['ai', 'aj']
-        pairs_LJ[cols] = np.sort(pairs_LJ[cols].values, axis=1)
-        pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    
-        pairs_LJ.insert(2, 'type', 1)
-        pairs_LJ.insert(3, 'c6', '')
-        pairs_LJ['c6'] = 4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 6)
-        pairs_LJ.insert(4, 'c12', '')
-        pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
-        # repulsive interactions have just a very large C12
-        pairs_LJ['c12ij'] = np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))
-        pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-        pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.maximum(-pairs_LJ['epsilon'],pairs_LJ['c12ij'])
-
-        tmp_LJ = pd.DataFrame(columns=pairs_LJ.columns)
-
-        return tmp_LJ, pairs_LJ
- 
 
     # Greta prioritise intermolecular interactions and shorter length ones
     greta_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
@@ -1211,3 +1218,4 @@ def convert_topology(from_ff_to_multiego, *ensembles):
     if check_dictionary:
         print(f'The following atomtypes are not converted. \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts \n{check_dictionary}')
         exit()
+ 
