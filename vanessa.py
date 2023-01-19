@@ -29,10 +29,29 @@ def initialize_ensemble_topology(topology, simulation):
     First, it removes the water, solvent and sodium (other atomtypes will be added when required).
     Renumbers the atom ids starting from 1
     '''
-    
-    print('\t-', f'Reading {simulation} topology')
-    topology = topology["!((:TIP3)|(:SOL)|(:WAT)|(:NA))"]
+
+
+    # In a single topology different type of molecules can be present (e.g. protein, ligand).
+    # For each molecule the different atomtypes are saved.
+
+    print('\t-', f'Reading {simulation} topology containing:')
+    for molecule in topology.molecules:
+        print('\t\t', f'{molecule}')
+
+    #print(topology)
+    #print(topology.molecules)
+    coso = topology.molecules
     topology_dataframe = topology.to_dataframe()
+    print(topology_dataframe)
+    #print(type(coso))
+    
+
+    # TODO questo funziona, bisogna segnarsi il nome ed il numero di molecole all'interno della topologia. Controllare la matrice con più molecole diverse.
+    for c, o in coso.items():
+        print(c, o[0].to_dataframe())
+    #topology = topology["!((:TIP3)|(:SOL)|(:WAT)|(:NA))"]
+
+    # To read the matrix you do not really need all this stuff as all the molecules are defined in the reference topology
 
     # Dropping some unused columns
     topology_dataframe.drop(columns=['nb_idx', 'solvent_radius', 'screen', 'bfactor', 'occupancy', 'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon', 'epsilon_14'], inplace=True)

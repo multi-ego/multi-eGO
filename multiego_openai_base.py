@@ -13,11 +13,10 @@ psutil.cpu_percent(percpu=True)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
     parser.add_argument('--protein', type=str, required=True, help='Name of the proteina corresponding to the master folder containing subfolders.')
-    parser.add_argument('--md_ensembles', nargs='+', type=str, help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process.')
-    parser.add_argument('--egos', choices=['all', 'split', 'rc'], required=True, help='Type of EGOs.')
+    parser.add_argument('--egos', choices=['rc', 'inter-rc', 'production'], required=True, help='Type of EGOs.\n -rc creates a force-field without non bonded parameters to sample the local geometry of the protein and it is the first simulation to be performed.\n -inter-rc is the second simulation where the non bonded parameters are included in pairs and exlusion in topol.top.')
     parser.add_argument('--epsilon', type=float_range(0.0, 1.0), help='Define a custom Epsilon value for the LJ parametrization from 0 to 1.')
-    parser.add_argument('--intra', type=str, help='From the list of simulation defined in md_ensembles, choose from which one the intramolecular contacts are defined.')
-    parser.add_argument('--inter', type=str, help='From the list of simulation defined in md_ensembles, choose from which one the intermolecular contacts are defined.')
+    parser.add_argument('--train_from', nargs='+', type=str, help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
+    parser.add_argument('--check_with', type=str, help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
     args, remaining = parser.parse_known_args()
 
@@ -28,12 +27,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # checking the options provided in the commandline
-    if args.egos == 'split' and not all(arg is not None for arg in (args.intra, args.inter)):
-        print('--egos=split requires the definition of the intramolecular and intermolecular ensembles')
+    if args.egos != 'rc' and args.train_from is None:
+        print('--egos=inter-rc and --egos=production require the definition of simulation folder containing the simulations to learn contacts from using --train_from flag')
         sys.exit()
 
-    if args.egos != 'rc' and args.md_ensembles is None:
-        print('--egos=split or egos=all requires the definition of simulation folder using --md_ensembles flag')
+    if args.egos == 'production' and not args.train_from:
+        print('--egos=production requires the definition of the intramolecular and intermolecular ensembles')
         sys.exit()
 
     if args.epsilon is None and args.egos != 'rc':
@@ -41,10 +40,11 @@ if __name__ == '__main__':
         sys.exit()
 
     print('Checking the presence of directories and .top, .ndx files')
-    md_ensembles_list = ['reference']+args.md_ensembles
+    md_ensembles_list = ['reference']+args.train_from
     check_files_existance(args.protein, md_ensembles_list)
+    # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
-    # Reading and preparing all the simulations defined in --md_ensembles
+    # Reading and preparing all the simulations defined in --train_from
     with concurrent.futures.ThreadPoolExecutor() as executor:
         # submit the read_subfolders function to be executed in parallel
         results = [executor.submit(read_simulations, args, simulation) for simulation in md_ensembles_list]

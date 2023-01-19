@@ -24,15 +24,16 @@ def read_simulations(args, simulation):
 
 class Ensemble:
     def __init__(self, simulation, simulation_path, args):
+        self.args = args
         self.simulation = simulation
         self.simulation_path = simulation_path
+        self.topology = None
+        self.ensemble_molecules = None
+        self.topology_dataframe = pd.DataFrame()
         self.intramolecular_contacts = pd.DataFrame()
         self.intermolecular_contacts = pd.DataFrame()
         self.atomic_contacts = pd.DataFrame()
-        self.topology = None
-        self.topology_dataframe = pd.DataFrame()
         self.structure = None
-        self.args = args
 
         print(f"- Creating the {simulation} ensemble")
 
@@ -40,15 +41,12 @@ class Ensemble:
     def read_files(self):
         '''
         This function search the .top files and the contact matrices .ndx for each folder defined in the command line.
+        It is important to call properly the names.
         '''
 
         top_path = glob.glob(f'inputs/{self.simulation_path}/*.top')
         print('\t-', f'Reading {top_path[0]}')
         self.topology = load_file(top_path[0])
-
-        # TODO manca la differenza tra all e split. Dove all dovrebbe leggere qualsiasi ndx e split solo quando vengono indicati
-        # TODO unire all e split e se metto --intra e --inter allora mi fa split, altrimenti fa all
-
         # Reading contact matrix created using gmx_clustsize
         # Reference requires both intra and inter molecular matrices
 
@@ -78,7 +76,7 @@ class Ensemble:
 
         # TODO questi dizionari probabilmente non servono più dentro la classe ensemble, controlla poi con il topology parser
         self.number_of_atoms, self.sbtype_idx_dict, self.idx_sbtype_dict, self.type_c12_dict, self.type_q_dict = create_ensemble_dictionaries(self.topology_dataframe, self.simulation)
-
+    
         print('\t-', f'{self.simulation} structure-based topology created')
         print('\t-', f'Initializing {self.simulation} ensemble molecular contacts')
 
