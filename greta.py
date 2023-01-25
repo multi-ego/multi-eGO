@@ -731,7 +731,7 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     # Attractive intermolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>1.1*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_amyl']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    rew_mat['epsilon'].loc[(np.maximum(rew_mat['probability'],parameters['md_threshold'])<(1./1.1)*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    rew_mat['epsilon'].loc[(np.maximum(rew_mat['probability'],parameters['md_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
@@ -829,9 +829,9 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # we evaluate the minimum sigma for each contact
         greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
         # not use repulsive interaction if sigma can be shorter than what it is
-        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<greta_LJ['sigma'])&(greta_LJ['epsilon']<0))]
+        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<0.9*greta_LJ['sigma'])&(greta_LJ['epsilon']<0)&(greta_LJ['source']!='rc'))]
         # update the sigmas
-        greta_LJ['sigma'] = greta_LJ['new_sigma']
+        greta_LJ['sigma'].loc[(greta_LJ['epsilon']>0)] = greta_LJ['new_sigma']
         greta_LJ.drop('new_sigma', axis=1, inplace=True)
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[(((greta_LJ['same_chain']=='Yes')&((greta_LJ['source']==parameters['intra'])|(greta_LJ['source']=='rc')))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter'])))]
