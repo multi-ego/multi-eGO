@@ -828,11 +828,12 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
         greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        # not use repulsive interaction if sigma can be shorter than what it is
-        greta_LJ = greta_LJ.loc[~((greta_LJ['new_sigma']<0.9*greta_LJ['sigma'])&(greta_LJ['epsilon']<0)&(greta_LJ['source']!='rc'))]
-        # update the sigmas
-        greta_LJ['sigma'].loc[(greta_LJ['epsilon']>0)] = greta_LJ['new_sigma']
+        greta_LJ['energy_at_new_sigma'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/(greta_LJ['new_sigma']*(2.**(1./6.))))**12-(greta_LJ['sigma']/(greta_LJ['new_sigma']*(2.**(1./6.))))**6)
+        greta_LJ['energy_at_new_sigma'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_sigma']*(2.**(1./6.)))**12
+        # not use  interaction if at new_sigma the repulsion would be too strong 
+        greta_LJ = greta_LJ.loc[~((greta_LJ['energy_at_new_sigma']>2.49)&(greta_LJ['source']!='rc'))]
         greta_LJ.drop('new_sigma', axis=1, inplace=True)
+        greta_LJ.drop('energy_at_new_sigma', axis=1, inplace=True)
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[(((greta_LJ['same_chain']=='Yes')&((greta_LJ['source']==parameters['intra'])|(greta_LJ['source']=='rc')))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter'])))]
 
