@@ -38,10 +38,10 @@ def write_LJ(ensemble):
     file.write(str(ensemble.ffnonbonded_atp_toWrite))
     file.write("\n\n")
     file.write("[ nonbond_params ]\n")
-    if ensemble.parameters['egos'] == 'rc':
-        file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
-    else:
-        file.write(str(ensemble.greta_ffnb_toWrite))
+    #if ensemble.parameters['egos'] == 'rc':
+    #    file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
+    #else:
+    file.write(str(ensemble.greta_ffnb_toWrite))
     file.close()
 
 def write_topology(ensemble):
