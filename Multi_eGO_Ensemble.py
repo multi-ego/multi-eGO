@@ -1,64 +1,101 @@
+import os
 import pandas as pd
-from vanessa import parametrize_ensemble_LJ, merge_and_clean_LJ
-import parmed as pmd
-from parmed import Structure
-from parmed.gromacs import GromacsTopologyFile
-
+from vanessa import get_bonds, get_angles, get_dihedrals, get_impropers, parametrize_LJ, merge_and_clean_LJ
+from write_output_openai import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
     # TODO inserire la possibilità di leggere un RC fatto da più di una molecola
 
-    meGO_topology = None
-    reference_n_residues = None
-    topology_dataframe = pd.DataFrame()
-    
-    # Contact matrices definition
-    contact_matrices_dictionary = {}
-    reference_contact_matrix = pd.DataFrame()
+    reference_topology = None
+    reference_topology_dataframe = pd.DataFrame()
+    meGO_bonded_interactions = {}
+    reference_atomic_contacts = pd.DataFrame()
+
+    meGO_topology_dataframe = pd.DataFrame()
+    meGO_atomic_contacts = pd.DataFrame()
+    check_atomic_contacts = pd.DataFrame()
     meGO_LJ_potential = pd.DataFrame()
     meGO_LJ_14 = pd.DataFrame()
+    sbtype_c12_dict = None
+
+    #reference_n_residues = None
+    #topology_dataframe = pd.DataFrame()
+    
+    # Contact matrices definition
+    #contact_matrices_dictionary = {}
 
     def __init__(self, args):
         self.parameters = args
+        self.output_folder = f'outputs/{get_name(args)}'
+        try:
+            os.mkdir('outputs')
+        except OSError as error:
+            pass
+        try:
+            os.mkdir(self.output_folder)
+        except OSError as error:
+            pass
 
     def add_ensemble_from(self, ensemble):
         '''
         This method...
         This function inserts in a dictionary all the contact matrices learned from different simulations
         '''
-
-        print('\t-', f'Adding topology and contacts from {ensemble.simulation}')
-
+        # TODO da aggiungere il dizionario di conversione delle topologie!!!
+        print('\t-', f'Adding topology from {ensemble.simulation}')
+        
         if ensemble.simulation == 'reference':
             # This defines as the reference structure and eventual molecules will be added
-            self.meGO_topology = ensemble.topology.copy(Structure)
-            self.reference_n_residues = len(self.meGO_topology.residues)
-
+            self.reference_topology = ensemble.topology
+            self.reference_topology_dataframe = pd.concat([self.reference_topology_dataframe, ensemble.ensemble_topology_dataframe], axis=0, ignore_index=True)
+            self.reference_atomic_contacts = ensemble.atomic_contacts.add_prefix('rc_')
         
-        # Here we add only the non prortein without H atoms. To be properly tested with ligands
-        # I  do not know how to select "protein" with ParmED so I am using the residues
-        # TODO what if I have multiple molecules in different reference files?
-
-        ensemble_to_add = ensemble.topology.copy(Structure)
-        not_protein_not_H = ensemble_to_add[f'!((:1-{self.reference_n_residues})|(@%H=))']        
-        self.meGO_topology = self.meGO_topology + not_protein_not_H
-
-        # This part is for contact matrix
-        if ensemble.simulation == 'reference':
-            print('\t- Adding random coil probabilities from reference')
-            self.reference_contact_matrix = ensemble.atomic_contacts
+        elif ensemble.simulation in self.parameters.check_with:
+            self.check_atomic_contacts = pd.concat([self.check_atomic_contacts, ensemble.atomic_contacts], axis=0, ignore_index=True)
+        
         else:
-            print('\t-', f'Adding {ensemble.simulation} contacts in multi-eGO ensemble')
-            self.contact_matrices_dictionary[f'{ensemble.simulation}'] = ensemble.atomic_contacts
-        #print(self.contact_matrices_dictionary)
-    
+            self.meGO_topology_dataframe = pd.concat([self.meGO_topology_dataframe, ensemble.ensemble_topology_dataframe], axis=0, ignore_index=True)
+            self.meGO_atomic_contacts = pd.concat([self.meGO_atomic_contacts, ensemble.atomic_contacts], axis=0)
 
-    def create_topology_dictionaries(self):
+
+    def check_topology_conversion(self):
+        '''
+        This function is required to check the different atomtypes between different force fields.
+        The atom types MUST match otherwise a proper ffnobonded cannot be created.
         
-        # TODO from topology create another dataframe, probably the Ensemble.py is not needed anymore?
-        self.meGO_topology 
-        type_c12_dict = topology_dataframe[['sb_type', 'c12']].rename(columns={'sb_type':'; type'}).set_index('; type')['c12'].to_dict()
 
+
+        This function is called "check_topology_conversion" and it is a method of a class.
+        It does the following:
+            Initializes an empty set called "reference_set" and fills it with the unique 'name' values of the "reference_topology_dataframe" attribute of the class.
+            Loops through the "molecules" attribute of the "reference_topology" attribute of the class.
+            For each molecule, it creates a new DataFrame called "comparison_dataframe" by filtering the "meGO_topology_dataframe" attribute of the class by the molecule number and name (e.g. "1_protein").
+            If the "comparison_dataframe" is not empty, it creates a new set called "comparison_set" and fills it with the unique 'name' values of the "comparison_dataframe", after removing all rows with 'name' value starting with H
+            Lastly, it finds the difference between the two sets (comparison_set and reference_set) and store it in difference_set.
+            If difference_set is not empty, it prints a message indicating that the atomtypes in difference_set are not converted and that they must be added to the "from_ff_to_multiego" dictionary to properly merge all the contacts and exits the program.
+        This function is checking if there are any atom types present in the reference topology that are not present in the meGO topology and if there are any it exits the program.
+        '''
+        reference_set = set(self.reference_topology_dataframe['name'].to_list())
+        for number, molecule in enumerate(self.reference_topology.molecules, 1):
+            comparison_dataframe = self.meGO_topology_dataframe.loc[self.meGO_topology_dataframe['molecule'] == f'{number}_{molecule}']
+            if not comparison_dataframe.empty:
+                comparison_set = set(comparison_dataframe[~comparison_dataframe['name'].astype(str).str.startswith('H')]['name'].to_list())
+        difference_set = comparison_set.difference(reference_set)
+        if difference_set:
+            print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
+            exit()
+
+
+    def generate_bonded_interactions(self):
+        '''
+        '''
+        for molecule, topol in self.reference_topology.molecules.items():
+            self.meGO_bonded_interactions[molecule] = {
+                'bonds' : get_bonds(topol[0].bonds),
+                'angles' : get_angles(topol[0].angles),
+                'dihedrals' : get_dihedrals(topol[0].dihedrals),
+                'impropers' : get_impropers(topol[0].impropers)
+            }
 
 
     def generate_LJ_potential(self):
@@ -67,20 +104,27 @@ class Multi_eGO_Ensemble:
         All contacts are reweighted based on the RC probability.
         Duplicates are removed.
         '''
-
-        # TODO qui si mette parametrize_ensemble_LJ che equivale a MD_LJ_pairs
+        # TODO qui si mette parametrize_LJ che equivale a MD_LJ_pairs
         # All contacts are reweighted by the random coil probability both as intra and intermolecular and added to the LJ pairs of multi-eGO.
-        for simulation, contact_matrix in self.contact_matrices_dictionary.items():
-            print('\t-', f'Parametrizing {simulation} probabilities')
-            self.meGO_LJ_potential = pd.concat([self.meGO_LJ_potential, parametrize_ensemble_LJ(contact_matrix, self.reference_contact_matrix, self.parameters, simulation)], axis=0, sort=False, ignore_index=True)
-
+        self.meGO_LJ_potential = parametrize_LJ(self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.parameters)
         # TODO if LJ empty then RC, to be inserted here
-
-        self.meGO_LJ_potential, self.meGO_LJ_14 = merge_and_clean_LJ(self.meGO_topology, self.meGO_LJ_potential, self.type_c12_dict, self.type_q_dict, self.parameters)
-
-        print(self.meGO_LJ_potential)
+        merge_and_clean_LJ(self.meGO_LJ_potential)#, self.meGO_LJ_potential, self.type_c12_dict, self.type_q_dict, self.parameters)
 
 
-
-
-    
+    def write_model(self):
+        '''        
+        '''
+        print('- Writing Multi-eGO model')
+        write_topology(self.reference_topology_dataframe, self.meGO_bonded_interactions, self.meGO_LJ_14, self.parameters, self.output_folder)
+        write_nonbonded(self.reference_topology_dataframe, self.meGO_LJ_potential, self.parameters, self.output_folder)
+        
+        print('\n- The model is baked with the following parameters:\n')
+        for argument, value in vars(self.parameters).items():
+            if type(value) is list:
+                print('\t- {:<20} = {:<20}'.format(argument, ", ".join(value)))
+            elif type(value) is not str:
+                print('\t- {:<20} = {:<20}'.format(argument, str(value)))
+            else:
+                print('\t- {:<20} = {:<20}'.format(argument, value))
+        print(f'\nAnd it can be found in the following folder:\n{self.output_folder}')
+        print('\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n')

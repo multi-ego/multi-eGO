@@ -8,7 +8,7 @@ import psutil
 
 
 # Start tracking the CPU usage
-psutil.cpu_percent(percpu=True)
+#psutil.cpu_percent(percpu=True)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
@@ -16,11 +16,11 @@ if __name__ == '__main__':
     parser.add_argument('--egos', choices=['rc', 'inter-rc', 'production'], required=True, help='Type of EGOs.\n -rc creates a force-field without non bonded parameters to sample the local geometry of the protein and it is the first simulation to be performed.\n -inter-rc is the second simulation where the non bonded parameters are included in pairs and exlusion in topol.top.')
     parser.add_argument('--epsilon', type=float_range(0.0, 1.0), help='Define a custom Epsilon value for the LJ parametrization from 0 to 1.')
     parser.add_argument('--train_from', nargs='+', type=str, help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
-    parser.add_argument('--check_with', type=str, help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
     args, remaining = parser.parse_known_args()
 
     # Default arguments
+    parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     parser.add_argument('--md_threshold', type=float, default=0.001, help='Contacts in intramat.ndx or intermat.ndx below this trehsold are dropped.')
     parser.add_argument('--rc_threshold', type=float, default=0.0001, help='Contacts in intramat.ndx or intermat.ndx below this trehsold are dropped.')
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Contacts in intramat.ndx or intermat.ndx below this trehsold are dropped.')
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         sys.exit()
 
     print('Checking the presence of directories and .top, .ndx files')
-    md_ensembles_list = ['reference']+args.train_from
+    md_ensembles_list = ['reference']+args.train_from+args.check_with
     check_files_existance(args.protein, md_ensembles_list)
     # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
@@ -57,13 +57,15 @@ if __name__ == '__main__':
     for ensemble in ensembles:
         multiego_ensemble.add_ensemble_from(ensemble)
     
+    multiego_ensemble.check_topology_conversion()
+    multiego_ensemble.generate_bonded_interactions()
     multiego_ensemble.generate_LJ_potential()
+    multiego_ensemble.write_model()
 
 
 
 
     # Get the CPU usage after the code has finished executing
-    cpu_percent = psutil.cpu_percent(percpu=True)
-    
+    #cpu_percent = psutil.cpu_percent(percpu=True)
     # Print the CPU usage
-    print(f"CPU usage: {cpu_percent}%")
+    #print(f"CPU usage: {cpu_percent}%")
