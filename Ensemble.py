@@ -58,7 +58,6 @@ class Ensemble:
         '''
         After reading the input files, this function builds the ensemble topology and contact matrices
         '''
-        # TODO here I need to move all the ensemble part from greta.py by reading the topology and structure dataframes
         print('\t-', f'Initializing {self.simulation} ensemble topology')
         self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
         # TODO qua ci si ritorna dopo con una matrice scritta giusta

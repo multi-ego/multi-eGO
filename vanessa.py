@@ -58,7 +58,6 @@ def initialize_ensemble_topology(topology, simulation):
     
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    # TODO c'è ancora da sistemare il c12 che ha numeri a caso
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12']*4.184
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -195,7 +194,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
             contact_matrix['same_chain'] = False
-        else:  # TODO che questa magari si puo' togliere se c'e' un controllo sui file
+        else:
             print(
                 'There might be an error in the contact matrix naming. It must be inter_X_X or intra_X_X')
             sys.exit
@@ -209,7 +208,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     return ensemble_contact_matrix
     
 
-def parametrize_LJ(meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_c12_dict, parameters): # TODO probabilmente qui simulation e' inutile
+def parametrize_LJ(meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_c12_dict, parameters):
     '''
     This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
     The random coil probabilities are used to reweight the explicit water ones.
