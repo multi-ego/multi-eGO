@@ -55,18 +55,22 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
         atom_selection_dataframe = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'resname', 'name', 'cgnr']].copy()
         file.write(f'{dataframe_to_write(atom_selection_dataframe)}\n\n')
         # Here are written bonds, angles, dihedrals and impropers
-        for type, interactions in bonded_interactions.items():
+        for bonded_type, interactions in bonded_interactions.items():
             if interactions.empty:
                 continue
             else:
-                file.write(f'[ {type} ]\n')
+                file.write(f'[ {bonded_type} ]\n')
                 file.write(dataframe_to_write(interactions))
                 file.write('\n\n')
         # Here are written pairs and exclusions
-
-
+        file.write(f'[ pairs ]\n')
+        file.write(dataframe_to_write(lj_14))
+        file.write(f'[ exclusions ]\n')
+        exclusions = lj_14.drop(columns = ['func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
+        file.write(exclusions.to_string(index=False))
 
     footer = f'''
+
 ; Include Position restraint file
 #ifdef POSRES
 #include "posre.itp"
@@ -93,7 +97,10 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     file = open(f'{output_folder}/ffnonbonded.itp', 'w')
     file.write(header)
     file.write('[ atomtypes ]\n')
-    file.write(dataframe_to_write(topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()))
+    atomtypes = topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
+    atomtypes['c6'] = atomtypes['c6'].map(lambda x:'{:.6e}'.format(x))
+    atomtypes['c12'] = atomtypes['c12'].map(lambda x:'{:.6e}'.format(x))
+    file.write(dataframe_to_write(atomtypes))
     file.write("\n\n[ nonbond_params ]\n")
-    file.write(lj_potential.to_string())
+    #file.write(lj_potential.to_string())
 

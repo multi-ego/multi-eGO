@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from vanessa import get_bonds, get_angles, get_dihedrals, get_impropers, parametrize_LJ, merge_and_clean_LJ
+from vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_impropers, parametrize_LJ, make_pairs_exclusion_topology
 from write_output_openai import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
@@ -9,13 +9,15 @@ class Multi_eGO_Ensemble:
     reference_topology = None
     reference_topology_dataframe = pd.DataFrame()
     meGO_bonded_interactions = {}
+    bond_pairs = {}
     reference_atomic_contacts = pd.DataFrame()
 
     meGO_topology_dataframe = pd.DataFrame()
     meGO_atomic_contacts = pd.DataFrame()
-    check_atomic_contacts = pd.DataFrame()
-    meGO_LJ_potential = pd.DataFrame()
-    meGO_LJ_14 = pd.DataFrame()
+    check_atomic_contacts = None
+    meGO_LJ_potential = None
+    meGO_LJ_14 = None
+    meGO_LJ_14 = None
     sbtype_c12_dict = None
 
     #reference_n_residues = None
@@ -43,11 +45,12 @@ class Multi_eGO_Ensemble:
         '''
         # TODO da aggiungere il dizionario di conversione delle topologie!!!
         print('\t-', f'Adding topology from {ensemble.simulation}')
-        
+
         if ensemble.simulation == 'reference':
             # This defines as the reference structure and eventual molecules will be added
             self.reference_topology = ensemble.topology
             self.reference_topology_dataframe = pd.concat([self.reference_topology_dataframe, ensemble.ensemble_topology_dataframe], axis=0, ignore_index=True)
+            self.sbtype_c12_dict = ensemble.sbtype_c12_dict
             self.reference_atomic_contacts = ensemble.atomic_contacts.add_prefix('rc_')
         
         elif ensemble.simulation in self.parameters.check_with:
@@ -96,6 +99,8 @@ class Multi_eGO_Ensemble:
                 'dihedrals' : get_dihedrals(topol[0].dihedrals),
                 'impropers' : get_impropers(topol[0].impropers)
             }
+            # The following bonds are used in the parametrization of LJ 1-4
+            self.bond_pairs[molecule] = get_bond_pairs(topol[0].bonds)
 
 
     def generate_LJ_potential(self):
@@ -106,10 +111,10 @@ class Multi_eGO_Ensemble:
         '''
         # TODO qui si mette parametrize_LJ che equivale a MD_LJ_pairs
         # All contacts are reweighted by the random coil probability both as intra and intermolecular and added to the LJ pairs of multi-eGO.
-        self.meGO_LJ_potential = parametrize_LJ(self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.parameters)
+        self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.parameters)
         # TODO if LJ empty then RC, to be inserted here
-        merge_and_clean_LJ(self.meGO_LJ_potential)#, self.meGO_LJ_potential, self.type_c12_dict, self.type_q_dict, self.parameters)
-
+        self.meGO_LJ_14 = make_pairs_exclusion_topology(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.parameters, self.meGO_LJ_potential)
+        # TODO controllare bene i numeri che sono troppi pairs in uscita!!! (i c12 in input potrebbero essere il problema)
 
     def write_model(self):
         '''        

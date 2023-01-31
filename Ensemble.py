@@ -28,10 +28,9 @@ class Ensemble:
     ensemble_topology_dataframe = None
     ensemble_molecules_idx_sbtype_dictionary = None
     ensemble_contact_matrices = {}
-    # TODO questo lo rimetti a posto quando sistemi le matrici
-    atomic_contacts = pd.DataFrame()#None
-    molecule_number_name_dict = None
-    
+    sbtype_c12_dict = None
+    atomic_contacts = None
+
     def __init__(self, simulation, simulation_path, args):
         self.args = args
         self.simulation = simulation
@@ -61,7 +60,6 @@ class Ensemble:
         '''
         # TODO here I need to move all the ensemble part from greta.py by reading the topology and structure dataframes
         print('\t-', f'Initializing {self.simulation} ensemble topology')
-        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary = initialize_ensemble_topology(self.topology, self.simulation)
+        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
-        #self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
-        #print(self.atomic_contacts)
+        self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
