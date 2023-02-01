@@ -62,3 +62,5 @@ class Ensemble:
         self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
         self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
+        print(self.atomic_contacts)
+        exit()

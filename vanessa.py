@@ -216,34 +216,38 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
     For each atom contact the sigma and epsilon are obtained.
     '''
 
+    oxygen_LJ_parametrization = add_oxygens_LJ(topology_dataframe)
+    print(meGO_atomic_contacts)
+    meGO_atomic_contacts = pd.concat([meGO_atomic_contacts, oxygen_LJ_parametrization], axis=0, sort=False)
+
+    print(meGO_atomic_contacts)
+    print(oxygen_LJ_parametrization)
+
+    exit()
+
     if parameters.egos != 'rc':
         meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts, reference_atomic_contacts, left_index=True, right_index=True, how='outer')
-        #print(meGO_atomic_contacts.head(1000).to_string()) # 305283
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['same_chain'] == meGO_atomic_contacts_merged['rc_same_chain']]
-        #print(meGO_atomic_contacts_merged) # 101761
         #meGO_atomic_contacts_merged.to_csv(f'analysis/meGO_atomic_contacts_merged')
         #meGO_atomic_contacts_merged.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
-        #print(meGO_atomic_contacts_merged) # 96795
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
 
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
-        # Attractive
+        # Attractive intramolecular
         #print(meGO_atomic_contacts_merged)
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>1.2*meGO_atomic_contacts_merged['rc_probability'])&(meGO_atomic_contacts_merged['same_chain']==True)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
+        # Attractive intermolecular
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>1.2*meGO_atomic_contacts_merged['rc_probability'])&(meGO_atomic_contacts_merged['same_chain']==False)] = -(parameters.epsilon/np.log(parameters.md_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.md_threshold)))
         # Repulsive
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<(1./1.2)*meGO_atomic_contacts_merged['rc_probability'])] = np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])*(np.minimum(meGO_atomic_contacts_merged['distance'],meGO_atomic_contacts_merged['rc_distance'])**12)
 
         # clean NaN and zeros
-        #print(meGO_atomic_contacts_merged) # 96795
-        meGO_atomic_contacts_merged.dropna(inplace=True)
-        #print(meGO_atomic_contacts_merged) # 90870
+        meGO_atomic_contacts_merged.dropna(subset=['epsilon'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged.epsilon != 0]
-        #print(meGO_atomic_contacts_merged) # 90870
 
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
@@ -260,12 +264,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         
         # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
-        #print(meGO_atomic_contacts_merged) # 181740
         # Here we change all the sigma for each combination of ai and aj and based on intra or inter molecular contacts. For all those pairs we keep the sigma min.
         meGO_atomic_contacts_merged['new_sigma'] = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
         # If the sigma minimum is shorter than the original sigma in the case of a repulsive contact it is removed
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[~((meGO_atomic_contacts_merged['new_sigma']<meGO_atomic_contacts_merged['sigma'])&(meGO_atomic_contacts_merged['epsilon']<0))]
-        #print(meGO_atomic_contacts_merged) # 181740
         # And update the sigma, which includes also the sigma check. Sigma check is a list of contacts from other ensembles to prevent the parametrization of long sigmas.
         meGO_atomic_contacts_merged['sigma'] = meGO_atomic_contacts_merged['new_sigma']
         meGO_atomic_contacts_merged.drop(columns=['new_sigma'], inplace=True)
@@ -279,12 +281,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
         # Cleaning the duplicates
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        #print(meGO_atomic_contacts_merged) # 90870
         # Removing the reverse duplicates
         cols = ['ai', 'aj']
         meGO_atomic_contacts_merged[cols] = np.sort(meGO_atomic_contacts_merged[cols].values, axis=1)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        #print(meGO_atomic_contacts_merged) #45435
         
         # Pairs prioritise intramolecular interactions
         meGO_LJ_14.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
@@ -304,7 +304,6 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_LJ_14 = pd.concat([meGO_LJ_14, meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain'] == 'Move')]], axis=0, sort=False, ignore_index = True)
         # and we remove the same lines from meGO_atomic_contacts_merged
         meGO_LJ_14 = meGO_atomic_contacts_merged[(meGO_atomic_contacts_merged['same_chain']!='Move')]
-        #print(meGO_atomic_contacts_merged) # 45435
         meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
         meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
         meGO_atomic_contacts_merged['c12ij'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
@@ -326,45 +325,34 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged['type'] = 1
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file', 'c12ij']]
 
-    # Adding special LJ parametrization of oxygen
-
-    oxy = add_oxygens_LJ(topology_dataframe, sbtype_c12_dict)
-    print(oxy)
-
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
 
-def add_oxygens_LJ(ego_topology, type_c12_dict):
-    ego_topology['number'] = ego_topology['number'].astype(str)
-    print(ego_topology)
-    atnum_type_top = ego_topology[['number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
-    atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
-
-    # Dictionaries definitions to map values
-    atnum_type_dict = atnum_type_top.set_index('sb_type')['number'].to_dict()
-    type_atnum_dict = atnum_type_top.set_index('number')['sb_type'].to_dict()
-
-    # Adding the c12 and charge
-    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-
+def add_oxygens_LJ(topology_dataframe):
+    topology_dataframe['number'] = topology_dataframe['number'].astype(str)
+    atnum_type_top = topology_dataframe[['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'c12', 'molecule']].copy()
+    atnum_type_top['resnum'] = atnum_type_top['resnum'].astype(int)
     # Here we add a special c12 only for oxygen-oxygen interactions
-    neg_oxygen = atnum_type_top.loc[(atnum_type_top['atom'].astype(str).str[0]=='O')]
+    neg_oxygen = atnum_type_top.loc[(atnum_type_top['name'].astype(str).str[0]=='O')]
     neg_oxygen['key'] = 1
     rc_oxyg_LJ = pd.merge(neg_oxygen,neg_oxygen,on='key').drop('key',axis=1)
-    rc_oxyg_LJ = rc_oxyg_LJ[['sb_type_x', 'sb_type_y', 'c12_x', 'c12_y']]
+    rc_oxyg_LJ = rc_oxyg_LJ[['molecule_x', 'sb_type_x', 'molecule_y', 'sb_type_y', 'c12_x', 'c12_y']]
     rc_oxyg_LJ['sigma'] = 0.55 
     rc_oxyg_LJ['epsilon'] = -11.4*np.sqrt(rc_oxyg_LJ['c12_x']*rc_oxyg_LJ['c12_y']) 
     rc_oxyg_LJ.drop(columns=['c12_y', 'c12_x'], inplace=True)
-    rc_oxyg_LJ.columns=['ai','aj','sigma','epsilon']
+    rc_oxyg_LJ.columns=['molecule_name_ai', 'ai', 'molecule_name_aj',  'aj', 'sigma', 'epsilon']
+    rc_oxyg_LJ['distance'] = np.nan
     rc_oxyg_LJ['probability'] = np.nan
-    rc_oxyg_LJ['rc_probability'] = np.nan
+    rc_oxyg_LJ['file'] = np.nan
     rc_oxyg_LJ['same_chain'] = 'Yes'
     rc_oxyg_LJ['source'] = 'rc'
     # drop inverse duplicates
     cols = ['ai', 'aj']
     rc_oxyg_LJ[cols] = np.sort(rc_oxyg_LJ[cols].values, axis=1)
     rc_oxyg_LJ = rc_oxyg_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
- 
+    rc_oxyg_LJ = rc_oxyg_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'same_chain', 'source', 'file']]
+    rc_oxyg_LJ[['idx_ai', 'idx_aj']] = rc_oxyg_LJ[['ai', 'aj']]
+    rc_oxyg_LJ.set_index(['idx_ai', 'idx_aj'], inplace=True)
     return rc_oxyg_LJ 
 
 
