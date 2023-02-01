@@ -23,7 +23,11 @@ def make_header(parameters):
 ; With the following parameters:
 '''
     for parameter, value in parameters.items():
+        print(parameter, value)
         if type(value) is list:
+            header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
+        elif not value:
+            value = ''
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
         else:
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, value)
@@ -41,8 +45,10 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
 
     file.write(header)
     for molecule, bonded_interactions in bonded_interactions_dict.items():
+        pairs = lj_14[molecule]
+        pairs.insert(5, ';', ';')
+        exclusions = pairs[['ai', 'aj']].copy()
         molecule_footer.append(molecule)
-        
         molecule_header = f'''
 [ moleculetype ]
 ; Name\tnrexcl
@@ -64,10 +70,9 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
                 file.write('\n\n')
         # Here are written pairs and exclusions
         file.write(f'[ pairs ]\n')
-        file.write(dataframe_to_write(lj_14))
+        file.write(dataframe_to_write(pairs))
         file.write(f'[ exclusions ]\n')
-        exclusions = lj_14.drop(columns = ['func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
-        file.write(exclusions.to_string(index=False))
+        file.write(dataframe_to_write(exclusions))
 
     footer = f'''
 
@@ -93,7 +98,7 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
 def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
     #pd.set_option('display.colheader_justify', 'right')
     header = make_header(vars(parameters))
-    
+    lj_potential.insert(5, ';', ';')
     file = open(f'{output_folder}/ffnonbonded.itp', 'w')
     file.write(header)
     file.write('[ atomtypes ]\n')
@@ -102,5 +107,5 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     atomtypes['c12'] = atomtypes['c12'].map(lambda x:'{:.6e}'.format(x))
     file.write(dataframe_to_write(atomtypes))
     file.write("\n\n[ nonbond_params ]\n")
-    #file.write(lj_potential.to_string())
+    file.write(dataframe_to_write(lj_potential))
 

@@ -15,9 +15,8 @@ class Multi_eGO_Ensemble:
     meGO_topology_dataframe = pd.DataFrame()
     meGO_atomic_contacts = pd.DataFrame()
     check_atomic_contacts = None
-    meGO_LJ_potential = None
-    meGO_LJ_14 = None
-    meGO_LJ_14 = None
+    meGO_LJ_potential = pd.DataFrame()
+    meGO_LJ_14 = pd.DataFrame()
     sbtype_c12_dict = None
 
     #reference_n_residues = None
@@ -78,15 +77,16 @@ class Multi_eGO_Ensemble:
             If difference_set is not empty, it prints a message indicating that the atomtypes in difference_set are not converted and that they must be added to the "from_ff_to_multiego" dictionary to properly merge all the contacts and exits the program.
         This function is checking if there are any atom types present in the reference topology that are not present in the meGO topology and if there are any it exits the program.
         '''
-        reference_set = set(self.reference_topology_dataframe['name'].to_list())
-        for number, molecule in enumerate(self.reference_topology.molecules, 1):
-            comparison_dataframe = self.meGO_topology_dataframe.loc[self.meGO_topology_dataframe['molecule'] == f'{number}_{molecule}']
-            if not comparison_dataframe.empty:
-                comparison_set = set(comparison_dataframe[~comparison_dataframe['name'].astype(str).str.startswith('H')]['name'].to_list())
-        difference_set = comparison_set.difference(reference_set)
-        if difference_set:
-            print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
-            exit()
+        if self.parameters.egos != 'rc':
+            reference_set = set(self.reference_topology_dataframe['name'].to_list())
+            for number, molecule in enumerate(self.reference_topology.molecules, 1):
+                comparison_dataframe = self.meGO_topology_dataframe.loc[self.meGO_topology_dataframe['molecule'] == f'{number}_{molecule}']
+                if not comparison_dataframe.empty:
+                    comparison_set = set(comparison_dataframe[~comparison_dataframe['name'].astype(str).str.startswith('H')]['name'].to_list())
+            difference_set = comparison_set.difference(reference_set)
+            if difference_set:
+                print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
+                exit()
 
 
     def generate_bonded_interactions(self):
@@ -111,10 +111,10 @@ class Multi_eGO_Ensemble:
         '''
         # TODO qui si mette parametrize_LJ che equivale a MD_LJ_pairs
         # All contacts are reweighted by the random coil probability both as intra and intermolecular and added to the LJ pairs of multi-eGO.
-        self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.parameters)
-        # TODO if LJ empty then RC, to be inserted here
-        self.meGO_LJ_14 = make_pairs_exclusion_topology(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.parameters, self.meGO_LJ_potential)
+        self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.reference_topology_dataframe, self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.parameters)
+        self.meGO_LJ_14 = make_pairs_exclusion_topology(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.parameters, self.meGO_LJ_14)
         # TODO controllare bene i numeri che sono troppi pairs in uscita!!! (i c12 in input potrebbero essere il problema)
+        #print(self.meGO_LJ_14)
 
     def write_model(self):
         '''        
