@@ -44,11 +44,20 @@ if __name__ == '__main__':
     check_files_existance(args.protein, md_ensembles_list)
     # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
+#    ensembles = []
+#    for simulation in md_ensembles_list:
+#        ensembles.append(read_simulations(args, simulation))
+
     # Reading and preparing all the simulations defined in --train_from
     with concurrent.futures.ThreadPoolExecutor() as executor:
+
+
+        # TODO RESET ENSEMBLE PRIMA DI FARLO PARTIRE DI NUOVO
+        
         # submit the read_subfolders function to be executed in parallel
         results = [executor.submit(read_simulations, args, simulation) for simulation in md_ensembles_list]
         ensembles = [result.result() for result in concurrent.futures.as_completed(results)]
+
 
     # Initializing Multi-eGO ensemble, which will gather all the Ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')
@@ -56,7 +65,7 @@ if __name__ == '__main__':
 
     for ensemble in ensembles:
         multiego_ensemble.add_ensemble_from(ensemble)
-    
+
     multiego_ensemble.check_topology_conversion()
     multiego_ensemble.generate_bonded_interactions()
     multiego_ensemble.generate_LJ_potential()

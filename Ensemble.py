@@ -6,6 +6,7 @@ import pandas as pd
 import warnings
 import glob
 import sys
+import copy
 
 warnings.simplefilter("ignore")
 warnings.filterwarnings("ignore", category=ParameterWarning)
@@ -16,14 +17,19 @@ def read_simulations(args, simulation):
     '''
     
     simulation_path = os.path.join(args.protein, simulation)
-    ensemble = Ensemble(simulation, simulation_path, args)
+    init_ensemble = Ensemble(simulation, simulation_path, args)
+    ensemble = copy.deepcopy(init_ensemble)
+    del init_ensemble
     ensemble.read_files()
     ensemble.initialize_ensemble()
     return ensemble
 
 
 class Ensemble:
-    
+    args = None
+    simulation = None
+    simulation_path = None
+
     topology = None
     ensemble_topology_dataframe = None
     ensemble_molecules_idx_sbtype_dictionary = None
@@ -51,8 +57,10 @@ class Ensemble:
         # Reference requires both intra and inter molecular matrices
         for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
             name = matrix.replace(f'inputs/{self.simulation_path}/', '')
+            print(name)
             self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
-
+        print(self.ensemble_contact_matrices)
+        exit()
 
     def initialize_ensemble(self):
         '''
@@ -62,5 +70,3 @@ class Ensemble:
         self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
         self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
-        print(self.atomic_contacts)
-        exit()

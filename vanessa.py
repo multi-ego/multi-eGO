@@ -156,7 +156,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
         - Set the 'probability' column less than 0.000001 to 0.000001
         - Concatenate all the dataframes contained in the simulation folder
     '''
-    print('\t\t-', f'Initializing {simulation} contact matrix')    
+    print('\t\t-', f'Initializing {simulation} contact matrix')
     ensemble_contact_matrix = pd.DataFrame()
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -167,10 +167,10 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     original_contact_matrices = contact_matrices.copy()
     for file_name, contact_matrix in original_contact_matrices.items():
 
-    #for file_name, contact_matrix in contact_matrices.items():
+        #for file_name, contact_matrix in contact_matrices.items():
         name = file_name.split('_')
         name = name[:-1] + name[-1].split('.')[:-1]
-
+        
         # Renaming stuff
         contact_matrix['molecule_name_ai'] = contact_matrix['molecule_number_ai'].astype(
             str) + '_' + contact_matrix['molecule_number_ai'].map(molecule_names_dictionary)
@@ -215,7 +215,6 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
     Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
     For each atom contact the sigma and epsilon are obtained.
     '''
-
     oxygen_LJ_parametrization = add_oxygens_LJ(topology_dataframe)
     print(meGO_atomic_contacts)
     meGO_atomic_contacts = pd.concat([meGO_atomic_contacts, oxygen_LJ_parametrization], axis=0, sort=False)
