@@ -4,26 +4,6 @@ from vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_im
 from write_output_openai import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
-    # TODO inserire la possibilità di leggere un RC fatto da più di una molecola
-
-    reference_topology = None
-    reference_topology_dataframe = pd.DataFrame()
-    meGO_bonded_interactions = {}
-    bond_pairs = {}
-    reference_atomic_contacts = pd.DataFrame()
-
-    meGO_topology_dataframe = pd.DataFrame()
-    meGO_atomic_contacts = pd.DataFrame()
-    check_atomic_contacts = None
-    meGO_LJ_potential = pd.DataFrame()
-    meGO_LJ_14 = pd.DataFrame()
-    sbtype_c12_dict = None
-
-    #reference_n_residues = None
-    #topology_dataframe = pd.DataFrame()
-    
-    # Contact matrices definition
-    #contact_matrices_dictionary = {}
 
     def __init__(self, args):
         self.parameters = args
@@ -36,6 +16,26 @@ class Multi_eGO_Ensemble:
             os.mkdir(self.output_folder)
         except OSError as error:
             pass
+
+        # TODO inserire la possibilità di leggere un RC fatto da più di una molecola
+        self.reference_topology = None
+        self.reference_topology_dataframe = pd.DataFrame()
+        self.meGO_bonded_interactions = {}
+        self.bond_pairs = {}
+        self.reference_atomic_contacts = pd.DataFrame()
+
+        self.meGO_topology_dataframe = pd.DataFrame()
+        self.meGO_atomic_contacts = pd.DataFrame()
+        self.check_atomic_contacts = None
+        self.meGO_LJ_potential = pd.DataFrame()
+        self.meGO_LJ_14 = pd.DataFrame()
+        self.sbtype_c12_dict = None
+
+        #reference_n_residues = None
+        #topology_dataframe = pd.DataFrame()
+        
+        # Contact matrices definition
+        #contact_matrices_dictionary = {}
 
     def add_ensemble_from(self, ensemble):
         '''

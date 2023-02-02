@@ -16,28 +16,26 @@ def read_simulations(args, simulation):
     This function creates an Ensemble for each simulation defined by the folder name in --md_ensembles.
     '''
     simulation_path = os.path.join(args.protein, simulation)
-    ensemble_tuple = (args, simulation, simulation_path)
-    ensemble = Ensemble(ensemble_tuple)
-    return copy.deepcopy(ensemble)
+    ensemble = Ensemble(args, simulation, simulation_path)
+    ensemble.read_files()
+    ensemble.initialize_ensemble()
+    return ensemble 
 
 
 class Ensemble:
-    args = None
-    simulation = None
-    simulation_path = None
-    topology = None
-    ensemble_topology_dataframe = None
-    ensemble_molecules_idx_sbtype_dictionary = None
-    ensemble_contact_matrices = {}
-    sbtype_c12_dict = None
-    atomic_contacts = None
 
-    def __init__(self, ensemble_tuple):
-        self.args = ensemble_tuple[0]
-        self.simulation = ensemble_tuple[1]
-        self.simulation_path = ensemble_tuple[2]
-        print(f"- Creating the {ensemble_tuple[1]} ensemble")
+    def __init__(self, args, simulation, simulation_path):
+        self.args = args
+        self.simulation = simulation
+        self.simulation_path = simulation_path
+        print(f"- Creating the {simulation} ensemble")
 
+        self.topology = None
+        self.ensemble_topology_dataframe = None
+        self.ensemble_molecules_idx_sbtype_dictionary = None
+        self.ensemble_contact_matrices = {}
+        self.sbtype_c12_dict = None
+        self.atomic_contacts = None
 
     def read_files(self):
         '''
@@ -51,9 +49,7 @@ class Ensemble:
         # Reference requires both intra and inter molecular matrices
         for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
             name = matrix.replace(f'inputs/{self.simulation_path}/', '')
-            print(name)
             self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
-        print(self.ensemble_contact_matrices)
 
     def initialize_ensemble(self):
         '''
@@ -61,6 +57,6 @@ class Ensemble:
         '''
         print('\t-', f'Initializing {self.simulation} ensemble topology')
         self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
+
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
         self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
-        self.ensemble_contact_matrices = {}

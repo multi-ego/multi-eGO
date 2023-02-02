@@ -216,11 +216,11 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
     For each atom contact the sigma and epsilon are obtained.
     '''
     oxygen_LJ_parametrization = add_oxygens_LJ(topology_dataframe)
-    print(meGO_atomic_contacts)
+    #print(meGO_atomic_contacts)
     meGO_atomic_contacts = pd.concat([meGO_atomic_contacts, oxygen_LJ_parametrization], axis=0, sort=False)
 
-    print(meGO_atomic_contacts)
-    print(oxygen_LJ_parametrization)
+    #print(meGO_atomic_contacts)
+    #print(oxygen_LJ_parametrization)
 
     exit()
 
@@ -230,6 +230,8 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         #meGO_atomic_contacts_merged.to_csv(f'analysis/meGO_atomic_contacts_merged')
         #meGO_atomic_contacts_merged.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters['md_threshold'])|((meGO_atomic_contacts_merged['probability']<parameters['md_threshold'])&(meGO_atomic_contacts_merged['rc_probability']>parameters['md_threshold']))]
+
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
