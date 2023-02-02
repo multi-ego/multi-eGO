@@ -199,8 +199,8 @@ class multiego_ensemble:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict[value], self.structure_based_contacts_dict['random_coil'], self.parameters, self.parameters[param])
                 greta_LJ = pd.concat([greta_LJ, greta_MD_LJ], axis=0, sort=False, ignore_index=True)
 
-        rc_oxyg_LJ = make_oxygens_LJ(self.multiego_ensemble_top, self.type_c12_dict)
-        greta_LJ = pd.concat([greta_LJ, rc_oxyg_LJ], axis=0, sort=False, ignore_index=True)
+        #rc_oxyg_LJ = make_oxygens_LJ(self.multiego_ensemble_top, self.type_c12_dict)
+        #greta_LJ = pd.concat([greta_LJ, rc_oxyg_LJ], axis=0, sort=False, ignore_index=True)
 
         if greta_LJ.empty:
             greta_ffnb = greta_LJ 
