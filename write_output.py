@@ -41,7 +41,9 @@ def write_LJ(ensemble):
     #if ensemble.parameters['egos'] == 'rc':
     #    file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
     #else:
-    file.write(str(ensemble.greta_ffnb_toWrite))
+    if hasattr(ensemble, 'greta_ffnb_toWrite'):
+        file.write(str(ensemble.greta_ffnb_toWrite))
+
     file.close()
 
 def write_topology(ensemble):
