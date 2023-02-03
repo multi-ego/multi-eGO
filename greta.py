@@ -199,8 +199,8 @@ class multiego_ensemble:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict[value], self.structure_based_contacts_dict['random_coil'], self.parameters, self.parameters[param])
                 greta_LJ = pd.concat([greta_LJ, greta_MD_LJ], axis=0, sort=False, ignore_index=True)
 
-        rc_oxyg_LJ = make_oxygens_LJ(self.multiego_ensemble_top, self.type_c12_dict)
-        greta_LJ = pd.concat([greta_LJ, rc_oxyg_LJ], axis=0, sort=False, ignore_index=True)
+        #rc_oxyg_LJ = make_oxygens_LJ(self.multiego_ensemble_top, self.type_c12_dict)
+        #greta_LJ = pd.concat([greta_LJ, rc_oxyg_LJ], axis=0, sort=False, ignore_index=True)
 
         if greta_LJ.empty:
             greta_ffnb = greta_LJ 
@@ -982,9 +982,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
     sidechain_cgs = atnum_type_top.loc[(atnum_type_top['atom'] == 'CG')|(atnum_type_top['atom'] == 'CG1')|(atnum_type_top['atom'] == 'CG2')|(atnum_type_top['atom'] == 'SG')|(atnum_type_top['atom'] == 'OG')|(atnum_type_top['atom'] == 'OG1')&(atnum_type_top['residue'] != 'PRO')]
 
-    # For proline CD take the CB, N of the previous residue and save in a pairs tuple
+    # For proline CD take the CB of the previous residue and save in a pairs tuple
     # CB-1-CD is related to the extended region of the ramachandran
-    # N-1-CD is related to the alpha region of the ramachandran (not used)
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_pro_cd in pro_cd.iterrows():
         line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
@@ -1087,7 +1086,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_next_n['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(3.e-7)
+            pairs_14_c12.append(0.343*np.sqrt(line_next_n['c12']*line_backbone_nitrogen['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1106,7 +1105,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_oxygen['atom_number'])
             pairs_14_aj.append(line_next_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*np.sqrt(line_backbone_oxygen['c12']*line_next_o['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1125,7 +1124,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_ct_oxygen['atom_number'])
             pairs_14_aj.append(line_prev_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*np.sqrt(line_ct_oxygen['c12']*line_prev_o['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1144,7 +1143,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_prev_c['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(1.3e-6)
+            pairs_14_c12.append(0.5*np.sqrt(line_backbone_carbonyl['c12']*line_prev_c['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
