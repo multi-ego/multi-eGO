@@ -419,7 +419,7 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
                             ex.append(ttt[0])
                             ex14.append(ttt[0])
             for e in ex:
-                exclusion_bond s.append((str(str(atom) + '_' + str(e))))
+                exclusion_bonds.append((str(str(atom) + '_' + str(e))))
                 exclusion_bonds.append((str(str(e) + '_' + str(atom))))
             ex = []
             for e in ex14:
