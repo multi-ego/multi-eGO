@@ -945,7 +945,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             p14.append((str(str(atom) + '_' + str(e))))
             p14.append((str(str(e) + '_' + str(atom))))
         ex14 = []
-
+    print(exclusion_bonds)
+    exit()
     if not greta_merge.empty:
         greta_merge = greta_merge.rename(columns = {'; ai': 'ai'})
         # pairs from greta does not have duplicates because these have been cleaned before
