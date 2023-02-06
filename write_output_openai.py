@@ -23,7 +23,6 @@ def make_header(parameters):
 ; With the following parameters:
 '''
     for parameter, value in parameters.items():
-        print(parameter, value)
         if type(value) is list:
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
         elif not value:
@@ -71,7 +70,7 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
         # Here are written pairs and exclusions
         file.write(f'[ pairs ]\n')
         file.write(dataframe_to_write(pairs))
-        file.write(f'[ exclusions ]\n')
+        file.write(f'\n\n[ exclusions ]\n')
         file.write(dataframe_to_write(exclusions))
 
     footer = f'''
@@ -99,9 +98,10 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     #pd.set_option('display.colheader_justify', 'right')
     header = make_header(vars(parameters))
     lj_potential.insert(5, ';', ';')
+    lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'c12ij', 'rc_source'], inplace=True)
     file = open(f'{output_folder}/ffnonbonded.itp', 'w')
     file.write(header)
-    file.write('[ atomtypes ]\n')
+    file.write('\n[ atomtypes ]\n')
     atomtypes = topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
     atomtypes['c6'] = atomtypes['c6'].map(lambda x:'{:.6e}'.format(x))
     atomtypes['c12'] = atomtypes['c12'].map(lambda x:'{:.6e}'.format(x))
