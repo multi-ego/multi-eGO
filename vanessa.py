@@ -226,7 +226,13 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         #meGO_atomic_contacts_merged.to_csv(f'analysis/meGO_atomic_contacts_merged')
         #meGO_atomic_contacts_merged.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
         #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))]
+        #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))|((meGO_atomic_contacts_merged['probability']<parameters.rc_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
+ 
+        #coso = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['ai'] == 'OH_ABeta_10') | (meGO_atomic_contacts_merged['aj'] == 'OH_ABeta_10')]
+        #coso2 = coso.loc[(coso['ai'] == 'C_ABeta_10') | (coso['aj'] == 'C_ABeta_10')]
+        #print(coso2)
+        #exit()
 
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2**(1/6))
@@ -240,7 +246,14 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # Attractive intermolecular
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>1.1*meGO_atomic_contacts_merged['rc_probability'])&(meGO_atomic_contacts_merged['same_chain']==False)] = -(parameters.epsilon/np.log(parameters.md_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.md_threshold)))
         # Repulsive
-        meGO_atomic_contacts_merged['epsilon'].loc[(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.md_threshold)<0.9*meGO_atomic_contacts_merged['rc_probability'])] = np.log(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.md_threshold)/meGO_atomic_contacts_merged['rc_probability'])*(np.minimum(meGO_atomic_contacts_merged['distance'],meGO_atomic_contacts_merged['rc_distance'])**12)
+        # case 1: rc > md > md_t
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['probability']<0.9*meGO_atomic_contacts_merged['rc_probability'])] = np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])*(np.minimum(meGO_atomic_contacts_merged['distance'],meGO_atomic_contacts_merged['rc_distance'])**12)
+        # case 2: rc > md_t > md
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))&(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.md_threshold)<0.9*meGO_atomic_contacts_merged['rc_probability'])] = np.log(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.md_threshold)/meGO_atomic_contacts_merged['rc_probability'])*(np.minimum(meGO_atomic_contacts_merged['distance'],meGO_atomic_contacts_merged['rc_distance'])**12)
+        # case 3: rc > rc_t > md
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']<parameters.rc_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))&(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)<0.9*meGO_atomic_contacts_merged['rc_probability'])] = np.log(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])*(np.minimum(meGO_atomic_contacts_merged['distance'],meGO_atomic_contacts_merged['rc_distance'])**12)
+
+
 
         # TODO dopo la creazione dell'epsilon vengono tolti i NaN, solo che alcune probabilità sono super risicate e minime differenze tolgono e mettono contatti.
         # Fino a qui mi verrebbe da dire che funziona, però bisogna fare un confronto con delle probabilità giuste.
@@ -489,26 +502,37 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
         sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
         pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resnum'] == 'PRO')]
         sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resnum'] != 'PRO')]
+        
         # For proline CD take the CB, N of the previous residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
+        
         # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=sidechain_cb, prefactor=0.275, shift=+1)], axis=0, sort=False, ignore_index=True)
+       
         # For backbone oxygen take the CB of the same residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
+        
         # now we add the pair between the last CB and the two OCT ones
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=sidechain_cb, prefactor=0.65, shift=-1)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=backbone_nitrogen, constant=3.e-7, shift=+1)], axis=0, sort=False, ignore_index=True)
+        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=backbone_nitrogen, prefactor=0.343, shift=+1)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone oxygen take the O of the next residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=+1)], axis=0, sort=False, ignore_index=True)
+        
         # now we add the pair between the penultimate oxygen and the two CT ones
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=-1)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=backbone_carbonyl, constant=1.3e-6, shift=-1)], axis=0, sort=False, ignore_index=True)
+        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=backbone_carbonyl, prefactor=0.5, shift=-1)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078)], axis=0, sort=False, ignore_index=True)
+        
         # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
         # remove duplicates
@@ -537,6 +561,7 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
         pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
         pairs_molecule_dict[molecule] = pairs
     return pairs_molecule_dict
+
 
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
