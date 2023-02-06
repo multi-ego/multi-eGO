@@ -324,26 +324,27 @@ class multiego_ensemble:
             ligand_atnum_type_dict = ligand_atnum_type_df.set_index('sb_type')['new_index'].to_dict()
             atnum_type_dict = {**atnum_type_dict, **ligand_atnum_type_dict}
 
-        self.greta_ffnb['ai_n'] = self.greta_ffnb['ai'].map(atnum_type_dict)
-        self.greta_ffnb['aj_n'] = self.greta_ffnb['aj'].map(atnum_type_dict)
-        self.greta_ffnb['ai_n'] = self.greta_ffnb['ai_n'].astype(int)
-        self.greta_ffnb['aj_n'] = self.greta_ffnb['aj_n'].astype(int)
-        # Here we want to sort so that ai is smaller than aj
-        inv_greta_ffnb = self.greta_ffnb[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'aj_n', 'ai_n']].copy()
-        inv_greta_ffnb.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']
-        self.greta_ffnb = pd.concat([self.greta_ffnb,inv_greta_ffnb], axis=0, sort = False, ignore_index = True)
-        self.greta_ffnb = self.greta_ffnb[self.greta_ffnb['ai_n']<=self.greta_ffnb['aj_n']]
-        self.greta_ffnb.sort_values(by = ['ai_n', 'aj_n'], inplace = True)
-        self.greta_ffnb = self.greta_ffnb.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-        self.greta_ffnb.insert(5, '', ';')
-        self.greta_ffnb = self.greta_ffnb.rename(columns = {'ai':'; ai'})
-        self.greta_ffnb['epsilon'] = self.greta_ffnb["epsilon"].map(lambda x:'{:.6f}'.format(x))
-        self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
-        self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']]
-        self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
+        if not self.greta_ffnb.empty:
+            self.greta_ffnb['ai_n'] = self.greta_ffnb['ai'].map(atnum_type_dict)
+            self.greta_ffnb['aj_n'] = self.greta_ffnb['aj'].map(atnum_type_dict)
+            self.greta_ffnb['ai_n'] = self.greta_ffnb['ai_n'].astype(int)
+            self.greta_ffnb['aj_n'] = self.greta_ffnb['aj_n'].astype(int)
+            # Here we want to sort so that ai is smaller than aj
+            inv_greta_ffnb = self.greta_ffnb[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'aj_n', 'ai_n']].copy()
+            inv_greta_ffnb.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']
+            self.greta_ffnb = pd.concat([self.greta_ffnb,inv_greta_ffnb], axis=0, sort = False, ignore_index = True)
+            self.greta_ffnb = self.greta_ffnb[self.greta_ffnb['ai_n']<=self.greta_ffnb['aj_n']]
+            self.greta_ffnb.sort_values(by = ['ai_n', 'aj_n'], inplace = True)
+            self.greta_ffnb = self.greta_ffnb.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+            
+            self.greta_ffnb.insert(5, '', ';')
+            self.greta_ffnb = self.greta_ffnb.rename(columns = {'ai':'; ai'})
+            self.greta_ffnb['epsilon'] = self.greta_ffnb["epsilon"].map(lambda x:'{:.6f}'.format(x))
+            self.greta_ffnb['sigma'] = self.greta_ffnb["sigma"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb['c6'] = self.greta_ffnb["c6"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb['c12'] = self.greta_ffnb["c12"].map(lambda x:'{:.6e}'.format(x))
+            self.greta_ffnb = self.greta_ffnb[['; ai', 'aj', 'type', 'c6', 'c12', '', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source', 'ai_n', 'aj_n']]
+            self.greta_ffnb_toWrite = self.greta_ffnb.to_string(index = False)
 
         if self.parameters['ligand'] == True:
             self.ligand_moleculetype_toWrite = self.ligand_moleculetype.to_string(index=False)
@@ -718,7 +719,8 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     rew_mat = pd.concat([rew_mat, atomic_mat_random_coil], axis=1)
     rew_mat.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
-    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
+    #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
+    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     rew_mat['sigma'] = (rew_mat['distance']) / (2**(1/6))
@@ -731,7 +733,12 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     # Attractive intermolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>1.1*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_amyl']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
-    rew_mat['epsilon'].loc[(np.maximum(rew_mat['probability'],parameters['md_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    # case 1: rc > md > md_t
+    rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<0.9*rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    # case 2: rc > md_t > md
+    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['md_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    # case 3: rc > rc_t > md
+    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['rc_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
@@ -982,9 +989,8 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
     pro_cd = atnum_type_top.loc[(atnum_type_top['atom'] == 'CD')&(atnum_type_top['residue'] == 'PRO')]
     sidechain_cgs = atnum_type_top.loc[(atnum_type_top['atom'] == 'CG')|(atnum_type_top['atom'] == 'CG1')|(atnum_type_top['atom'] == 'CG2')|(atnum_type_top['atom'] == 'SG')|(atnum_type_top['atom'] == 'OG')|(atnum_type_top['atom'] == 'OG1')&(atnum_type_top['residue'] != 'PRO')]
 
-    # For proline CD take the CB, N of the previous residue and save in a pairs tuple
+    # For proline CD take the CB of the previous residue and save in a pairs tuple
     # CB-1-CD is related to the extended region of the ramachandran
-    # N-1-CD is related to the alpha region of the ramachandran (not used)
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
     for index, line_pro_cd in pro_cd.iterrows():
         line_sidechain_cb = sidechain_cb.loc[(sidechain_cb['residue_number'] == line_pro_cd['residue_number']-1)].squeeze(axis=None)
@@ -1087,7 +1093,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_nitrogen['atom_number'])
             pairs_14_aj.append(line_next_n['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(3.e-7)
+            pairs_14_c12.append(0.343*np.sqrt(line_next_n['c12']*line_backbone_nitrogen['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1106,7 +1112,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_oxygen['atom_number'])
             pairs_14_aj.append(line_next_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*np.sqrt(line_backbone_oxygen['c12']*line_next_o['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1125,7 +1131,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_ct_oxygen['atom_number'])
             pairs_14_aj.append(line_prev_o['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(11.4*line_backbone_oxygen['c12'])
+            pairs_14_c12.append(11.4*np.sqrt(line_ct_oxygen['c12']*line_prev_o['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
@@ -1144,7 +1150,7 @@ def make_pairs_exclusion_topology(ego_topology, bond_tuple, type_c12_dict, param
             pairs_14_ai.append(line_backbone_carbonyl['atom_number'])
             pairs_14_aj.append(line_prev_c['atom_number'])
             pairs_14_c6.append(0.0)
-            pairs_14_c12.append(1.3e-6)
+            pairs_14_c12.append(0.5*np.sqrt(line_backbone_carbonyl['c12']*line_prev_c['c12']))
 
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai

@@ -79,6 +79,7 @@ def read_mdmat_dataframe(contact_type, directory, idx_sbtype_dict):
 
     temp_mat_df = temp_mat_df[~temp_mat_df['ai'].astype(str).str.startswith('H')]
     temp_mat_df = temp_mat_df[~temp_mat_df['aj'].astype(str).str.startswith('H')]
+    temp_mat_df['distance'].loc[(temp_mat_df['probability'] < (0.000001))&(temp_mat_df['distance'] == 0.)] = 0.550000 
     temp_mat_df['probability'].loc[temp_mat_df['probability'] < (0.000001)] = 0.000001 
 
     # Questo è per tenerlo il più simile a prima, nel MD non rinomino le chain ma nel rc si.
