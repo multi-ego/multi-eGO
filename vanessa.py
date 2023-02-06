@@ -308,26 +308,33 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # where meGO_LJ_14 is the same of meGO_atomic_contacts_merged and same_chain is yes that the line can be dropped
         # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_atomic_contacts_merged
         test = pd.merge(meGO_LJ_14, meGO_atomic_contacts_merged, how="right", on=["ai", "aj"])
-        meGO_LJ_14 = test.loc[(test['same_chain_x']=='No')|((test['same_chain_x']=='Yes')&(test['same_chain_y']=='No'))]
+        meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
         meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y'], inplace = True)
         meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
+        
+
+        # TODO qui si interrompe il codice
         # now we copy the lines with negative epsilon from greta to pairs because we want repulsive interactions only intramolecularly
         # and we use same-chain as a flag to keep track of them
-        meGO_atomic_contacts_merged['same_chain'].loc[(meGO_atomic_contacts_merged['epsilon']<0.0)&(meGO_atomic_contacts_merged['same_chain'] == True)] = 'Move'
-        meGO_LJ_14 = pd.concat([meGO_LJ_14, meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain'] == 'Move')]], axis=0, sort=False, ignore_index = True)
+        #meGO_atomic_contacts_merged['same_chain'].loc[(meGO_atomic_contacts_merged['epsilon']<0.0)&(meGO_atomic_contacts_merged['same_chain'] == True)] = 'Move'
+        #meGO_LJ_14 = pd.concat([meGO_LJ_14, meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain'] == 'Move')]], axis=0, sort=False, ignore_index = True)
         # and we remove the same lines from meGO_atomic_contacts_merged
-        meGO_LJ_14 = meGO_atomic_contacts_merged[(meGO_atomic_contacts_merged['same_chain']!='Move')]
+        #meGO_LJ_14 = meGO_atomic_contacts_merged[(meGO_atomic_contacts_merged['same_chain']!='Move')]
         meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
         meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
-        meGO_atomic_contacts_merged['c12ij'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
+        #meGO_atomic_contacts_merged['c12ij'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
         meGO_atomic_contacts_merged['c6'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)] = 0.
-        meGO_atomic_contacts_merged['c12'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)] = np.maximum(-meGO_atomic_contacts_merged['epsilon'],meGO_atomic_contacts_merged['c12ij'])        
+        meGO_atomic_contacts_merged['c12'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)] = np.maximum(-meGO_atomic_contacts_merged['epsilon'],np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict)))
+
+        #meGO_atomic_contacts_merged['c12'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)] = np.maximum(-meGO_atomic_contacts_merged['epsilon'],meGO_atomic_contacts_merged['c12ij'])        
         meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
         meGO_LJ_14['c12'] = abs(4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 12))
-        meGO_LJ_14['c12ij'] = np.sqrt(meGO_LJ_14['ai'].map(sbtype_c12_dict)*meGO_LJ_14['aj'].map(sbtype_c12_dict))
+        #meGO_LJ_14['c12ij'] = np.sqrt(meGO_LJ_14['ai'].map(sbtype_c12_dict)*meGO_LJ_14['aj'].map(sbtype_c12_dict))
         # repulsive interactions have just a very large C12
         meGO_LJ_14['c6'].loc[(meGO_LJ_14['epsilon']<0.)] = 0.
-        meGO_LJ_14['c12'].loc[(meGO_LJ_14['epsilon']<0.)] = np.maximum(-meGO_LJ_14['epsilon'],meGO_LJ_14['c12ij'])  
+        meGO_LJ_14['c12'].loc[(meGO_LJ_14['epsilon']<0.)] = np.maximum(-meGO_LJ_14['epsilon'],np.sqrt(meGO_LJ_14['ai'].map(sbtype_c12_dict)*meGO_LJ_14['aj'].map(sbtype_c12_dict)))  
+
+        #meGO_LJ_14['c12'].loc[(meGO_LJ_14['epsilon']<0.)] = np.maximum(-meGO_LJ_14['epsilon'],meGO_LJ_14['c12ij'])  
         # TODO si potrebbe aggiungere nel print anche il contributo di ogni ensemble
         print(f'''
         \t- LJ parameterization completed with a total of {len(meGO_atomic_contacts_merged)} contacts.
@@ -336,10 +343,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         ''')
 
         meGO_atomic_contacts_merged['type'] = 1
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file', 'c12ij']]
+        #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file', 'c12ij']]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file']]
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['ai'].map(sbtype_number_dict)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(sbtype_number_dict)
-
 
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
