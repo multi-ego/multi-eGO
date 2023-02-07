@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_impropers, parametrize_LJ, make_pairs_exclusion_topology
-from write_output_openai import get_name, write_topology, write_nonbonded
+from write_output import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
 
