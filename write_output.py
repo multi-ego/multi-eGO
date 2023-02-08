@@ -1,150 +1,112 @@
 from time import localtime, strftime
-from numpy import column_stack
-from topology_parser import topology_parser, topology_ligand_bonds, topology_ligand_angles, topology_ligand_dihedrals
 import pandas as pd
 
-now = strftime("%d-%m-%Y %H:%M", localtime())
 
-def header(parameters):
-    header = f'; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab \n'
-    header += f'; Created on the {now}\n'
-    header += f"; Protein name: {parameters['protein']} \n"
-    header += f"; The force field type is: {parameters['egos']} \n"
-    if parameters['egos'] != 'rc':
-        header += f"; LJ epsilon: {parameters['epsilon_md']} \n"
-        header += f"; LJ amyloid epsilon: {parameters['epsilon_amyl']} \n"
-        header += f"; LJ potential from a MD/random_coil ratio and thresholds: {parameters['md_threshold']} {parameters['rc_threshold']}\n"
-    header += f"; Atoms cutoff distance: {parameters['distance_cutoff']} A \n"
-    header += "\n"
+pd.set_option('display.colheader_justify', 'right')
 
+def get_name(parameters):
+    name = f'{parameters.protein}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+    return name
+
+
+def dataframe_to_write(df):
+    df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace = True)
+    return df.to_string(index=False)
+
+
+def make_header(parameters):
+    now = strftime("%d-%m-%Y %H:%M", localtime())
+    
+    header = f'''
+; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
+; Created on the {now}
+; With the following parameters:
+'''
+    for parameter, value in parameters.items():
+        if type(value) is list:
+            header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
+        elif not value:
+            value = ''
+            header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
+        else:
+            header += ';\t- {:<15} = {:<20}\n'.format(parameter, value)
     return header
 
-def write_atomtypes_atp(multiego_ensemble):
-    # This function is used to create the atomtypes.atp.
-    #directory = f"outputs/output_{parameters['protein']}"
-    file = open(f'{multiego_ensemble.parameters["output_folder"]}/atomtypes.atp', "w")
-    file.write(header(multiego_ensemble.parameters))
-    file.write("\n")
-    file.write(str(multiego_ensemble.atomtypes_atp_toWrite))
+
+def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, parameters, output_folder):
+    molecule_footer = []
+    header = make_header(vars(parameters))
+    file = open(f'{output_folder}/topol_GRETA.top', 'w')
+    header += '''
+; Include forcefield parameters
+#include "multi-ego-basic.ff/forcefield.itp"
+'''
+
+    file.write(header)
+    for molecule, bonded_interactions in bonded_interactions_dict.items():
+        pairs = lj_14[molecule]
+        pairs.insert(5, ';', ';')
+        exclusions = pairs[['ai', 'aj']].copy()
+        molecule_footer.append(molecule)
+        molecule_header = f'''
+[ moleculetype ]
+; Name\tnrexcl
+{molecule}\t\t\t3
+
+'''
+
+        file.write(molecule_header)
+        file.write('[ atoms ]\n')
+        atom_selection_dataframe = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'resname', 'name', 'cgnr']].copy()
+        file.write(f'{dataframe_to_write(atom_selection_dataframe)}\n\n')
+        # Here are written bonds, angles, dihedrals and impropers
+        for bonded_type, interactions in bonded_interactions.items():
+            if interactions.empty:
+                continue
+            else:
+                file.write(f'[ {bonded_type} ]\n')
+                file.write(dataframe_to_write(interactions))
+                file.write('\n\n')
+        # Here are written pairs and exclusions
+        file.write(f'[ pairs ]\n')
+        file.write(dataframe_to_write(pairs))
+        file.write(f'\n\n[ exclusions ]\n')
+        file.write(dataframe_to_write(exclusions))
+
+    footer = f'''
+
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
+
+[ system ]
+{parameters.protein}
+
+[ molecules ]
+; Compound #mols
+'''
+
+    file.write(footer)
+    for molecule in molecule_footer:
+        file.write(f'{molecule}\t\t\t1\n')
+    
     file.close()
 
 
-def write_LJ(ensemble):
-    pd.set_option('display.colheader_justify', 'right')
+def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
+    #pd.set_option('display.colheader_justify', 'right')
+    header = make_header(vars(parameters))
+    lj_potential.insert(5, ';', ';')
+    #lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'c12ij', 'rc_source'], inplace=True)
+    lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'rc_source'], inplace=True)
+    file = open(f'{output_folder}/ffnonbonded.itp', 'w')
+    file.write(header)
+    file.write('\n[ atomtypes ]\n')
+    atomtypes = topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
+    atomtypes['c6'] = atomtypes['c6'].map(lambda x:'{:.6e}'.format(x))
+    atomtypes['c12'] = atomtypes['c12'].map(lambda x:'{:.6e}'.format(x))
+    file.write(dataframe_to_write(atomtypes))
+    file.write("\n\n[ nonbond_params ]\n")
+    file.write(dataframe_to_write(lj_potential))
 
-    file = open(f'{ensemble.parameters["output_folder"]}/ffnonbonded.itp', "w")
-    file.write(header(ensemble.parameters))
-    file.write("[ atomtypes ]\n")
-    file.write(str(ensemble.ffnonbonded_atp_toWrite))
-    file.write("\n\n")
-    file.write("[ nonbond_params ]\n")
-    #if ensemble.parameters['egos'] == 'rc':
-    #    file.write(str('; ai, aj, type, c6, c12, sigma, epsilon'))
-    #else:
-    if hasattr(ensemble, 'greta_ffnb_toWrite'):
-        file.write(str(ensemble.greta_ffnb_toWrite))
-
-    file.close()
-
-def write_topology(ensemble):
-    
-    #parameters, topology_sections_dict, ego_topology, **ego_ligand):
-    pd.set_option('display.colheader_justify', 'left')
-    #top_to_write = topology_parser(topology_sections_dict)
-
-    file = open(f'{ensemble.parameters["output_folder"]}/topol_GRETA.top', "w")
-    file.write(header(ensemble.parameters))  
-
-    file.write('; Include forcefield parameters\n')  
-    file.write('#include "multi-ego-basic.ff/forcefield.itp"\n\n')  
-    
-    file.write('[ moleculetype ]\n')
-    file.write(str(ensemble.moleculetype_toWrite))
-    file.write('\n\n')
-
-    file.write("[ atoms ]\n")
-    file.write(str(ensemble.atomtypes_top_toWrite))
-    file.write('\n\n')
-
-    file.write('[ bonds ]\n')
-    file.write(str(ensemble.bonds_toWrite))
-    file.write('\n\n')
-
-    file.write('[ angles ]\n')
-    file.write(str(ensemble.angles_toWrite))
-    file.write('\n\n')
-
-    file.write('[ dihedrals ]\n')
-    file.write(str(ensemble.dihedrals_toWrite))
-    file.write('\n\n')
-
-    file.write('[ dihedrals ]\n')
-    file.write(str(ensemble.impropers_toWrite))
-    file.write('\n\n')
-
-    file.write("[ pairs ]")
-    file.write("\n")
-    file.write(str(ensemble.pairs_toWrite))
-    file.write("\n\n")
-
-    file.write("[ exclusions ]")
-    file.write("\n")
-    file.write(str(ensemble.exclusions_toWrite))
-    file.write('\n\n')
-
-    file.write('; Include Position restraint file\n')
-    file.write('#ifdef POSRES\n')
-    file.write('#include "posre.itp"\n')
-    file.write('#endif\n\n')
-    
-    if ensemble.parameters['ligand'] == True:
-        file.write('; Include ligand topology\n')
-        file.write('#include "topol_ligand_GRETA.itp"')
-        file.write('\n\n')
-
-    file.write('[ system ]\n')
-    file.write(str(ensemble.system_toWrite))
-    file.write('\n\n')
-
-    file.write('[ molecules ]\n')
-    file.write(str(ensemble.molecules_toWrite))
-    if ensemble.parameters['ligand'] == True:
-        file.write('\nligand')
-    file.write('\n\n')
-
-    file.close()
-
-def write_ligand_topology(ensemble):
-    pd.set_option('display.colheader_justify', 'left')
-    file = open(f'{ensemble.parameters["output_folder"]}/topol_ligand_GRETA.itp', "w")
-    file.write(header(ensemble.parameters))  
-    
-    file.write('[ moleculetype ]\n')
-    file.write(str(ensemble.ligand_moleculetype_toWrite))
-    file.write('\n\n')
-
-    file.write("[ atoms ]\n")
-    file.write(str(ensemble.ligand_atomtypes_top_toWrite))
-    file.write('\n\n')
-
-    file.write('[ bonds ]\n')
-    file.write(str(ensemble.ligand_bonds_toWrite))
-    file.write('\n\n')
-
-    file.write('[ angles ]\n')
-    file.write(str(ensemble.ligand_angles_toWrite))
-    file.write('\n\n')
-
-    file.write('[ dihedrals ]\n')
-    file.write(str(ensemble.ligand_dihedrals_toWrite))
-    file.write('\n\n')
-
-    file.write('[ pairs ]\n')
-    file.write(str(ensemble.ligand_pairs_toWrite))
-    file.write('\n\n')
-
-    file.write('[ exclusions ]\n')
-    file.write(str(ensemble.ligand_exclusions_toWrite))
-    file.write('\n\n')
-
-    file.close()
