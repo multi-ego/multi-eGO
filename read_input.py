@@ -66,9 +66,9 @@ def read_ensemble_mdmat_contacs(contact_map_files, idx_sbtype_dict):
 
 def read_mdmat_dataframe(contact_type, directory, idx_sbtype_dict):
     temp_mat_df = pd.read_csv(directory, header=None, sep = '\s+')
-    temp_mat_df.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'probability']
+    temp_mat_df.columns = ['ai', 'aj', 'distance', 'distance_NMR', 'probability', 'flag']
     temp_mat_df.drop(columns=['distance'], inplace=True)
-    temp_mat_df.columns = ['ai', 'aj', 'distance', 'probability']
+    temp_mat_df.columns = ['ai', 'aj', 'distance', 'probability', 'flag']
 
     if 'intra' in contact_type:
         temp_mat_df['same_chain'] = 'Yes'
@@ -79,8 +79,8 @@ def read_mdmat_dataframe(contact_type, directory, idx_sbtype_dict):
 
     temp_mat_df = temp_mat_df[~temp_mat_df['ai'].astype(str).str.startswith('H')]
     temp_mat_df = temp_mat_df[~temp_mat_df['aj'].astype(str).str.startswith('H')]
-    temp_mat_df['distance'].loc[(temp_mat_df['probability'] < (0.000001))&(temp_mat_df['distance'] == 0.)] = 0.550000 
-    temp_mat_df['probability'].loc[temp_mat_df['probability'] < (0.000001)] = 0.000001 
+    temp_mat_df['distance'].loc[(temp_mat_df['probability'] == 0.)&(temp_mat_df['distance'] == 0.)] = 0.550000 
+    # temp_mat_df['probability'].loc[temp_mat_df['probability'] < (0.000001)] = 0.000001 
 
     # Questo è per tenerlo il più simile a prima, nel MD non rinomino le chain ma nel rc si.
     if 'rc' in contact_type:
