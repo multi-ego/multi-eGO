@@ -347,7 +347,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file']]
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['ai'].map(sbtype_number_dict)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(sbtype_number_dict)
-
+        meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
+        meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
+        meGO_atomic_contacts_merged.sort_values(by=['number_ai', 'number_aj'], inplace=True)
+        
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
 
