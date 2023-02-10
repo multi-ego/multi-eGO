@@ -720,25 +720,28 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     rew_mat.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
     #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
     #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
-    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))]
+    rew_mat = rew_mat.loc[(rew_mat['flag']>0)]
+    # rew_mat = rew_mat.loc[(rew_mat['flag']>0) | ( (rew_mat['flag'] < 1) & (rew_mat['probability'] < rew_mat['rc_probability']) )]
+    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])& (rew_mat['probability'] > 0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']) & (rew_mat['probability'] > 0.))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    rew_mat['sigma'] = (rew_mat['distance']) / (2**(1/6))
+    rew_mat['sigma'] = (rew_mat['distance']) / (2**(1/6)) * 0.9
     rew_mat['epsilon'] = np.nan 
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>1.1*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
+    # rew_mat['sigma'].loc[(rew_mat['probability']>1.1*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')] *= 0.9 
     # Attractive intermolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>1.1*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_amyl']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
     # Repulsive
     # case 1: rc > md > md_t
-    rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<0.9*rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<0.9*rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
     # case 2: rc > md_t > md
-    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['md_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['md_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
     # case 3: rc > rc_t > md
-    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['rc_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(np.minimum(rew_mat['distance'],rew_mat['rc_distance'])**12)
+    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))&(np.maximum(rew_mat['probability'],parameters['rc_threshold'])<0.9*rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
@@ -874,7 +877,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
-    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = np.maximum(-greta_LJ['epsilon'],np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict)))
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']+np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
@@ -883,11 +886,11 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = np.maximum(-pairs_LJ['epsilon'],np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict)))  
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = -pairs_LJ['epsilon']+np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))  
 
     print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
     print('\t- LJ Merging completed: ', len(greta_LJ))
-    print("\t\t- Average epsilon is ", greta_LJ['epsilon'].mean())
+    print("\t\t- Average epsilon is ", greta_LJ['epsilon'].loc[(greta_LJ['epsilon'] > 0.)].mean())
     print("\t\t- Maximum epsilon is ", greta_LJ['epsilon'].max())
 
     return greta_LJ, pairs_LJ
