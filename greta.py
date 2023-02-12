@@ -728,8 +728,7 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    d_scale = 0.9 
-    rew_mat['sigma'] = (rew_mat['distance']) / (2**(1/6)) * d_scale
+    rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
     rew_mat['epsilon'] = np.nan 
 
     # Epsilon reweight based on probability
@@ -840,13 +839,14 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # in this case we use intra and inter molecular contacts from specific simulations
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
-        greta_LJ['new_sigma'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        greta_LJ['energy_at_new_sigma'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/(greta_LJ['new_sigma']*(2.**(1./6.))))**12-(greta_LJ['sigma']/(greta_LJ['new_sigma']*(2.**(1./6.))))**6)
-        greta_LJ['energy_at_new_sigma'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_sigma']*(2.**(1./6.)))**12
+        greta_LJ['new_dist'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
+        greta_LJ['new_dist'] *= 2.**(1./6.)/parameters['d_scale'] 
+        greta_LJ['energy_at_new_dist'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/greta_LJ['new_dist'])**12-(greta_LJ['sigma']/greta_LJ['new_dist'])**6)
+        greta_LJ['energy_at_new_dist'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_dist'])**12
         # not use  interaction if at new_sigma the repulsion would be too strong 
-        greta_LJ = greta_LJ.loc[~((greta_LJ['energy_at_new_sigma']>2.49)&(greta_LJ['source']!='rc'))]
-        greta_LJ.drop('new_sigma', axis=1, inplace=True)
-        greta_LJ.drop('energy_at_new_sigma', axis=1, inplace=True)
+        greta_LJ = greta_LJ.loc[~((greta_LJ['energy_at_new_dist']>2.49)&(greta_LJ['source']!='rc'))]
+        greta_LJ.drop('new_dist', axis=1, inplace=True)
+        greta_LJ.drop('energy_at_new_dist', axis=1, inplace=True)
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[(((greta_LJ['same_chain']=='Yes')&((greta_LJ['source']==parameters['intra'])|(greta_LJ['source']=='rc')))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter'])))]
 
