@@ -228,12 +228,20 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
         #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))]
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))|((meGO_atomic_contacts_merged['probability']<parameters.rc_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
- 
-        #coso = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['ai'] == 'OH_ABeta_10') | (meGO_atomic_contacts_merged['aj'] == 'OH_ABeta_10')]
-        #coso2 = coso.loc[(coso['ai'] == 'C_ABeta_10') | (coso['aj'] == 'C_ABeta_10')]
-        #print(coso2)
-        #exit()
+    
+    
+        # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off)
+        ##rew_mat = rew_mat.loc[(rew_mat['flag']>0)]
+        # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off) if attractive
+        #rew_mat = rew_mat.loc[(rew_mat['flag']>0)|((rew_mat['flag']<1)&(rew_mat['probability']<rew_mat['rc_probability']))]
+        # This removes contacts that are non significant
+        #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
+        #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
+        ##rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
 
+        # Add sigma, add epsilon reweighted, add c6 and c12
+        ##rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
+        
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
