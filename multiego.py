@@ -20,7 +20,7 @@ def main(argv):
         # this is the minimum probability for a pair to be considered
         'md_threshold':0.001, 
         # this is the minimum probability for the random-coil matrix
-        'rc_threshold':0.0001,
+        'rc_threshold':0.000368,
         # this is the interaction energy, by default this value is propagated to all following epsilons
         'epsilon_md':0.300,
         # This is the interaction energy of the amyloid cross beta
@@ -28,7 +28,7 @@ def main(argv):
         # This is the protein-ligand interaction energy 
         'epsilon_ligand':0.300,
         # Scale for sigma
-        'd_scale':0.900,
+        'd_scale':1.000,
         # Does the model include the interaction with a ligand
         'ligand':False,
         # This is to reduce the kds when taking the ligand from another FF
