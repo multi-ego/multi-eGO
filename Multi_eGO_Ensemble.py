@@ -94,7 +94,7 @@ class Multi_eGO_Ensemble:
     def generate_bonded_interactions(self):
         '''
         '''
-        for molecule, topol in self.reference_topology.molecules.items():
+        for molecule, topol in self.reference_topology.molecules.items():      
             self.meGO_bonded_interactions[molecule] = {
                 'bonds' : get_bonds(topol[0].bonds),
                 'angles' : get_angles(topol[0].angles),
