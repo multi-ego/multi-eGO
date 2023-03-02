@@ -27,8 +27,6 @@ def main(argv):
         'epsilon_amyl':0.300,
         # This is the protein-ligand interaction energy 
         'epsilon_ligand':0.300,
-        # Scale for sigma
-        'd_scale':1.000,
         # Does the model include the interaction with a ligand
         'ligand':False,
         # This is to reduce the kds when taking the ligand from another FF
