@@ -199,8 +199,8 @@ class multiego_ensemble:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict[value], self.structure_based_contacts_dict['random_coil'], self.parameters, self.parameters[param], self.type_c12_dict)
                 greta_LJ = pd.concat([greta_LJ, greta_MD_LJ], axis=0, sort=False, ignore_index=True)
 
-        rc_LJ = make_rc_LJ(self.multiego_ensemble_top, self.type_c12_dict)
-        greta_LJ = pd.concat([greta_LJ, rc_LJ], axis=0, sort=False, ignore_index=True)
+        #rc_LJ = make_rc_LJ(self.multiego_ensemble_top, self.type_c12_dict)
+        #greta_LJ = pd.concat([greta_LJ, rc_LJ], axis=0, sort=False, ignore_index=True)
 
         if greta_LJ.empty:
             greta_ffnb = greta_LJ 
@@ -725,32 +725,44 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     # This removes contacts that are non significant
     #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
     #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
-    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
+    #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
+    min_prob = rew_mat['probability'].loc[(rew_mat['probability']>0.)].min() 
+    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']>min_prob)&(rew_mat['rc_probability']>rew_mat['probability'])&(rew_mat['rc_probability']>parameters['rc_threshold']))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
     rew_mat['epsilon'] = np.nan 
+    # this is the default c12 value
+    rew_mat['rep'] = np.sqrt(rew_mat['ai'].map(type_c12_dict)*rew_mat['aj'].map(type_c12_dict))
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
+
+
+
     # Attractive intermolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_amyl']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
 
-    # Repulsive
-    # case 1: rc > md > md_t
-    rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
-    # case 2: rc > md_t > md
-    rew_mat['epsilon'].loc[(rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
-    # case 3: rc > rc_t > md
-    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+    intra_mean_eps = rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')].max() 
 
-    rew_mat['rep'] = np.sqrt(rew_mat['ai'].map(type_c12_dict)*rew_mat['aj'].map(type_c12_dict))
+    # Repulsive
+    rew_mat['epsilon'].loc[(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+    # case 1: rc > md > md_t
+    #rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+    # case 2: rc > md_t > md
+    #rew_mat['epsilon'].loc[(rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+    # case 3: rc > rc_t > md
+    #rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+
     # finalise repulsive
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])<rew_mat['rep'])] = np.nan
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>=rew_mat['rep'])] -= rew_mat['rep'] 
-    rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>0.001)] = np.nan 
+    #rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>0.001)] = np.nan 
+
+    # Rescaled c12 intramolecular
+    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')&((rew_mat['rc_distance']-rew_mat['distance'])>0.02)&(rew_mat['rep']/rew_mat['distance']**12>intra_mean_eps)] = -intra_mean_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
