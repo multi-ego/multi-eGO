@@ -717,7 +717,7 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']>min_prob)&(rew_mat['rc_probability']>rew_mat['probability'])&(rew_mat['rc_probability']>parameters['rc_threshold']))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
+    rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6)))
     rew_mat['epsilon'] = np.nan 
     # this is the default c12 value
     rew_mat['rep'] = np.sqrt(rew_mat['ai'].map(type_c12_dict)*rew_mat['aj'].map(type_c12_dict))
@@ -733,14 +733,14 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
     inter_max_eps = rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')].max() 
 
     # Repulsive
-    rew_mat['epsilon'].loc[(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
+    rew_mat['epsilon'].loc[(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'], parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])<rew_mat['rep'])] = np.nan
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>=rew_mat['rep'])] -= rew_mat['rep'] 
 
     # Rescaled c12 intramolecular
-    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')&((rew_mat['rc_distance']-rew_mat['distance'])>0.01)&(rew_mat['rep']/rew_mat['distance']**12>intra_max_eps)] = -intra_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
+    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')&((rew_mat['rc_distance']-rew_mat['distance'])>0.02)&(rew_mat['rep']/rew_mat['distance']**12>intra_max_eps)] = -intra_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
     # Rescaled c12 intermolecular
-    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')&((rew_mat['rc_distance']-rew_mat['distance'])>0.01)&(rew_mat['rep']/rew_mat['distance']**12>intra_max_eps)] = -inter_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
+    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')&((rew_mat['rc_distance']-rew_mat['distance'])>0.02)&(rew_mat['rep']/rew_mat['distance']**12>inter_max_eps)] = -inter_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
@@ -796,7 +796,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
         greta_LJ['new_dist'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        greta_LJ['new_dist'] *= 2.**(1./6.)/parameters['d_scale'] 
+        greta_LJ['new_dist'] *= 2.**(1./6.) 
         greta_LJ['energy_at_new_dist'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/greta_LJ['new_dist'])**12-(greta_LJ['sigma']/greta_LJ['new_dist'])**6)
         greta_LJ['energy_at_new_dist'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_dist'])**12
         # not use  interaction if at new_sigma the repulsion would be too strong 
