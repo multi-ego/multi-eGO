@@ -184,11 +184,6 @@ class multiego_ensemble:
         
     def generate_multiego_LJ(self): # TODO nel self bisogna mettere i nomi degli MD ensembles
         
-        # TODO ACID DEMMERDA
-        #if parameters['acid_ff'] == True and top.acid_atp !=0:
-        #        greta_LJ = greta_LJ[~greta_LJ.ai.isin(top.acid_atp)]
-        #        greta_LJ = greta_LJ[~greta_LJ.aj.isin(top.acid_atp)]
-
         greta_LJ = pd.DataFrame()
         greta_MD_LJ = pd.DataFrame()
         ligand_MD_LJ = pd.DataFrame()
@@ -198,9 +193,6 @@ class multiego_ensemble:
             if 'md_ensemble' in param:
                 greta_MD_LJ = MD_LJ_pairs(self.structure_based_contacts_dict[value], self.structure_based_contacts_dict['random_coil'], self.parameters, self.parameters[param], self.type_c12_dict)
                 greta_LJ = pd.concat([greta_LJ, greta_MD_LJ], axis=0, sort=False, ignore_index=True)
-
-        rc_LJ = make_rc_LJ(self.multiego_ensemble_top, self.type_c12_dict)
-        greta_LJ = pd.concat([greta_LJ, rc_LJ], axis=0, sort=False, ignore_index=True)
 
         if greta_LJ.empty:
             greta_ffnb = greta_LJ 
@@ -718,39 +710,37 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
 
     rew_mat = pd.concat([rew_mat, atomic_mat_random_coil], axis=1)
     rew_mat.drop(columns = ['rc_ai', 'rc_aj'], inplace=True)
-    # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off)
-    # rew_mat = rew_mat.loc[(rew_mat['flag']>0)]
     # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off) if attractive
     rew_mat = rew_mat.loc[(rew_mat['flag']>0)|((rew_mat['flag']<1)&(rew_mat['probability']<rew_mat['rc_probability']))]
     # This removes contacts that are non significant
-    #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
-    #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
-    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
+    min_prob = rew_mat['probability'].loc[(rew_mat['probability']>0.)].min() 
+    rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']>min_prob)&(rew_mat['rc_probability']>rew_mat['probability'])&(rew_mat['rc_probability']>parameters['rc_threshold']))]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
-    rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
+    rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6)))
     rew_mat['epsilon'] = np.nan 
+    # this is the default c12 value
+    rew_mat['rep'] = np.sqrt(rew_mat['ai'].map(type_c12_dict)*rew_mat['aj'].map(type_c12_dict))
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')] = -(parameters['epsilon_md']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
+    intra_max_eps = rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')].max() 
+
     # Attractive intermolecular
     rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')] = -(parameters['epsilon_amyl']/np.log(parameters['rc_threshold']))*(np.log(rew_mat['probability']/np.maximum(rew_mat['rc_probability'],parameters['rc_threshold'])))
+    inter_max_eps = rew_mat['epsilon'].loc[(rew_mat['probability']>2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')].max() 
 
     # Repulsive
-    # case 1: rc > md > md_t
-    rew_mat['epsilon'].loc[(rew_mat['probability']>parameters['md_threshold'])&(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(rew_mat['probability']/rew_mat['rc_probability'])*(rew_mat['distance']**12)
-    # case 2: rc > md_t > md
-    rew_mat['epsilon'].loc[(rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])] = np.log(np.maximum(rew_mat['probability'],parameters['md_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
-    # case 3: rc > rc_t > md
-    rew_mat['epsilon'].loc[((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold']))] = np.log(np.maximum(rew_mat['probability'],parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
-
-    rew_mat['rep'] = np.sqrt(rew_mat['ai'].map(type_c12_dict)*rew_mat['aj'].map(type_c12_dict))
-    # finalise repulsive
+    rew_mat['epsilon'].loc[(rew_mat['probability']<rew_mat['rc_probability'])] = np.log(np.maximum(rew_mat['probability'], parameters['rc_threshold'])/rew_mat['rc_probability'])*(rew_mat['distance']**12)
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])<rew_mat['rep'])] = np.nan
     rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>=rew_mat['rep'])] -= rew_mat['rep'] 
-    rew_mat['epsilon'].loc[(rew_mat['epsilon']<0.)&(np.abs(rew_mat['epsilon'])>0.001)] = np.nan 
+
+    # Rescaled c12 intramolecular
+    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='Yes')&((rew_mat['rc_distance']-rew_mat['distance'])>0.02)&(rew_mat['rep']/rew_mat['distance']**12>intra_max_eps)] = -intra_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
+    # Rescaled c12 intermolecular
+    rew_mat['epsilon'].loc[(rew_mat['probability']>=np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['probability']<2.0*np.maximum(rew_mat['rc_probability'],parameters['rc_threshold']))&(rew_mat['same_chain']=='No')&((rew_mat['rc_distance']-rew_mat['distance'])>0.02)&(rew_mat['rep']/rew_mat['distance']**12>inter_max_eps)] = -inter_max_eps/(rew_mat['rep']/rew_mat['distance']**12)*rew_mat['rep']
 
     # clean NaN and zeros 
     rew_mat.dropna(inplace=True)
@@ -786,60 +776,6 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
 
     return rew_mat
 
-def make_rc_LJ(ego_topology, type_c12_dict):
-    ego_topology['atom_number'] = ego_topology['atom_number'].astype(str)
-    atnum_type_top = ego_topology[['atom_number', 'sb_type', 'residue_number', 'atom', 'atom_type', 'residue']].copy()
-    atnum_type_top['residue_number'] = atnum_type_top['residue_number'].astype(int)
-
-    # Dictionaries definitions to map values
-    atnum_type_dict = atnum_type_top.set_index('sb_type')['atom_number'].to_dict()
-    type_atnum_dict = atnum_type_top.set_index('atom_number')['sb_type'].to_dict()
-
-    # Adding the c12 and charge
-    atnum_type_top['c12'] = atnum_type_top['sb_type'].map(type_c12_dict)
-
-    # Here we add a special c12 only for oxygen-oxygen interactions
-    neg_oxygen = atnum_type_top.loc[(atnum_type_top['atom'].astype(str).str[0]=='O')]
-    neg_oxygen['key'] = 1
-    rc_oxyg_LJ = pd.merge(neg_oxygen,neg_oxygen,on='key').drop('key',axis=1)
-    rc_oxyg_LJ = rc_oxyg_LJ[['sb_type_x', 'sb_type_y', 'c12_x', 'c12_y']]
-    rc_oxyg_LJ['sigma'] = 0.55 
-    rc_oxyg_LJ['epsilon'] = -11.4*np.sqrt(rc_oxyg_LJ['c12_x']*rc_oxyg_LJ['c12_y']) 
-    rc_oxyg_LJ.drop(columns=['c12_y', 'c12_x'], inplace=True)
-    rc_oxyg_LJ.columns=['ai','aj','sigma','epsilon']
-
-    neg_carbyl = atnum_type_top.loc[(atnum_type_top['atom'].astype(str)=='C')]
-    neg_carbyl['key'] = 1
-    rc_carbyl_LJ = pd.merge(neg_carbyl,neg_carbyl,on='key').drop('key',axis=1)
-    rc_carbyl_LJ = rc_carbyl_LJ[['sb_type_x', 'sb_type_y', 'c12_x', 'c12_y']]
-    rc_carbyl_LJ['sigma'] = 0.55 
-    rc_carbyl_LJ['epsilon'] = -50.0*np.sqrt(rc_carbyl_LJ['c12_x']*rc_carbyl_LJ['c12_y']) 
-    rc_carbyl_LJ.drop(columns=['c12_y', 'c12_x'], inplace=True)
-    rc_carbyl_LJ.columns=['ai','aj','sigma','epsilon']
-
-    neg_nitro = atnum_type_top.loc[(atnum_type_top['atom'].astype(str)=='N')]
-    neg_nitro['key'] = 1
-    rc_nitro_LJ = pd.merge(neg_nitro,neg_nitro,on='key').drop('key',axis=1)
-    rc_nitro_LJ = rc_nitro_LJ[['sb_type_x', 'sb_type_y', 'c12_x', 'c12_y']]
-    rc_nitro_LJ['sigma'] = 0.55 
-    rc_nitro_LJ['epsilon'] = -180.0*np.sqrt(rc_nitro_LJ['c12_x']*rc_nitro_LJ['c12_y']) 
-    rc_nitro_LJ.drop(columns=['c12_y', 'c12_x'], inplace=True)
-    rc_nitro_LJ.columns=['ai','aj','sigma','epsilon']
-
-    rc = pd.concat([rc_nitro_LJ, rc_oxyg_LJ, rc_carbyl_LJ], axis=0, sort = False, ignore_index = True)
-    #rc =  rc_oxyg_LJ
- 
-    rc['probability'] = np.nan
-    rc['rc_probability'] = np.nan
-    rc['same_chain'] = 'Yes'
-    rc['source'] = 'rc'
-    # drop inverse duplicates
-    cols = ['ai', 'aj']
-    rc[cols] = np.sort(rc[cols].values, axis=1)
-    rc = rc.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
- 
-    return rc 
-
 def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
@@ -860,7 +796,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
         greta_LJ['new_dist'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        greta_LJ['new_dist'] *= 2.**(1./6.)/parameters['d_scale'] 
+        greta_LJ['new_dist'] *= 2.**(1./6.) 
         greta_LJ['energy_at_new_dist'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/greta_LJ['new_dist'])**12-(greta_LJ['sigma']/greta_LJ['new_dist'])**6)
         greta_LJ['energy_at_new_dist'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_dist'])**12
         # not use  interaction if at new_sigma the repulsion would be too strong 
@@ -900,7 +836,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     greta_LJ['c12'] = abs(4 * greta_LJ['epsilon'] * (greta_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     greta_LJ['c6'].loc[(greta_LJ['epsilon']<0.)] = 0.
-    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']#+np.sqrt(greta_LJ['ai'].map(type_c12_dict)*greta_LJ['aj'].map(type_c12_dict))
+    greta_LJ['c12'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']
 
     pairs_LJ.insert(2, 'type', 1)
     pairs_LJ.insert(3, 'c6', '')
@@ -909,7 +845,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = -pairs_LJ['epsilon']#+np.sqrt(pairs_LJ['ai'].map(type_c12_dict)*pairs_LJ['aj'].map(type_c12_dict))  
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = -pairs_LJ['epsilon']  
 
     print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
     print('\t- LJ Merging completed: ', len(greta_LJ))
