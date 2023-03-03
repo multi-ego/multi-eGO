@@ -64,7 +64,10 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
             if interactions.empty:
                 continue
             else:
-                file.write(f'[ {bonded_type} ]\n')
+                if bonded_type == 'impropers':
+                    file.write(f'[ dihedrals ]\n')
+                else:
+                    file.write(f'[ {bonded_type} ]\n')
                 file.write(dataframe_to_write(interactions))
                 file.write('\n\n')
         # Here are written pairs and exclusions

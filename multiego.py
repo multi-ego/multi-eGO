@@ -32,7 +32,7 @@ if __name__ == '__main__':
         sys.exit()
 
     if args.egos == 'production' and not args.train_from:
-        print('--egos=production requires the definition of the intramolecular and intermolecular ensembles')
+        print('--egos=production requires the definition of the intramolecular and intermolecular ensembles by using --train_from')
         sys.exit()
 
     if args.epsilon is None and args.egos != 'rc':

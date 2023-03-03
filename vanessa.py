@@ -26,18 +26,18 @@ def read_molecular_contacts(path):
 def initialize_ensemble_topology(topology, simulation):
     '''
     '''
-
     # In a single topology different type of molecules can be present (e.g. protein, ligand).
     # For each molecule the different atomtypes are saved.
     print(
         '\t-', f'Reading {simulation} topology containing: {topology.molecules}')
-    ensemble_topology_dataframe = topology.to_dataframe()
+    #ensemble_topology_dataframe = topology.to_dataframe()
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
-    ensemble_topology_dataframe.drop(columns=columns_to_drop, inplace=True)
-    new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary = [], [], [], {}
+    #ensemble_topology_dataframe.drop(columns=columns_to_drop, inplace=True)
+    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary = pd.DataFrame(), [], [], [], {}
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
+        ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx+1))
             col_molecule.append(f'{molecule_number}_{molecule_name}')
@@ -74,10 +74,11 @@ def get_bonds(topology):
         'ai': [bonds.atom1.idx + 1 for bonds in topology],
         'aj': [bonds.atom2.idx + 1 for bonds in topology],
         'funct': [bonds.funct for bonds in topology],
-        'k': [bonds.type.k for bonds in topology],
         'req': [bonds.type.req for bonds in topology],
+        'k': [bonds.type.k for bonds in topology]
     })
     # Conversion from KCal/mol/A^2 to KJ/mol/nm^2 and from Amber to Gromos
+    bonds_dataframe['req'] = bonds_dataframe['req']/10.
     bonds_dataframe['k'] = bonds_dataframe['k']*4.184*100*2
     bonds_dataframe['k'] = bonds_dataframe['k'].map(lambda x:'{:.6e}'.format(x))
     return bonds_dataframe
@@ -98,8 +99,8 @@ def get_angles(topology):
         'aj' : [angle.atom2.idx + 1 for angle in topology],
         'ak' : [angle.atom3.idx + 1 for angle in topology],
         'funct' : [angle.funct for angle in topology],
-        'k' : [angle.type.k for angle in topology],
-        'theteq' : [angle.type.theteq for angle in topology]
+        'theteq' : [angle.type.theteq for angle in topology],
+        'k' : [angle.type.k for angle in topology]
     })
     angles_dataframe['k'] = angles_dataframe['k']*4.184*2
     angles_dataframe['k'] = angles_dataframe['k'].map(lambda x:'{:.6e}'.format(x))
@@ -113,9 +114,9 @@ def get_dihedrals(topology):
         'ak' : [dihedral.atom3.idx + 1 for dihedral in topology],
         'al' : [dihedral.atom4.idx + 1 for dihedral in topology],
         'funct' : [dihedral.funct for dihedral in topology],
+        'phase' : [dihedral.type.phase for dihedral in topology],
         'phi_k' : [dihedral.type.phi_k for dihedral in topology],
-        'per' : [dihedral.type.per for dihedral in topology],
-        'phase' : [dihedral.type.phase for dihedral in topology]
+        'per' : [dihedral.type.per for dihedral in topology]
     })
     dihedrals_dataframe['phi_k'] = dihedrals_dataframe['phi_k']*4.184
     return dihedrals_dataframe
@@ -129,8 +130,8 @@ def get_impropers(topology):
         'ak' : [improper.atom3.idx + 1 for improper in topology],
         'al' : [improper.atom4.idx + 1 for improper in topology],
         'funct' : [improper.funct for improper in topology],
-        'psi_k' : [improper.type.psi_k for improper in topology],
-        'psi_eq' : [improper.type.psi_eq for improper in topology]
+        'psi_eq' : [improper.type.psi_eq for improper in topology],
+        'psi_k' : [improper.type.psi_k for improper in topology]
     })
     impropers_dataframe['psi_k'] = impropers_dataframe['psi_k']*4.184*2
     return impropers_dataframe
@@ -228,12 +229,20 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
         #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))]
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))|((meGO_atomic_contacts_merged['probability']<parameters.rc_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
- 
-        #coso = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['ai'] == 'OH_ABeta_10') | (meGO_atomic_contacts_merged['aj'] == 'OH_ABeta_10')]
-        #coso2 = coso.loc[(coso['ai'] == 'C_ABeta_10') | (coso['aj'] == 'C_ABeta_10')]
-        #print(coso2)
-        #exit()
+    
+    
+        # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off)
+        ##rew_mat = rew_mat.loc[(rew_mat['flag']>0)]
+        # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off) if attractive
+        #rew_mat = rew_mat.loc[(rew_mat['flag']>0)|((rew_mat['flag']<1)&(rew_mat['probability']<rew_mat['rc_probability']))]
+        # This removes contacts that are non significant
+        #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])]
+        #rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold']))]
+        ##rew_mat = rew_mat.loc[(rew_mat['probability']>parameters['md_threshold'])|((rew_mat['probability']<parameters['md_threshold'])&(rew_mat['rc_probability']>parameters['md_threshold'])&(rew_mat['probability']>0.))|((rew_mat['probability']<parameters['rc_threshold'])&(rew_mat['rc_probability']>parameters['rc_threshold'])&(rew_mat['probability']>0.))]
 
+        # Add sigma, add epsilon reweighted, add c6 and c12
+        ##rew_mat['sigma'] = ((rew_mat['distance']) / (2**(1/6))) * parameters['d_scale']
+        
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
@@ -347,7 +356,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file']]
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['ai'].map(sbtype_number_dict)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(sbtype_number_dict)
-
+        meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
+        meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
+        meGO_atomic_contacts_merged.sort_values(by=['number_ai', 'number_aj'], inplace=True)
+        
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
 
