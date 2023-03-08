@@ -776,6 +776,20 @@ def reweight_contacts(atomic_mat_plainMD, atomic_mat_random_coil, parameters, na
 
     return rew_mat
 
+
+def check_LJ(test, parameters):
+    if len(test) == 1: 
+        return 0. 
+    else:
+        dist = test.loc[(test['same_chain']=='Yes')&(test['source']==parameters['inter'])].iloc[0]['sigma']
+        eps = test.loc[(test['same_chain']=='Yes')&(test['source']==parameters['intra'])].iloc[0]['epsilon']
+ 
+        if eps < 0. :
+            return -eps/(dist*2.**(1./6.))**12
+        else:
+            return 0.
+    
+
 def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     '''
     This function merges the atom contacts from native and fibril and removed eventual duplicates.
@@ -786,26 +800,23 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     print('\t- Merged pairs list: ', len(greta_LJ))
     print('\t- Sorting and dropping all the duplicates')
     # Inverse pairs calvario
-    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']].copy()
-    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']
+    inv_LJ = greta_LJ[['aj', 'ai', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'sigma', 'epsilon', 'probability', 'rc_probability', 'same_chain', 'source']
 
     greta_LJ = pd.concat([greta_LJ, inv_LJ], axis=0, sort = False, ignore_index = True)
+    greta_LJ.drop_duplicates(inplace=True, ignore_index = True)
 
     if parameters['egos'] == 'split':
         # in this case we use intra and inter molecular contacts from specific simulations
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
-        greta_LJ['new_dist'] = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])['sigma'].transform('min')
-        greta_LJ['new_dist'] *= 2.**(1./6.) 
-        greta_LJ['energy_at_new_dist'] = 4.*greta_LJ['epsilon']*((greta_LJ['sigma']/greta_LJ['new_dist'])**12-(greta_LJ['sigma']/greta_LJ['new_dist'])**6)
-        greta_LJ['energy_at_new_dist'].loc[(greta_LJ['epsilon']<0.)] = -greta_LJ['epsilon']/(greta_LJ['new_dist'])**12
-        # not use  interaction if at new_sigma the repulsion would be too strong 
-        greta_LJ = greta_LJ.loc[~((greta_LJ['energy_at_new_dist']>2.49)&(greta_LJ['source']!='rc'))]
-        greta_LJ.drop('new_dist', axis=1, inplace=True)
-        greta_LJ.drop('energy_at_new_dist', axis=1, inplace=True)
+        energy_at_check_dist = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
+        greta_LJ = pd.merge(greta_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
         # split inter and intra depending from the source
-        greta_LJ = greta_LJ.loc[(((greta_LJ['same_chain']=='Yes')&((greta_LJ['source']==parameters['intra'])|(greta_LJ['source']=='rc')))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter'])))]
-
+        greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
+        # remove problematic contacts
+        greta_LJ['epsilon'].loc[(greta_LJ['energy_at_check_dist']>1.)] *= 1./greta_LJ['energy_at_check_dist']
+        greta_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
 
     pairs_LJ = greta_LJ.copy()
 
@@ -816,7 +827,6 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     cols = ['ai', 'aj']
     greta_LJ[cols] = np.sort(greta_LJ[cols].values, axis=1)
     greta_LJ = greta_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
     # Pairs prioritise intramolecular interactions
     pairs_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
     pairs_LJ = pairs_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
@@ -845,7 +855,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
     pairs_LJ['c12'] = abs(4 * pairs_LJ['epsilon'] * (pairs_LJ['sigma'] ** 12))
     # repulsive interactions have just a very large C12
     pairs_LJ['c6'].loc[(pairs_LJ['epsilon']<0.)] = 0.
-    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = -pairs_LJ['epsilon']  
+    pairs_LJ['c12'].loc[(pairs_LJ['epsilon']<0.)] = -pairs_LJ['epsilon']
 
     print('\t- Cleaning and Merging Complete, pairs count:', len(greta_LJ))
     print('\t- LJ Merging completed: ', len(greta_LJ))
