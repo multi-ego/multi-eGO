@@ -815,7 +815,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # split inter and intra depending from the source
         greta_LJ = greta_LJ.loc[((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['intra']))|((greta_LJ['same_chain']=='No')&(greta_LJ['source']==parameters['inter']))]
         # remove problematic contacts
-        greta_LJ['epsilon'].loc[(greta_LJ['energy_at_check_dist']>1.)] *= 1./greta_LJ['energy_at_check_dist']
+        greta_LJ['epsilon'].loc[(greta_LJ['energy_at_check_dist']>parameters['epsilon_md'])] *= parameters['epsilon_md']/greta_LJ['energy_at_check_dist']
         greta_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
 
     pairs_LJ = greta_LJ.copy()
