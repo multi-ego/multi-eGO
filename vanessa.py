@@ -154,7 +154,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
         - Map the 'ai' and 'aj' columns, containing the atom number, to the corresponding sbtype from the ensemble_molecules_idx_sbtype_dictionary by using the name of the molecule.
         - If the file name starts with 'intramat' set the 'same_chain' column as True, if it starts with 'intermat' set it as False, otherwise print an error message and exit the script
         - Remove all the lines containing H atoms as the final model only contains heavy-atoms.
-        - Set the 'probability' column less than 0.000001 to 0.000001
         - Concatenate all the dataframes contained in the simulation folder
     '''
     print('\t\t-', f'Initializing {simulation} contact matrix')
@@ -186,8 +185,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
         contact_matrix = contact_matrix[~contact_matrix['aj'].astype(
             str).str.startswith('H')]
-        contact_matrix['probability'].loc[contact_matrix['probability'] < (
-            0.000001)] = 0.000001
 
         contact_matrix = contact_matrix[[
             'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability']]
@@ -274,7 +271,7 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_distance',
         'rc_probability', 'rc_same_chain', 'rc_source', 'rc_file', 'sigma',
         'epsilon']]
-        # da ripensare....
+        # da ripensare...., si potrebbe pensare di avere sempre a <= b, incluso le molecole
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
         inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'aj', 'molecule_name_aj', 'ai', 'distance',
