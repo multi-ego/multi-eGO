@@ -344,7 +344,7 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # TODO aggiungere nel print anche il contributo di ogni ensemble
         print(f'''
         \t- LJ parameterization completed with a total of {len(meGO_atomic_contacts_merged)} contacts.
-        \t- The average epsilon is {meGO_atomic_contacts_merged['epsilon'].mean()}
+        \t- The average epsilon is {meGO_atomic_contacts_merged['epsilon'].loc[meGO_atomic_contacts_merged['epsilon']>0.].mean()}
         \t- The maximum epsilon is {meGO_atomic_contacts_merged['epsilon'].max()}
         ''')
 
