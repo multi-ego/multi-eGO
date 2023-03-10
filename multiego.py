@@ -4,7 +4,6 @@ from Multi_eGO_Ensemble import Multi_eGO_Ensemble
 import argparse
 import concurrent.futures
 import sys
-import psutil
 
 
 # Start tracking the CPU usage
