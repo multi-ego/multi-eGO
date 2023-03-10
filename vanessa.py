@@ -13,9 +13,9 @@ def read_molecular_contacts(path):
 
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'distance_NMR', 'probability']
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'distance_NMR', 'probability', 'flag']
     contact_matrix.drop(columns=['distance'], inplace=True)
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability']
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'flag']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
@@ -34,7 +34,12 @@ def initialize_ensemble_topology(topology, simulation):
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
     #ensemble_topology_dataframe.drop(columns=columns_to_drop, inplace=True)
-    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary = pd.DataFrame(), [], [], [], {}
+    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
+
+    # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
+    for atom in topology.atoms:    
+        temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
+        
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
         ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
@@ -58,8 +63,9 @@ def initialize_ensemble_topology(topology, simulation):
     
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12']*4.184
-
+    #ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12']*4.184
+    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
+    
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
         temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
         number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
@@ -187,7 +193,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
 
         contact_matrix = contact_matrix[[
-            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability']]
+            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'flag']]
         if name[0] == 'intramat':
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
@@ -210,8 +216,8 @@ def check_LJ(test, parameters):
     if len(test) == 1: 
         return 0. 
     else:
-        dist = test.loc[(test['same_chain']=='Yes')&(test['source']==parameters['inter'])].iloc[0]['sigma']
-        eps = test.loc[(test['same_chain']=='Yes')&(test['source']==parameters['intra'])].iloc[0]['epsilon']
+        dist = test.loc[(test['same_chain']==True)&(test['source']==parameters['inter'])].iloc[0]['sigma']
+        eps = test.loc[(test['same_chain']==True)&(test['source']==parameters['intra'])].iloc[0]['epsilon']
  
         if eps < 0. :
             return -eps/(dist*2.**(1./6.))**12
@@ -241,7 +247,7 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
         # this is the default c12 value
         # TODO: QUESTO NON FUNZIONA: ci servono i c12 da parmed
-        meGO_atomic_contacts_merged['rep'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(type_c12_dict)*meGO_atomic_contacts_merged['aj'].map(type_c12_dict))
+        meGO_atomic_contacts_merged['rep'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
 
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
@@ -287,14 +293,14 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         
         # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
         # TODO ora le informazioni check sono separate quindi qui sotto e' da sistemare
-        meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
-        energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
-        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
-        # split inter and intra depending from the source
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[((meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['source']==parameters['intra']))|((meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['source']==parameters['inter']))]
-        # remove problematic contacts
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters['epsilon_md'])] *= parameters['epsilon_md']/meGO_atomic_contacts_merged['energy_at_check_dist']
-        meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
+        #meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
+        #energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
+        #meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
+        ## split inter and intra depending from the source
+        #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[((meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['source']==parameters['intra']))|((meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['source']==parameters['inter']))]
+        ## remove problematic contacts
+        #meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters['epsilon_md'])] *= parameters['epsilon_md']/meGO_atomic_contacts_merged['energy_at_check_dist']
+        #meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
 
 
         # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top. All contacts should be applied intermolecularly, but some are not compatible intramolecularly.
