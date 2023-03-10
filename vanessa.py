@@ -246,7 +246,6 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
         # this is the default c12 value
-        # TODO: QUESTO NON FUNZIONA: ci servono i c12 da parmed
         meGO_atomic_contacts_merged['rep'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
 
         # Epsilon reweight based on probability
@@ -345,7 +344,7 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # TODO aggiungere nel print anche il contributo di ogni ensemble
         print(f'''
         \t- LJ parameterization completed with a total of {len(meGO_atomic_contacts_merged)} contacts.
-        \t- The average epsilon is {meGO_atomic_contacts_merged['epsilon'].mean()}
+        \t- The average epsilon is {meGO_atomic_contacts_merged['epsilon'].loc[meGO_atomic_contacts_merged['epsilon']>0.].mean()}
         \t- The maximum epsilon is {meGO_atomic_contacts_merged['epsilon'].max()}
         ''')
 
@@ -488,8 +487,8 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
         backbone_oxygen = reduced_topology.loc[reduced_topology['name']=='O']
         ct_oxygen = reduced_topology.loc[(reduced_topology['name']=='O1')|(reduced_topology['name']=='O2')]
         sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
-        pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resnum'] == 'PRO')]
-        sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resnum'] != 'PRO')]
+        pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
+        sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
         
         # For proline CD take the CB, N of the previous residue and save in a pairs tuple
         pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
