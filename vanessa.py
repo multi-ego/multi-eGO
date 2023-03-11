@@ -212,14 +212,14 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     
 
 def check_LJ(test, parameters):
-    #TODO this should check all possible "check_with" not only the 0
     if len(test) == 1: 
         return 0. 
     else:
         #distance comes from check
-        dist = test.loc[(test['source']==parameters.check_with[0])].iloc[0]['distance']
+        #dist = test.loc[(test['source']==parameters.check_with[0])].iloc[0]['distance']
+        dist = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
         #epsilon from train
-        eps = test.loc[(test['source']!=parameters.check_with[0])].iloc[0]['epsilon']
+        eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
  
         if eps < 0. :
             return -eps/(dist)**12
@@ -432,9 +432,6 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
                 p14.append((str(str(atom) + '_' + str(e))))
                 p14.append((str(str(e) + '_' + str(atom))))
             ex14 = []
-
-
-
 
             #exclusion_bonds = set()
             #p14 = set()
