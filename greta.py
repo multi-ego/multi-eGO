@@ -810,6 +810,7 @@ def merge_and_clean_LJ(ego_topology, greta_LJ, type_c12_dict, parameters):
         # in this case we use intra and inter molecular contacts from specific simulations
         # yet we check the compatibility of the distances
         # we evaluate the minimum sigma for each contact
+        greta_LJ=greta_LJ.loc[~((greta_LJ['same_chain']=='Yes')&(greta_LJ['source']==parameters['inter'])&(greta_LJ['probability']<parameters['md_threshold']))]
         energy_at_check_dist = greta_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
         greta_LJ = pd.merge(greta_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
         # split inter and intra depending from the source
