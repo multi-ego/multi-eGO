@@ -5,7 +5,11 @@ import pandas as pd
 pd.set_option('display.colheader_justify', 'right')
 
 def get_name(parameters):
-    name = f'{parameters.protein}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+    if parameters.egos=="rc":
+        name = f'{parameters.protein}_{parameters.egos}'
+    else:
+        name = f'{parameters.protein}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+
     return name
 
 
@@ -46,6 +50,8 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
     for molecule, bonded_interactions in bonded_interactions_dict.items():
         pairs = lj_14[molecule]
         pairs.insert(5, ';', ';')
+        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+        pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
         exclusions = pairs[['ai', 'aj']].copy()
         molecule_footer.append(molecule)
         molecule_header = f'''
@@ -100,9 +106,6 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
 def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
     #pd.set_option('display.colheader_justify', 'right')
     header = make_header(vars(parameters))
-    lj_potential.insert(5, ';', ';')
-    #lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'c12ij', 'rc_source'], inplace=True)
-    lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'rc_source'], inplace=True)
     file = open(f'{output_folder}/ffnonbonded.itp', 'w')
     file.write(header)
     file.write('\n[ atomtypes ]\n')
@@ -110,6 +113,11 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     atomtypes['c6'] = atomtypes['c6'].map(lambda x:'{:.6e}'.format(x))
     atomtypes['c12'] = atomtypes['c12'].map(lambda x:'{:.6e}'.format(x))
     file.write(dataframe_to_write(atomtypes))
-    file.write("\n\n[ nonbond_params ]\n")
-    file.write(dataframe_to_write(lj_potential))
+    if not lj_potential.empty:
+        file.write("\n\n[ nonbond_params ]\n")
+        lj_potential['c6'] = lj_potential['c6'].map(lambda x:'{:.6e}'.format(x))
+        lj_potential['c12'] = lj_potential['c12'].map(lambda x:'{:.6e}'.format(x))
+        lj_potential.insert(5, ';', ';')
+        lj_potential.drop(columns = ['rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'rc_source'], inplace=True)
+        file.write(dataframe_to_write(lj_potential))
 

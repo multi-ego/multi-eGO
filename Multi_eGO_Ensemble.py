@@ -111,12 +111,8 @@ class Multi_eGO_Ensemble:
         All contacts are reweighted based on the RC probability.
         Duplicates are removed.
         '''
-        # TODO qui si mette parametrize_LJ che equivale a MD_LJ_pairs
-        # All contacts are reweighted by the random coil probability both as intra and intermolecular and added to the LJ pairs of multi-eGO.
         self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.reference_topology_dataframe, self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.sbtype_number_dict, self.parameters)
         self.meGO_LJ_14 = make_pairs_exclusion_topology(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.parameters, self.meGO_LJ_14)
-        # TODO controllare bene i numeri che sono troppi pairs in uscita!!! (i c12 in input potrebbero essere il problema)
-        #print(self.meGO_LJ_14)
 
     def write_model(self):
         '''        
