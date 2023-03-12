@@ -266,8 +266,6 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         inter_max_eps = meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)].max()
         
         # Repulsive
-        #print(meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']<meGO_atomic_contacts_merged['rc_probability'])].to_string())
-        #exit()
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<meGO_atomic_contacts_merged['rc_probability'])] = np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])*(meGO_atomic_contacts_merged['distance']**12)
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])<meGO_atomic_contacts_merged['rep'])] = np.nan
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])>=meGO_atomic_contacts_merged['rep'])] -= meGO_atomic_contacts_merged['rep'] 
@@ -377,8 +375,10 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
         meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        meGO_atomic_contacts_merged["c6"]=meGO_atomic_contacts_merged["c6"].map(lambda x:'{:.6e}'.format(x))
-        meGO_atomic_contacts_merged["c12"]=meGO_atomic_contacts_merged["c12"].map(lambda x:'{:.6e}'.format(x))
+
+    else:
+        meGO_atomic_contacts_merged = pd.DataFrame()
+        meGO_LJ_14 = pd.DataFrame() 
         
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
@@ -563,11 +563,8 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
         pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
         pairs = pairs[pairs['ai']<pairs['aj']]
         pairs.sort_values(by = ['ai', 'aj'], inplace = True)
-
-        #pairs = pairs.rename(columns = {'ai': '; ai'})
-        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-        pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
         pairs_molecule_dict[molecule] = pairs
+
     return pairs_molecule_dict
 
 
@@ -609,15 +606,15 @@ def float_range(min_value, max_value):
     return check_float_range
 
 
-def check_files_existance(protein, md_ensembles):
+def check_files_existance(ego, protein, md_ensembles):
     for ensemble in md_ensembles:
         ensemble = f'inputs/{protein}/{ensemble}'
         if not os.path.exists(ensemble):
-            raise FileNotFoundError(f"Folder {ensemble} does not exist.")
+            raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
         else:
             top_files = glob.glob(f'{ensemble}/*.top')
             if not top_files:
-                raise FileNotFoundError(f"No .top files found in {ensemble}.")
+                raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f'{ensemble}/*.ndx')
-            if not ndx_files:
-                raise FileNotFoundError(f"No .ndx files found in {ensemble}.")
+            if not ndx_files and not ego=="rc":
+                raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
