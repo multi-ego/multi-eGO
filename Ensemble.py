@@ -47,9 +47,12 @@ class Ensemble:
         self.topology = load_file(top_path[0])
         # Reading contact matrix created using gmx_clustsize
         # Reference requires both intra and inter molecular matrices
-        for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
-            name = matrix.replace(f'inputs/{self.simulation_path}/', '')
-            self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
+        if self.args.egos == 'rc':
+            self.ensemble_contact_matrices = pd.DataFrame()
+        else:
+            for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
+                name = matrix.replace(f'inputs/{self.simulation_path}/', '')
+                self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
 
     def initialize_ensemble(self):
         '''
