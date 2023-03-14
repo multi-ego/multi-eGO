@@ -199,9 +199,8 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
         elif name[0] == 'intermat':
             contact_matrix['same_chain'] = False
         else:
-            print(
-                'There might be an error in the contact matrix naming. It must be inter_X_X or intra_X_X')
-            sys.exit
+            raise Exception(
+                'There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
 
         contact_matrix['source'] = simulation
         contact_matrix['file'] = '_'.join(name)

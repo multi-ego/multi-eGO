@@ -50,9 +50,12 @@ class Ensemble:
         if self.args.egos == 'rc':
             self.ensemble_contact_matrices = pd.DataFrame()
         else:
-            for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
+            matrix = None
+            for matrix in glob.glob(f'inputs/{self.simulation_path}/int??mat_?_?.ndx'):
                 name = matrix.replace(f'inputs/{self.simulation_path}/', '')
                 self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
+            if not matrix:
+                raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
 
     def initialize_ensemble(self):
         '''
