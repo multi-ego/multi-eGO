@@ -274,7 +274,7 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
 
         # Rescaled c12 intramolecular
         #meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.02)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>intra_max_eps)] = -intra_max_eps/(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12)*meGO_atomic_contacts_merged['rep']
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.01)] = intra_max_eps
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.)] = intra_max_eps
 
         # Rescaled c12 intermolecular
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.02)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>inter_max_eps)] = -inter_max_eps/(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12)*meGO_atomic_contacts_merged['rep']
@@ -351,14 +351,17 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # add consecutive oxygen pairs to meGO_LJ_14
         consecutive_oxygens = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='O')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='O')&(np.abs(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int))==1)]
         meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_oxygens], axis=0, sort = False, ignore_index = True)
+        # add consecutive oxygen pairs to meGO_LJ_14
+        consecutive_oxygens = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(np.abs(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int))<=1)]
+        meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_oxygens], axis=0, sort = False, ignore_index = True)
         # add consecutive carbonyl pairs to meGO_LJ_14
-        consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='C')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='C')&(np.abs(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int))==1)]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
+        #consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='C')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='C')&(np.abs(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int))==1)]
+        #meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
         # add consecutive carbonyl pairs to meGO_LJ_14
-        consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='N')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='CB')&(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int)==1)]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
-        consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='CB')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='N')&(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int)==-1)]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
+        #consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='N')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='CB')&(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int)==1)]
+        #meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
+        #consecutive_carbonyl = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['ai'].str.split('_').str[0]=='CB')&(meGO_atomic_contacts_merged['aj'].str.split('_').str[0]=='N')&(meGO_atomic_contacts_merged['ai'].str.split('_').str[-1].astype(int)-meGO_atomic_contacts_merged['aj'].str.split('_').str[-1].astype(int)==-1)]
+        #meGO_LJ_14 = pd.concat([meGO_LJ_14,consecutive_carbonyl], axis=0, sort = False, ignore_index = True)
         
         meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
         meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
@@ -498,7 +501,8 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
             pairs['check'] = pairs['ai'] + '_' + pairs['aj']
             # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
             pairs['exclude'] = ''
-            pairs.loc[(pairs['check'].isin(exclusion_bonds)&(pairs['same_chain']==False)), 'exclude'] = 'Yes'
+            pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes'
+            pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain']==True)), 'exclude'] = 'No'
             mask = pairs.exclude == 'Yes'
             pairs = pairs[~mask]
             pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
