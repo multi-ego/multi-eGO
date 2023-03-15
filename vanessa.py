@@ -259,7 +259,7 @@ def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_co
         tmp_ex['aj'] = tmp_ex['aj'].map(type_atnum_dict)
         tmp_ex['1-4'] = '1_2_3' 
         tmp_ex['same_chain'] = True
-        tmp_ex.loc[(tmp_ex['exclusion_bonds'].isin(tmp_p14)), '1-4'] = '1_4' 
+        tmp_ex.loc[(tmp_ex['exclusion_bonds'].isin(tmp_p14)), '1-4'] = '1_4'
         exclusion_bonds14 = pd.concat([exclusion_bonds14, tmp_ex], axis=0, sort=False, ignore_index=True)
 
         # Adding the c12
@@ -269,7 +269,7 @@ def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_co
         pairs['aj'] = pairs['aj'].map(type_atnum_dict)
         pairs['rep'] = pairs['c12']
         pairs['same_chain'] = True
- 
+
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
     if parameters.egos != 'rc':
@@ -280,10 +280,9 @@ def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_co
         # This is to FLAG 1-2, 1-3, 1-4 cases:
         meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
         meGO_atomic_contacts_merged['1-4'] = meGO_atomic_contacts_merged['1-4'].fillna('1>4')
-
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
         meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-        meGO_atomic_contacts_merged['1-4'].loc[(meGO_atomic_contacts_merged['rep']!='NaN')&(meGO_atomic_contacts_merged['rep']!=0.)] = '1_4'
+        meGO_atomic_contacts_merged['1-4'].loc[(meGO_atomic_contacts_merged['rep'].notna())&(meGO_atomic_contacts_merged['rep']!=0.)] = '1_4'
         meGO_atomic_contacts_merged['rep'] = meGO_atomic_contacts_merged['rep'].fillna(np.sqrt(meGO_atomic_contacts_merged['ai'].map(type_c12_dict)*meGO_atomic_contacts_merged['aj'].map(type_c12_dict)))
 
         # Fix defaults C12 values taking into account exclusions:
@@ -322,8 +321,8 @@ def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_co
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])>=meGO_atomic_contacts_merged['rep'])] -= meGO_atomic_contacts_merged['rep'] 
 
         # Rescaled c12 intramolecular
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>intra_max_eps)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance']/meGO_atomic_contacts_merged['rc_distance'])**12
-
         # Rescaled c12 intermolecular
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>inter_max_eps)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance']/meGO_atomic_contacts_merged['rc_distance'])**12
 
@@ -484,6 +483,7 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
             pairs = pairs[pairs['c12']>0.]
             pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'remove', 'epsilon'], inplace = True)
             pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']]
+            pairs.sort_values(by = ['ai', 'aj'], ascending = [True, True], inplace = True)
             
         else:
             pairs = pd.DataFrame()
@@ -594,8 +594,8 @@ def protein_LJ14(reduced_topology):
     cols = ['ai', 'aj']
     pairs[cols] = np.sort(pairs[cols].values, axis=1)
     pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
-    pairs['ai'] = pairs['ai'].astype(int)
-    pairs['aj'] = pairs['aj'].astype(int)
+    pairs['ai'] = pairs['ai'].astype(str)
+    pairs['aj'] = pairs['aj'].astype(str)
 
     # Here we want to sort so that ai is smaller than aj
     inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
