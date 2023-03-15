@@ -111,7 +111,7 @@ class Multi_eGO_Ensemble:
         All contacts are reweighted based on the RC probability.
         Duplicates are removed.
         '''
-        self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.reference_topology_dataframe, self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_c12_dict, self.sbtype_number_dict, self.parameters)
+        self.meGO_LJ_potential, self.meGO_LJ_14 = parametrize_LJ(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_number_dict, self.parameters)
         self.meGO_LJ_14 = make_pairs_exclusion_topology(self.reference_topology_dataframe, self.bond_pairs, self.sbtype_c12_dict, self.parameters, self.meGO_LJ_14)
 
     def write_model(self):
