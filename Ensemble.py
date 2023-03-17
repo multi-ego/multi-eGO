@@ -35,6 +35,7 @@ class Ensemble:
         self.ensemble_molecules_idx_sbtype_dictionary = None
         self.ensemble_contact_matrices = {}
         self.sbtype_c12_dict = None
+        self.molecule_type_dict = None
         self.atomic_contacts = None
 
     def read_files(self):
@@ -62,7 +63,7 @@ class Ensemble:
         After reading the input files, this function builds the ensemble topology and contact matrices
         '''
         print('\t-', f'Initializing {self.simulation} ensemble topology')
-        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
+        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict, self.molecule_type_dict = initialize_ensemble_topology(self.topology, self.simulation)
 
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
         self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)

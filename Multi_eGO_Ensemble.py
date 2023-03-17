@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_impropers, parametrize_LJ, make_pairs_exclusion_topology
+from vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_impropers, get_pairs, parametrize_LJ, make_pairs_exclusion_topology, assign_molecule_type
 from write_output import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
@@ -20,6 +20,7 @@ class Multi_eGO_Ensemble:
         # TODO inserire la possibilità di leggere un RC fatto da più di una molecola
         self.reference_topology = None
         self.reference_topology_dataframe = pd.DataFrame()
+        self.molecule_type_dict = None
         self.meGO_bonded_interactions = {}
         self.bond_pairs = {}
         self.reference_atomic_contacts = pd.DataFrame()
@@ -53,6 +54,7 @@ class Multi_eGO_Ensemble:
             self.sbtype_c12_dict = ensemble.sbtype_c12_dict
             self.sbtype_number_dict = self.reference_topology_dataframe[['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
             self.reference_atomic_contacts = ensemble.atomic_contacts.add_prefix('rc_')
+            self.molecule_type_dict = ensemble.molecule_type_dict
         
         elif ensemble.simulation in self.parameters.check_with:
             self.check_atomic_contacts = pd.concat([self.check_atomic_contacts, ensemble.atomic_contacts], axis=0, ignore_index=True)
@@ -99,7 +101,8 @@ class Multi_eGO_Ensemble:
                 'bonds' : get_bonds(topol[0].bonds),
                 'angles' : get_angles(topol[0].angles),
                 'dihedrals' : get_dihedrals(topol[0].dihedrals),
-                'impropers' : get_impropers(topol[0].impropers)
+                'impropers' : get_impropers(topol[0].impropers),
+                'pairs' : get_pairs(topol[0].adjusts)
             }
             # The following bonds are used in the parametrization of LJ 1-4
             self.bond_pairs[molecule] = get_bond_pairs(topol[0].bonds)
@@ -118,7 +121,7 @@ class Multi_eGO_Ensemble:
         '''        
         '''
         print('- Writing Multi-eGO model')
-        write_topology(self.reference_topology_dataframe, self.meGO_bonded_interactions, self.meGO_LJ_14, self.parameters, self.output_folder)
+        write_topology(self.reference_topology_dataframe, self.molecule_type_dict, self.meGO_bonded_interactions, self.meGO_LJ_14, self.parameters, self.output_folder)
         write_nonbonded(self.reference_topology_dataframe, self.meGO_LJ_potential, self.parameters, self.output_folder)
         
         print('\n- The model is baked with the following parameters:\n')
