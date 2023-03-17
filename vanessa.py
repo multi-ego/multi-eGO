@@ -20,6 +20,11 @@ def read_molecular_contacts(path):
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
     contact_matrix['aj'] = contact_matrix['aj'].astype(str)
+
+    # this sets the distances for never observed contacts to the supposed cut-off value
+    # this would be better done in clustsize
+    contact_matrix['distance'].loc[(contact_matrix['probability']==0)] = 0.55
+
     return contact_matrix
 
 
