@@ -1,4 +1,4 @@
-from atomtypes_definitions import gromos_atp, from_ff_to_multiego
+from atomtypes_definitions import gromos_atp, from_ff_to_multiego, aminoacids_list, nucleic_acid_list
 import argparse
 import pandas as pd
 import os
@@ -30,10 +30,8 @@ def initialize_ensemble_topology(topology, simulation):
     # For each molecule the different atomtypes are saved.
     print(
         '\t-', f'Reading {simulation} topology containing: {topology.molecules}')
-    #ensemble_topology_dataframe = topology.to_dataframe()
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
-    #ensemble_topology_dataframe.drop(columns=columns_to_drop, inplace=True)
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
 
     # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
@@ -41,6 +39,7 @@ def initialize_ensemble_topology(topology, simulation):
         temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
         
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
+        molecule_type_dict = assign_molecule_type(molecule_name, molecule_topology[0])
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
         ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
@@ -58,13 +57,14 @@ def initialize_ensemble_topology(topology, simulation):
     ensemble_topology_dataframe['ptype'] = 'A'
     ensemble_topology_dataframe = ensemble_topology_dataframe.replace(
         {'name': from_ff_to_multiego})
-    ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_'+ensemble_topology_dataframe['molecule_name']+'_' + ensemble_topology_dataframe['resnum'].astype(str)
-    ensemble_topology_dataframe.rename(columns = {'epsilon':'c12'}, inplace=True)#, 'sb_type':'type', 'residue_number':'resnr'}, inplace=True)
+    ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_' +ensemble_topology_dataframe['molecule_name']+ '_' + ensemble_topology_dataframe['resnum'].astype(str)
+    ensemble_topology_dataframe.rename(columns = {'epsilon':'c12'}, inplace=True)
     
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
     #ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12']*4.184
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
+    ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
     
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
         temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
@@ -72,7 +72,7 @@ def initialize_ensemble_topology(topology, simulation):
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
     sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
 
-    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict
+    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, molecule_type_dict
 
 
 def get_bonds(topology):
@@ -129,7 +129,6 @@ def get_dihedrals(topology):
 
 
 def get_impropers(topology):
-    ai, aj, ak, al, funct, psi_k, psi_eq = [], [], [], [], [], [], []
     impropers_dataframe = pd.DataFrame({
         'ai' : [improper.atom1.idx + 1 for improper in topology],
         'aj' : [improper.atom2.idx + 1 for improper in topology],
@@ -141,6 +140,31 @@ def get_impropers(topology):
     })
     impropers_dataframe['psi_k'] = impropers_dataframe['psi_k']*4.184*2
     return impropers_dataframe
+
+
+def get_pairs(topology):
+    pairs_dataframe = pd.DataFrame({
+        'ai' : [pair.atom1.idx + 1 for pair in topology],
+        'aj' : [pair.atom2.idx + 1 for pair in topology],
+        'funct' : [pair.funct for pair in topology],
+        'type' : [pair.type for pair in topology],
+    })
+
+    # TODO change unit measures
+    return pairs_dataframe
+  
+
+def assign_molecule_type(molecule_name, molecule_topology):
+    molecule_type_dict = {}
+    first_aminoacid = molecule_topology.residues[0].name
+
+    if first_aminoacid in aminoacids_list:
+        molecule_type_dict[molecule_name] = 'protein'
+    elif first_aminoacid in nucleic_acid_list:
+        molecule_type_dict[molecule_name] = 'nucleic_acid'
+    else:
+        molecule_type_dict[molecule_name] = 'other'
+    return molecule_type_dict
 
 
 def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtype_dictionary, simulation):
@@ -388,7 +412,7 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
     '''
     pairs_molecule_dict = {}
     for molecule, bond_pair in bond_tuple.items():
-        reduced_topology = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname']].copy()
+        reduced_topology = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
 
         reduced_topology['number'] = reduced_topology['number'].astype(str)
         reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)

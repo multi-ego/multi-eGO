@@ -77,3 +77,9 @@ from_ff_to_multiego = {
     'C315':'C2O',
     'C316':'C2P',
 }
+
+# TODO add capped termini
+aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS']
+
+# TODO to check
+nucleic_acid_list = ['A', 'C', 'G', 'T']
