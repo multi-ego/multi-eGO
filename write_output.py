@@ -118,6 +118,6 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
         lj_potential['c6'] = lj_potential['c6'].map(lambda x:'{:.6e}'.format(x))
         lj_potential['c12'] = lj_potential['c12'].map(lambda x:'{:.6e}'.format(x))
         lj_potential.insert(5, ';', ';')
-        lj_potential.drop(columns = ['distance', 'rc_distance', 'molecule_name_ai', 'molecule_name_aj', 'rc_molecule_name_ai', 'rc_molecule_name_aj', 'rc_ai', 'rc_aj', 'rc_same_chain', 'rc_source'], inplace=True)
+        lj_potential.drop(columns = ['molecule_name_ai', 'molecule_name_aj'], inplace=True)
         file.write(dataframe_to_write(lj_potential))
 
