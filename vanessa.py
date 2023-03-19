@@ -253,7 +253,7 @@ def check_LJ(test, parameters):
             return 0.
 
 
-def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters):
+def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, type_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters):
     '''
     This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
     The random coil probabilities are used to reweight the explicit water ones.
@@ -292,11 +292,13 @@ def parametrize_LJ(topology_dataframe, bond_tuple, type_c12_dict, meGO_atomic_co
         # Adding the c12 for 1-4 interactions
         reduced_topology['c12'] = reduced_topology['sb_type'].map(type_c12_dict)
         # TODO: this should be done with a check on the molecule type (PROTEIN/NUCLEIC/LIPID/OTHER)
-        pairs = protein_LJ14(reduced_topology)
-        pairs['ai'] = pairs['ai'].map(type_atnum_dict)
-        pairs['aj'] = pairs['aj'].map(type_atnum_dict)
-        pairs['rep'] = pairs['c12']
-        pairs['same_chain'] = True
+        pairs = pd.DataFrame()
+        if molecule_type_dict[molecule] == 'protein':
+            pairs = protein_LJ14(reduced_topology)
+            pairs['ai'] = pairs['ai'].map(type_atnum_dict)
+            pairs['aj'] = pairs['aj'].map(type_atnum_dict)
+            pairs['rep'] = pairs['c12']
+            pairs['same_chain'] = True
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
