@@ -14,8 +14,13 @@ def get_name(parameters):
 
 
 def dataframe_to_write(df):
-    df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace = True)
-    return df.to_string(index=False)
+    if df.empty:
+        # TODO insert and improve the following warning
+        print('A topology parameter is empty. Check the reference topology.')
+        return '; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology.'
+    else:
+        df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace = True)
+        return df.to_string(index=False)
 
 
 def make_header(parameters):
@@ -37,7 +42,7 @@ def make_header(parameters):
     return header
 
 
-def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, parameters, output_folder):
+def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_dict, lj_14, parameters, output_folder):
     molecule_footer = []
     header = make_header(vars(parameters))
     file = open(f'{output_folder}/topol_GRETA.top', 'w')
@@ -48,11 +53,18 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
 
     file.write(header)
     for molecule, bonded_interactions in bonded_interactions_dict.items():
-        pairs = lj_14[molecule]
-        pairs.insert(5, ';', ';')
-        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-        pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-        exclusions = pairs[['ai', 'aj']].copy()
+        # TODO here I defined an empty exclusion. In the case we are not reading a protein topology, the exclusion part is not read and needed to be added in someway.
+        # Hence, an empty exclusion gives error. Here I define an empty variable so it does not gets stuck
+        exclusions = pd.DataFrame(columns=['ai', 'aj'])
+        # TODO here only proteins have custom pairs and exclusions. Nucleic acids and others will use the one in topol.top used as reference
+        if molecule_type_dict[molecule] == 'protein':
+            pairs = lj_14[molecule]
+            pairs.insert(5, ';', ';')
+            pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+            pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+            bonded_interactions_dict[molecule]['pairs'] = pairs
+            exclusions = pairs[['ai', 'aj']].copy()
+        
         molecule_footer.append(molecule)
         molecule_header = f'''
 [ moleculetype ]
@@ -77,9 +89,9 @@ def write_topology(topology_dataframe, bonded_interactions_dict, lj_14, paramete
                 file.write(dataframe_to_write(interactions))
                 file.write('\n\n')
         # Here are written pairs and exclusions
-        file.write(f'[ pairs ]\n')
-        file.write(dataframe_to_write(pairs))
-        file.write(f'\n\n[ exclusions ]\n')
+        #file.write(f'[ pairs ]\n')
+        #file.write(dataframe_to_write(pairs))
+        file.write(f'[ exclusions ]\n')
         file.write(dataframe_to_write(exclusions))
 
     footer = f'''

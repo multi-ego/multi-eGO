@@ -35,6 +35,7 @@ class Ensemble:
         self.ensemble_molecules_idx_sbtype_dictionary = None
         self.ensemble_contact_matrices = {}
         self.sbtype_c12_dict = None
+        self.molecule_type_dict = None
         self.atomic_contacts = None
 
     def read_files(self):
@@ -50,16 +51,19 @@ class Ensemble:
         if self.args.egos == 'rc':
             self.ensemble_contact_matrices = pd.DataFrame()
         else:
-            for matrix in glob.glob(f'inputs/{self.simulation_path}/*.ndx'):
+            matrix = None
+            for matrix in glob.glob(f'inputs/{self.simulation_path}/int??mat_?_?.ndx'):
                 name = matrix.replace(f'inputs/{self.simulation_path}/', '')
                 self.ensemble_contact_matrices[name] = read_molecular_contacts(matrix)
+            if not matrix:
+                raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
 
     def initialize_ensemble(self):
         '''
         After reading the input files, this function builds the ensemble topology and contact matrices
         '''
         print('\t-', f'Initializing {self.simulation} ensemble topology')
-        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict = initialize_ensemble_topology(self.topology, self.simulation)
+        self.ensemble_topology_dataframe, self.ensemble_molecules_idx_sbtype_dictionary, self.sbtype_c12_dict, self.molecule_type_dict = initialize_ensemble_topology(self.topology, self.simulation)
 
         # TODO qua ci si ritorna dopo con una matrice scritta giusta
         self.atomic_contacts = initialize_molecular_contacts(self.ensemble_contact_matrices, self.ensemble_molecules_idx_sbtype_dictionary, self.simulation)
