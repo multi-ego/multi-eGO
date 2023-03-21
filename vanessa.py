@@ -24,7 +24,7 @@ def read_molecular_contacts(path):
     # this sets the distances for never observed contacts to the supposed cut-off value
     # this would be better done in clustsize
     contact_matrix['distance'].loc[(contact_matrix['probability']==0)] = 0.55
-    contact_matrix['distance'].loc[(contact_matrix['probability']==0)] = 0.55
+    contact_matrix['distance_m'].loc[(contact_matrix['probability']==0)] = 0.55
 
     return contact_matrix
 
