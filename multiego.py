@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_from', nargs='+', type=str, default=[], help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     parser.add_argument('--md_threshold', type=float, default=0.001, help='Contacts in intramat.ndx or intermat.ndx below this treshold are dropped.')
-    parser.add_argument('--rc_threshold', type=float, default=0.000368, help='Contacts in intramat.ndx or intermat.ndx below this treshold are dropped.')
+    parser.add_argument('--rc_threshold', type=float, default=0.000010, help='Contacts in intramat.ndx or intermat.ndx below this treshold are dropped.')
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Contacts in intramat.ndx or intermat.ndx below this treshold are dropped.')
     args = parser.parse_args()
 
