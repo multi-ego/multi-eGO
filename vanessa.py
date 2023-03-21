@@ -13,13 +13,20 @@ def read_molecular_contacts(path):
 
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'distance_NMR', 'probability', 'flag']
-    contact_matrix.drop(columns=['distance'], inplace=True)
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'flag']
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance_NMR', 'probability', 'flag', 'sigma']
+    #contact_matrix.drop(columns=['distance', 'sigma'], inplace=True)
+    contact_matrix.drop(columns=['sigma'], inplace=True)
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
     contact_matrix['aj'] = contact_matrix['aj'].astype(str)
+
+    # this sets the distances for never observed contacts to the supposed cut-off value
+    # this would be better done in clustsize
+    contact_matrix['distance'].loc[(contact_matrix['probability']==0)] = 0.55
+    contact_matrix['distance_m'].loc[(contact_matrix['probability']==0)] = 0.55
+
     return contact_matrix
 
 
@@ -62,7 +69,6 @@ def initialize_ensemble_topology(topology, simulation):
     
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    #ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12']*4.184
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
     
@@ -217,7 +223,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
 
         contact_matrix = contact_matrix[[
-            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'flag']]
+            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']]
         if name[0] == 'intramat':
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
@@ -248,55 +254,116 @@ def check_LJ(test, parameters):
         else:
             return 0.
 
-def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_c12_dict, sbtype_number_dict, parameters):
+
+def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, type_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters):
     '''
     This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
     The random coil probabilities are used to reweight the explicit water ones.
     Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
     For each atom contact the sigma and epsilon are obtained.
     '''
+
+    # First of all we generate the random-coil 1-4 interactions:
+    pairs14 = pd.DataFrame()
+    exclusion_bonds14 = pd.DataFrame()
+
+    for molecule, bond_pair in bond_tuple.items():
+        reduced_topology = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname']].copy()
+
+        reduced_topology['number'] = reduced_topology['number'].astype(str)
+        reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
+        # Dictionaries definitions to map values
+        atnum_type_dict = reduced_topology.set_index('sb_type')['number'].to_dict()
+        type_atnum_dict = reduced_topology.set_index('number')['sb_type'].to_dict()
+
+        # Building the exclusion bonded list
+        # exclusion_bonds are all the interactions within 3 bonds
+        # p14 are specifically the interactions at exactly 3 bonds
+        exclusion_bonds, tmp_p14 = list14(reduced_topology, bond_pair)
+        # split->convert->remerge:
+        tmp_ex = pd.DataFrame(columns = ['ai', 'aj', 'exclusion_bonds'])
+        tmp_ex['exclusion_bonds'] = exclusion_bonds
+        tmp_ex[['ai','aj']] = tmp_ex['exclusion_bonds'].str.split('_', expand=True)
+        tmp_ex['ai'] = tmp_ex['ai'].map(type_atnum_dict)
+        tmp_ex['aj'] = tmp_ex['aj'].map(type_atnum_dict)
+        tmp_ex['1-4'] = '1_2_3' 
+        tmp_ex['same_chain'] = True
+        tmp_ex.loc[(tmp_ex['exclusion_bonds'].isin(tmp_p14)), '1-4'] = '1_4'
+        exclusion_bonds14 = pd.concat([exclusion_bonds14, tmp_ex], axis=0, sort=False, ignore_index=True)
+
+        # Adding the c12 for 1-4 interactions
+        reduced_topology['c12'] = reduced_topology['sb_type'].map(type_c12_dict)
+        # TODO: this should be done with a check on the molecule type (PROTEIN/NUCLEIC/LIPID/OTHER)
+        pairs = pd.DataFrame()
+        if molecule_type_dict[molecule] == 'protein':
+            pairs = protein_LJ14(reduced_topology)
+            pairs['ai'] = pairs['ai'].map(type_atnum_dict)
+            pairs['aj'] = pairs['aj'].map(type_atnum_dict)
+            pairs['rep'] = pairs['c12']
+            pairs['same_chain'] = True
+
+        pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
+
     if parameters.egos != 'rc':
         meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts, reference_atomic_contacts, left_index=True, right_index=True, how='outer')
         # TODO arrabbiati quando nel fibril non c'e' un RC intermol che senno' qui da' errore
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['same_chain'] == meGO_atomic_contacts_merged['rc_same_chain']]
-        
+
+        # This is to FLAG 1-2, 1-3, 1-4 cases:
+        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
+        meGO_atomic_contacts_merged['1-4'] = meGO_atomic_contacts_merged['1-4'].fillna('1>4')
+        # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
+        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
+        meGO_atomic_contacts_merged['1-4'].loc[(meGO_atomic_contacts_merged['rep'].notna())&(meGO_atomic_contacts_merged['rep']!=0.)] = '1_4'
+        meGO_atomic_contacts_merged['rep'].loc[(meGO_atomic_contacts_merged['1-4']=="1_2_3")] = 0.
+        meGO_atomic_contacts_merged['rep'].loc[(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['rep'].isnull())] = 0.
+        meGO_atomic_contacts_merged['rep'] = meGO_atomic_contacts_merged['rep'].fillna(np.sqrt(meGO_atomic_contacts_merged['ai'].map(type_c12_dict)*meGO_atomic_contacts_merged['aj'].map(type_c12_dict)))
+        meGO_atomic_contacts_merged['rep_max'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(type_c12_dict)*meGO_atomic_contacts_merged['aj'].map(type_c12_dict))
+
         # This removes flagged contacts (contacts whose P(r) don't show a peack before the cut-off) if attractive
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['flag']>0)|((meGO_atomic_contacts_merged['flag']<1)&(meGO_atomic_contacts_merged['probability']<meGO_atomic_contacts_merged['rc_probability']))]
+        #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['flag']>0)|((meGO_atomic_contacts_merged['flag']<1)&(meGO_atomic_contacts_merged['probability']<meGO_atomic_contacts_merged['rc_probability']))]
         # This removes contacts that are non significant and evaluate the minimum probability greater than 0. per (source, same_chain)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['probability']>0.]
         meGO_atomic_contacts_merged['min_prob'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['probability']].transform("min")
         # This keep only significat attractive/repulsive interactions
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
         meGO_atomic_contacts_merged.drop('min_prob', axis=1, inplace=True)
-    
+   
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
-        # this is the default c12 value
-        meGO_atomic_contacts_merged['rep'] = np.sqrt(meGO_atomic_contacts_merged['ai'].map(sbtype_c12_dict)*meGO_atomic_contacts_merged['aj'].map(sbtype_c12_dict))
+
+        # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
+        # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
+        meGO_atomic_contacts_merged.reset_index(inplace=True)
 
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
         # Attractive intramolecular
-        # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
-        # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
-        meGO_atomic_contacts_merged.reset_index(inplace=True)
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
-        intra_max_eps = meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)].max() 
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['flag']>0)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
 
         # Attractive intermolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
-        inter_max_eps = meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)].max()
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['flag']>0)] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
         
         # Repulsive
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<meGO_atomic_contacts_merged['rc_probability'])] = np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])*(meGO_atomic_contacts_merged['distance']**12)
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['flag']>0)] =  (meGO_atomic_contacts_merged['distance_m']**12)*(np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])+(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['rc_distance_m']**12))
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])<meGO_atomic_contacts_merged['rep'])] = np.nan
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])>=meGO_atomic_contacts_merged['rep'])] -= meGO_atomic_contacts_merged['rep'] 
+        #meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])>=meGO_atomic_contacts_merged['rep'])&(meGO_atomic_contacts_merged['flag']>0)] -= meGO_atomic_contacts_merged['rep']
+ 
+        # This set the default (random coil) value for selected 1-4 interactions
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
 
         # Rescaled c12 intramolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.02)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>intra_max_eps)] = -intra_max_eps/(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12)*meGO_atomic_contacts_merged['rep']
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['flag']>0))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']<=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>=1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['flag']>0))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
         # Rescaled c12 intermolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<2.0*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.02)&(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12>inter_max_eps)] = -inter_max_eps/(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['distance']**12)*meGO_atomic_contacts_merged['rep']
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['flag']>0)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>=1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['flag']>0)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        # Rescale c12 for flagged to 0 contacts
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['flag']<1)&((meGO_atomic_contacts_merged['rc_distance']-meGO_atomic_contacts_merged['distance'])>0.)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance']/meGO_atomic_contacts_merged['rc_distance'])**12
+
+        # safety check on 1-4 interactions
+        #meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['rep_max']>meGO_atomic_contacts_merged['rep'])&(-meGO_atomic_contacts_merged['epsilon']>meGO_atomic_contacts_merged['rep_max'])] = -meGO_atomic_contacts_merged['rep_max']
 
         # Here we are reindexing like before
         meGO_atomic_contacts_merged[['idx_ai', 'idx_aj']] = meGO_atomic_contacts_merged[['ai', 'aj']]
@@ -306,38 +373,36 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged.dropna(subset=['epsilon'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged.epsilon != 0]
 
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance',
-        'probability', 'same_chain', 'source', 'flag', 'file', 'rc_molecule_name_ai',
-        'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_distance',
-        'rc_probability', 'rc_same_chain', 'rc_source', 'rc_file', 'sigma',
-        'epsilon']]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
+        'probability', 'same_chain', 'source', 'flag', 'file', 
+        'rc_probability', 'rc_file', 'sigma',
+        'epsilon', '1-4']]
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
-        inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai', 'distance',
-        'probability', 'same_chain', 'source', 'flag', 'file', 'rc_molecule_name_aj',
-        'rc_aj', 'rc_molecule_name_ai', 'rc_ai', 'rc_distance',
-        'rc_probability', 'rc_same_chain', 'rc_source', 'rc_file', 'sigma',
-        'epsilon']].copy()
-        inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance',
-        'probability', 'same_chain', 'source', 'flag', 'file', 'rc_molecule_name_ai',
-        'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_distance',
-        'rc_probability', 'rc_same_chain', 'rc_source', 'rc_file', 'sigma',
-        'epsilon']
+        inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
+        'probability', 'same_chain', 'source', 'flag', 'file',
+        'rc_probability', 'rc_file', 'sigma',
+        'epsilon', '1-4']].copy()
+        inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
+        'probability', 'same_chain', 'source', 'flag', 'file',
+        'rc_probability', 'rc_file', 'sigma',
+        'epsilon', '1-4']
+        # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
+        meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
         # process check_atomic_contacts
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
                 check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>parameters.md_threshold)&(check_atomic_contacts['distance']>0.)] 
-        # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
-        meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
-        meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
-        energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
-        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
-        ## remove check_with contacts 
-        meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
-        ## rescale problematic contacts
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
-        meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
+                meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
+                meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
+                energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
+                meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
+                ## remove check_with contacts 
+                meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
+                ## rescale problematic contacts
+                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
 
         # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
         # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
@@ -364,8 +429,12 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_atomic_contacts_merged
         test = pd.merge(meGO_LJ_14, meGO_atomic_contacts_merged, how="right", on=["ai", "aj"])
         meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
-        meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y'], inplace = True)
-        meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source'}, inplace = True)
+        meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y'], inplace = True)
+        meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4'}, inplace = True)
+
+        # copy 1-4 interactions into meGO_LJ_14
+        copy14 = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']=='1_4')]
+        meGO_LJ_14 = pd.concat([meGO_LJ_14,copy14], axis=0, sort = False, ignore_index = True)
         
         meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
         meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
@@ -390,10 +459,11 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(sbtype_number_dict)
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file', 'number_ai', 'number_aj']]
+
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj']]
         # Here we want to sort so that ai is smaller than aj
-        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_molecule_name_aj', 'rc_aj', 'rc_molecule_name_ai', 'rc_ai', 'rc_same_chain', 'rc_source', 'rc_file', 'number_aj', 'number_ai']].copy()
-        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'distance', 'rc_distance', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_molecule_name_ai', 'rc_ai', 'rc_molecule_name_aj', 'rc_aj', 'rc_same_chain', 'rc_source', 'rc_file', 'number_ai', 'number_aj'] 
+        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai']].copy()
+        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj'] 
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged,inv_meGO], axis=0, sort = False, ignore_index = True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
         meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
@@ -401,7 +471,8 @@ def parametrize_LJ(topology_dataframe, meGO_atomic_contacts, reference_atomic_co
 
     else:
         meGO_atomic_contacts_merged = pd.DataFrame()
-        meGO_LJ_14 = pd.DataFrame() 
+        meGO_LJ_14 = pairs
+        meGO_LJ_14['epsilon'] = -meGO_LJ_14['c12'] 
         
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
@@ -416,83 +487,13 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
 
         reduced_topology['number'] = reduced_topology['number'].astype(str)
         reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
-        # Dictionaries definitions to map values
+
         atnum_type_dict = reduced_topology.set_index('sb_type')['number'].to_dict()
-        #type_atnum_dict = reduced_topology.set_index('number')['sb_type'].to_dict()
-
-        # Adding the c12
-        reduced_topology['c12'] = reduced_topology['sb_type'].map(type_c12_dict)
-
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
-        ex, ex14, p14, exclusion_bonds = [], [], [], []
-        for atom in reduced_topology['number'].to_list():
-            for t in bond_pair:
-                if t[0] == atom:
-                    first = t[1]
-                    ex.append(t[1])
-                elif t[1] == atom:
-                    first = t[0]
-                    ex.append(t[0])
-                else: continue
-                for tt in bond_pair:
-                    if (tt[0] == first) & (tt[1] != atom):
-                        second = tt[1]
-                        ex.append(tt[1])
-                    elif (tt[1] == first) & (tt[0] != atom):
-                        second = tt[0]
-                        ex.append(tt[0])
-                    else: continue
-                    for ttt in bond_pair:
-                        if (ttt[0] == second) & (ttt[1] != first):
-                            ex.append(ttt[1])
-                            ex14.append(ttt[1])
-
-                        elif (ttt[1] == second) & (ttt[0] != first):
-                            ex.append(ttt[0])
-                            ex14.append(ttt[0])
-            for e in ex:
-                exclusion_bonds.append((str(str(atom) + '_' + str(e))))
-                exclusion_bonds.append((str(str(e) + '_' + str(atom))))
-            ex = []
-            for e in ex14:
-                p14.append((str(str(atom) + '_' + str(e))))
-                p14.append((str(str(e) + '_' + str(atom))))
-            ex14 = []
-
-            #exclusion_bonds = set()
-            #p14 = set()
-            #
-            #for atom in reduced_topology['number'].to_list():
-            #    ex = []
-            #    for t in bond_pair:
-            #        if t[0] == atom:
-            #            first = t[1]
-            #            ex.append(t[1])
-            #        elif t[1] == atom:
-            #            first = t[0]
-            #            ex.append(t[0])
-            #        else:
-            #            continue
-            #        
-            #        ex_first = [tt[1 if tt[0] == first else 0] for tt in bond_pair if (tt[0] == first or tt[1] == first) and tt[0] != atom and tt[1] != atom]
-            #        ex.extend(ex_first)
-            #        ex14_first = [tt[1 if tt[0] == first else 0] for tt in bond_pair if (tt[0] == first or tt[1] == first) and tt[0] != atom and tt[1] != atom]
-            #        ex14 = []
-            #        for second in ex_first:
-            #            ex14.extend([ttt[1 if ttt[0] == second else 0] for ttt in bond_pair if (ttt[0] == second or ttt[1] == second) and ttt[0] != first and ttt[1] != first])
-            #        
-            #    exclusion_bonds.update([f'{atom}_{e}' for e in ex])
-            #    exclusion_bonds.update([f'{e}_{atom}' for e in ex])
-            #    p14.update([f'{atom}_{e}' for e in ex14])
-            #    p14.update([f'{e}_{atom}' for e in ex14])
-            #
-            #exclusion_bonds = list(exclusion_bonds)
-            #p14 = list(p14)
-            # This code creates two sets exclusion_bonds and p14 and updates them in each iteration of the outer loop. The inner list comprehensions simplify the code and make it more readable. The code is more efficient as well since sets have constant-time update and in operations.
-
-
+        exclusion_bonds, p14 = list14(reduced_topology, bond_pair) 
+        pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
             # pairs from greta does not have duplicates because these have been cleaned before
             pairs = meGO_LJ_14[['ai', 'aj', 'c6', 'c12', 'epsilon', 'same_chain', 'probability', 'rc_probability', 'source']].copy()
@@ -504,9 +505,10 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
             pairs['aj'] = pairs['aj'].map(atnum_type_dict)
             pairs['check'] = pairs['ai'] + '_' + pairs['aj']
             # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
-            pairs['exclude'] = ''
-            pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'exclude'] = 'Yes'
-            mask = pairs.exclude == 'Yes'
+            pairs['remove'] = ''
+            pairs.loc[(pairs['check'].isin(exclusion_bonds)), 'remove'] = 'Yes'
+            pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain']==True)), 'remove'] = 'No'
+            mask = pairs.remove == 'Yes'
             pairs = pairs[~mask]
             pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
             pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
@@ -516,79 +518,121 @@ def make_pairs_exclusion_topology(topology_dataframe, bond_tuple, type_c12_dict,
             pairs['c12'].loc[(pairs['same_chain'] == False)] = np.sqrt(pairs['c12_ai'] * pairs['c12_aj'])  
             # this is a safety check 
             pairs = pairs[pairs['c12']>0.]
-            pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'exclude', 'epsilon'], inplace = True)
+            pairs.drop(columns = ['same_chain', 'c12_ai', 'c12_aj', 'check', 'remove', 'epsilon'], inplace = True)
             pairs = pairs[['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']]
             
-        else:
-            pairs = pd.DataFrame()
-        
-        # Drop NaNs. This is an issue when adding the ligand ensemble.
-        pairs.dropna(inplace=True)
+            # Drop NaNs. This is an issue when adding the ligand ensemble.
+            pairs.dropna(inplace=True)
+            pairs['ai'] = pairs['ai'].astype(int)
+            pairs['aj'] = pairs['aj'].astype(int)  
+  
+            # Here we want to sort so that ai is smaller than aj
+            inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
+            inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
+            pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
+            pairs = pairs[pairs['ai']<pairs['aj']]
+            pairs.drop_duplicates(inplace=True, ignore_index = True)
+            pairs.sort_values(by = ['ai', 'aj'], inplace = True)
 
-        # Here we make a dictionary of the atoms used for local geometry 
-        backbone_nitrogen = reduced_topology.loc[reduced_topology['name'] == 'N']
-        backbone_carbonyl = reduced_topology.loc[reduced_topology['name'] == 'C']
-        backbone_oxygen = reduced_topology.loc[reduced_topology['name']=='O']
-        ct_oxygen = reduced_topology.loc[(reduced_topology['name']=='O1')|(reduced_topology['name']=='O2')]
-        sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
-        pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
-        sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
-        
-        # For proline CD take the CB, N of the previous residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
-        
-        # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=sidechain_cb, prefactor=0.275, shift=+1)], axis=0, sort=False, ignore_index=True)
-       
-        # For backbone oxygen take the CB of the same residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
-        
-        # now we add the pair between the last CB and the two OCT ones
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=sidechain_cb, prefactor=0.65, shift=-1)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=backbone_nitrogen, prefactor=0.343, shift=+1)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone oxygen take the O of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=+1)], axis=0, sort=False, ignore_index=True)
-        
-        # now we add the pair between the penultimate oxygen and the two CT ones
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=-1)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=backbone_carbonyl, prefactor=0.5, shift=-1)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078)], axis=0, sort=False, ignore_index=True)
-        
-        # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
-        pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
-        # remove duplicates
-        inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
-        inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
-        # in case of duplicates we keep the last occurrence this because in the input pairs there are not duplicates,
-        # duplicates can results due to the addition of local geometry pairs that then should superseed the former
-        pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
-        pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
-        # drop inverse duplicates
-        cols = ['ai', 'aj']
-        pairs[cols] = np.sort(pairs[cols].values, axis=1)
-        pairs = pairs.drop_duplicates(subset = ['ai', 'aj'], keep = 'last')
-        pairs['ai'] = pairs['ai'].astype(int)
-        pairs['aj'] = pairs['aj'].astype(int)
-
-        # Here we want to sort so that ai is smaller than aj
-        inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
-        inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
-        pairs = pd.concat([pairs,inv_pairs], axis=0, sort = False, ignore_index = True)
-        pairs = pairs[pairs['ai']<pairs['aj']]
-        pairs.sort_values(by = ['ai', 'aj'], inplace = True)
         pairs_molecule_dict[molecule] = pairs
 
     return pairs_molecule_dict
+
+
+def list14(reduced_topology, bond_pair):
+    # Building the exclusion bonded list
+    # exclusion_bonds are all the interactions within 3 bonds
+    # p14 are specifically the interactions at exactly 3 bonds
+    ex, ex14, p14, exclusion_bonds = [], [], [], []
+    for atom in reduced_topology['number'].to_list():
+        for t in bond_pair:
+            if t[0] == atom:
+                first = t[1]
+                ex.append(t[1])
+            elif t[1] == atom:
+                first = t[0]
+                ex.append(t[0])
+            else: continue
+            for tt in bond_pair:
+                if (tt[0] == first) & (tt[1] != atom):
+                    second = tt[1]
+                    ex.append(tt[1])
+                elif (tt[1] == first) & (tt[0] != atom):
+                    second = tt[0]
+                    ex.append(tt[0])
+                else: continue
+                for ttt in bond_pair:
+                    if (ttt[0] == second) & (ttt[1] != first):
+                        ex.append(ttt[1])
+                        ex14.append(ttt[1])
+
+                    elif (ttt[1] == second) & (ttt[0] != first):
+                        ex.append(ttt[0])
+                        ex14.append(ttt[0])
+        for e in ex:
+            exclusion_bonds.append((str(str(atom) + '_' + str(e))))
+            exclusion_bonds.append((str(str(e) + '_' + str(atom))))
+        ex = []
+        for e in ex14:
+            p14.append((str(str(atom) + '_' + str(e))))
+            p14.append((str(str(e) + '_' + str(atom))))
+        ex14 = []
+
+    return exclusion_bonds, p14
+
+
+def protein_LJ14(reduced_topology):
+    # Here we make a dictionary of the atoms used for local geometry 
+    backbone_nitrogen = reduced_topology.loc[reduced_topology['name'] == 'N']
+    backbone_carbonyl = reduced_topology.loc[reduced_topology['name'] == 'C']
+    backbone_oxygen = reduced_topology.loc[reduced_topology['name']=='O']
+    ct_oxygen = reduced_topology.loc[(reduced_topology['name']=='O1')|(reduced_topology['name']=='O2')]
+    sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
+    pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
+    sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
+    
+    pairs = pd.DataFrame()  
+   
+    # For proline CD take the CB, N of the previous residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
+    
+    # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=sidechain_cb, prefactor=0.275, shift=+1)], axis=0, sort=False, ignore_index=True)
+    
+    # For backbone oxygen take the CB of the same residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
+    
+    # now we add the pair between the last CB and the two OCT ones
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=sidechain_cb, constant=1.782902e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_nitrogen, atomtype2=backbone_nitrogen, prefactor=0.343, shift=+1)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone oxygen take the O of the next residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=+1)], axis=0, sort=False, ignore_index=True)
+    
+    # now we add the pair between the penultimate oxygen and the two CT ones
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=backbone_oxygen, prefactor=11.4, shift=-1)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=backbone_carbonyl, prefactor=0.5, shift=-1)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078)], axis=0, sort=False, ignore_index=True)
+    
+    # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
+    # make it symmetric 
+    inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
+    inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
+    pairs = pd.concat([pairs, inv_LJ], axis=0, sort = False, ignore_index = True)
+    pairs['ai'] = pairs['ai'].astype(str)
+    pairs['aj'] = pairs['aj'].astype(str)
+
+    return pairs
 
 
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
@@ -606,6 +650,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefact
             else:
                 print('You need to chose prefactor or constant')
                 exit()
+
     pairs_14 = pd.DataFrame(columns=['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source'])
     pairs_14['ai'] = pairs_14_ai
     pairs_14['aj'] = pairs_14_aj
@@ -613,6 +658,9 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefact
     pairs_14['c6'] = pairs_14_c6
     pairs_14['c12'] = pairs_14_c12
     pairs_14['source'] = '1-4'
+    pairs_14['probability'] = 1.0
+    pairs_14['rc_probability'] = 1.0
+
     return pairs_14
 
 
