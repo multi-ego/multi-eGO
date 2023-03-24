@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     print('Checking the presence of directories, .top, and .ndx files')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
-    check_files_existance(args.egos, args.protein, md_ensembles_list)
+    check_files_existance(args.egos, args.system, md_ensembles_list)
     # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
     #ensembles = []

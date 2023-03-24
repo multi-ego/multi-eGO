@@ -6,9 +6,9 @@ pd.set_option('display.colheader_justify', 'right')
 
 def get_name(parameters):
     if parameters.egos=="rc":
-        name = f'{parameters.protein}_{parameters.egos}'
+        name = f'{parameters.system}_{parameters.egos}'
     else:
-        name = f'{parameters.protein}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+        name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
 
     return name
 
@@ -102,7 +102,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
 #endif
 
 [ system ]
-{parameters.protein}
+{parameters.system}
 
 [ molecules ]
 ; Compound #mols
