@@ -11,7 +11,7 @@ import sys
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
-    parser.add_argument('--protein', type=str, required=True, help='Name of the proteina corresponding to the master folder containing subfolders.')
+    parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to the main input folder.')
     parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGOs.\n -rc creates a force-field without non bonded parameters to sample the local geometry of the protein and it is the first simulation to be performed.\n')
     parser.add_argument('--epsilon', type=float_range(0.0, 1.0), help='Define a custom Epsilon value for the LJ parametrization from 0 to 1.')
     # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
