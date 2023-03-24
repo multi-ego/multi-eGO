@@ -57,13 +57,13 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
         # Hence, an empty exclusion gives error. Here I define an empty variable so it does not gets stuck
         exclusions = pd.DataFrame(columns=['ai', 'aj'])
         # TODO here only proteins have custom pairs and exclusions. Nucleic acids and others will use the one in topol.top used as reference
-        if molecule_type_dict[molecule] == 'protein':
-            pairs = lj_14[molecule]
-            pairs.insert(5, ';', ';')
-            pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
-            pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
-            bonded_interactions_dict[molecule]['pairs'] = pairs
-            exclusions = pairs[['ai', 'aj']].copy()
+        #if molecule_type_dict[molecule] == 'protein':
+        pairs = lj_14[molecule]
+        pairs.insert(5, ';', ';')
+        pairs['c6'] = pairs["c6"].map(lambda x:'{:.6e}'.format(x))
+        pairs['c12'] = pairs["c12"].map(lambda x:'{:.6e}'.format(x))
+        bonded_interactions_dict[molecule]['pairs'] = pairs
+        exclusions = pairs[['ai', 'aj']].copy()
         
         molecule_footer.append(molecule)
         molecule_header = f'''
