@@ -15,7 +15,7 @@ def read_simulations(args, simulation):
     '''
     This function creates an Ensemble for each simulation defined by the folder name in --md_ensembles.
     '''
-    simulation_path = os.path.join(args.protein, simulation)
+    simulation_path = os.path.join(args.system, simulation)
     ensemble = Ensemble(args, simulation, simulation_path)
     ensemble.read_files()
     ensemble.initialize_ensemble()
