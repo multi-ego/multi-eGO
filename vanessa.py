@@ -234,12 +234,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     return ensemble_contact_matrix
     
 
-def min0(x):
-   mydf = x.to_frame()
-   min_value = mydf.loc[mydf['rc_probability']>0.].min()
-   mydf['rc_probability'] = min_value[0] 
-   return mydf.squeeze()
-
 def check_LJ(test, parameters):
     if len(test) == 1: 
         return 0. 
@@ -332,13 +326,9 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         # This removes contacts that are non significant and evaluate the minimum probability greater than 0. per (source, same_chain)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['probability']>0.]
         meGO_atomic_contacts_merged['min_prob'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['probability']].transform("min")
-        meGO_atomic_contacts_merged['min_prob_rc'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['rc_probability']].transform(min0)
-        # Set the mininum rc probability to the smallest value greater than 0
-        meGO_atomic_contacts_merged['rc_probability'].loc[meGO_atomic_contacts_merged['rc_probability']<meGO_atomic_contacts_merged['min_prob_rc']] = meGO_atomic_contacts_merged['min_prob_rc'] 
         # This keep only significat attractive/repulsive interactions
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
         meGO_atomic_contacts_merged.drop('min_prob', axis=1, inplace=True)
-        meGO_atomic_contacts_merged.drop('min_prob_rc', axis=1, inplace=True)
    
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1/6))
