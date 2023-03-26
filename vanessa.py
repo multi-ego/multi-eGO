@@ -239,12 +239,16 @@ def check_LJ(test, parameters):
         return 0. 
     else:
         #distance comes from check
-        dist = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
         #epsilon from train
-        eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+        if dist_check < dist_train:
+            eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+        else:
+            eps = 0.
  
         if eps < 0. :
-            return -eps/(dist)**12
+            return -eps/(dist_check)**12
         else:
             return 0.
 
@@ -330,6 +334,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
         meGO_atomic_contacts_merged.drop('min_prob', axis=1, inplace=True)
    
+
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
@@ -354,8 +359,8 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
 
         # mild repulsive (for small probability ratios or flagged contacts)
-        meGO_atomic_contacts_merged['epsilon'].loc[(((meGO_atomic_contacts_merged['probability']<=2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))&(meGO_atomic_contacts_merged['probability']>np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
-        meGO_atomic_contacts_merged['epsilon'].loc[(((meGO_atomic_contacts_merged['probability']>=1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<1))&(meGO_atomic_contacts_merged['probability']<=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<=2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']>=1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<1))&(meGO_atomic_contacts_merged['probability']<=meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
 
         # Rescale c12 1-4 interactions 
         meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
@@ -368,23 +373,25 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged.dropna(subset=['epsilon'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged.epsilon != 0]
 
+
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
         'probability', 'same_chain', 'source', 'flag', 'file', 
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']]
+        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']]
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
         inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
         'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']].copy()
+        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']].copy()
         inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
         'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']
+        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']
         # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
         # process check_atomic_contacts
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
+                check_atomic_contacts.drop('distance_m', axis=1, inplace=True)
                 check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>parameters.md_threshold)&(check_atomic_contacts['distance']>0.)] 
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
                 meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
