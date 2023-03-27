@@ -395,7 +395,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
                 check_atomic_contacts.drop('distance_m', axis=1, inplace=True)
-                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>parameters.rc_threshold)&(check_atomic_contacts['distance']>0.)] 
+                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit*parameters.rc_threshold)] 
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
                 meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
                 energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
@@ -403,7 +403,8 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
                 ## remove check_with contacts 
                 meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
                 ## rescale problematic contacts
-                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.inter_epsilon)] *= parameters.inter_epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
                 meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
 
         # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
