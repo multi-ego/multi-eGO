@@ -331,7 +331,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['probability']>0.]
         meGO_atomic_contacts_merged['min_prob'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['probability']].transform("min")
         # This keep only significat attractive/repulsive interactions
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.rc_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold))]
         meGO_atomic_contacts_merged.drop('min_prob', axis=1, inplace=True)
    
 
@@ -344,26 +344,31 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged.reset_index(inplace=True)
 
         # this is the minimum probability ratio for attractive contacts and is set so that epsilon should not be smaller than 0.1*epsilon
-        limit = 1./parameters.rc_threshold**0.1
+        limit_md = 1./parameters.md_threshold**0.1
+        limit_rc = 1./parameters.rc_threshold**0.1
+        limit = 2
 
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
         # Attractive intramolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
 
         # Attractive intermolecular
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
         
-        # Repulsive
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = parameters.epsilon*meGO_atomic_contacts_merged['distance_m']**12*np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+        # Repulsive intramolecular
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['flag']>=0)&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)] = parameters.epsilon*meGO_atomic_contacts_merged['distance_m']**12*np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+        # Repulsive intermolecular
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['same_chain']==False)] = parameters.inter_epsilon*meGO_atomic_contacts_merged['distance_m']**12*np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+        # remove repulsive with values close to the default ones
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])<meGO_atomic_contacts_merged['rep'])] = np.nan
  
         # This set the default (random coil) value for selected 1-4 interactions
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
 
         # mild repulsive (for small probability ratios or flagged contacts)
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<=limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
-        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']>=1./limit*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<1))&(meGO_atomic_contacts_merged['probability']<=meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<=limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
+        meGO_atomic_contacts_merged['epsilon'].loc[((meGO_atomic_contacts_merged['probability']>=1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<0))&(meGO_atomic_contacts_merged['probability']<=meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
 
         # Rescale c12 1-4 interactions 
         meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
