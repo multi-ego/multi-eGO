@@ -14,8 +14,8 @@ def read_molecular_contacts(path):
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
     contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance_NMR', 'probability', 'flag', 'sigma']
-    contact_matrix.drop(columns=['sigma'], inplace=True)
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']
+    contact_matrix.drop(columns=['flag', 'sigma'], inplace=True)
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
@@ -149,8 +149,6 @@ def get_pairs(topology):
         'funct' : [pair.funct for pair in topology],
         'type' : [pair.type for pair in topology],
     })
-
-    # TODO change unit measures
     return pairs_dataframe
   
 
@@ -197,7 +195,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     original_contact_matrices = contact_matrices.copy()
     for file_name, contact_matrix in original_contact_matrices.items():
 
-        #for file_name, contact_matrix in contact_matrices.items():
         name = file_name.split('_')
         name = name[:-1] + name[-1].split('.')[:-1]
         
@@ -217,7 +214,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
 
         contact_matrix = contact_matrix[[
-            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']]
+            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability']]
         if name[0] == 'intramat':
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
@@ -240,6 +237,7 @@ def check_LJ(test, parameters):
     else:
         #distance comes from check
         dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        #distance comes from train 
         dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
         #epsilon from train
         if dist_check < dist_train:
@@ -291,7 +289,6 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
 
         # Adding the c12 for 1-4 interactions
         reduced_topology['c12'] = reduced_topology['sb_type'].map(type_c12_dict)
-        # TODO: this should be done with a check on the molecule type (PROTEIN/NUCLEIC/LIPID/OTHER)
         pairs = pd.DataFrame()
         if molecule_type_dict[molecule] == 'protein':
             pairs = protein_LJ14(reduced_topology)
@@ -379,16 +376,13 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
 
         # remove unnecessary fields
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-        'probability', 'same_chain', 'source', 'flag', 'file', 
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']]
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']]
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
         inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-        'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']].copy()
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']].copy()
         inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-        'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']
         # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
@@ -464,10 +458,10 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
 
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj']]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj']]
         # Here we want to sort so that ai is smaller than aj
-        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai']].copy()
-        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj'] 
+        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai']].copy()
+        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj'] 
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged,inv_meGO], axis=0, sort = False, ignore_index = True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
         meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
