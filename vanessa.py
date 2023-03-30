@@ -390,7 +390,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
                 check_atomic_contacts.drop('distance_m', axis=1, inplace=True)
-                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit*parameters.rc_threshold)] 
+                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit_rc*parameters.md_threshold)] 
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
                 meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
                 energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
