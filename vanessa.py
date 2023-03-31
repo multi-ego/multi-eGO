@@ -14,8 +14,8 @@ def read_molecular_contacts(path):
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
     contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance_NMR', 'probability', 'flag', 'sigma']
-    contact_matrix.drop(columns=['sigma'], inplace=True)
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']
+    contact_matrix.drop(columns=['flag', 'sigma'], inplace=True)
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
@@ -149,8 +149,6 @@ def get_pairs(topology):
         'funct' : [pair.funct for pair in topology],
         'type' : [pair.type for pair in topology],
     })
-
-    # TODO change unit measures
     return pairs_dataframe
   
 
@@ -197,7 +195,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     original_contact_matrices = contact_matrices.copy()
     for file_name, contact_matrix in original_contact_matrices.items():
 
-        #for file_name, contact_matrix in contact_matrices.items():
         name = file_name.split('_')
         name = name[:-1] + name[-1].split('.')[:-1]
         
@@ -217,7 +214,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
 
         contact_matrix = contact_matrix[[
-            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability', 'flag']]
+            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability']]
         if name[0] == 'intramat':
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
@@ -234,23 +231,22 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
     return ensemble_contact_matrix
     
 
-def min0(x):
-   mydf = x.to_frame()
-   min_value = mydf.loc[mydf['rc_probability']>0.].min()
-   mydf['rc_probability'] = min_value[0] 
-   return mydf.squeeze()
-
 def check_LJ(test, parameters):
     if len(test) == 1: 
         return 0. 
     else:
         #distance comes from check
-        dist = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        #distance comes from train 
+        dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
         #epsilon from train
-        eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+        if dist_check < dist_train:
+            eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+        else:
+            eps = 0.
  
         if eps < 0. :
-            return -eps/(dist)**12
+            return -eps/(dist_check)**12
         else:
             return 0.
 
@@ -293,7 +289,6 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
 
         # Adding the c12 for 1-4 interactions
         reduced_topology['c12'] = reduced_topology['sb_type'].map(type_c12_dict)
-        # TODO: this should be done with a check on the molecule type (PROTEIN/NUCLEIC/LIPID/OTHER)
         pairs = pd.DataFrame()
         if molecule_type_dict[molecule] == 'protein':
             pairs = protein_LJ14(reduced_topology)
@@ -329,17 +324,9 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged['rep'].loc[(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['rep'].isnull())] = 0.
         meGO_atomic_contacts_merged['rep'] = meGO_atomic_contacts_merged['rep'].fillna(np.sqrt(meGO_atomic_contacts_merged['ai'].map(type_c12_dict)*meGO_atomic_contacts_merged['aj'].map(type_c12_dict)))
 
-        # This removes contacts that are non significant and evaluate the minimum probability greater than 0. per (source, same_chain)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['probability']>0.]
-        meGO_atomic_contacts_merged['min_prob'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['probability']].transform("min")
-        meGO_atomic_contacts_merged['min_prob_rc'] = meGO_atomic_contacts_merged.groupby(by=['source', 'same_chain'])[['rc_probability']].transform(min0)
-        # Set the mininum rc probability to the smallest value greater than 0
-        meGO_atomic_contacts_merged['rc_probability'].loc[meGO_atomic_contacts_merged['rc_probability']<meGO_atomic_contacts_merged['min_prob_rc']] = meGO_atomic_contacts_merged['min_prob_rc'] 
         # This keep only significat attractive/repulsive interactions
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['min_prob'])&(meGO_atomic_contacts_merged['rc_probability']>meGO_atomic_contacts_merged['probability'])&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))]
-        meGO_atomic_contacts_merged.drop('min_prob', axis=1, inplace=True)
-        meGO_atomic_contacts_merged.drop('min_prob_rc', axis=1, inplace=True)
-   
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
+
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1/6))
         meGO_atomic_contacts_merged['epsilon'] = np.nan 
@@ -348,29 +335,36 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
         meGO_atomic_contacts_merged.reset_index(inplace=True)
 
+        # this is the minimum probability ratio for attractive contacts and is set so that epsilon should not be smaller than 0.1*epsilon
+        limit_rc = 1./parameters.rc_threshold**0.1
+
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
         # Attractive intramolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']<=parameters.rc_threshold)] = -(parameters.epsilon/np.log(np.minimum(parameters.rc_threshold,meGO_atomic_contacts_merged['rc_probability'])))*(np.log(meGO_atomic_contacts_merged['probability']/np.minimum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True)] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
 
         # Attractive intermolecular
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']<=parameters.rc_threshold)] = -(parameters.inter_epsilon/np.log(np.minimum(parameters.rc_threshold,meGO_atomic_contacts_merged['rc_probability'])))*(np.log(meGO_atomic_contacts_merged['probability']/np.minimum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False)] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
         
-        # Repulsive
-        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['flag']>0)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)] = (meGO_atomic_contacts_merged['distance_m']**12)*(np.log(np.maximum(meGO_atomic_contacts_merged['probability'], parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']/meGO_atomic_contacts_merged['rc_distance_m']**12))
+        # Repulsive intramolecular
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['same_chain']==True)] = parameters.epsilon*meGO_atomic_contacts_merged['distance_m']**12*np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+
+        # Repulsive intermolecular
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['same_chain']==False)] = parameters.inter_epsilon*meGO_atomic_contacts_merged['distance_m']**12*np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+
+        # remove repulsive with values close to the default ones
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['epsilon']<0.)&(np.abs(meGO_atomic_contacts_merged['epsilon'])<meGO_atomic_contacts_merged['rep'])] = np.nan
  
         # This set the default (random coil) value for selected 1-4 interactions
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
 
-        # mild repulsive (for small probability ratios or flagged contacts)
-        meGO_atomic_contacts_merged['epsilon'].loc[(((meGO_atomic_contacts_merged['probability']<=2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<1))&(meGO_atomic_contacts_merged['probability']>np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
-        meGO_atomic_contacts_merged['epsilon'].loc[(((meGO_atomic_contacts_merged['probability']>=1./2.*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))|(meGO_atomic_contacts_merged['flag']<1))&(meGO_atomic_contacts_merged['probability']<=np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold))] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        # mild c12s (for small probability ratios): smaller
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']<=limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
+        # mild c12s (for small probability ratios): larger 
+        meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['probability']>=1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
 
         # Rescale c12 1-4 interactions 
-        meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.rc_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
 
         # Here we are reindexing like before
         meGO_atomic_contacts_merged[['idx_ai', 'idx_aj']] = meGO_atomic_contacts_merged[['ai', 'aj']]
@@ -380,24 +374,23 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged.dropna(subset=['epsilon'], inplace=True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged.epsilon != 0]
 
+        # remove unnecessary fields
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-        'probability', 'same_chain', 'source', 'flag', 'file', 
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']]
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']]
         # Inverse pairs calvario
         # this must list ALL COLUMNS!
         inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-        'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']].copy()
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']].copy()
         inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-        'probability', 'same_chain', 'source', 'flag', 'file',
-        'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4']
+        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance']
         # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
         # process check_atomic_contacts
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
-                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>parameters.md_threshold)&(check_atomic_contacts['distance']>0.)] 
+                check_atomic_contacts.drop('distance_m', axis=1, inplace=True)
+                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit_rc*parameters.md_threshold)] 
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
                 meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
                 energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
@@ -405,7 +398,8 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
                 ## remove check_with contacts 
                 meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
                 ## rescale problematic contacts
-                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.inter_epsilon)] *= parameters.inter_epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
                 meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
 
         # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
@@ -464,10 +458,10 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
 
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj']]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj']]
         # Here we want to sort so that ai is smaller than aj
-        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai']].copy()
-        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'flag', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj'] 
+        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai']].copy()
+        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj'] 
         meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged,inv_meGO], axis=0, sort = False, ignore_index = True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
         meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
