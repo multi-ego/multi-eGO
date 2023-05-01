@@ -432,6 +432,8 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         # copy 1-4 interactions into meGO_LJ_14
         copy14 = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']=='1_4')]
         meGO_LJ_14 = pd.concat([meGO_LJ_14,copy14], axis=0, sort = False, ignore_index = True)
+        # remove them from the default force-field
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']!='1_4')]
         
         meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
         meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
