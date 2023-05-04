@@ -327,7 +327,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         # This keep only significat attractive/repulsive interactions
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)]
         # Remove flagged
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['flag']>0)|((meGO_atomic_contacts_merged['flag']==0)&(meGO_atomic_contacts_merged['distance']<np.minimum(meGO_atomic_contacts_merged['rep']**(1./12.)+0.15,0.5)))]
+        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['flag']>0)|((meGO_atomic_contacts_merged['flag']==0)&(meGO_atomic_contacts_merged['distance']<np.minimum(meGO_atomic_contacts_merged['rep']**(1./12.)+0.15,0.55)))]
 
         # Add sigma, add epsilon reweighted, add c6 and c12
         meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1./6.))
@@ -389,7 +389,10 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         if not check_atomic_contacts is None:
             if not check_atomic_contacts.empty:
                 check_atomic_contacts.drop('distance_m', axis=1, inplace=True)
+                # Remove low probability ones
                 check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit_rc*parameters.md_threshold)] 
+                # Remove flagged
+                check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['flag']>0)]
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
                 meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
                 energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
