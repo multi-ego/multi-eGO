@@ -108,7 +108,7 @@ d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name)
 
 def run_(frac_target_list):
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'p', 'flag', 'sigma', 'cutoff', 'is_gauss']
+    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'p', 'sigma', 'cutoff', 'is_gauss']
 
     df = pd.DataFrame(columns=columns)
     for i, ref_f in enumerate(frac_target_list):
@@ -125,7 +125,6 @@ def run_(frac_target_list):
             results_df['dist'] = 0
             results_df['c12dist'] = 0
             results_df['p'] = 0
-            results_df['flag'] = 0
             results_df['cutoff'] = 0
             results_df['is_gauss'] = 0
         else:
@@ -144,7 +143,6 @@ def run_(frac_target_list):
             c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             sigma = ref_df.apply(lambda x: calc_sigma(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            flag = ref_df.apply(lambda x: is_flag_tolerance(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
             results_df['mi'] = [ 1 for x in range(1, len(ref_df.columns)+1) ]
             results_df['mj'] = [ 1 for x in range(1, len(ref_df.columns)+1) ]
@@ -154,7 +152,6 @@ def run_(frac_target_list):
             results_df['dist'] = dist
             results_df['c12dist'] = c12dist
             results_df['p'] = p
-            results_df['flag'] = flag
             results_df['cutoff'] = c12_cutoff[cut_i]
             results_df['is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
     
@@ -218,22 +215,12 @@ def single_gaussian_check(values, weights, callback=allfunction):
 
 def c12_avg(values, weights, callback=allfunction):
     single_gaussian = single_gaussian_check(values, weights)
-    #flag = is_flag_tolerance(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
 
-    # if exponential do exponential average
-    #if flag == 0:
-    #    above_0 = np.where(w > 0)
-    #    w = w[above_0]
-    #    v = v[above_0]
-    #    return (1./0.1) / np.log(np.sum(w * np.exp(1./v/0.1)) / norm)
-    
     # calculate the sigma
     sigma = calc_sigma(v, w, zero_callback)
     
-    v, w = remove_monotonic(v, w)
-
     r = np.where(w > 0.)
     if r[0].size == 0: return 0
     maxd = v[r[0][-1]]
@@ -250,52 +237,6 @@ def c12_avg(values, weights, callback=allfunction):
     norm = np.sum(w)    
     # if single_gaussian: return np.sum(weights * values) / norm
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
-
-def is_flag_tolerance(values, weights, callback=allfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
-    if norm == 0.: return 0
-    rv = w[::-1]
-    min_val = np.maximum(rv[0], 10e-6)
-    max_val = 0
-    i_min = 0
-    i_max = 0
-    if rv[0] == 0: return 1
-
-    danger = 0
-    for i in range(rv.size-1):
-        if rv[i+1] < min_val:
-            min_val = np.maximum(rv[i+1], 10e-6)
-            i_min = i+1
-            max_val = 0
-        if rv[i+1] > max_val and i+1 > i_min:
-            max_val = rv[i+1]
-            i_max = i+1
-        # danger zone
-        if max_val > 0 and min_val > 0:
-            if rv[i] > 0.1 and (min_val / max_val) < 0.95: return 1
-        # first bin check
-        if (rv[i] - rv[i+1]) < 0.:
-            if i==0: danger = 1
-            if danger and i == 1: return 1
-            if (min_val - rv[i+1]) < -10e-3: return 1
-
-    return 0
-
-def is_flag(values, weights, callback=allfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
-    if norm == 0.: return 0
-    a = w[::-1][:-1]
-    b = w[::-1][1:]
-    return int(np.any((a <= b) & (b > 0)))
-
-def remove_monotonic(values, weights):
-    # from last point on
-    a = weights[::-1][:-1]
-    b = weights[::-1][1:]
-    m_index = np.where((a <= b) & (b > 0))[0]
-    if m_index.size == 0: return values, weights
-    until_i = weights.size - m_index[0]
-    return values[:until_i], weights[:until_i]
 
 def calc_sigma(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
@@ -366,7 +307,6 @@ if __name__ == '__main__':
          'mj': 'int32', 
          'ai': 'int32', 
          'aj': 'int32', 
-         'flag': 'int32', 
          'is_gauss': 'int32'
         })
 
