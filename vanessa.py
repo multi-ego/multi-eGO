@@ -445,14 +445,6 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         meGO_LJ_14['c6'].loc[(meGO_LJ_14['epsilon']<0.)] = 0.
         meGO_LJ_14['c12'].loc[(meGO_LJ_14['epsilon']<0.)] =-meGO_LJ_14['epsilon']  
 
-        # TODO aggiungere nel print anche il contributo di ogni ensemble
-        print(f'''
-        \t- LJ parameterization completed with a total of {len(meGO_atomic_contacts_merged)} contacts.
-        \t- The average epsilon is {meGO_atomic_contacts_merged['epsilon'].loc[meGO_atomic_contacts_merged['epsilon']>0.].mean():{5}.{3}}
-        \t- The maximum epsilon is {meGO_atomic_contacts_merged['epsilon'].max():{5}.{3}}
-        \t- The maximum sigma is {meGO_atomic_contacts_merged['sigma'].max():{5}.{3}}, suggested cut-off at {2.5*meGO_atomic_contacts_merged['sigma'].max():{4}.{3}} nm
-        ''')
-
         meGO_atomic_contacts_merged['type'] = 1
         meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['ai'].map(sbtype_number_dict)
         meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(sbtype_number_dict)

@@ -17,7 +17,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_from', nargs='+', type=str, default=[], help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     parser.add_argument('--md_threshold', type=float, default=0.001, help='Minimum population for attractive interactions in training simulations.')
-    parser.add_argument('--rc_threshold', type=float, default=0.000010, help='Minimum population for repulsive interactions in reference simulations.')
+    parser.add_argument('--rc_threshold', type=float, default=0.000050, help='Minimum population for repulsive interactions in reference simulations.')
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
     args = parser.parse_args()
 
