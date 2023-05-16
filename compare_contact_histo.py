@@ -94,9 +94,9 @@ from_ff_to_multiego = {
 
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 
-            'CH2', 'CH3', 'CH2r', 'NT', 'S',
-            'NR', 'OM', 'NE', 'NL', 'NZ',
-            'CH3p', 'P', 'OE', 'CR1'],            
+              'CH2', 'CH3', 'CH2r', 'NT', 'S',
+              'NR', 'OM', 'NE', 'NL', 'NZ',
+              'CH3p', 'P', 'OE', 'CR1'],            
      'c12': [2.631580e-07, 5.018430e-07, 8.752940e-07, 2.598570e-06, 6.555574e-05, # CH1
              1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 2.724050e-06, 
              1.506347e-06, 1.724403e-07, 8.752940e-07, 8.752940e-07, 8.752940e-07,
@@ -108,7 +108,7 @@ d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name)
 
 def run_(frac_target_list):
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'p', 'sigma', 'cutoff', 'is_gauss']
+    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'p', 'cutoff', 'is_gauss']
 
     df = pd.DataFrame(columns=columns)
     for i, ref_f in enumerate(frac_target_list):
@@ -121,7 +121,6 @@ def run_(frac_target_list):
             results_df['aj'] = [ *range_list, *all_ai ]
             results_df['mi'] = 1
             results_df['mj'] = 1
-            results_df['sigma'] = -1
             results_df['dist'] = 0
             results_df['c12dist'] = 0
             results_df['p'] = 0
@@ -141,14 +140,12 @@ def run_(frac_target_list):
             # calculate data
             dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            sigma = ref_df.apply(lambda x: calc_sigma(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
             results_df['mi'] = [ 1 for x in range(1, len(ref_df.columns)+1) ]
             results_df['mj'] = [ 1 for x in range(1, len(ref_df.columns)+1) ]
             results_df['ai'] = [ ai for _ in range(1, len(ref_df.columns)+1) ]
             results_df['aj'] = [ str(x) for x in protein_ref_indices ]
-            results_df['sigma'] = sigma 
             results_df['dist'] = dist
             results_df['c12dist'] = c12dist
             results_df['p'] = p
@@ -217,36 +214,16 @@ def c12_avg(values, weights, callback=allfunction):
     single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
-
-    # calculate the sigma
-    sigma = calc_sigma(v, w, zero_callback)
-    
     r = np.where(w > 0.)
-    if r[0].size == 0: return 0
-    maxd = v[r[0][-1]]
-    mind = v[r[0][0]]
-    sigma_cut = (maxd-mind)/4.
-    i_start = r[0][0]
     
-    # apply sigma rules
-    if sigma > sigma_cut or not single_gaussian:
+    if not single_gaussian:
+        i_start = r[0][0]
         i_stop = int(w.size - (w.size - i_start) / 2)
         w = w[i_start:i_stop] 
         v = v[i_start:i_stop]
+        norm = np.sum(w)    
 
-    norm = np.sum(w)    
-    # if single_gaussian: return np.sum(weights * values) / norm
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
-
-def calc_sigma(values, weights, callback=allfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
-    wo = w
-    v, w = remove_monotonic(v, w)
-    norm = np.sum(w)
-    if norm == 0.: return -1.
-    avg = np.sum(w * v)
-    avg2 = np.sum(w * v * v)
-    return np.sqrt( avg2 / norm - avg * avg / norm / norm )
 
 def calculate_probability(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
@@ -277,7 +254,6 @@ topology_df.sort_values(by='ref_ai', inplace=True)
 topology_df['c12'] = topology_df['mego_type'].map(d)
 
 c12_cutoff = 1.45 * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-#c12_cutoff = 0. * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.) + 0.55
 
 if __name__ == '__main__':
     ########################
@@ -311,18 +287,17 @@ if __name__ == '__main__':
         })
 
     df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
+    df.drop_duplicates(subset=['mi', 'ai', 'mj', 'aj'], inplace=True)
 
     df['mi'] = df['mi'].map('{:}'.format)
     df['mj'] = df['mj'].map('{:}'.format)
     df['ai'] = df['ai'].map('{:}'.format)
     df['aj'] = df['aj'].map('{:}'.format)
-    df['is_gauss'] = df['is_gauss'].map('{:}'.format)
     df['dist'] = df['dist'].map('{:,.6f}'.format)
-    df['sigma'] = df['sigma'].map('{:,.6f}'.format)
     df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
     df['p'] = df['p'].map('{:,.6f}'.format)
-
-    df.drop_duplicates(subset=['mi', 'ai', 'mj', 'aj'], inplace=True)
+    df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
+    df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
     df.index = range(len(df.index))
     df.to_csv(OUT, index=False, sep=' ', header=False)
