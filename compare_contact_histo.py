@@ -23,8 +23,7 @@ OUT = sys.argv[4]
 CUTOFF = 0.75
 N_BINS = CUTOFF / ( 0.01 / 4 )
 DX = CUTOFF / N_BINS
-N_THREADS = 1
-EPSILON = 0.5
+N_THREADS = 2
 
 print(f"""
 Starting with cutoff = {CUTOFF},
@@ -214,6 +213,7 @@ def c12_avg(values, weights, callback=allfunction):
     single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
+    v, w = remove_monotonic(v, w)
     r = np.where(w > 0.)
     
     if not single_gaussian:
@@ -221,9 +221,19 @@ def c12_avg(values, weights, callback=allfunction):
         i_stop = int(w.size - (w.size - i_start) / 2)
         w = w[i_start:i_stop] 
         v = v[i_start:i_stop]
-        norm = np.sum(w)    
+
+    norm = np.sum(w)    
 
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
+
+def remove_monotonic(values, weights):
+    # from last point on
+    a = weights[::-1][:-1]
+    b = weights[::-1][1:]
+    m_index = np.where((a <= b) & (b > 0))[0]
+    if m_index.size == 0: return values, weights
+    until_i = weights.size - m_index[0]
+    return values[:until_i], weights[:until_i]
 
 def calculate_probability(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
