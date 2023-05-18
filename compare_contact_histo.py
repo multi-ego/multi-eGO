@@ -1,5 +1,5 @@
 import os
-import sys
+# import sys
 import pandas as pd
 import numpy as np
 import parmed as pmd
@@ -9,12 +9,6 @@ import argparse
 ################################################################
 import warnings                                                #
 warnings.filterwarnings("ignore")                              #
-################################################################
-
-################################################################
-# TODO                  maybe                                  #
-################################################################
-# - set datatypes to double or rather float64                  #
 ################################################################
 
 # REF_PATH = sys.argv[1]      # histograms to analyze
@@ -287,10 +281,7 @@ if __name__ == '__main__':
     topology_df.sort_values(by='ref_ai', inplace=True)
     topology_df['c12'] = topology_df['mego_type'].map(d)
     print(topology_df)
-    ox = generate_c12_factor_map('O', 'O', 11.4)
-    ccb = generate_c12_factor_map('C', 'CB', 0.275)
-    c12_factors = ox + ccb
-    c12_factors[c12_factors == 0] = 1.
+    c12_factors = generate_c12_factor_map('O', 'O', 11.4)
     c12_cutoff = 1.45 * np.power(c12_factors * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
 
 
