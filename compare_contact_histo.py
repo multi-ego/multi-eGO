@@ -85,7 +85,7 @@ d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name)
 
 def run_(frac_target_list):
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'p', 'cutoff', 'is_gauss']
+    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
 
     df = pd.DataFrame(columns=columns)
     for i, ref_f in enumerate(frac_target_list):
@@ -100,6 +100,7 @@ def run_(frac_target_list):
             results_df['mj'] = 1
             results_df['dist'] = 0
             results_df['c12dist'] = 0
+            results_df['hdist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
             results_df['is_gauss'] = 0
@@ -117,6 +118,7 @@ def run_(frac_target_list):
             # calculate data
             dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
             results_df['mi'] = [ 1 for x in range(1, len(ref_df.columns)+1) ]
@@ -125,6 +127,7 @@ def run_(frac_target_list):
             results_df['aj'] = [ str(x) for x in protein_ref_indices ]
             results_df['dist'] = dist
             results_df['c12dist'] = c12dist
+            results_df['hdist'] = hdist
             results_df['p'] = p
             results_df['cutoff'] = c12_cutoff[cut_i]
             results_df['is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
@@ -142,6 +145,18 @@ def map_if_exists(x):
     if x in from_ff_to_multiego.keys(): return from_ff_to_multiego[x]
     else: return x
 
+def hallfunction(values, weights):
+    v = values[:-1]
+    cutoff = args.cutoff 
+    w = weights[:-1]
+    i = np.where(v <= cutoff)
+    if not np.any(i): return 0,0,0,0,0  # check if empty
+    i = i[0]
+    w = w[i]
+    v = v[i]
+    norm = np.sum(w)
+    return cutoff, i, norm, v, w
+
 def allfunction(values, weights):
     v = values[:-1]
     cutoff = weights[len(weights)-1]
@@ -156,6 +171,11 @@ def allfunction(values, weights):
 
 def zero_callback(values, weights):
     return None, None, np.sum(weights), values, weights
+
+def weighted_havg(values, weights, callback=hallfunction):
+    cutoff, i, norm, v, w = callback(values, weights)
+    if norm == 0.: return 0
+    return np.sum(v * w) / norm
 
 def weighted_avg(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
@@ -321,6 +341,7 @@ if __name__ == '__main__':
     df['aj'] = df['aj'].map('{:}'.format)
     df['dist'] = df['dist'].map('{:,.6f}'.format)
     df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
+    df['hdist'] = df['hdist'].map('{:,.6f}'.format)
     df['p'] = df['p'].map('{:,.6f}'.format)
     df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
     df['is_gauss'] = df['is_gauss'].map('{:}'.format)
