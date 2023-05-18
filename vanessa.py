@@ -13,8 +13,8 @@ def read_molecular_contacts(path):
 
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance_NMR', 'probability', 'cutoff', 'unimod']
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'probability', 'cutoff', 'unimod']
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance_NMR', 'distance_14', 'probability', 'cutoff', 'unimod']
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff', 'unimod']
     contact_matrix.drop('unimod', axis=1, inplace=True)
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
@@ -214,7 +214,7 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
             str).str.startswith('H')]
 
         contact_matrix = contact_matrix[[
-            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'probability', 'cutoff']]
+            'molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff']]
         if name[0] == 'intramat':
             contact_matrix['same_chain'] = True
         elif name[0] == 'intermat':
@@ -361,7 +361,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
         # This set the default (random coil) value for selected 1-4 interactions
         meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['1-4'] == '1_4')] = -meGO_atomic_contacts_merged['rep']
         # Rescale c12 1-4 interactions 
-        meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+        meGO_atomic_contacts_merged['epsilon'].loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_14']-meGO_atomic_contacts_merged['distance_14'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True)] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_14']/meGO_atomic_contacts_merged['rc_distance_14'])**12
 
         # Here we are reindexing like before
         meGO_atomic_contacts_merged[['idx_ai', 'idx_aj']] = meGO_atomic_contacts_merged[['ai', 'aj']]

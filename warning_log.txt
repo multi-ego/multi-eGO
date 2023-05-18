@@ -1,3 +1,0 @@
-usage: multiego_openai_base.py [-h] --protein PROTEIN [--md_ensembles MD_ENSEMBLES [MD_ENSEMBLES ...]] --egos
-                               {all,split,rc} [--epsilon EPSILON] [--intra INTRA] [--inter INTER]
-multiego_openai_base.py: error: argument --epsilon: Float value must be between 0.0 and 1.0
