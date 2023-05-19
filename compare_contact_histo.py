@@ -83,7 +83,8 @@ gromos_atp = pd.DataFrame(
 
 d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name))}
 
-def run_(frac_target_list):
+def run_(arguments):
+    (args, protein_ref_indices, original_size, c12_cutoff, frac_target_list) = arguments
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
 
@@ -308,7 +309,7 @@ if __name__ == '__main__':
 
     chunks = np.array_split(target_list, args.proc)
     pool = multiprocessing.Pool(args.proc)
-    results = pool.map(run_, chunks)
+    results = pool.map(run_, [ (args, protein_ref_indices, original_size, c12_cutoff, x) for x in chunks ])
     pool.close()
     pool.join()
 
