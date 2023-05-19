@@ -184,11 +184,12 @@ def weighted_avg(values, weights, callback=allfunction):
     return np.sum(v * w) / norm
 
 def single_gaussian_check(values, weights, callback=allfunction):
+    dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
     values, weights = remove_monotonic(values, weights)
     a = weights[:-2]
     b = weights[2:]
-    slope = (b - a) / (2. * DX)
+    slope = (b - a) / (2. * dx)
     danger_sign=0
     danger_trend=0
     increasing=1
@@ -235,8 +236,9 @@ def remove_monotonic(values, weights):
     return values[:until_i], weights[:until_i]
 
 def calculate_probability(values, weights, callback=allfunction):
+    dx = values[1] - values[0]
     cutoff, i, norm, v, w = callback(values, weights)
-    return np.minimum( np.sum(w * DX), 1 )
+    return np.minimum( np.sum(w * dx), 1 )
 
 def generate_c12_factor_map(atom1, atom2, stride, factor, symmetric=False):
     element_map = np.where(np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom1) & np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom2)[:,np.newaxis], 1, 0)
