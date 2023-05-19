@@ -134,12 +134,13 @@ class Multi_eGO_Ensemble:
             else:
                 print('\t- {:<20} = {:<20}'.format(argument, value))
 
-        print(f'''
-        - LJ parameterization completed with a total of {len(self.meGO_LJ_potential)} contacts.
-        - The average epsilon is {self.meGO_LJ_potential['epsilon'].loc[self.meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
-        - The maximum epsilon is {self.meGO_LJ_potential['epsilon'].max():{5}.{3}}
-        - The maximum sigma is {self.meGO_LJ_potential['sigma'].max():{5}.{3}}, suggested cut-off at {2.5*self.meGO_LJ_potential['sigma'].max():{4}.{3}} nm
-        ''')
+        if self.parameters.egos != 'rc':
+            print(f'''
+            - LJ parameterization completed with a total of {len(self.meGO_LJ_potential)} contacts.
+            - The average epsilon is {self.meGO_LJ_potential['epsilon'].loc[self.meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
+            - The maximum epsilon is {self.meGO_LJ_potential['epsilon'].max():{5}.{3}}
+            - The maximum sigma is {self.meGO_LJ_potential['sigma'].max():{5}.{3}}, suggested cut-off at {2.5*self.meGO_LJ_potential['sigma'].max():{4}.{3}} nm
+            ''')
 
 
         print(f'\nAnd it can be found in the following folder:\n{self.output_folder}')
