@@ -83,7 +83,8 @@ gromos_atp = pd.DataFrame(
 
 d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name))}
 
-def run_(frac_target_list):
+def run_(arguments):
+    (args, protein_ref_indices, original_size, c12_cutoff, frac_target_list) = arguments
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
 
@@ -147,15 +148,9 @@ def map_if_exists(x):
 
 def hallfunction(values, weights):
     v = values[:-1]
-    cutoff = args.cutoff 
     w = weights[:-1]
-    i = np.where(v <= cutoff)
-    if not np.any(i): return 0,0,0,0,0  # check if empty
-    i = i[0]
-    w = w[i]
-    v = v[i]
     norm = np.sum(w)
-    return cutoff, i, norm, v, w
+    return norm, v, w
 
 def allfunction(values, weights):
     v = values[:-1]
@@ -173,7 +168,7 @@ def zero_callback(values, weights):
     return None, None, np.sum(weights), values, weights
 
 def weighted_havg(values, weights, callback=hallfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
+    norm, v, w = callback(values, weights)
     if norm == 0.: return 0
     return np.sum(v * w) / norm
 
@@ -183,11 +178,12 @@ def weighted_avg(values, weights, callback=allfunction):
     return np.sum(v * w) / norm
 
 def single_gaussian_check(values, weights, callback=allfunction):
+    dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
     values, weights = remove_monotonic(values, weights)
     a = weights[:-2]
     b = weights[2:]
-    slope = (b - a) / (2. * DX)
+    slope = (b - a) / (2. * dx)
     danger_sign=0
     danger_trend=0
     increasing=1
@@ -234,8 +230,9 @@ def remove_monotonic(values, weights):
     return values[:until_i], weights[:until_i]
 
 def calculate_probability(values, weights, callback=allfunction):
+    dx = values[1] - values[0]
     cutoff, i, norm, v, w = callback(values, weights)
-    return np.minimum( np.sum(w * DX), 1 )
+    return np.minimum( np.sum(w * dx), 1 )
 
 def generate_c12_factor_map(atom1, atom2, stride, factor, symmetric=False):
     element_map = np.where(np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom1) & np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom2)[:,np.newaxis], 1, 0)
@@ -308,7 +305,7 @@ if __name__ == '__main__':
 
     chunks = np.array_split(target_list, args.proc)
     pool = multiprocessing.Pool(args.proc)
-    results = pool.map(run_, chunks)
+    results = pool.map(run_, [ (args, protein_ref_indices, original_size, c12_cutoff, x) for x in chunks ])
     pool.close()
     pool.join()
 
