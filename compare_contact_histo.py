@@ -148,15 +148,9 @@ def map_if_exists(x):
 
 def hallfunction(values, weights):
     v = values[:-1]
-    cutoff = args.cutoff 
     w = weights[:-1]
-    i = np.where(v <= cutoff)
-    if not np.any(i): return 0,0,0,0,0  # check if empty
-    i = i[0]
-    w = w[i]
-    v = v[i]
     norm = np.sum(w)
-    return cutoff, i, norm, v, w
+    return norm, v, w
 
 def allfunction(values, weights):
     v = values[:-1]
@@ -174,7 +168,7 @@ def zero_callback(values, weights):
     return None, None, np.sum(weights), values, weights
 
 def weighted_havg(values, weights, callback=hallfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
+    norm, v, w = callback(values, weights)
     if norm == 0.: return 0
     return np.sum(v * w) / norm
 
