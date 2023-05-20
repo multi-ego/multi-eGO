@@ -234,14 +234,6 @@ def calculate_probability(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
     return np.minimum( np.sum(w * dx), 1 )
 
-def generate_c12_factor_map(atom1, atom2, stride, factor, symmetric=False):
-    element_map = np.where(np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom1) & np.char.equal(topology_df['mego_name'].to_numpy().astype('<U4'), atom2)[:,np.newaxis], 1, 0)
-    ri_map = np.where(topology_df['ref_ri'].to_numpy() - topology_df['ref_ri'].to_numpy()[:,np.newaxis] == stride, 1, 0)
-    if symmetric:
-        ri_map = ri_map + np.where(ri_map == 0, ri_map.T, 0)
-
-    return np.where(element_map & ri_map, factor, 0)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--histo', type=str, required=True, help='Path to the directory containing the histograms. The histogram files should contain the prefix "intra_" for intra molecular contact descriptions and "inter_" for  inter molecular.')
@@ -289,15 +281,7 @@ if __name__ == '__main__':
     # need to sort back otherwise c12_cutoff are all wrong
     topology_df.sort_values(by='ref_ai', inplace=True)
     topology_df['c12'] = topology_df['mego_type'].map(d)
-    # list parameters of modified/additional short range interactions
-    parameters_14 = [('O', 'O', 1, 11.4, True), ('O', 'O1', 1, 11.4, True), ('O', 'O2', 1, 11.4, True)]
-    c12_factors = np.zeros(len(topology_df.index)**2).reshape(len(topology_df.index), len(topology_df.index))
-    if not args.inter:
-        for a1, a2, stride, factor, symmetric in parameters_14:
-            c12_factors += generate_c12_factor_map(a1, a2, stride, factor, symmetric)
-    # fill with ones
-    c12_factors[c12_factors == 0.] = 1.
-    c12_cutoff = 1.45 * np.power(c12_factors * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+    c12_cutoff = 1.45 * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
 
     ########################
     # PARALLEL PROCESS START
