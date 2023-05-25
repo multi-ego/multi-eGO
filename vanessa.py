@@ -35,12 +35,13 @@ def initialize_ensemble_topology(topology, simulation):
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
 
+    molecule_type_dict={}
     # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
     for atom in topology.atoms:    
         temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
         
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
-        molecule_type_dict = assign_molecule_type(molecule_name, molecule_topology[0])
+        molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
         ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
@@ -152,8 +153,8 @@ def get_pairs(topology):
     return pairs_dataframe
   
 
-def assign_molecule_type(molecule_name, molecule_topology):
-    molecule_type_dict = {}
+def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
+    #molecule_type_dict = {}
     first_aminoacid = molecule_topology.residues[0].name
 
     if first_aminoacid in aminoacids_list:
@@ -467,7 +468,7 @@ def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tup
 
     else:
         meGO_atomic_contacts_merged = pd.DataFrame()
-        meGO_LJ_14 = pairs
+        meGO_LJ_14 = pairs14
         meGO_LJ_14['epsilon'] = -meGO_LJ_14['c12'] 
         
     return meGO_atomic_contacts_merged, meGO_LJ_14
