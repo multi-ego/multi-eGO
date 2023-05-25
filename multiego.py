@@ -1,6 +1,6 @@
-from vanessa import float_range, check_files_existance
-from Ensemble import read_simulations
-from Multi_eGO_Ensemble import Multi_eGO_Ensemble
+from src.vanessa import float_range, check_files_existance
+from src.Ensemble import read_simulations
+from src.Multi_eGO_Ensemble import Multi_eGO_Ensemble
 import argparse
 import concurrent.futures
 import sys
