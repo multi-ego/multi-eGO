@@ -4,7 +4,6 @@ from .vanessa import get_bonds, get_bond_pairs, get_angles, get_dihedrals, get_i
 from .write_output import get_name, write_topology, write_nonbonded
 
 class Multi_eGO_Ensemble:
-
     def __init__(self, args):
         self.parameters = args
         self.output_folder = f'outputs/{get_name(args)}'

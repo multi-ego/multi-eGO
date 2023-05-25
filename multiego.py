@@ -1,9 +1,12 @@
 from src.vanessa import float_range, check_files_existance
-from src.Ensemble import read_simulations
+# from src.Ensemble import read_simulations
+from src.ensemble import Ensemble
 from src.Multi_eGO_Ensemble import Multi_eGO_Ensemble
+from src.io import IO
 import argparse
 import concurrent.futures
 import sys
+import os
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
@@ -34,25 +37,35 @@ if __name__ == '__main__':
         print('--epsilon is required when using --egos=production')
         sys.exit()
 
+    if not os.path.exists('outputs'): os.mkdir('outputs')
+    IO.create_output_directories(args)
+
     print('Checking the presence of directories, .top, and .ndx files')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
+    print(md_ensembles_list)
     check_files_existance(args.egos, args.system, md_ensembles_list)
     # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
     # Reading and preparing all the simulations defined in --train_from
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    # with concurrent.futures.ThreadPoolExecutor() as executor:
         # submit the read_subfolders function to be executed in parallel
-        results = [executor.submit(read_simulations, args, simulation) for simulation in md_ensembles_list]
-        ensembles = [result.result() for result in concurrent.futures.as_completed(results)]
+        # results = [executor.submit(read_simulations, args, simulation) for simulation in md_ensembles_list]
+        # ensembles = [result.result() for result in concurrent.futures.as_completed(results)]
+    ensembles = []
+    for simulation in md_ensembles_list:
+        simulation_path = f'{args.system}/{simulation}'
+        ensemble = Ensemble.initialize_ensemble(simulation_path, args.egos)
+        ensembles.append(ensemble)
 
     # Initializing Multi-eGO ensemble, which will gather all the Ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')
-    multiego_ensemble = Multi_eGO_Ensemble(args)
+    # multiego_ensemble = Multi_eGO_Ensemble(args)
+    meGO_ensemble = {}
 
     for ensemble in ensembles:
-        multiego_ensemble.add_ensemble_from(ensemble)
-
-    multiego_ensemble.check_topology_conversion()
-    multiego_ensemble.generate_bonded_interactions()
-    multiego_ensemble.generate_LJ_potential()
-    multiego_ensemble.write_model()
+        meGO_ensemble = Ensemble.add_ensemble_from(ensemble, args.check_with)
+    
+    Ensemble.check_topology_conversion(meGO_ensemble, args.egos)
+    meGO_bonded_interactions, bond_pairs, user_pairs = Ensemble.generate_bonded_interactions(ensemble['reference_topology'])
+    meGO_LJ_potential, meGO_LJ_14 = Ensemble.generate_LJ_potential(meGO_ensemble, args)
+    IO.write_model()
