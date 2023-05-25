@@ -4,6 +4,7 @@ import numpy as np
 import parmed as pmd
 import multiprocessing
 import argparse
+import itertools
 
 ################################################################
 import warnings                                                #
@@ -258,11 +259,21 @@ if __name__ == '__main__':
 
     df = pd.DataFrame()
     target_list = [ x for x in os.listdir(args.histo) if PREFIX in x ]
-
+    myOnDict = [x for x in target_list if x.startswith('inter_mol_1_2')]
+    print(len(myOnDict))
     topology_df = pd.DataFrame()
     topology_mego = pmd.load_file(args.mego_top)
     topology_ref = pmd.load_file(args.target_top)
+
+    N_molecules=len(list(topology_mego.molecules.keys()))
+    molecules_name=list(topology_mego.molecules.keys())
+    mol_list=np.arange(1,N_molecules+1,1)
+    pairs=list(itertools.combinations_with_replacement(mol_list,2))
+
+    #for i,name
+    # TODO how to handle multiple molecules and all pairs of intermat?
     protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[0]][0]
+    print(list(topology_mego.molecules.keys()))
     protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[0]][0]
     original_size = len(protein_ref.atoms)
     protein_ref_indices = np.array([ i+1 for i in range(len(protein_ref.atoms)) if protein_ref[i].element_name != 'H' ])
@@ -282,7 +293,8 @@ if __name__ == '__main__':
     topology_df.sort_values(by='ref_ai', inplace=True)
     topology_df['c12'] = topology_df['mego_type'].map(d)
     c12_cutoff = 1.45 * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-
+    #print(topology_df.to_string())
+    exit()
     ########################
     # PARALLEL PROCESS START
     ########################
