@@ -149,7 +149,7 @@ def run_(arguments):
 
 #TODO make only 1 function and divide the cases
 def runinter_(arguments):
-    (args, protein_ref_indices_i, protein_ref_indices_j, original_size_i, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
+    (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
     df = pd.DataFrame(columns=columns)
@@ -158,15 +158,13 @@ def runinter_(arguments):
         ai = ref_f.split('.')[-2].split('_')[-1]
         if not np.isin(int(ai), protein_ref_indices_i):
             all_ai = [ ai for _ in range(1, original_size_j+1) ]
-            range_list_i = [ str(x) for x in range(1, original_size_j+1) ]
-            all_aj = [ ai for _ in range(1, original_size_j+1) ]
-            range_list_j = [ str(x) for x in range(1, original_size_j+1) ]
+            range_list = [ str(x) for x in range(1, original_size_j+1) ]
             if mi==mj:
-                results_df['ai'] = [ *all_ai, *range_list_j ]
-                results_df['aj'] = [ *range_list_j, *all_ai ]
+                results_df['ai'] = [ *all_ai, *range_list ]
+                results_df['aj'] = [ *range_list, *all_ai ]
             else:
                 results_df['ai'] = np.array(all_ai).astype(int)
-                results_df['aj'] = np.array(range_list_j).astype(int)
+                results_df['aj'] = np.array(range_list).astype(int)
 
             results_df['mi'] = mi
             results_df['mj'] = mj
@@ -342,6 +340,7 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+        c12_cutoff = c12_cutoff*0+0.75
 
         ########################
         # PARALLEL PROCESS START
@@ -388,7 +387,7 @@ def calculate_intra_probabilities(args):
         df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
-        output_file=args.out+f"intra_{mol_list[i]}_{mol_list[i]}.ndx"
+        output_file=args.out+f"intramat_{mol_list[i]}_{mol_list[i]}.ndx"
 
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
         df.to_csv(output_file, index=False, sep=' ', header=False)
@@ -408,7 +407,6 @@ def calculate_inter_probabilities(args):
     chains = [x for x in topology_mego.molecules]
 
     for i in chains: 
-        
         chain_list.append((i, len(topology_mego.molecules[i][0].atoms), len(topology_mego.split()[list(topology_mego.molecules.keys()).index(i)][1])))
 
     #number of molecules per species
@@ -487,14 +485,14 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-        #c12_cutoff = c12_cutoff*0+0.75
+        c12_cutoff = c12_cutoff*0+0.75
 
         ########################
         # PARALLEL PROCESS START
         ########################
         chunks = np.array_split(target_list, args.proc)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(runinter_, [ (args, protein_ref_indices_i,protein_ref_indices_j,  original_size_i, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
+        results = pool.map(runinter_, [ (args, protein_ref_indices_i,protein_ref_indices_j, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
         pool.close()
         pool.join()
 
