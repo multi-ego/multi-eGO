@@ -1,7 +1,6 @@
 import multiego.atomtypes_definitions
 import multiego.io
-from multiego.topology
-
+import multiego.topology
 import glob
 import pandas as pd
 import parmed
