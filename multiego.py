@@ -1,5 +1,5 @@
-from multiego.ensemble import Ensemble
-from multiego.io import IO
+import multiego.ensemble
+import multiego.io
 import multiego.util.float_range
 
 import argparse
@@ -37,11 +37,11 @@ if __name__ == '__main__':
         sys.exit()
 
     if not os.path.exists('outputs'): os.mkdir('outputs')
-    output_dir = IO.create_output_directories(args)
+    output_dir = multiego.io.create_output_directories(args)
 
     print('Checking the presence of directories, .top, and .ndx files')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
-    IO.check_files_existance(args.egos, args.system, md_ensembles_list)
+    multiego.io.check_files_existence(args.egos, args.system, md_ensembles_list)
     # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
 
     # Reading and preparing all the simulations defined in --train_from
@@ -52,19 +52,19 @@ if __name__ == '__main__':
     ensembles = []
     for simulation in md_ensembles_list:
         simulation_path = f'{args.system}/{simulation}'
-        ensemble = Ensemble.initialize_ensemble(simulation_path, args.egos)
+        ensemble = multiego.ensemble.initialize_ensemble(simulation_path, args.egos)
         ensembles.append(ensemble)
 
-    # Initializing Multi-eGO ensemble, which will gather all the Ensemble contact etc.
+    # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')
-    # multiego_ensemble = Multi_eGO_Ensemble(args)
+    # multiego_ensemble = Multi_eGO_multiego.ensemble(args)
     meGO_ensemble = {}
 
     for ensemble in ensembles:
-        meGO_ensemble = Ensemble.add_ensemble_from(meGO_ensemble, ensemble, args.check_with)
+        meGO_ensemble = multiego.ensemble.add_ensemble_from(meGO_ensemble, ensemble, args.check_with)
     
-    Ensemble.check_topology_conversion(meGO_ensemble, args.egos)
-    meGO_ensemble = Ensemble.generate_bonded_interactions(meGO_ensemble)
-    meGO_LJ_potential, meGO_LJ_14 = Ensemble.generate_LJ_potential(meGO_ensemble, args)
+    multiego.ensemble.check_topology_conversion(meGO_ensemble, args.egos)
+    meGO_ensemble = multiego.ensemble.generate_bonded_interactions(meGO_ensemble)
+    meGO_LJ_potential, meGO_LJ_14 = multiego.ensemble.generate_LJ_potential(meGO_ensemble, args)
     
-    IO.write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, args, output_dir)
+    multiego.io.write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, args, output_dir)
