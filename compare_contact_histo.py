@@ -340,7 +340,7 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-        c12_cutoff = c12_cutoff*0+0.75
+        #c12_cutoff = c12_cutoff*0+0.75
 
         ########################
         # PARALLEL PROCESS START
@@ -485,7 +485,7 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-        c12_cutoff = c12_cutoff*0+0.75
+        #c12_cutoff = c12_cutoff*0+0.75
 
         ########################
         # PARALLEL PROCESS START
