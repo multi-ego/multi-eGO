@@ -235,31 +235,31 @@ class EnsembleClass:
 
         return ensemble
     
-    def add_ensemble_from(self, ensemble, check_with):
+    def add_ensemble_from(self, meGO_ensemble, ensemble, check_with):
         # TODO da aggiungere il dizionario di conversione delle topologie!!!
         print('\t-', f'Adding topology from {ensemble["simulation"]}')
 
         if ensemble['simulation'] == 'reference':
             # This defines as the reference structure and eventual molecules will be added
-            if not 'reference_topology_dataframe' in ensemble.keys(): ensemble['reference_topology_dataframe'] = pd.DataFrame()
-            ensemble['reference_topology'] = ensemble['topology']
-            ensemble['reference_topology_dataframe'] = pd.concat([ensemble['reference_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
-            ensemble['sbtype_c12_dict'] = ensemble['sbtype_c12_dict'] # WARNING redundant?
-            ensemble['sbtype_number_dict'] = ensemble['reference_topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
-            ensemble['reference_atomic_contacts'] = ensemble['atomic_contacts'].add_prefix('rc_')
-            ensemble['molecule_type_dict'] = ensemble['molecule_type_dict'] # WARNING redundant?
+            if not 'reference_topology_dataframe' in ensemble.keys(): meGO_ensemble['reference_topology_dataframe'] = pd.DataFrame()
+            meGO_ensemble['reference_topology'] = ensemble['topology']
+            meGO_ensemble['reference_topology_dataframe'] = pd.concat([meGO_ensemble['reference_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
+            meGO_ensemble['sbtype_c12_dict'] = ensemble['sbtype_c12_dict'] # WARNING redundant?
+            meGO_ensemble['sbtype_number_dict'] = meGO_ensemble['reference_topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
+            meGO_ensemble['reference_atomic_contacts'] = ensemble['atomic_contacts'].add_prefix('rc_')
+            meGO_ensemble['molecule_type_dict'] = ensemble['molecule_type_dict'] # WARNING redundant?
         
         elif ensemble['simulation'] in check_with:
-            if not 'check_atomic_contacts' in ensemble.keys(): ensemble['check_atomic_contacts'] = pd.DataFrame()
-            ensemble['check_atomic_contacts'] = pd.concat([ensemble['check_atomic_contacts'], ensemble['atomic_contacts']], axis=0, ignore_index=True)
+            if not 'check_atomic_contacts' in meGO_ensemble.keys(): meGO_ensemble['check_atomic_contacts'] = pd.DataFrame()
+            meGO_ensemble['check_atomic_contacts'] = pd.concat([meGO_ensemble['check_atomic_contacts'], ensemble['atomic_contacts']], axis=0, ignore_index=True)
         
         else:
-            if not 'meGO_topology_dataframe' in ensemble.keys(): ensemble['meGO_topology_dataframe'] = pd.DataFrame()
-            if not 'meGO_atomic_contacts' in ensemble.keys(): ensemble['meGO_atomic_contacts'] = pd.DataFrame()
-            ensemble['meGO_topology_dataframe'] = pd.concat([ensemble['meGO_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
-            ensemble['meGO_atomic_contacts'] = pd.concat([ensemble['meGO_atomic_contacts'], ensemble['atomic_contacts']], axis=0)
+            if not 'meGO_topology_dataframe' in meGO_ensemble.keys(): meGO_ensemble['meGO_topology_dataframe'] = pd.DataFrame()
+            if not 'meGO_atomic_contacts' in meGO_ensemble.keys(): meGO_ensemble['meGO_atomic_contacts'] = pd.DataFrame()
+            meGO_ensemble['meGO_topology_dataframe'] = pd.concat([meGO_ensemble['meGO_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
+            meGO_ensemble['meGO_atomic_contacts'] = pd.concat([meGO_ensemble['meGO_atomic_contacts'], ensemble['atomic_contacts']], axis=0)
 
-        return ensemble
+        return meGO_ensemble
 
     def check_topology_conversion(self, meGO_ensemble, egos):
         '''

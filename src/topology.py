@@ -5,7 +5,7 @@ class TopologyClass:
     def __init__(self):
         pass
 
-    def get_bonds(topology):
+    def get_bonds(self, topology):
         bonds_dataframe = pd.DataFrame({
             'ai': [bonds.atom1.idx + 1 for bonds in topology],
             'aj': [bonds.atom2.idx + 1 for bonds in topology],
@@ -20,7 +20,7 @@ class TopologyClass:
         return bonds_dataframe
 
 
-    def get_bond_pairs(topology):
+    def get_bond_pairs(self, topology):
         ai, aj = [], []
         for bonds in topology:
             ai.append(bonds.atom1.idx + 1)
@@ -29,7 +29,7 @@ class TopologyClass:
         return bond_tuple
 
 
-    def get_angles(topology):
+    def get_angles(self, topology):
         angles_dataframe = pd.DataFrame({
             'ai' : [angle.atom1.idx + 1 for angle in topology],
             'aj' : [angle.atom2.idx + 1 for angle in topology],
@@ -43,7 +43,7 @@ class TopologyClass:
         return angles_dataframe
 
 
-    def get_dihedrals(topology):
+    def get_dihedrals(self, topology):
         dihedrals_dataframe = pd.DataFrame({
             'ai' : [dihedral.atom1.idx + 1 for dihedral in topology],
             'aj' : [dihedral.atom2.idx + 1 for dihedral in topology],
@@ -58,7 +58,7 @@ class TopologyClass:
         return dihedrals_dataframe
 
 
-    def get_impropers(topology):
+    def get_impropers(self, topology):
         impropers_dataframe = pd.DataFrame({
             'ai' : [improper.atom1.idx + 1 for improper in topology],
             'aj' : [improper.atom2.idx + 1 for improper in topology],
@@ -72,7 +72,7 @@ class TopologyClass:
         return impropers_dataframe
 
 
-    def get_pairs(topology):
+    def get_pairs(self, topology):
         pairs_dataframe = pd.DataFrame({
             'ai' : [pair.atom1.idx + 1 for pair in topology],
             'aj' : [pair.atom2.idx + 1 for pair in topology],
@@ -81,7 +81,7 @@ class TopologyClass:
         })
         return pairs_dataframe
 
-    def get_14_interaction_list(reduced_topology, bond_pair):
+    def get_14_interaction_list(self, reduced_topology, bond_pair):
         """
         Creates lists containing a atoms involved in 1-4 interactions.
 
@@ -139,7 +139,7 @@ class TopologyClass:
 
         return exclusion_bonds, p14
 
-    def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
+    def create_pairs_14_dataframe(self, atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
         '''
         Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with 
         specific shifts in the residue index can be fed to the function to obtain a new set of 1-4 interaction pairs.

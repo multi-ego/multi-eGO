@@ -4,6 +4,7 @@ import os
 
 class IOClass:
     def __init__(self):
+        # pd.set_option('display.colheader_justify', 'right')
         pass
 
     def read_molecular_contacts(self, path):
@@ -56,14 +57,10 @@ class IOClass:
     #     return ensemble
 
 
-    def write_model(self):
-        '''        
-        '''
+    def write_model(self, meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir):
         print('- Writing Multi-eGO model')
-        self.write_topology(self.reference_topology_dataframe, self.molecule_type_dict,
-                       self.meGO_bonded_interactions, self.meGO_LJ_14, self.parameters, self.output_folder)
-        self.write_nonbonded(self.reference_topology_dataframe,
-                        self.meGO_LJ_potential, self.parameters, self.output_folder)
+        self.write_topology(meGO_ensemble.reference_topology_dataframe, meGO_ensemble.molecule_type_dict, meGO_ensemble.meGO_bonded_interactions, meGO_LJ_14, parameters, output_dir)
+        self.write_nonbonded(meGO_ensemble.reference_topology_dataframe, meGO_LJ_potential, parameters, output_dir)
 
         print('\n- The model is baked with the following parameters:\n')
         for argument, value in vars(self.parameters).items():
@@ -75,13 +72,13 @@ class IOClass:
                 print('\t- {:<20} = {:<20}'.format(argument, value))
         if self.parameters.egos != 'rc':
             print(f'''
-            - LJ parameterization completed with a total of {len(self.meGO_LJ_potential)} contacts.
-            - The average epsilon is {self.meGO_LJ_potential['epsilon'].loc[self.meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
-            - The maximum epsilon is {self.meGO_LJ_potential['epsilon'].max():{5}.{3}}
-            - The maximum sigma is {self.meGO_LJ_potential['sigma'].loc[self.meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}, suggested cut-off at {2.5*self.meGO_LJ_potential['sigma'].loc[self.meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
+            - LJ parameterization completed with a total of {len(meGO_LJ_potential)} contacts.
+            - The average epsilon is {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
+            - The maximum epsilon is {meGO_LJ_potential['epsilon'].max():{5}.{3}}
+            - The maximum sigma is {meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}, suggested cut-off at {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
             ''')
         print(
-            f'\nAnd it can be found in the following folder:\n{self.output_folder}')
+            f'\nAnd it can be found in the following folder:\n{output_dir}')
         print('\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n')
 
 
@@ -193,15 +190,14 @@ class IOClass:
         return name
 
     def create_output_directories(self, parameters):
-        if parameters.egos == 'rc':
-            name = f'{parameters.system}_{parameters.egos}'
-        else:
-            name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
-        
+        if parameters.egos == 'rc': name = f'{parameters.system}_{parameters.egos}'
+        else: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
         output_folder = f'outputs/{name}'
         
         if not os.path.exists(output_folder): os.mkdir(output_folder)
         if os.path.isfile(f'{output_folder}/ffnonbonded.itp'): os.remove(f'{output_folder}/ffnonbonded.itp')
         if os.path.isfile(f'{output_folder}/topol_GRETA.top'): os.remove(f'{output_folder}/topol_GRETA.top')
+
+        return output_folder
 
 IO = IOClass()

@@ -38,7 +38,7 @@ if __name__ == '__main__':
         sys.exit()
 
     if not os.path.exists('outputs'): os.mkdir('outputs')
-    IO.create_output_directories(args)
+    output_dir = IO.create_output_directories(args)
 
     print('Checking the presence of directories, .top, and .ndx files')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
@@ -53,6 +53,7 @@ if __name__ == '__main__':
         # ensembles = [result.result() for result in concurrent.futures.as_completed(results)]
     ensembles = []
     for simulation in md_ensembles_list:
+        print(simulation)
         simulation_path = f'{args.system}/{simulation}'
         ensemble = Ensemble.initialize_ensemble(simulation_path, args.egos)
         ensembles.append(ensemble)
@@ -63,9 +64,11 @@ if __name__ == '__main__':
     meGO_ensemble = {}
 
     for ensemble in ensembles:
-        meGO_ensemble = Ensemble.add_ensemble_from(ensemble, args.check_with)
+        meGO_ensemble = Ensemble.add_ensemble_from(meGO_ensemble, ensemble, args.check_with)
     
+    print(meGO_ensemble.keys())
     Ensemble.check_topology_conversion(meGO_ensemble, args.egos)
-    meGO_bonded_interactions, bond_pairs, user_pairs = Ensemble.generate_bonded_interactions(ensemble['reference_topology'])
+    meGO_bonded_interactions, bond_pairs, user_pairs = Ensemble.generate_bonded_interactions(meGO_ensemble['reference_topology'])
     meGO_LJ_potential, meGO_LJ_14 = Ensemble.generate_LJ_potential(meGO_ensemble, args)
-    IO.write_model()
+    
+    IO.write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, args, output_dir)
