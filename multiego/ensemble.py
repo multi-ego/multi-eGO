@@ -1,6 +1,6 @@
-import multiego.atomtypes_definitions as atomtypes_definitions
-from multiego.io import IO 
-from multiego.topology import Topology
+import multiego.atomtypes_definitions
+import multiego.io
+from multiego.topology
 
 import glob
 import pandas as pd
@@ -15,9 +15,9 @@ class EnsembleClass:
     def assign_molecule_type(self, molecule_type_dict, molecule_name, molecule_topology):
         first_aminoacid = molecule_topology.residues[0].name
 
-        if first_aminoacid in atomtypes_definitions.aminoacids_list:
+        if first_aminoacid in multiego.atomtypes_definitions.aminoacids_list:
             molecule_type_dict[molecule_name] = 'protein'
-        elif first_aminoacid in atomtypes_definitions.nucleic_acid_list:
+        elif first_aminoacid in multiego.atomtypes_definitions.nucleic_acid_list:
             molecule_type_dict[molecule_name] = 'nucleic_acid'
         else:
             molecule_type_dict[molecule_name] = 'other'
@@ -62,7 +62,7 @@ class EnsembleClass:
         ensemble_topology_dataframe['cgnr'] = ensemble_topology_dataframe['resnum']
         ensemble_topology_dataframe['ptype'] = 'A'
         ensemble_topology_dataframe = ensemble_topology_dataframe.replace(
-            {'name': atomtypes_definitions.from_ff_to_multiego})
+            {'name': multiego.atomtypes_definitions.from_ff_to_multiego})
         ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_' + \
             ensemble_topology_dataframe['molecule_name'] + '_' + \
             ensemble_topology_dataframe['resnum'].astype(str)
@@ -217,7 +217,7 @@ class EnsembleClass:
                 raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
             for path in matrix_paths:
                 name = path.replace(f'inputs/{simulation_path}/', '')
-                ensemble_contact_matrices[name] = IO.read_molecular_contacts(path)
+                ensemble_contact_matrices[name] = multiego.io.IO.read_molecular_contacts(path)
 
         ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, molecule_type_dict = self.initialize_ensemble_topology(topology, ensemble_type)
         atomic_contacts = self.initialize_molecular_contacts(ensemble_contact_matrices, ensemble_molecules_idx_sbtype_dictionary, ensemble_type)
@@ -300,15 +300,15 @@ class EnsembleClass:
 
         for molecule, topol in meGO_ensemble['reference_topology'].molecules.items():      
             meGO_ensemble['meGO_bonded_interactions'][molecule] = {
-                'bonds' : Topology.get_bonds(topol[0].bonds),
-                'angles' : Topology.get_angles(topol[0].angles),
-                'dihedrals' : Topology.get_dihedrals(topol[0].dihedrals),
-                'impropers' : Topology.get_impropers(topol[0].impropers),
-                'pairs' : Topology.get_pairs(topol[0].adjusts)
+                'bonds' : multiego.topology.Topology.get_bonds(topol[0].bonds),
+                'angles' : multiego.topology.Topology.get_angles(topol[0].angles),
+                'dihedrals' : multiego.topology.Topology.get_dihedrals(topol[0].dihedrals),
+                'impropers' : multiego.topology.Topology.get_impropers(topol[0].impropers),
+                'pairs' : multiego.topology.Topology.get_pairs(topol[0].adjusts)
             }
             # The following bonds are used in the parametrization of LJ 1-4
-            meGO_ensemble['bond_pairs'][molecule] = Topology.get_bond_pairs(topol[0].bonds)
-            meGO_ensemble['user_pairs'][molecule] = Topology.get_pairs(topol[0].adjusts)
+            meGO_ensemble['bond_pairs'][molecule] = multiego.topology.Topology.get_bond_pairs(topol[0].bonds)
+            meGO_ensemble['user_pairs'][molecule] = multiego.topology.Topology.get_pairs(topol[0].adjusts)
 
         return meGO_ensemble
 
@@ -338,7 +338,7 @@ class EnsembleClass:
             # Building the exclusion bonded list
             # exclusion_bonds are all the interactions within 3 bonds
             # p14 are specifically the interactions at exactly 3 bonds
-            exclusion_bonds, tmp_p14 = Topology.get_14_interaction_list(reduced_topology, bond_pair)
+            exclusion_bonds, tmp_p14 = multiego.topology.Topology.get_14_interaction_list(reduced_topology, bond_pair)
             # split->convert->remerge:
             tmp_ex = pd.DataFrame(columns = ['ai', 'aj', 'exclusion_bonds'])
             tmp_ex['exclusion_bonds'] = exclusion_bonds
@@ -354,7 +354,7 @@ class EnsembleClass:
             reduced_topology['c12'] = reduced_topology['sb_type'].map(meGO_ensemble['sbtype_c12_dict'])
             pairs = pd.DataFrame()
             if meGO_ensemble['molecule_type_dict'][molecule] == 'protein':
-                pairs = Topology.protein_LJ14(reduced_topology)
+                pairs = multiego.topology.Topology.protein_LJ14(reduced_topology)
                 pairs['ai'] = pairs['ai'].map(type_atnum_dict)
                 pairs['aj'] = pairs['aj'].map(type_atnum_dict)
                 pairs['rep'] = pairs['c12']
@@ -551,7 +551,7 @@ class EnsembleClass:
             # Building the exclusion bonded list
             # exclusion_bonds are all the interactions within 3 bonds
             # p14 are specifically the interactions at exactly 3 bonds
-            exclusion_bonds, p14 = Topology.get_14_interaction_list(reduced_topology, bond_pair) 
+            exclusion_bonds, p14 = multiego.topology.Topology.get_14_interaction_list(reduced_topology, bond_pair) 
             pairs = pd.DataFrame()
             if not meGO_LJ_14.empty:
                 # pairs from greta does not have duplicates because these have been cleaned before
