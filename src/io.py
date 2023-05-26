@@ -1,5 +1,6 @@
 import pandas as pd
 import time
+import glob
 import os
 
 class IOClass:
@@ -59,18 +60,18 @@ class IOClass:
 
     def write_model(self, meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir):
         print('- Writing Multi-eGO model')
-        self.write_topology(meGO_ensemble.reference_topology_dataframe, meGO_ensemble.molecule_type_dict, meGO_ensemble.meGO_bonded_interactions, meGO_LJ_14, parameters, output_dir)
-        self.write_nonbonded(meGO_ensemble.reference_topology_dataframe, meGO_LJ_potential, parameters, output_dir)
+        self.write_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
+        self.write_nonbonded(meGO_ensemble['reference_topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
 
         print('\n- The model is baked with the following parameters:\n')
-        for argument, value in vars(self.parameters).items():
+        for argument, value in vars(parameters).items():
             if type(value) is list:
                 print('\t- {:<20} = {:<20}'.format(argument, ", ".join(value)))
             elif type(value) is not str:
                 print('\t- {:<20} = {:<20}'.format(argument, str(value)))
             else:
                 print('\t- {:<20} = {:<20}'.format(argument, value))
-        if self.parameters.egos != 'rc':
+        if parameters.egos != 'rc':
             print(f'''
             - LJ parameterization completed with a total of {len(meGO_LJ_potential)} contacts.
             - The average epsilon is {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
@@ -95,10 +96,10 @@ class IOClass:
         now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
         header = f'''
-    ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
-    ; Created on the {now}
-    ; With the following parameters:
-    '''
+; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
+; Created on the {now}
+; With the following parameters:
+'''
         for parameter, value in parameters.items():
             if type(value) is list:
                 header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
@@ -114,9 +115,9 @@ class IOClass:
         header = self.make_header(vars(parameters))
         file = open(f'{output_folder}/topol_GRETA.top', 'w')
         header += '''
-    ; Include forcefield parameters
-    #include "multi-ego-basic.ff/forcefield.itp"
-    '''
+; Include forcefield parameters
+#include "multi-ego-basic.ff/forcefield.itp"
+'''
 
         file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
@@ -134,11 +135,11 @@ class IOClass:
 
             molecule_footer.append(molecule)
             molecule_header = f'''
-    [ moleculetype ]
-    ; Name\tnrexcl
-    {molecule}\t\t\t3
+[ moleculetype ]
+; Name\tnrexcl
+{molecule}\t\t\t3
 
-    '''
+'''
 
             file.write(molecule_header)
             file.write('[ atoms ]\n')
@@ -158,22 +159,23 @@ class IOClass:
                     file.write('\n\n')
             # Here are written pairs and exclusions
             # file.write(f'[ pairs ]\n')
-            # file.write(dataframe_to_write(pairs))
+            # file.write(self.dataframe_to_write(pairs))
             file.write(f'[ exclusions ]\n')
             file.write(self.dataframe_to_write(exclusions))
 
         footer = f'''
-    ; Include Position restraint file
-    #ifdef POSRES
-    #include "posre.itp"
-    #endif
 
-    [ system ]
-    {parameters.system}
+; Include Position restraint file
+#ifdef POSRES
+#include "posre.itp"
+#endif
 
-    [ molecules ]
-    ; Compound #mols
-    '''
+[ system ]
+{parameters.system}
+
+[ molecules ]
+; Compound #mols
+'''
 
         file.write(footer)
         for molecule in molecule_footer:
@@ -199,5 +201,20 @@ class IOClass:
         if os.path.isfile(f'{output_folder}/topol_GRETA.top'): os.remove(f'{output_folder}/topol_GRETA.top')
 
         return output_folder
+    
+
+    def check_files_existance(self, ego, protein, md_ensembles):
+        for ensemble in md_ensembles:
+            ensemble = f'inputs/{protein}/{ensemble}'
+            if not os.path.exists(ensemble):
+                raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
+            else:
+                top_files = glob.glob(f'{ensemble}/*.top')
+                if not top_files:
+                    raise FileNotFoundError(f"No .top files found in {ensemble}/")
+                ndx_files = glob.glob(f'{ensemble}/*.ndx')
+                if not ndx_files and not ego=="rc":
+                    raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
+
 
 IO = IOClass()

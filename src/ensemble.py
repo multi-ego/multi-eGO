@@ -289,15 +289,17 @@ class EnsembleClass:
                 print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
                 exit()
 
-    def generate_bonded_interactions(self, reference_topology):
-        '''
-        '''
-        meGO_bonded_interactions = {}
-        bond_pairs = {}
-        user_pairs = {}
+    def generate_bonded_interactions(self, meGO_ensemble):#, reference_topology):
+        # meGO_bonded_interactions = {}
+        # bond_pairs = {}
+        # user_pairs = {}
         
-        for molecule, topol in reference_topology.molecules.items():      
-            meGO_bonded_interactions[molecule] = {
+        if 'meGO_bonded_interactions' not in meGO_ensemble.keys(): meGO_ensemble['meGO_bonded_interactions'] = {}
+        if 'bond_pairs' not in meGO_ensemble.keys(): meGO_ensemble['bond_pairs'] = {}
+        if 'user_pairs' not in meGO_ensemble.keys(): meGO_ensemble['user_pairs'] = {}
+
+        for molecule, topol in meGO_ensemble['reference_topology'].molecules.items():      
+            meGO_ensemble['meGO_bonded_interactions'][molecule] = {
                 'bonds' : Topology.get_bonds(topol[0].bonds),
                 'angles' : Topology.get_angles(topol[0].angles),
                 'dihedrals' : Topology.get_dihedrals(topol[0].dihedrals),
@@ -305,10 +307,10 @@ class EnsembleClass:
                 'pairs' : Topology.get_pairs(topol[0].adjusts)
             }
             # The following bonds are used in the parametrization of LJ 1-4
-            bond_pairs[molecule] = Topology.get_bond_pairs(topol[0].bonds)
-            user_pairs[molecule] = Topology.get_pairs(topol[0].adjusts)
+            meGO_ensemble['bond_pairs'][molecule] = Topology.get_bond_pairs(topol[0].bonds)
+            meGO_ensemble['user_pairs'][molecule] = Topology.get_pairs(topol[0].adjusts)
 
-        return meGO_bonded_interactions, bond_pairs, user_pairs
+        return meGO_ensemble
 
 
     # def parametrize_LJ(self, topology_dataframe, molecule_type_dict, bond_tuple, pairs_tuple, type_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters):
@@ -324,8 +326,8 @@ class EnsembleClass:
         pairs14 = pd.DataFrame()
         exclusion_bonds14 = pd.DataFrame()
 
-        for molecule, bond_pair in meGO_ensemble['bond_tuple'].items():
-            reduced_topology = meGO_ensemble['topology_dataframe'].loc[meGO_ensemble['topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname']].copy()
+        for molecule, bond_pair in meGO_ensemble['bond_pairs'].items():
+            reduced_topology = meGO_ensemble['reference_topology_dataframe'].loc[meGO_ensemble['reference_topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
 
             reduced_topology['number'] = reduced_topology['number'].astype(str)
             reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
@@ -336,7 +338,7 @@ class EnsembleClass:
             # Building the exclusion bonded list
             # exclusion_bonds are all the interactions within 3 bonds
             # p14 are specifically the interactions at exactly 3 bonds
-            exclusion_bonds, tmp_p14 = Topology.list14(reduced_topology, bond_pair)
+            exclusion_bonds, tmp_p14 = Topology.get_14_interaction_list(reduced_topology, bond_pair)
             # split->convert->remerge:
             tmp_ex = pd.DataFrame(columns = ['ai', 'aj', 'exclusion_bonds'])
             tmp_ex['exclusion_bonds'] = exclusion_bonds
@@ -349,7 +351,7 @@ class EnsembleClass:
             exclusion_bonds14 = pd.concat([exclusion_bonds14, tmp_ex], axis=0, sort=False, ignore_index=True)
 
             # Adding the c12 for 1-4 interactions
-            reduced_topology['c12'] = reduced_topology['sb_type'].map(meGO_ensemble['type_c12_dict'])
+            reduced_topology['c12'] = reduced_topology['sb_type'].map(meGO_ensemble['sbtype_c12_dict'])
             pairs = pd.DataFrame()
             if meGO_ensemble['molecule_type_dict'][molecule] == 'protein':
                 pairs = Topology.protein_LJ14(reduced_topology)
@@ -450,11 +452,11 @@ class EnsembleClass:
             meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
             # process check_atomic_contacts
-            if not check_atomic_contacts is None:
-                if not check_atomic_contacts.empty:
+            if 'check_atomic_contacts' is meGO_ensemble.keys():
+                if not meGO_ensemble['check_atomic_contacts'] == {}:
                     # Remove low probability ones
-                    check_atomic_contacts = check_atomic_contacts.loc[(check_atomic_contacts['probability']>limit_rc*parameters.md_threshold)] 
-                    meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, check_atomic_contacts], axis=0, sort=False, ignore_index=True)
+                    meGO_ensemble['check_atomic_contacts'] = meGO_ensemble['check_atomic_contacts'].loc[(meGO_ensemble['check_atomic_contacts']['probability']>limit_rc*parameters.md_threshold)] 
+                    meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, meGO_ensemble['check_atomic_contacts']], axis=0, sort=False, ignore_index=True)
                     meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
                     # this calculates the increase in energy (if any) to reach the "check" configuration
                     energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(self.check_LJ, parameters)
@@ -534,13 +536,13 @@ class EnsembleClass:
         return meGO_atomic_contacts_merged, meGO_LJ_14
 
 
-    def make_pairs_exclusion_topology(self, topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
+    def make_pairs_exclusion_topology(self, meGO_ensemble, meGO_LJ_14):#topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
         '''
         This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
         '''
         pairs_molecule_dict = {}
-        for molecule, bond_pair in bond_tuple.items():
-            reduced_topology = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
+        for molecule, bond_pair in meGO_ensemble['bond_pairs'].items():
+            reduced_topology = meGO_ensemble['reference_topology_dataframe'].loc[meGO_ensemble['reference_topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
 
             reduced_topology['number'] = reduced_topology['number'].astype(str)
             reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
@@ -549,7 +551,7 @@ class EnsembleClass:
             # Building the exclusion bonded list
             # exclusion_bonds are all the interactions within 3 bonds
             # p14 are specifically the interactions at exactly 3 bonds
-            exclusion_bonds, p14 = Topology.list14(reduced_topology, bond_pair) 
+            exclusion_bonds, p14 = Topology.get_14_interaction_list(reduced_topology, bond_pair) 
             pairs = pd.DataFrame()
             if not meGO_LJ_14.empty:
                 # pairs from greta does not have duplicates because these have been cleaned before
@@ -567,8 +569,8 @@ class EnsembleClass:
                 pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain']==True)), 'remove'] = 'No'
                 mask = pairs.remove == 'Yes'
                 pairs = pairs[~mask]
-                pairs['c12_ai'] = pairs['c12_ai'].map(type_c12_dict)
-                pairs['c12_aj'] = pairs['c12_aj'].map(type_c12_dict)
+                pairs['c12_ai'] = pairs['c12_ai'].map(meGO_ensemble['sbtype_c12_dict'])
+                pairs['c12_aj'] = pairs['c12_aj'].map(meGO_ensemble['sbtype_c12_dict'])
                 pairs['func'] = 1
                 # Intermolecular interactions are excluded 
                 pairs['c6'].loc[(pairs['same_chain'] == False)] = 0.
@@ -603,7 +605,8 @@ class EnsembleClass:
         '''
         # meGO_LJ_potential, meGO_LJ_14 = self.parametrize_LJ(self.reference_topology_dataframe, self.molecule_type_dict, self.bond_pairs, self.user_pairs, self.sbtype_c12_dict, self.meGO_atomic_contacts, self.reference_atomic_contacts, self.check_atomic_contacts, self.sbtype_number_dict, self.parameters)
         meGO_LJ_potential, meGO_LJ_14 = self.parametrize_LJ(meGO_ensemble, parameters)
-        meGO_LJ_14 = self.make_pairs_exclusion_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['bond_pairs'], meGO_ensemble['sbtype_c12_dict'], meGO_LJ_14, parameters)
+        # meGO_LJ_14 = self.make_pairs_exclusion_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['bond_pairs'], meGO_ensemble['sbtype_c12_dict'], meGO_LJ_14, parameters)
+        meGO_LJ_14 = self.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
         return meGO_LJ_potential, meGO_LJ_14
 

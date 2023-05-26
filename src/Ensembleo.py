@@ -47,7 +47,7 @@ class Ensemble:
         # Reading contact matrix created using gmx_clustsize
         # Reference requires both intra and inter molecular matrices
         if self.args.egos == 'rc':
-            self.ensemble_contact_matrices = {}#pd.DataFrame()
+            self.ensemble_contact_matrices = {} #pd.DataFrame()
         else:
             matrix = None
             for matrix in glob.glob(f'inputs/{self.simulation_path}/int??mat_?_?.ndx'):
