@@ -1,6 +1,6 @@
-from src.ensemble import Ensemble
-from src.io import IO
-import src.util.float_range
+from multiego.ensemble import Ensemble
+from multiego.io import IO
+import multiego.util.float_range
 
 import argparse
 # import concurrent.futures
@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
     parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to system input folder.')
     parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGO.\n rc: creates a force-field for random coil simulations.\n production: creates a force-field combining random coil simulations and training simulations.')
-    parser.add_argument('--epsilon', type=float, choices=[src.util.float_range.FloatRange(0.0, 1.0)], help='Maximum interaction energy per contact.')
+    parser.add_argument('--epsilon', type=float, choices=[multiego.util.float_range.FloatRange(0.0, 1.0)], help='Maximum interaction energy per contact.')
     # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
     args, remaining = parser.parse_known_args()
 

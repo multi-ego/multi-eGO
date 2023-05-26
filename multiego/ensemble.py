@@ -1,6 +1,6 @@
-import src.atomtypes_definitions as atomtypes_definitions
-from src.io import IO 
-from src.topology import Topology
+import multiego.atomtypes_definitions as atomtypes_definitions
+from multiego.io import IO 
+from multiego.topology import Topology
 
 import glob
 import pandas as pd
@@ -452,7 +452,7 @@ class EnsembleClass:
             meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
 
             # process check_atomic_contacts
-            if 'check_atomic_contacts' is meGO_ensemble.keys():
+            if 'check_atomic_contacts' in meGO_ensemble.keys():
                 if not meGO_ensemble['check_atomic_contacts'] == {}:
                     # Remove low probability ones
                     meGO_ensemble['check_atomic_contacts'] = meGO_ensemble['check_atomic_contacts'].loc[(meGO_ensemble['check_atomic_contacts']['probability']>limit_rc*parameters.md_threshold)] 
