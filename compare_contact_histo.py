@@ -93,11 +93,10 @@ def run_(arguments):
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
-        print('ref_f:', ref_f)
-        print('ai:', ai)
+
         #WARNING don't know why ai is saved in some cases not as a number
         if not np.isin(int(ai), protein_ref_indices):
-            print(f"{ai} is not in {protein_ref_indices} ")
+
             all_ai = [ ai for _ in range(1, original_size+1) ]
             range_list = [ str(x) for x in range(1, original_size+1) ]
             results_df['ai'] = [ *all_ai, *range_list ]
@@ -111,7 +110,7 @@ def run_(arguments):
             results_df['cutoff'] = 0
             results_df['is_gauss'] = 0
         else:
-            print('ciao')
+
             cut_i = np.where(protein_ref_indices == int(ai))[0][0]
          
             # column mapping
@@ -312,11 +311,11 @@ def calculate_intra_probabilities(args):
     mol_list=np.arange(1,N_molecules+1,1)
 
     print(f"""
-    Topology contains {N_molecules} molecules species. Namely {molecules_name}. \n 
+    Topology contains {N_molecules} molecules species. Namely {molecules_name}. 
     Calculating intramat for all species
     """)
     for i in range(N_molecules):
-        print(f"\n Molecule {mol_list[i]}: {molecules_name[i]}")
+        print(f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}")
         df = pd.DataFrame()
         topology_df = pd.DataFrame()
 
@@ -364,7 +363,7 @@ def calculate_intra_probabilities(args):
             df = pd.concat([df, part_df])
         [ os.remove(name) for name in results ]
 
-        print(df)
+        #print(df)
 
         df = df.astype({
              'mi': 'int32', 
@@ -419,8 +418,8 @@ def calculate_inter_probabilities(args):
     N_mols=np.array(N_mols)
 
     print(f"""
-    Topology contains {N_species} molecules species. Namely {molecules_name}. \n 
-    Calculating intramat for all species
+    Topology contains {N_species} molecules species. Namely {molecules_name}. 
+    Calculating intramat for all species\n\n
     """)
     for pair in pairs:
 
@@ -437,7 +436,7 @@ def calculate_inter_probabilities(args):
                 print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
                 continue
         
-        print(f"\n Calculating intermat between olecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}")
+        print(f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}")
         prefix=f"inter_mol_{mol_i}_{mol_j}"
         target_list = [ x for x in os.listdir(args.histo) if prefix in x ]
 
@@ -488,8 +487,7 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-
-        c12_cutoff = c12_cutoff*0+0.75
+        #c12_cutoff = c12_cutoff*0+0.75
 
         ########################
         # PARALLEL PROCESS START
@@ -510,7 +508,7 @@ def calculate_inter_probabilities(args):
             df = pd.concat([df, part_df])
         [ os.remove(name) for name in results ]
 
-        print(df)
+        #print(df)
 
         df = df.astype({
              'mi': 'int32', 
@@ -537,7 +535,7 @@ def calculate_inter_probabilities(args):
         df.index = range(len(df.index))
         output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
 
-        print(f"Saving output for molecule {mol_i} and {mol_j}in {output_file}")
+        print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -572,92 +570,3 @@ if __name__ == '__main__':
         calculate_intra_probabilities(args)
     else:
         calculate_inter_probabilities(args)
-
-
-    '''
-    df = pd.DataFrame()
-    target_list = [ x for x in os.listdir(args.histo) if PREFIX in x ]
-    myOnDict = [x for x in target_list if x.startswith('inter_mol_1_2')]
-    print(len(myOnDict))
-    topology_df = pd.DataFrame()
-    topology_mego = pmd.load_file(args.mego_top)
-    topology_ref = pmd.load_file(args.target_top)
-
-    N_molecules=len(list(topology_mego.molecules.keys()))
-    molecules_name=list(topology_mego.molecules.keys())
-    mol_list=np.arange(1,N_molecules+1,1)
-    pairs=list(itertools.combinations_with_replacement(mol_list,2))
-
-    #for i,name
-    # TODO how to handle multiple molecules and all pairs of intermat?
-    protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[0]][0]
-
-    print(list(topology_mego.molecules.keys()))
-    protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[0]][0]
-    original_size = len(protein_ref.atoms)
-    protein_ref_indices = np.array([ i+1 for i in range(len(protein_ref.atoms)) if protein_ref[i].element_name != 'H' ])
-    protein_ref = [ a for a in protein_ref.atoms if a.element_name != 'H' ]
-
-    sorter = [ str(x.residue.number) + map_if_exists(x.name) for x in protein_ref ]
-    sorter_mego = [ str(x.residue.number) + x.name for x in protein_mego ]
-
-    topology_df['ref_ai'] = protein_ref_indices
-    topology_df['ref_type'] = [ a.name for a in protein_ref ]
-    topology_df['sorter'] = sorter
-    topology_df['ref_ri'] = topology_df['sorter'].str.replace('[a-zA-Z]+[0-9]*', '', regex=True).astype(int)
-    topology_df.sort_values(by='sorter', inplace=True)
-    topology_df['mego_type'] = [ a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1]) ]
-    topology_df['mego_name'] = [ a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1]) ]
-    # need to sort back otherwise c12_cutoff are all wrong
-    topology_df.sort_values(by='ref_ai', inplace=True)
-    topology_df['c12'] = topology_df['mego_type'].map(d)
-    c12_cutoff = 1.45 * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-    #print(topology_df.to_string())
-    exit()
-    ########################
-    # PARALLEL PROCESS START
-    ########################
-
-    chunks = np.array_split(target_list, args.proc)
-    pool = multiprocessing.Pool(args.proc)
-    results = pool.map(run_, [ (args, protein_ref_indices, original_size, c12_cutoff, x) for x in chunks ])
-    pool.close()
-    pool.join()
-
-    ########################
-    # PARALLEL PROCESS END
-    ########################
-
-    # concatenate and remove partial dataframes
-    for name in results:
-        part_df = pd.read_csv(name)
-        df = pd.concat([df, part_df])
-    [ os.remove(name) for name in results ]
-
-    print(df)
-
-    df = df.astype({
-         'mi': 'int32', 
-         'mj': 'int32', 
-         'ai': 'int32', 
-         'aj': 'int32', 
-         'is_gauss': 'int32'
-        })
-
-    df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
-    df.drop_duplicates(subset=['mi', 'ai', 'mj', 'aj'], inplace=True)
-
-    df['mi'] = df['mi'].map('{:}'.format)
-    df['mj'] = df['mj'].map('{:}'.format)
-    df['ai'] = df['ai'].map('{:}'.format)
-    df['aj'] = df['aj'].map('{:}'.format)
-    df['dist'] = df['dist'].map('{:,.6f}'.format)
-    df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-    df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-    df['p'] = df['p'].map('{:,.6f}'.format)
-    df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-    df['is_gauss'] = df['is_gauss'].map('{:}'.format)
-
-    df.index = range(len(df.index))
-    df.to_csv(args.out, index=False, sep=' ', header=False)
-    '''
