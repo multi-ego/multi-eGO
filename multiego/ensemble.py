@@ -268,8 +268,6 @@ def check_topology_conversion(meGO_ensemble, egos):
     '''
     This function is required to check the different atomtypes between different force fields.
     The atom types MUST match otherwise a proper ffnobonded cannot be created.
-        
-
 
     This function is called "check_topology_conversion" and it is a method of a class.
     It does the following:
@@ -553,7 +551,6 @@ def parametrize_LJ(meGO_ensemble, parameters):
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
         meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
         meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
     else:
         meGO_atomic_contacts_merged = pd.DataFrame()
         meGO_LJ_14 = pairs14
