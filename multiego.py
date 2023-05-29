@@ -61,7 +61,7 @@ if __name__ == '__main__':
     meGO_ensemble = {}
 
     for ensemble in ensembles:
-        meGO_ensemble = multiego.ensemble.add_ensemble_from(meGO_ensemble, ensemble, args.check_with)
+        meGO_ensemble = multiego.ensemble.merge_ensembles(meGO_ensemble, ensemble, args.check_with)
     
     multiego.ensemble.check_topology_conversion(meGO_ensemble, args.egos)
     meGO_ensemble = multiego.ensemble.generate_bonded_interactions(meGO_ensemble)
