@@ -9,8 +9,25 @@ import os
 import numpy as np
 import warnings
 
-
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
+    '''
+    Decides if the molecule type of the system is 'protein', 'nucleic_acid' or 'other'
+    and writes said information into molecule_type_dict before returning it
+
+    Parameters
+    ----------
+    molecule_type_dict : dict
+        Contains the molecule type information per system
+    molecule_name : str
+        The name of system
+    molecule_topology : parmed.Topology
+        The topology of the molecule, which will be used to figure out the molecule_type
+
+    Returns
+    -------
+    molecule_type_dict : dict
+        Updated molecule_type_dict with the added new system name
+    '''
     first_aminoacid = molecule_topology.residues[0].name
     if first_aminoacid in multiego.resources.type_definitions.aminoacids_list:
         molecule_type_dict[molecule_name] = 'protein'
@@ -92,6 +109,20 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
         - If the file name starts with 'intramat' set the 'same_chain' column as True, if it starts with 'intermat' set it as False, otherwise print an error message and exit the script
         - Remove all the lines containing H atoms as the final model only contains heavy-atoms.
         - Concatenate all the dataframes contained in the simulation folder
+
+    Parameters
+    ----------
+    contact_matrices : pd.DataFrame
+        Contains the contact informations read from intra-/intermat
+    ensemble_molecules_inx_sbtype_dictionary : dict
+        Associates atom indices to atoms named according to multi-eGO conventions
+    simulation : str
+        The simulation classified equivalent to the input folder
+
+    Returns
+    -------
+    ensemble_contact_matrix : pd.DataFrame
+        A unified contact matrix containing contact data from all the different simulations
     '''
     print('\t\t-', f'Initializing {simulation} contact matrix')
     ensemble_contact_matrix = pd.DataFrame()
@@ -185,9 +216,29 @@ def initialize_ensemble(simulation_path, egos):
     ensemble['sbtype_c12_dict'] = sbtype_c12_dict
     ensemble['molecule_type_dict'] = molecule_type_dict
     ensemble['atomic_contacts'] = atomic_contacts
+
     return ensemble
     
 def merge_ensembles(meGO_ensemble, ensemble, check_with):
+    '''
+    Merges different ensembles such as 'reference' and md_ensembles together into
+    one single object (meGO_ensemble).
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        Contains all the relevant system information of the multi-eGO ensemble
+    ensemble : dict
+        The new ensemble which is to be added to meGO_ensemble
+    check_with : list or list-like
+        Simulations passed to the --check_with flag are contained in this list. If the ensemble is 
+        contained in the check_with list it will be added to the check_with ensembles.
+
+    Returns
+    -------
+    meGO_ensemble : dict
+        An updated meGO_ensemble with the new ensemble added to it
+    '''
     # TODO da aggiungere il dizionario di conversione delle topologie!!!
     print('\t-', f'Adding topology from {ensemble["simulation"]}')
 
@@ -242,6 +293,19 @@ def check_topology_conversion(meGO_ensemble, egos):
             exit()
 
 def generate_bonded_interactions(meGO_ensemble):
+    '''
+    Generates the bonded interactions and stores them in meGO_ensemble
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        The meGO_ensemble object containing all the relevant system information
+    
+    Returns
+    -------
+    meGO_ensemble : dict
+        The updated meGO_ensemble object with updated/added bonded parameters
+    '''
     if 'meGO_bonded_interactions' not in meGO_ensemble.keys(): meGO_ensemble['meGO_bonded_interactions'] = {}
     if 'bond_pairs' not in meGO_ensemble.keys(): meGO_ensemble['bond_pairs'] = {}
     if 'user_pairs' not in meGO_ensemble.keys(): meGO_ensemble['user_pairs'] = {}
@@ -268,6 +332,20 @@ def parametrize_LJ(meGO_ensemble, parameters):
     The random coil probabilities are used to reweight the explicit water ones.
     Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
     For each atom contact the sigma and epsilon are obtained.
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        Contains the relevant meGO data such as interactions and statistics
+    parameters : dict
+        Contains the command-line parsed parameters
+
+    Returns
+    -------
+    meGO_atomic_contacts_merged : pd.DataFrame
+        Contains the non-bonded atomic contacts associated to LJ parameters and statistics
+    meGO_LJ_14 : pd.DataFrame
+        Contains the 1-4 (paris-exclusions) atomic contacts associated to LJ parameters and statistics
     '''
 
     # First of all we generate the random-coil 1-4 interactions:
@@ -300,6 +378,7 @@ def parametrize_LJ(meGO_ensemble, parameters):
 
         # Adding the c12 for 1-4 interactions
         reduced_topology['c12'] = reduced_topology['sb_type'].map(meGO_ensemble['sbtype_c12_dict'])
+
         pairs = pd.DataFrame()
         if meGO_ensemble['molecule_type_dict'][molecule] == 'protein':
             pairs = multiego.topology.protein_LJ14(reduced_topology)
@@ -318,6 +397,7 @@ def parametrize_LJ(meGO_ensemble, parameters):
             pairs['c12'] = nonprotein_c12
             pairs['rep'] = pairs['c12']
             pairs['same_chain'] = True
+
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
     if parameters.egos != 'rc':
@@ -350,10 +430,8 @@ def parametrize_LJ(meGO_ensemble, parameters):
         # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
         meGO_atomic_contacts_merged.reset_index(inplace=True)
 
-
         # Epsilon reweight based on probability
         # Paissoni Equation 2.1
-
         # Attractive intramolecular
         meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
         # Attractive intermolecular
@@ -484,9 +562,21 @@ def parametrize_LJ(meGO_ensemble, parameters):
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
 
-def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):#topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
+def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14): #topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
     '''
-    This function prepares the [ exclusion ] and [ pairs ] section to paste in topology.top
+    This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
+    
+    Parameters
+    ----------
+    meGO_ensemlbe : dict
+        The meGO_ensemble object contains all the relevant system information
+    meGO_LJ_14 : pd.DataFrame
+        Contains the contact information for the 1-4 interactions
+
+    Returns
+    -------
+    pairs_molecule_dict : dict
+        Contains the "write out"-ready pairs-exclusions interactions for each molecule  
     '''
     pairs_molecule_dict = {}
     for molecule, bond_pair in meGO_ensemble['bond_pairs'].items():
@@ -547,13 +637,24 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):#topology_dataframe
 
 def generate_LJ_potential(meGO_ensemble, parameters):
     '''
-    This function merges all the LJ contacts from ensembles into a single one.
-    All contacts are reweighted based on the RC probability.
-    Duplicates are removed.
+    Wrapper for parameterize_LJ and make_pairs_exlusion_topology.
+    Takes care of passing meGO_LJ_14 to make_pairs_exlusion_topology and returns the potentials.
+
+    Parameters
+    ----------
+    meGO_ensemlbe : dict
+        The meGO_ensemble object contains all the relevant system information
+    parameters : dict
+        Contains the command-line parsed parameters
+
+    Returns
+    -------
+    meGO_LJ_potential : pd.DataFrame
+        Contains the nonbonded interaction parameters (LJ)
+    meGO_LJ_14 : pd.DataFrame
+        Contains the 1-4 inteaction parameters (LJ)
     '''
-    # meGO_LJ_potential, meGO_LJ_14 = parametrize_LJ(reference_topology_dataframe, molecule_type_dict, bond_pairs, user_pairs, sbtype_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters)
     meGO_LJ_potential, meGO_LJ_14 = parametrize_LJ(meGO_ensemble, parameters)
-    # meGO_LJ_14 = make_pairs_exclusion_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['bond_pairs'], meGO_ensemble['sbtype_c12_dict'], meGO_LJ_14, parameters)
     meGO_LJ_14 = make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
     return meGO_LJ_potential, meGO_LJ_14

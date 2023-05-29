@@ -32,7 +32,18 @@ def read_molecular_contacts(path):
 
 def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
     '''
-    
+    Writes the non-bonded parameter file ffnonbonded.itp.
+
+    Parameters
+    ----------
+    topology_dataframe : pd.DataFrame
+        The topology of the system as a dataframe
+    lj_potential : pd.DataFrame
+        The LJ c6 and c12 values which make up the nonbonded potential
+    parameters : dict
+        Contains the input parameters set from the terminal
+    output_folder : str
+        The path to the output directory
     '''
     header = make_header(vars(parameters))
     # pd.set_option('display.colheader_justify', 'right')
@@ -53,6 +64,22 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
             file.write(dataframe_to_write(lj_potential))
 
 def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir):
+    '''
+    Takes care of the final print-out and the file writing of topology and ffnonbonded
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        The meGO_ensemble object which contains all the system information
+    meGO_LJ_potential : pd.DataFrame
+        Contains the c6 and c12 LJ parameters of the nonbonded potential
+    meGO_LJ_14 : pd.DataFrame
+        Contains the c6 and c12 LJ parameters of the pairs and exclusions
+    parameters : dict
+        A dictionaty of the command-line parsed parameters
+    output_dir : str
+        Path to the output directory 
+    '''
     print('- Writing Multi-eGO model')
     write_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
     write_nonbonded(meGO_ensemble['reference_topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
@@ -116,6 +143,24 @@ def make_header(parameters):
     return header
 
 def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_dict, lj_14, parameters, output_folder):
+    '''
+    Writes the topology output content into GRETA_topol.top
+
+    Parameters
+    ----------
+    topology_dataframe : pd.DataFrame
+        The topology of the multi-eGO system in dataframe format
+    molecule_type_dict : dict
+        not used yet
+    bonded_interactions_dict : dict
+        Contains the bonded interactions
+    lj_14 : pd.DataFrame
+        Contains the c6 and c12 LJ parameters of the pairs and exclusions interactions
+    parameters : dict
+        Contains the command-line parsed parameters
+    output_folder : str
+        Path to the ouput directory
+    '''
     molecule_footer = []
     header = make_header(vars(parameters))
     with open(f'{output_folder}/topol_GRETA.top', 'w') as file:
@@ -187,6 +232,19 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
             file.write(f'{molecule}\t\t\t1\n')
 
 def get_name(parameters):
+    '''
+    Creates the output directory name.
+
+    Parameters
+    ----------
+    parameters : dict
+        Contains the parameters parsed from the terminal input
+
+    Returns
+    -------
+    name : str
+        The name of the output directory
+    '''
     if parameters.egos =="rc":
         name = f'{parameters.system}_{parameters.egos}'
     else:
@@ -194,6 +252,19 @@ def get_name(parameters):
     return name
 
 def create_output_directories(parameters):
+    '''
+    Creates the output directory
+
+    Parameters
+    ----------
+    parameters : dict
+        Contains the command-line parsed parameters
+    
+    Returns
+    -------
+    output_folder : str
+        The path to the output directory
+    '''
     if parameters.egos == 'rc':
         name = f'{parameters.system}_{parameters.egos}'
     else: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
@@ -207,9 +278,26 @@ def create_output_directories(parameters):
 
     return output_folder
 
-def check_files_existence(ego, protein, md_ensembles):
+def check_files_existence(egos, system, md_ensembles):
+    '''
+    Checks if relevant multi-eGO input files exist.
+
+    Parameters
+    ----------
+    egos : str
+        The egos mode of multi-eGO either 'rc' or 'production'
+    system : str
+        The system passed by terminal with the --system flag
+    md_ensembles : list or list-like
+        A list of ensembles to learn interactions from
+    
+    Raises
+    ------
+    FileNotFoundError
+        If any of the files or directories does not exist 
+    '''
     for ensemble in md_ensembles:
-        ensemble = f'inputs/{protein}/{ensemble}'
+        ensemble = f'inputs/{system}/{ensemble}'
         if not os.path.exists(ensemble):
             raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
         else:
@@ -217,5 +305,5 @@ def check_files_existence(ego, protein, md_ensembles):
             if not top_files:
                 raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f'{ensemble}/*.ndx')
-            if not ndx_files and not ego =="rc":
+            if not ndx_files and not egos =="rc":
                 raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
