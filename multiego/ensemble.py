@@ -66,7 +66,7 @@ def initialize_ensemble_topology(topology, simulation):
             new_number.append(str(atom.idx+1))
             col_molecule.append(f'{molecule_number}_{molecule_name}')
             new_resnum.append(str(atom.residue.number))
-    del molecule_name
+    # del molecule_name
 
     ensemble_topology_dataframe['number'] = new_number
     ensemble_topology_dataframe['molecule'] = col_molecule
@@ -159,7 +159,6 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
         ensemble_contact_matrix.set_index(['idx_ai', 'idx_aj'], inplace=True)
 
     return ensemble_contact_matrix
-
 
 def initialize_ensemble(simulation_path, egos):
     '''
@@ -558,6 +557,24 @@ def parametrize_LJ(meGO_ensemble, parameters):
 
     return meGO_atomic_contacts_merged, meGO_LJ_14
 
+def check_LJ(test, parameters):
+    if len(test) == 1: 
+        return 0. 
+    else:
+        #distance comes from check
+        dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        #distance comes from train 
+        dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
+        #epsilon from train
+        if dist_check < dist_train:
+            eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+        else:
+            eps = 0.
+ 
+        if eps < 0. :
+            return -eps/(dist_check)**12+eps/(dist_train)**12
+        else:
+            return 0.
 
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14): #topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
     '''
