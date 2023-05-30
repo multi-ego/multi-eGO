@@ -8,7 +8,7 @@ import sys
 import os
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Metti una descrizione caruccina, tipo sul come nominare i file.')
+    parser = argparse.ArgumentParser(description='TODO!')
     parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to system input folder.')
     parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGO.\n rc: creates a force-field for random coil simulations.\n production: creates a force-field combining random coil simulations and training simulations.')
     parser.add_argument('--epsilon', type=float, choices=[multiego.util.float_range.FloatRange(0.0, 1.0)], help='Maximum interaction energy per contact.')
