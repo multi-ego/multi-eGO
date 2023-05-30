@@ -347,7 +347,7 @@ def calculate_inter_probabilities(args):
 
     print(f"""
     Topology contains {N_species} molecules species. Namely {molecules_name}. 
-    Calculating intramat for all species\n\n
+    Calculating intermat for all species\n\n
     """)
     for pair in pairs:
 
@@ -372,46 +372,46 @@ def calculate_inter_probabilities(args):
         original_size_i = len(protein_ref_i.atoms)
         original_size_j = len(protein_ref_j.atoms)
 
-        if mol_i==1 and mol_j==1: continue
-        if mol_i==mol_j:
-            if N_mols[mol_i-1]==1:
-                print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
+        #if mol_i==1 and mol_j==1: continue
+        #if mol_i==mol_j:
+            #if N_mols[mol_i-1]==1:
+            #   print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
 
-                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
-                matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
-                indeces_ai=np.array(list(matrix_index)).T[0]
-                indeces_aj=np.array(list(matrix_index)).T[1]
+            #   columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
+            #   matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
+            #   indeces_ai=np.array(list(matrix_index)).T[0]
+            #   indeces_aj=np.array(list(matrix_index)).T[1]
 
-                df=pd.DataFrame(columns=columns)
-                df['mi'] = [ mol_i for x in range(1, original_size_i*original_size_j+1) ]
-                df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
-                df['ai'] = indeces_ai
-                df['aj'] = indeces_aj
-                df['dist']    = 0.
-                df['c12dist'] = 0.
-                df['hdist']   = 0.
-                df['p']       = 0.
-                df['cutoff']  = 0.
-                df['is_gauss']= 0
+            #   df=pd.DataFrame(columns=columns)
+            #   df['mi'] = [ mol_i for x in range(1, original_size_i*original_size_j+1) ]
+            #   df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
+            #   df['ai'] = indeces_ai
+            #   df['aj'] = indeces_aj
+            #   df['dist']    = 0.
+            #   df['c12dist'] = 0.
+            #   df['hdist']   = 0.
+            #   df['p']       = 0.
+            #   df['cutoff']  = 0.
+            #   df['is_gauss']= 0
 
-                df['mi'] = df['mi'].map('{:}'.format)
-                df['mj'] = df['mj'].map('{:}'.format)
-                df['ai'] = df['ai'].map('{:}'.format)
-                df['aj'] = df['aj'].map('{:}'.format)
-                df['dist'] = df['dist'].map('{:,.6f}'.format)
-                df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-                df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-                df['p'] = df['p'].map('{:,.6f}'.format)
-                df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-                df['is_gauss'] = df['is_gauss'].map('{:}'.format)
+            #   df['mi'] = df['mi'].map('{:}'.format)
+            #   df['mj'] = df['mj'].map('{:}'.format)
+            #   df['ai'] = df['ai'].map('{:}'.format)
+            #   df['aj'] = df['aj'].map('{:}'.format)
+            #   df['dist'] = df['dist'].map('{:,.6f}'.format)
+            #   df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
+            #   df['hdist'] = df['hdist'].map('{:,.6f}'.format)
+            #   df['p'] = df['p'].map('{:,.6f}'.format)
+            #   df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
+            #   df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
-                df.index = range(len(df.index))
-                output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
+            #   df.index = range(len(df.index))
+            #   output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
 
-                print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-                df.to_csv(output_file, index=False, sep=' ', header=False)
+            #   print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+            #   df.to_csv(output_file, index=False, sep=' ', header=False)
 
-                continue
+            #   continue
 
         protein_ref_indices_i = np.array([ i+1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != 'H' ])
         protein_ref_indices_j = np.array([ i+1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != 'H' ])
