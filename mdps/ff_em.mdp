@@ -1,18 +1,3 @@
-;
-;	File 'mdout.mdp' was generated
-;	By user: emanuele (1004)
-;	On host: milano
-;	At date: Wed Nov 27 10:45:45 2019
-;
-;	Created by:
-;	                     :-) GROMACS - gmx grompp, 2018.7 (-:
-;	
-;	Executable:   /opt/gromacs-2018.7/bin/gmx_mpi
-;	Data prefix:  /opt/gromacs-2018.7
-;	Working dir:  /home/emanuele/TTR/FFopt/fibril_AA_smog
-;	Command line:
-;	  gmx_mpi grompp -f allatomForGromacs5.mdp -p fibril8.top -c box_fibril8.gro -o f8_aa
-
 ; VARIOUS PREPROCESSING OPTIONS
 ; Preprocessor information: use cpp syntax.
 ; e.g.: -I/home/joe/doe -I/home/mary/roe
@@ -80,7 +65,7 @@ energygrps               = system
 ; cut-off scheme (Verlet: particle based cut-offs, group: using charge groups)
 cutoff-scheme            = verlet
 ; nblist update frequency
-nstlist                  = 20
+nstlist                  = 25
 ; ns algorithm (simple or grid)
 ns_type                  = grid
 ; Periodic boundary conditions: xyz, no, xy
@@ -88,9 +73,9 @@ pbc                      = xyz
 periodic-molecules       = no
 ; Allowed energy error due to the Verlet buffer in kJ/mol/ps per atom,
 ; a value of -1 means: use rlist
-verlet-buffer-tolerance  = 0.005
+verlet-buffer-tolerance  = -1 
 ; nblist cut-off        
-rlist                    = 1.2
+rlist                    = 1.40
 ; long-range cut-off for switched potentials
 
 ; OPTIONS FOR ELECTROSTATICS AND VDW
@@ -98,7 +83,7 @@ rlist                    = 1.2
 coulombtype              = Cut-off
 coulomb-modifier         = Potential-shift-Verlet
 rcoulomb-switch          = 0
-rcoulomb                 = 1.2
+rcoulomb                 = 1.35
 ; Relative dielectric constant for the medium and the reaction field
 epsilon-r                = 1
 epsilon-rf               = 0
@@ -107,11 +92,11 @@ vdw-type                 = Cut-off
 vdw-modifier             = Potential-shift-Verlet
 ; cut-off lengths       
 rvdw-switch              = 0
-rvdw                     = 1.2
+rvdw                     = 1.35
 ; Apply long range dispersion corrections for Energy and Pressure
 DispCorr                 = No
 ; Extension of the potential lookup tables beyond the cut-off
-table-extension          = 1 ; usando il force-field
+table-extension          = 1
 ; Separate tables between energy group pairs
 energygrp-table          = 
 ; Spacing for the PME/PPPM FFT grid
@@ -138,7 +123,7 @@ print-nose-hoover-chain-variables = no
 tc-grps                  = system
 ; Time constant (ps) and reference temperature (K)
 tau_t                    = 1
-ref_t                    = 310
+ref_t                    =
 ; pressure coupling     
 Pcoupl                   = no
 pcoupltype               = Isotropic

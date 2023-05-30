@@ -1,18 +1,3 @@
-;
-;	File 'mdout.mdp' was generated
-;	By user: emanuele (1004)
-;	On host: milano
-;	At date: Wed Nov 27 10:45:45 2019
-;
-;	Created by:
-;	                     :-) GROMACS - gmx grompp, 2018.7 (-:
-;	
-;	Executable:   /opt/gromacs-2018.7/bin/gmx_mpi
-;	Data prefix:  /opt/gromacs-2018.7
-;	Working dir:  /home/emanuele/TTR/FFopt/fibril_AA_smog
-;	Command line:
-;	  gmx_mpi grompp -f allatomForGromacs5.mdp -p fibril8.top -c box_fibril8.gro -o f8_aa
-
 ; VARIOUS PREPROCESSING OPTIONS
 ; Preprocessor information: use cpp syntax.
 ; e.g.: -I/home/joe/doe -I/home/mary/roe
@@ -42,21 +27,6 @@ comm-grps                =
 bd-fric                  = 0
 ld-seed                  = -1
 
-; ENERGY MINIMIZATION OPTIONS
-; Force tolerance and initial step-size
-emtol                    = 10
-emstep                   = 0.01
-; Max number of iterations in relax-shells
-niter                    = 20
-; Step size (ps^2) for minimization of flexible constraints
-fcstep                   = 0
-; Frequency of steepest descents steps when doing CG
-nstcgsteep               = 1000
-nbfgscorr                = 10
-
-; TEST PARTICLE INSERTION OPTIONS
-rtpi                     = 0.05
-
 ; OUTPUT CONTROL OPTIONS
 ; Output frequency for coords (x), velocities (v) and forces (f)
 nstxout                  = 0
@@ -80,7 +50,7 @@ energygrps               = system
 ; cut-off scheme (Verlet: particle based cut-offs, group: using charge groups)
 cutoff-scheme            = verlet
 ; nblist update frequency
-nstlist                  = 20
+nstlist                  = 25
 ; ns algorithm (simple or grid)
 ns_type                  = grid
 ; Periodic boundary conditions: xyz, no, xy
@@ -90,7 +60,7 @@ periodic-molecules       = no
 ; a value of -1 means: use rlist
 verlet-buffer-tolerance  = -1 
 ; nblist cut-off        
-rlist                    = 1.25
+rlist                    = 1.40
 ; long-range cut-off for switched potentials
 
 ; OPTIONS FOR ELECTROSTATICS AND VDW
@@ -98,7 +68,7 @@ rlist                    = 1.25
 coulombtype              = Cut-off
 coulomb-modifier         = Potential-shift-Verlet
 rcoulomb-switch          = 0
-rcoulomb                 = 1.2
+rcoulomb                 = 1.35
 ; Relative dielectric constant for the medium and the reaction field
 epsilon-r                = 1
 epsilon-rf               = 0
@@ -107,11 +77,11 @@ vdw-type                 = Cut-off
 vdw-modifier             = Potential-shift-Verlet
 ; cut-off lengths       
 rvdw-switch              = 0
-rvdw                     = 1.2
+rvdw                     = 1.35
 ; Apply long range dispersion corrections for Energy and Pressure
 DispCorr                 = No
 ; Extension of the potential lookup tables beyond the cut-off
-table-extension          = 1 ; usando il force-field
+table-extension          = 1
 ; Separate tables between energy group pairs
 energygrp-table          = 
 ; Spacing for the PME/PPPM FFT grid
@@ -137,8 +107,8 @@ print-nose-hoover-chain-variables = no
 ; Groups to couple separately
 tc-grps                  = system
 ; Time constant (ps) and reference temperature (K)
-tau_t                    = 1.0 ; 50.0 for proteins
-ref_t                    = 278
+tau_t                    = 1.0 ; 50.0
+ref_t                    = _TEMP_ 
 ; pressure coupling     
 Pcoupl                   = no
 pcoupltype               = Isotropic
@@ -152,7 +122,7 @@ refcoord-scaling         = No
 
 ; GENERATE VELOCITIES FOR STARTUP RUN
 gen_vel                  = yes
-gen_temp                 = 278
+gen_temp                 = _TEMP_ 
 gen_seed                 = -1
 
 ; OPTIONS FOR BONDS    
