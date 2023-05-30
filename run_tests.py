@@ -26,8 +26,13 @@ class TestOutputs(unittest.TestCase):
     def setUpClass(cls):
         input_gprotein = 'inputs/gpref'
         input_abeta = 'inputs/abetaref'
-        if not os.path.exists(input_gprotein): shutil.copytree('test/test_inputs/gpref', input_gprotein)
-        if not os.path.exists(input_abeta): shutil.copytree('test/test_inputs/abetaref', input_abeta)
+        if os.path.exists(input_gprotein): shutil.rmtree(input_gprotein) 
+        if os.path.exists(input_abeta): shutil.rmtree(input_abeta)
+        shutil.copytree('test/test_inputs/abetaref', input_abeta)
+        shutil.copytree('test/test_inputs/gpref', input_gprotein)
+        shutil.copytree('./multi-ego-basic.ff', f'{input_gprotein}/reference/multi-ego-basic.ff')
+        shutil.copytree('./multi-ego-basic.ff', f'{input_abeta}/reference/multi-ego-basic.ff')
+        
         subprocess.call(["python", "multiego.py", "--system=gpref", "--egos=rc"])
         subprocess.call(["python", "multiego.py", "--system=gpref", "--egos=production", "--epsilon=0.35", "--train_from=md_ensemble"])
         subprocess.call(["python", "multiego.py", "--system=abetaref", "--egos=production", "--epsilon=0.35", "--train_from=native_MD"])
