@@ -1,10 +1,12 @@
 import os
+from unittest import result
 import pandas as pd
 import numpy as np
 import parmed as pmd
 import multiprocessing
 import argparse
 import itertools
+import time
 
 ################################################################
 import warnings                                                #
@@ -85,70 +87,6 @@ gromos_atp = pd.DataFrame(
 d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name))}
 
 def run_(arguments):
-    (args, protein_ref_indices, original_size, c12_cutoff, mi, frac_target_list) = arguments
-    process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
-    df = pd.DataFrame(columns=columns)
-    #print(len(frac_target_list))
-    for i, ref_f in enumerate(frac_target_list):
-        results_df = pd.DataFrame()
-        ai = ref_f.split('.')[-2].split('_')[-1]
-
-        #WARNING don't know why ai is saved in some cases not as a number
-        if not np.isin(int(ai), protein_ref_indices):
-
-            all_ai = [ ai for _ in range(1, original_size+1) ]
-            range_list = [ str(x) for x in range(1, original_size+1) ]
-            results_df['ai'] = [ *all_ai, *range_list ]
-            results_df['aj'] = [ *range_list, *all_ai ]
-            results_df['mi'] = mi
-            results_df['mj'] = mi
-            results_df['dist'] = 0
-            results_df['c12dist'] = 0
-            results_df['hdist'] = 0
-            results_df['p'] = 0
-            results_df['cutoff'] = 0
-            results_df['is_gauss'] = 0
-        else:
-
-            cut_i = np.where(protein_ref_indices == int(ai))[0][0]
-         
-            # column mapping
-            ref_f = f'{args.histo}/{ref_f}'
-            ref_df = pd.read_csv(ref_f, header=None, sep='\s+', usecols=[ 0, *protein_ref_indices ])
-            ref_df_columns = ['distance', *[ str(x) for x in protein_ref_indices ]]
-            ref_df.columns = ref_df_columns
-            ref_df.set_index('distance', inplace=True)
-            ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
-
-            # calculate data
-            dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-
-            results_df['mi'] = [ mi for x in range(1, len(ref_df.columns)+1) ]
-            results_df['mj'] = [ mi for x in range(1, len(ref_df.columns)+1) ]
-            results_df['ai'] = [ ai for _ in range(1, len(ref_df.columns)+1) ]
-            results_df['aj'] = [ str(x) for x in protein_ref_indices ]
-            results_df['dist'] = dist
-            results_df['c12dist'] = c12dist
-            results_df['hdist'] = hdist
-            results_df['p'] = p
-            results_df['cutoff'] = c12_cutoff[cut_i]
-            results_df['is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-    
-        df = pd.concat([df, results_df])
-        df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
-
-    df.fillna(0)
-    out_path = f'mat_{process.pid}.part'
-    df.to_csv(out_path, index=False)
-
-    return out_path
-
-#TODO make only 1 function and divide the cases
-def runinter_(arguments):
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
@@ -156,15 +94,14 @@ def runinter_(arguments):
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
-        if not np.isin(int(ai), protein_ref_indices_i):
+        
+        #TODO make this a function?
+        if True:#not np.isin(int(ai), protein_ref_indices_i):
             all_ai = [ ai for _ in range(1, original_size_j+1) ]
             range_list = [ str(x) for x in range(1, original_size_j+1) ]
-            if mi==mj:
-                results_df['ai'] = [ *all_ai, *range_list ]
-                results_df['aj'] = [ *range_list, *all_ai ]
-            else:
-                results_df['ai'] = np.array(all_ai).astype(int)
-                results_df['aj'] = np.array(range_list).astype(int)
+
+            results_df['ai'] = np.array(all_ai).astype(int)
+            results_df['aj'] = np.array(range_list).astype(int)
 
             results_df['mi'] = mi
             results_df['mj'] = mj
@@ -174,8 +111,8 @@ def runinter_(arguments):
             results_df['p'] = 0
             results_df['cutoff'] = 0
             results_df['is_gauss'] = 0
-        else:
-
+            
+        if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
@@ -192,22 +129,18 @@ def runinter_(arguments):
             hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
-            results_df['mi'] = [ mi for x in range(1, len(ref_df.columns)+1) ]
-            results_df['mj'] = [ mj for x in range(1, len(ref_df.columns)+1) ]
-            results_df['ai'] = [ ai for _ in range(1, len(ref_df.columns)+1) ]
-            results_df['aj'] = [ str(x) for x in protein_ref_indices_j ]
-            results_df['dist'] = dist
-            results_df['c12dist'] = c12dist
-            results_df['hdist'] = hdist
-            results_df['p'] = p
-            results_df['cutoff'] = c12_cutoff[cut_i]
-            results_df['is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'dist'] = dist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'hdist'] = hdist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
     
         df = pd.concat([df, results_df])
         df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
 
     df.fillna(0)
-    out_path = f'mat_{process.pid}.part'
+    out_path = f'mat_{process.pid}_t{time.time()}.part'
     df.to_csv(out_path, index=False)
 
     return out_path
@@ -348,7 +281,7 @@ def calculate_intra_probabilities(args):
 
         chunks = np.array_split(target_list, args.proc)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(run_, [ (args, protein_ref_indices, original_size, c12_cutoff, mol_list[i], x) for x in chunks ])
+        results = pool.map(run_, [ (args, protein_ref_indices, protein_ref_indices, original_size, c12_cutoff, mol_list[i], mol_list[i], x) for x in chunks ])
         pool.close()
         pool.join()
 
@@ -361,8 +294,6 @@ def calculate_intra_probabilities(args):
             part_df = pd.read_csv(name)
             df = pd.concat([df, part_df])
         [ os.remove(name) for name in results ]
-
-        #print(df)
 
         df = df.astype({
              'mi': 'int32', 
@@ -391,7 +322,6 @@ def calculate_intra_probabilities(args):
 
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
         df.to_csv(output_file, index=False, sep=' ', header=False)
-
 
 def calculate_inter_probabilities(args):
 
@@ -427,12 +357,7 @@ def calculate_inter_probabilities(args):
         topology_df_j = pd.DataFrame()
  
         mol_i=pair[0]
-        mol_j=pair[1]
-        #if mol_i==1: continue
-        if mol_i==mol_j:
-            if N_mols[mol_i-1]==1:
-                print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
-                continue
+        mol_j=pair[1]        
         
         print(f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}")
         prefix=f"inter_mol_{mol_i}_{mol_j}"
@@ -446,6 +371,47 @@ def calculate_inter_probabilities(args):
 
         original_size_i = len(protein_ref_i.atoms)
         original_size_j = len(protein_ref_j.atoms)
+
+        if mol_i==1 and mol_j==1: continue
+        if mol_i==mol_j:
+            if N_mols[mol_i-1]==1:
+                print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
+
+                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
+                matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
+                indeces_ai=np.array(list(matrix_index)).T[0]
+                indeces_aj=np.array(list(matrix_index)).T[1]
+
+                df=pd.DataFrame(columns=columns)
+                df['mi'] = [ mol_i for x in range(1, original_size_i*original_size_j+1) ]
+                df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
+                df['ai'] = indeces_ai
+                df['aj'] = indeces_aj
+                df['dist']    = 0.
+                df['c12dist'] = 0.
+                df['hdist']   = 0.
+                df['p']       = 0.
+                df['cutoff']  = 0.
+                df['is_gauss']= 0
+
+                df['mi'] = df['mi'].map('{:}'.format)
+                df['mj'] = df['mj'].map('{:}'.format)
+                df['ai'] = df['ai'].map('{:}'.format)
+                df['aj'] = df['aj'].map('{:}'.format)
+                df['dist'] = df['dist'].map('{:,.6f}'.format)
+                df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
+                df['hdist'] = df['hdist'].map('{:,.6f}'.format)
+                df['p'] = df['p'].map('{:,.6f}'.format)
+                df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
+                df['is_gauss'] = df['is_gauss'].map('{:}'.format)
+
+                df.index = range(len(df.index))
+                output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
+
+                print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+                df.to_csv(output_file, index=False, sep=' ', header=False)
+
+                continue
 
         protein_ref_indices_i = np.array([ i+1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != 'H' ])
         protein_ref_indices_j = np.array([ i+1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != 'H' ])
@@ -485,14 +451,15 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-        #c12_cutoff = c12_cutoff*0+0.75
+        #c12_cutoff = c12_cutoff*0 + 0.75
 
         ########################
         # PARALLEL PROCESS START
         ########################
+
         chunks = np.array_split(target_list, args.proc)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(runinter_, [ (args, protein_ref_indices_i,protein_ref_indices_j, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
+        results = pool.map(run_, [ (args, protein_ref_indices_i,protein_ref_indices_j, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
         pool.close()
         pool.join()
 
@@ -501,12 +468,10 @@ def calculate_inter_probabilities(args):
         ########################
 
         # concatenate and remove partial dataframes
-        for name in results:
+        for i, name in enumerate(results):
             part_df = pd.read_csv(name)
             df = pd.concat([df, part_df])
-        [ os.remove(name) for name in results ]
-
-        #print(df)
+            os.remove(name)
 
         df = df.astype({
              'mi': 'int32', 
@@ -518,7 +483,7 @@ def calculate_inter_probabilities(args):
 
         df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
         df.drop_duplicates(subset=['mi', 'ai', 'mj', 'aj'], inplace=True)
-
+        
         df['mi'] = df['mi'].map('{:}'.format)
         df['mj'] = df['mj'].map('{:}'.format)
         df['ai'] = df['ai'].map('{:}'.format)
@@ -547,7 +512,7 @@ if __name__ == '__main__':
     parser.add_argument('--target_top', required=True, help='Path to the topology file of the system on which the histograms were calculated on')
     parser.add_argument('--mego_top', required=True, help='''Path to the standard multi-eGO topology of the system generated by pdb2gmx''')
     parser.add_argument('--inter', action='store_true', help='Sets the caculation to be adapted to intermolecular calculations of histograms')
-    parser.add_argument('--out', default='out.ndx', help='''Sets the output path''')
+    parser.add_argument('--out', default='./', help='''Sets the output path''')
     parser.add_argument('--proc', default=1, type=int, help='Sets the number of processes to perform the calculation')
     parser.add_argument('--cutoff', required=True, type=float, help='To be set to the max cutoff used for the accumulation of the histograms')
     args = parser.parse_args()
