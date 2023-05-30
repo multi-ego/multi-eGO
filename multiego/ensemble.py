@@ -89,8 +89,10 @@ def initialize_ensemble_topology(topology, simulation):
         number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
     sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
+    sbtype_name_dict = ensemble_topology_dataframe[['sb_type', 'name']].set_index('sb_type')['name'].to_dict()
+    sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()
 
-    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, molecule_type_dict
+    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
 
 def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtype_dictionary, simulation):
     '''
@@ -202,7 +204,7 @@ def initialize_ensemble(simulation_path, egos):
         for path in matrix_paths:
             name = path.replace(f'inputs/{simulation_path}/', '')
             ensemble_contact_matrices[name] = multiego.io.read_molecular_contacts(path)
-    ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, molecule_type_dict = initialize_ensemble_topology(topology, ensemble_type)
+    ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict = initialize_ensemble_topology(topology, ensemble_type)
     atomic_contacts = initialize_molecular_contacts(ensemble_contact_matrices, ensemble_molecules_idx_sbtype_dictionary, ensemble_type)
 
     ensemble = {}
@@ -213,6 +215,8 @@ def initialize_ensemble(simulation_path, egos):
     ensemble['ensemble_molecules_idx_sbtype_dictionary'] = ensemble_molecules_idx_sbtype_dictionary
     ensemble['ensemble_contact_matrices'] = ensemble_contact_matrices
     ensemble['sbtype_c12_dict'] = sbtype_c12_dict
+    ensemble['sbtype_name_dict'] = sbtype_name_dict
+    ensemble['sbtype_moltype_dict'] = sbtype_moltype_dict
     ensemble['molecule_type_dict'] = molecule_type_dict
     ensemble['atomic_contacts'] = atomic_contacts
 
@@ -247,6 +251,8 @@ def merge_ensembles(meGO_ensemble, ensemble, check_with):
         meGO_ensemble['reference_topology'] = ensemble['topology']
         meGO_ensemble['reference_topology_dataframe'] = pd.concat([meGO_ensemble['reference_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
         meGO_ensemble['sbtype_c12_dict'] = ensemble['sbtype_c12_dict'] # WARNING redundant?
+        meGO_ensemble['sbtype_name_dict'] = ensemble['sbtype_name_dict'] # WARNING redundant?
+        meGO_ensemble['sbtype_moltype_dict'] = ensemble['sbtype_moltype_dict'] # WARNING redundant?
         meGO_ensemble['sbtype_number_dict'] = meGO_ensemble['reference_topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
         meGO_ensemble['reference_atomic_contacts'] = ensemble['atomic_contacts'].add_prefix('rc_')
         meGO_ensemble['molecule_type_dict'] = ensemble['molecule_type_dict']
@@ -397,6 +403,7 @@ def parametrize_LJ(meGO_ensemble, parameters):
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
+
     if parameters.egos != 'rc':
         meGO_atomic_contacts_merged = pd.merge(meGO_ensemble['meGO_atomic_contacts'], meGO_ensemble['reference_atomic_contacts'], left_index=True, right_index=True, how='outer')
         # TODO throw an error if rc data is missing for some contacts
@@ -453,6 +460,9 @@ def parametrize_LJ(meGO_ensemble, parameters):
         meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4'] == '1_4'), 'epsilon'] = -meGO_atomic_contacts_merged['rep']
         # Rescale c12 1-4 interactions 
         meGO_atomic_contacts_merged.loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_14']-meGO_atomic_contacts_merged['distance_14'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True), 'epsilon'] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_14']/meGO_atomic_contacts_merged['rc_distance_14'])**12
+
+        # remove self interactions for proteins' side-chains
+        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['ai']==meGO_atomic_contacts_merged['aj'])&(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&~((meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'epsilon'] = 0.
 
         # Here we are reindexing like before
         meGO_atomic_contacts_merged[['idx_ai', 'idx_aj']] = meGO_atomic_contacts_merged[['ai', 'aj']]
