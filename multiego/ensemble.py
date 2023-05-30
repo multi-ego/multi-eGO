@@ -486,7 +486,7 @@ def parametrize_LJ(meGO_ensemble, parameters):
 
         # process check_atomic_contacts
         if 'check_atomic_contacts' in meGO_ensemble.keys():
-            if not meGO_ensemble['check_atomic_contacts'] == {}:
+            if not meGO_ensemble['check_atomic_contacts'].empty:
                 # Remove low probability ones
                 meGO_ensemble['check_atomic_contacts'] = meGO_ensemble['check_atomic_contacts'].loc[(meGO_ensemble['check_atomic_contacts']['probability']>limit_rc*parameters.md_threshold)] 
                 meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, meGO_ensemble['check_atomic_contacts']], axis=0, sort=False, ignore_index=True)
@@ -497,8 +497,8 @@ def parametrize_LJ(meGO_ensemble, parameters):
                 ## remove check_with contacts 
                 meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
                 ## rescale problematic contacts
-                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)&(meGO_atomic_contacts_merged['1-4']!="1_4")] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
-                meGO_atomic_contacts_merged['epsilon'].loc[(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.inter_epsilon)] *= parameters.inter_epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)&(meGO_atomic_contacts_merged['1-4']!="1_4"), 'epsilon'] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
+                meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.inter_epsilon), 'epsilon'] *= parameters.inter_epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
                 meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
 
         # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
