@@ -18,7 +18,7 @@
 ;
 
 ; Include forcefield parameters
-#include "multi-ego-basic.ff/forcefield.itp"
+#include "../../../multi-ego-basic.ff/forcefield.itp"
 
 [ moleculetype ]
 ; Name            nrexcl
