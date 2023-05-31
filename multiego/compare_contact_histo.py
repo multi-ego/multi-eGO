@@ -1,3 +1,4 @@
+from genericpath import exists
 import os
 import pandas as pd
 import numpy as np
@@ -6,6 +7,7 @@ import multiprocessing
 import argparse
 import itertools
 import time
+import sys
 
 ################################################################
 import warnings                                                #
@@ -94,8 +96,7 @@ def run_(arguments):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
         
-        #TODO make this a function?
-        if True:#not np.isin(int(ai), protein_ref_indices_i):
+        if True:
             all_ai = [ ai for _ in range(1, original_size_j+1) ]
             range_list = [ str(x) for x in range(1, original_size_j+1) ]
 
@@ -231,6 +232,26 @@ def remove_monotonic(values, weights):
     until_i = weights.size - m_index[0]
     return values[:until_i], weights[:until_i]
 
+def warning_cutoff_histo(args, max_adaptive_cutoff):
+    
+    print(f"""
+    #############################
+    
+    -------------------
+    WARNING
+    -------------------
+
+    Found an adaptive cutoff greater then the cutoff used to generate the histogram:
+    histogram cutoff = {args.cutoff}
+    maximum adaptive cutoff = {max_adaptive_cutoff}
+
+    Be careful!. This could create errors.
+    If this is not wanted, please recalculate the histograms setting the cutoff to at least cutoff={max_adaptive_cutoff}
+    
+    #############################
+    """)
+
+
 def calculate_intra_probabilities(args):
 
     topology_mego = pmd.load_file(args.mego_top)
@@ -271,7 +292,10 @@ def calculate_intra_probabilities(args):
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
+
+        #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0+0.75
 
         ########################
@@ -317,9 +341,14 @@ def calculate_intra_probabilities(args):
         df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
-        output_file=args.out+f"intramat_{mol_list[i]}_{mol_list[i]}.ndx"
+        if not args.out_name:
+            output_file=args.out+f"intramat_{mol_list[i]}_{mol_list[i]}.ndx"
+            print(f"Saving output for molecule {mol_list[i]} in {output_file}")
 
-        print(f"Saving output for molecule {mol_list[i]} in {output_file}")
+        else:
+            output_file=args.out+f"intramat_"+args.out_name+f"_{mol_list[i]}_{mol_list[i]}.ndx"
+            print(f"Saving output for molecule {mol_list[i]} in {output_file}")
+        
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_inter_probabilities(args):
@@ -373,37 +402,43 @@ def calculate_inter_probabilities(args):
 
         if mol_i==mol_j:
             if N_mols[mol_i-1]==1:
-               print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
-               columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
-               matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
-               indeces_ai=np.array(list(matrix_index)).T[0]
-               indeces_aj=np.array(list(matrix_index)).T[1]
-               df=pd.DataFrame(columns=columns)
-               df['mi'] = [ mol_i for x in range(1, original_size_i*original_size_j+1) ]
-               df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
-               df['ai'] = indeces_ai
-               df['aj'] = indeces_aj
-               df['dist']    = 0.
-               df['c12dist'] = 0.
-               df['hdist']   = 0.
-               df['p']       = 0.
-               df['cutoff']  = 0.
-               df['is_gauss']= 0
-               df['mi'] = df['mi'].map('{:}'.format)
-               df['mj'] = df['mj'].map('{:}'.format)
-               df['ai'] = df['ai'].map('{:}'.format)
-               df['aj'] = df['aj'].map('{:}'.format)
-               df['dist'] = df['dist'].map('{:,.6f}'.format)
-               df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-               df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-               df['p'] = df['p'].map('{:,.6f}'.format)
-               df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-               df['is_gauss'] = df['is_gauss'].map('{:}'.format)
-               df.index = range(len(df.index))
-               output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
-               print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-               df.to_csv(output_file, index=False, sep=' ', header=False)
-               continue
+                print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
+                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
+                matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
+                indeces_ai=np.array(list(matrix_index)).T[0]
+                indeces_aj=np.array(list(matrix_index)).T[1]
+                df=pd.DataFrame(columns=columns)
+                df['mi'] = [ mol_i for x in range(1, original_size_i*original_size_j+1) ]
+                df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
+                df['ai'] = indeces_ai
+                df['aj'] = indeces_aj
+                df['dist']    = 0.
+                df['c12dist'] = 0.
+                df['hdist']   = 0.
+                df['p']       = 0.
+                df['cutoff']  = 0.
+                df['is_gauss']= 0
+                df['mi'] = df['mi'].map('{:}'.format)
+                df['mj'] = df['mj'].map('{:}'.format)
+                df['ai'] = df['ai'].map('{:}'.format)
+                df['aj'] = df['aj'].map('{:}'.format)
+                df['dist'] = df['dist'].map('{:,.6f}'.format)
+                df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
+                df['hdist'] = df['hdist'].map('{:,.6f}'.format)
+                df['p'] = df['p'].map('{:,.6f}'.format)
+                df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
+                df['is_gauss'] = df['is_gauss'].map('{:}'.format)
+                df.index = range(len(df.index))
+                if not args.out_name:
+                    output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
+                    print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+
+                else:
+                    output_file=args.out+f"intermat_"+args.out_name+f"_{mol_i}_{mol_j}.ndx"
+                    print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+
+                df.to_csv(output_file, index=False, sep=' ', header=False)
+                continue
 
         protein_ref_indices_i = np.array([ i+1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != 'H' ])
         protein_ref_indices_j = np.array([ i+1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != 'H' ])
@@ -443,6 +478,7 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
+        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0 + 0.75
 
         ########################
@@ -488,9 +524,14 @@ def calculate_inter_probabilities(args):
         df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
-        output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
+        if not args.out_name:
+            output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
+            print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
 
-        print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+        else:
+            output_file=args.out+f"intermat_"+args.out_name+f"_{mol_i}_{mol_j}.ndx"
+            print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+        
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -505,9 +546,20 @@ if __name__ == '__main__':
     parser.add_argument('--mego_top', required=True, help='''Path to the standard multi-eGO topology of the system generated by pdb2gmx''')
     parser.add_argument('--inter', action='store_true', help='Sets the caculation to be adapted to intermolecular calculations of histograms')
     parser.add_argument('--out', default='./', help='''Sets the output path''')
+    parser.add_argument('--out_name', help='''Sets the output name of files to be added to the default one: intermat_<out_name>_mi_mj.ndx or intramat_<out_name>_mi_mj.ndx''')
     parser.add_argument('--proc', default=1, type=int, help='Sets the number of processes to perform the calculation')
     parser.add_argument('--cutoff', required=True, type=float, help='To be set to the max cutoff used for the accumulation of the histograms')
     args = parser.parse_args()
+    
+    #check if output file exists
+    if not os.path.exists(args.out):
+        print(f"The path '{args.out}' does not exist.")
+        sys.exit()
+
+    #check if directory has a final "/" in name and adding it if doesn't
+    if args.out[-1]!="/":
+        print("--out requires a path: path/to/directory/. Missing last '/'. Adding '/' to output file ") 
+        args.out=args.out+"/"
 
     N_BINS = args.cutoff / ( 0.01 / 4 )
     DX = args.cutoff / N_BINS
