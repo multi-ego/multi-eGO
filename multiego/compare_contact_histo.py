@@ -1,6 +1,5 @@
 from genericpath import exists
 import os
-import sys
 from unittest import result
 import pandas as pd
 import numpy as np
@@ -9,6 +8,7 @@ import multiprocessing
 import argparse
 import itertools
 import time
+import sys
 
 ################################################################
 import warnings                                                #
