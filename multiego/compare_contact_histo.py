@@ -1,5 +1,4 @@
 import os
-from unittest import result
 import pandas as pd
 import numpy as np
 import parmed as pmd
