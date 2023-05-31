@@ -533,7 +533,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']<1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['same_chain']==False)&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*meGO_LJ['distance_m']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance_m']**12/meGO_LJ['rc_distance_m']**12))
 
     # mild c12s (for small probability ratios): smaller
-    meGO_LJ.loc[(meGO_LJ['probability']<=limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])>0.)&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12 
+    meGO_LJ.loc[(meGO_LJ['probability']<=limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])>0.)&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12 
     # mild c12s (for small probability ratios): larger 
     meGO_LJ.loc[(meGO_LJ['probability']>=1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']<=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12
 
@@ -571,7 +571,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # process check_dataset
     if not check_dataset.empty:
         # Remove low probability ones
-        meGO_check_contacts = check_dataset.loc[(check_dataset['probability']>limit_rc*parameters.md_threshold)].copy()
+        meGO_check_contacts = check_dataset.loc[(check_dataset['probability']>parameters.md_threshold)&(check_dataset['probability']>=check_dataset['rc_probability'])].copy()
         meGO_check_contacts = meGO_check_contacts.loc[~((meGO_check_contacts['same_chain']==True)&(meGO_check_contacts['1-4']!="1>4"))]
         meGO_check_contacts['sigma'] = (meGO_check_contacts['distance']) / (2.**(1./6.))
         meGO_check_contacts['learned'] = 0
