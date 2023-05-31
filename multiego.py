@@ -3,7 +3,7 @@ import multiego.io
 import multiego.util.float_range
 
 import argparse
-# import concurrent.futures
+import pandas as pd
 import sys
 import os
 
@@ -39,32 +39,25 @@ if __name__ == '__main__':
     if not os.path.exists('outputs'): os.mkdir('outputs')
     output_dir = multiego.io.create_output_directories(args)
 
-    print('Checking the presence of directories, .top, and .ndx files')
+    print('- Checking for input files and folders')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
     multiego.io.check_files_existence(args.egos, args.system, md_ensembles_list)
-    # TODO qui potrei aggiungere un print che mi dice tutte le cartelle che sta leggendo prima di farlo
-
-    # Reading and preparing all the simulations defined in --train_from
-    # with concurrent.futures.ThreadPoolExecutor() as executor:
-        # submit the read_subfolders function to be executed in parallel
-        # results = [executor.submit(read_simulations, args, simulation) for simulation in md_ensembles_list]
-        # ensembles = [result.result() for result in concurrent.futures.as_completed(results)]
-    ensembles = []
-    for simulation in md_ensembles_list:
-        simulation_path = f'{args.system}/{simulation}'
-        ensemble = multiego.ensemble.initialize_ensemble(simulation_path, args.egos)
-        ensembles.append(ensemble)
 
     # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')
-    # multiego_ensemble = Multi_eGO_multiego.ensemble(args)
-    meGO_ensemble = {}
-
-    for ensemble in ensembles:
-        meGO_ensemble = multiego.ensemble.merge_ensembles(meGO_ensemble, ensemble, args.check_with)
-    
-    multiego.ensemble.check_topology_conversion(meGO_ensemble, args.egos)
+    meGO_ensemble = multiego.ensemble.init_meGO_ensemble(args.system, args.egos, args.train_from, args.check_with)
     meGO_ensemble = multiego.ensemble.generate_bonded_interactions(meGO_ensemble)
-    meGO_LJ_potential, meGO_LJ_14 = multiego.ensemble.generate_LJ_potential(meGO_ensemble, args)
+
+    print('- Generating the model')
+    pairs14, exclusion_bonds14 = multiego.ensemble.generate_14_data(meGO_ensemble)
+    if args.egos == 'rc':
+        meGO_LJ = pd.DataFrame()
+        meGO_LJ_14 = pairs14
+        meGO_LJ_14['epsilon'] = - meGO_LJ_14['c12']
+    else:
+       train_dataset, check_dataset = multiego.ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14) 
+       meGO_LJ, meGO_LJ_14  = multiego.ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
+
+    meGO_LJ_14 = multiego.ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
     
-    multiego.io.write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, args, output_dir)
+    multiego.io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir)

@@ -81,8 +81,8 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         Path to the output directory 
     '''
     print('- Writing Multi-eGO model')
-    write_topology(meGO_ensemble['reference_topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
-    write_nonbonded(meGO_ensemble['reference_topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
+    write_topology(meGO_ensemble['topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
+    write_nonbonded(meGO_ensemble['topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
 
     print('\n- The model is baked with the following parameters:\n')
     for argument, value in vars(parameters).items():
