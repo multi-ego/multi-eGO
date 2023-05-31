@@ -39,13 +39,11 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     return molecule_type_dict
 
 
-def initialize_ensemble_topology(topology, simulation):
+def initialize_reference_topology(topology):
     '''
     '''
     # In a single topology different type of molecules can be present (e.g. protein, ligand).
     # For each molecule the different atomtypes are saved.
-    print(
-        '\t-', f'Reading {simulation} topology containing: {topology.molecules}')
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
@@ -58,15 +56,13 @@ def initialize_ensemble_topology(topology, simulation):
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = assign_molecule_type(
             molecule_type_dict, molecule_name, molecule_topology[0])
-        ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {
-        }
+        ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
         ensemble_topology_dataframe = pd.concat(
             [ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx+1))
             col_molecule.append(f'{molecule_number}_{molecule_name}')
             new_resnum.append(str(atom.residue.number))
-    # del molecule_name
 
     ensemble_topology_dataframe['number'] = new_number
     ensemble_topology_dataframe['molecule'] = col_molecule
@@ -94,7 +90,59 @@ def initialize_ensemble_topology(topology, simulation):
 
     return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
 
-def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtype_dictionary, simulation):
+
+def initialize_ensemble_topology(topology):
+    '''
+    '''
+    # In a single topology different type of molecules can be present (e.g. protein, ligand).
+    columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
+                       'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
+    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
+
+    molecule_type_dict = {}
+    # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
+    for atom in topology.atoms:
+        temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
+
+    for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
+        molecule_type_dict = assign_molecule_type(
+            molecule_type_dict, molecule_name, molecule_topology[0])
+        ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
+        ensemble_topology_dataframe = pd.concat(
+            [ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        for atom in molecule_topology[0].atoms:
+            new_number.append(str(atom.idx+1))
+            col_molecule.append(f'{molecule_number}_{molecule_name}')
+            new_resnum.append(str(atom.residue.number))
+
+    ensemble_topology_dataframe['number'] = new_number
+    ensemble_topology_dataframe['molecule'] = col_molecule
+    ensemble_topology_dataframe['molecule_number'] = col_molecule
+    ensemble_topology_dataframe[['molecule_number', 'molecule_name']] = ensemble_topology_dataframe.molecule.str.split('_', expand=True)
+    ensemble_topology_dataframe['resnum'] = new_resnum
+    ensemble_topology_dataframe['cgnr'] = ensemble_topology_dataframe['resnum']
+    ensemble_topology_dataframe['ptype'] = 'A'
+    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({'name': multiego.resources.type_definitions.from_ff_to_multiego})
+    ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_' + ensemble_topology_dataframe['molecule_name'] + '_' + ensemble_topology_dataframe['resnum'].astype(str)
+    ensemble_topology_dataframe.rename(columns={'epsilon': 'c12'}, inplace=True)
+
+    ensemble_topology_dataframe['charge'] = 0.
+    ensemble_topology_dataframe['c6'] = 0.
+    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
+    ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
+
+    for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
+        temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
+        number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
+        ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
+    sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
+    sbtype_name_dict = ensemble_topology_dataframe[['sb_type', 'name']].set_index('sb_type')['name'].to_dict()
+    sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()   # For each molecule the different atomtypes are saved.
+
+    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary
+
+
+def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_sbtype_dictionary, simulation):
     '''
     This function is called "initialize_molecular_contacts" and it takes three arguments:
      1) contact_matrices: a dictionary of contact matrices, where the keys are the file names (intramat_1_1.ndx) and the values are the contents of the files in the form of a pandas dataframe.
@@ -114,8 +162,10 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
 
     Parameters
     ----------
-    contact_matrices : pd.DataFrame
+    contact_matrix : pd.DataFrame
         Contains the contact informations read from intra-/intermat
+    path:
+
     ensemble_molecules_inx_sbtype_dictionary : dict
         Associates atom indices to atoms named according to multi-eGO conventions
     simulation : str
@@ -123,177 +173,176 @@ def initialize_molecular_contacts(contact_matrices, ensemble_molecules_idx_sbtyp
 
     Returns
     -------
-    ensemble_contact_matrix : pd.DataFrame
-        A unified contact matrix containing contact data from all the different simulations
+    contact_matrix : pd.DataFrame
+        A contact matrix containing contact data for each of the different simulations
     '''
     print('\t\t-', f'Initializing {simulation} contact matrix')
-    ensemble_contact_matrix = pd.DataFrame()
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
         name = molecule_name.split('_')
         molecule_names_dictionary[str(name[0])] = name[1]
 
     counter = 1
-    original_contact_matrices = contact_matrices.copy()
-    for file_name, contact_matrix in original_contact_matrices.items():
+    name = path.split('/')[-1].split('_')
+    # Renaming stuff
+    contact_matrix['molecule_name_ai'] = contact_matrix['molecule_number_ai'].astype(str) + '_' + contact_matrix['molecule_number_ai'].map(molecule_names_dictionary)
+    contact_matrix['molecule_name_aj'] = contact_matrix['molecule_number_aj'].astype(str) + '_' + contact_matrix['molecule_number_aj'].map(molecule_names_dictionary)
+    contact_matrix['ai'] = contact_matrix['ai'].map(ensemble_molecules_idx_sbtype_dictionary[contact_matrix['molecule_name_ai'][0]])
+    contact_matrix['aj'] = contact_matrix['aj'].map(ensemble_molecules_idx_sbtype_dictionary[contact_matrix['molecule_name_aj'][0]])
 
-        name = file_name.split('_')
-        name = name[:-1] + name[-1].split('.')[:-1]
+    contact_matrix = contact_matrix[~contact_matrix['ai'].astype(str).str.startswith('H')]
+    contact_matrix = contact_matrix[~contact_matrix['aj'].astype(str).str.startswith('H')]
 
-        # Renaming stuff
-        contact_matrix['molecule_name_ai'] = contact_matrix['molecule_number_ai'].astype(str) + '_' + contact_matrix['molecule_number_ai'].map(molecule_names_dictionary)
-        contact_matrix['molecule_name_aj'] = contact_matrix['molecule_number_aj'].astype(str) + '_' + contact_matrix['molecule_number_aj'].map(molecule_names_dictionary)
-        contact_matrix['ai'] = contact_matrix['ai'].map(ensemble_molecules_idx_sbtype_dictionary[contact_matrix['molecule_name_ai'][0]])
-        contact_matrix['aj'] = contact_matrix['aj'].map(ensemble_molecules_idx_sbtype_dictionary[contact_matrix['molecule_name_aj'][0]])
+    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff']]
+    if name[0] == 'intramat': contact_matrix['same_chain'] = True
+    elif name[0] == 'intermat': contact_matrix['same_chain'] = False
+    else: raise Exception('There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
 
-        contact_matrix = contact_matrix[~contact_matrix['ai'].astype(str).str.startswith('H')]
-        contact_matrix = contact_matrix[~contact_matrix['aj'].astype(str).str.startswith('H')]
+    contact_matrix['source'] = simulation
+    contact_matrix['file'] = '_'.join(name)
+    contact_matrix[['idx_ai', 'idx_aj']] = contact_matrix[['ai', 'aj']]
+    contact_matrix.set_index(['idx_ai', 'idx_aj'], inplace=True)
 
-        contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff']]
-        if name[0] == 'intramat': contact_matrix['same_chain'] = True
-        elif name[0] == 'intermat': contact_matrix['same_chain'] = False
-        else: raise Exception('There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
+    return contact_matrix
 
-        contact_matrix['source'] = simulation
-        contact_matrix['file'] = '_'.join(name)
-        ensemble_contact_matrix = pd.concat([ensemble_contact_matrix, contact_matrix], axis=0)
-        ensemble_contact_matrix[['idx_ai', 'idx_aj']] = ensemble_contact_matrix[['ai', 'aj']]
-        ensemble_contact_matrix.set_index(['idx_ai', 'idx_aj'], inplace=True)
 
-    return ensemble_contact_matrix
+def init_meGO_ensemble(sysname, egos, train_from, check_with):
 
-def initialize_ensemble(simulation_path, egos):
-    '''
-    This function creates an ensemble dictionary containing various data.
-    Contents of the dictionary include:
-        - the simulation name from which the data was calculated
-        - the path to said simunlation
-        - the parmed.topology of the used for the simulation
-        - e cazzi vari
-
-    Parameters
-    ----------
-    simulation_path : string
-        The path to the directory of the simulation
-    egos : string
-        The type of simulation. Either 'rc' for random coil or 'production' for a 
-        full-fledged multi-eGO simulation
-
-    Returns
-    -------
-    ensemble : dict
-        The dictionary containing the simulation data
-    '''
-    ensemble_type = simulation_path.split('/')[-1]
+    # we initialize the reference topology
+    reference_path = f'inputs/{sysname}/reference'
+    ensemble_type = reference_path.split('/')[-1]
     print('\t-', f'Initializing {ensemble_type} ensemble topology')
-    topology_path = f'inputs/{simulation_path}/topol.top'
+    topology_path = f'{reference_path}/topol.top'
     if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
     print('\t-', f'Reading {topology_path}')
     # ignore the dihedral type overriding in parmed
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        topology = parmed.load_file(topology_path)
+        reference_topology = parmed.load_file(topology_path)
 
-    ensemble_contact_matrices = {}
-    if egos == 'rc':
-        pass
-    else:
-        matrix_paths = glob.glob(f'inputs/{simulation_path}/int??mat_?_?.ndx')
+    topology_dataframe, molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict = initialize_reference_topology(reference_topology)
+
+    reference_contact_matrices = {}
+    if egos != 'rc':
+        matrix_paths = glob.glob(f'{reference_path}/int??mat_?_?.ndx')
         if matrix_paths == []: 
             raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
         for path in matrix_paths:
-            name = path.replace(f'inputs/{simulation_path}/', '')
-            ensemble_contact_matrices[name] = multiego.io.read_molecular_contacts(path)
-    ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict = initialize_ensemble_topology(topology, ensemble_type)
-    atomic_contacts = initialize_molecular_contacts(ensemble_contact_matrices, ensemble_molecules_idx_sbtype_dictionary, ensemble_type)
+            name = path.replace('inputs/', '')
+            name = name.replace('/', '_')
+            name = name.replace('.ndx', '')
+            reference_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, 'reference')
+            reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix('rc_')
 
     ensemble = {}
-    ensemble['simulation'] = ensemble_type
-    ensemble['simulation_path'] = simulation_path
-    ensemble['topology'] = topology
-    ensemble['ensemble_topology_dataframe'] = ensemble_topology_dataframe
-    ensemble['ensemble_molecules_idx_sbtype_dictionary'] = ensemble_molecules_idx_sbtype_dictionary
-    ensemble['ensemble_contact_matrices'] = ensemble_contact_matrices
+    ensemble['topology'] = reference_topology
+    ensemble['topology_dataframe'] = topology_dataframe
+    ensemble['molecules_idx_sbtype_dictionary'] = molecules_idx_sbtype_dictionary
     ensemble['sbtype_c12_dict'] = sbtype_c12_dict
     ensemble['sbtype_name_dict'] = sbtype_name_dict
     ensemble['sbtype_moltype_dict'] = sbtype_moltype_dict
+    ensemble['sbtype_number_dict'] = ensemble['topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
     ensemble['molecule_type_dict'] = molecule_type_dict
-    ensemble['atomic_contacts'] = atomic_contacts
+    ensemble['reference_matrices'] = reference_contact_matrices
+    ensemble['train_matrix_tuples'] = []
+    ensemble['check_matrix_tuples'] = []
+  
+    if egos == 'rc':
+        return ensemble
 
-    return ensemble
-    
-def merge_ensembles(meGO_ensemble, ensemble, check_with):
-    '''
-    Merges different ensembles such as 'reference' and md_ensembles together into
-    one single object (meGO_ensemble).
+    reference_set = set(ensemble['topology_dataframe']['name'].to_list())
 
-    Parameters
-    ----------
-    meGO_ensemble : dict
-        Contains all the relevant system information of the multi-eGO ensemble
-    ensemble : dict
-        The new ensemble which is to be added to meGO_ensemble
-    check_with : list or list-like
-        Simulations passed to the --check_with flag are contained in this list. If the ensemble is 
-        contained in the check_with list it will be added to the check_with ensembles.
+    # now we process the train contact matrices
+    train_contact_matrices = {}
+    train_topology_dataframe = pd.DataFrame()
+    for simulation in train_from: 
+        print('\t-', f'Initializing {simulation} ensemble topology')
+        simulation_path = f'inputs/{sysname}/{simulation}'
+        topology_path = f'{simulation_path}/topol.top'
+        if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
+        print('\t-', f'Reading {topology_path}')
+        # ignore the dihedral type overriding in parmed
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            topology = parmed.load_file(topology_path)
 
-    Returns
-    -------
-    meGO_ensemble : dict
-        An updated meGO_ensemble with the new ensemble added to it
-    '''
-    # TODO da aggiungere il dizionario di conversione delle topologie!!!
-    print('\t-', f'Adding topology from {ensemble["simulation"]}')
+        print('\t-', f'{simulation} topology contains: {topology.molecules}')
+        temp_topology_dataframe, molecules_idx_sbtype_dictionary = initialize_ensemble_topology(topology)
+        train_topology_dataframe = pd.concat([train_topology_dataframe, temp_topology_dataframe], axis=0, ignore_index=True) 
+        matrix_paths = glob.glob(f'{simulation_path}/int??mat_?_?.ndx')
+        if matrix_paths == []: 
+            raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
+        for path in matrix_paths:
+            name = path.replace('inputs/', '')
+            name = name.replace('/', '_')
+            name = name.replace('.ndx', '')
+            train_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation)
+            ref_name = reference_path+'_'+path.split('/')[-1]
+            ref_name = ref_name.replace('inputs/', '')
+            ref_name = ref_name.replace('/', '_')
+            ref_name = ref_name.replace('.ndx', '')
+            ensemble['train_matrix_tuples'].append((name, ref_name))
 
-    if ensemble['simulation'] == 'reference':
-        # This defines as the reference structure and eventual molecules will be added
-        if not 'reference_topology_dataframe' in ensemble.keys(): meGO_ensemble['reference_topology_dataframe'] = pd.DataFrame()
-        meGO_ensemble['reference_topology'] = ensemble['topology']
-        meGO_ensemble['reference_topology_dataframe'] = pd.concat([meGO_ensemble['reference_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
-        meGO_ensemble['sbtype_c12_dict'] = ensemble['sbtype_c12_dict'] # WARNING redundant?
-        meGO_ensemble['sbtype_name_dict'] = ensemble['sbtype_name_dict'] # WARNING redundant?
-        meGO_ensemble['sbtype_moltype_dict'] = ensemble['sbtype_moltype_dict'] # WARNING redundant?
-        meGO_ensemble['sbtype_number_dict'] = meGO_ensemble['reference_topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
-        meGO_ensemble['reference_atomic_contacts'] = ensemble['atomic_contacts'].add_prefix('rc_')
-        meGO_ensemble['molecule_type_dict'] = ensemble['molecule_type_dict']
-        
-    elif ensemble['simulation'] in check_with:
-        if not 'check_atomic_contacts' in meGO_ensemble.keys(): meGO_ensemble['check_atomic_contacts'] = pd.DataFrame()
-        meGO_ensemble['check_atomic_contacts'] = pd.concat([meGO_ensemble['check_atomic_contacts'], ensemble['atomic_contacts']], axis=0, ignore_index=True)
-        
-    else:
-        if not 'meGO_topology_dataframe' in meGO_ensemble.keys(): meGO_ensemble['meGO_topology_dataframe'] = pd.DataFrame()
-        if not 'meGO_atomic_contacts' in meGO_ensemble.keys(): meGO_ensemble['meGO_atomic_contacts'] = pd.DataFrame()
-        meGO_ensemble['meGO_topology_dataframe'] = pd.concat([meGO_ensemble['meGO_topology_dataframe'], ensemble['ensemble_topology_dataframe']], axis=0, ignore_index=True)
-        meGO_ensemble['meGO_atomic_contacts'] = pd.concat([meGO_ensemble['meGO_atomic_contacts'], ensemble['atomic_contacts']], axis=0)
+    ensemble['train_matrices'] = train_contact_matrices
 
-    return meGO_ensemble
+    for number, molecule in enumerate(ensemble['topology'].molecules, 1):
+        comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe['molecule'] == f'{number}_{molecule}']
+        if not comparison_dataframe.empty:
+            comparison_set = set(comparison_dataframe[~comparison_dataframe['name'].astype(str).str.startswith('H')]['name'].to_list())
 
-def check_topology_conversion(meGO_ensemble, egos):
-    '''
-    This function is required to check the different atomtypes between different force fields.
-    The atom types MUST match otherwise a proper ffnobonded cannot be created.
+    difference_set = comparison_set.difference(reference_set)
+    if difference_set:
+        print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
+        exit()
+ 
+    # now we process the check contact matrices
+    check_contact_matrices = {}
+    check_topology_dataframe = pd.DataFrame()
+    for simulation in check_with: 
+        print('\t-', f'Initializing {simulation} ensemble topology')
+        simulation_path = f'inputs/{sysname}/{simulation}'
+        topology_path = f'{simulation_path}/topol.top'
+        if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
+        print('\t-', f'Reading {topology_path}')
+        # ignore the dihedral type overriding in parmed
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            topology = parmed.load_file(topology_path)
 
-    This function is called "check_topology_conversion" and it is a method of a class.
-    It does the following:
-        Initializes an empty set called "reference_set" and fills it with the unique 'name' values of the "reference_topology_dataframe" attribute of the class.
-        Loops through the "molecules" attribute of the "reference_topology" attribute of the class.
-        For each molecule, it creates a new DataFrame called "comparison_dataframe" by filtering the "meGO_topology_dataframe" attribute of the class by the molecule number and name (e.g. "1_protein").
-        If the "comparison_dataframe" is not empty, it creates a new set called "comparison_set" and fills it with the unique 'name' values of the "comparison_dataframe", after removing all rows with 'name' value starting with H
-        Lastly, it finds the difference between the two sets (comparison_set and reference_set) and store it in difference_set.
-        If difference_set is not empty, it prints a message indicating that the atomtypes in difference_set are not converted and that they must be added to the "from_ff_to_multiego" dictionary to properly merge all the contacts and exits the program.
-    This function is checking if there are any atom types present in the reference topology that are not present in the meGO topology and if there are any it exits the program.
-    '''
-    if egos != 'rc':
-        reference_set = set(meGO_ensemble['reference_topology_dataframe']['name'].to_list())
-        for number, molecule in enumerate(meGO_ensemble['reference_topology'].molecules, 1):
-            comparison_dataframe = meGO_ensemble['meGO_topology_dataframe'].loc[meGO_ensemble['meGO_topology_dataframe']['molecule'] == f'{number}_{molecule}']
+        print('\t-', f'{simulation} topology contains: {topology.molecules}')
+ 
+        temp_topology_dataframe, molecules_idx_sbtype_dictionary = initialize_ensemble_topology(topology)
+        check_topology_dataframe = pd.concat([check_topology_dataframe, temp_topology_dataframe], axis=0, ignore_index=True) 
+
+        matrix_paths = glob.glob(f'{simulation_path}/int??mat_?_?.ndx')
+        if matrix_paths == []: 
+            raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
+        for path in matrix_paths:
+            name = path.replace('inputs/', '')
+            name = name.replace('/', '_')
+            name = name.replace('.ndx', '')
+            check_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation)
+            ref_name = reference_path+'_'+path.split('/')[-1]
+            ref_name = ref_name.replace('inputs/', '')
+            ref_name = ref_name.replace('/', '_')
+            ref_name = ref_name.replace('.ndx', '')
+            ensemble['check_matrix_tuples'].append((name, ref_name))
+
+    ensemble['check_matrices'] = check_contact_matrices
+
+    if not check_topology_dataframe.empty:
+        for number, molecule in enumerate(ensemble['topology'].molecules, 1):
+            comparison_dataframe = check_topology_dataframe.loc[check_topology_dataframe['molecule'] == f'{number}_{molecule}']
             if not comparison_dataframe.empty:
                 comparison_set = set(comparison_dataframe[~comparison_dataframe['name'].astype(str).str.startswith('H')]['name'].to_list())
+ 
         difference_set = comparison_set.difference(reference_set)
         if difference_set:
             print(f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.')
             exit()
+
+    return ensemble 
+    
 
 def generate_bonded_interactions(meGO_ensemble):
     '''
@@ -313,7 +362,7 @@ def generate_bonded_interactions(meGO_ensemble):
     if 'bond_pairs' not in meGO_ensemble.keys(): meGO_ensemble['bond_pairs'] = {}
     if 'user_pairs' not in meGO_ensemble.keys(): meGO_ensemble['user_pairs'] = {}
 
-    for molecule, topol in meGO_ensemble['reference_topology'].molecules.items():      
+    for molecule, topol in meGO_ensemble['topology'].molecules.items():      
         meGO_ensemble['meGO_bonded_interactions'][molecule] = {
             'bonds' : multiego.topology.get_bonds(topol[0].bonds),
             'angles' : multiego.topology.get_angles(topol[0].angles),
@@ -328,35 +377,12 @@ def generate_bonded_interactions(meGO_ensemble):
     return meGO_ensemble
 
 
-    # def parametrize_LJ(topology_dataframe, molecule_type_dict, bond_tuple, pairs_tuple, type_c12_dict, meGO_atomic_contacts, reference_atomic_contacts, check_atomic_contacts, sbtype_number_dict, parameters):
-def parametrize_LJ(meGO_ensemble, parameters):
-    '''
-    This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
-    The random coil probabilities are used to reweight the explicit water ones.
-    Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
-    For each atom contact the sigma and epsilon are obtained.
-
-    Parameters
-    ----------
-    meGO_ensemble : dict
-        Contains the relevant meGO data such as interactions and statistics
-    parameters : dict
-        Contains the command-line parsed parameters
-
-    Returns
-    -------
-    meGO_atomic_contacts_merged : pd.DataFrame
-        Contains the non-bonded atomic contacts associated to LJ parameters and statistics
-    meGO_LJ_14 : pd.DataFrame
-        Contains the 1-4 (paris-exclusions) atomic contacts associated to LJ parameters and statistics
-    '''
-
+def generate_14_data(meGO_ensemble):
     # First of all we generate the random-coil 1-4 interactions:
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
-
     for molecule, bond_pair in meGO_ensemble['bond_pairs'].items():
-        reduced_topology = meGO_ensemble['reference_topology_dataframe'].loc[meGO_ensemble['reference_topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
+        reduced_topology = meGO_ensemble['topology_dataframe'].loc[meGO_ensemble['topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
 
         reduced_topology['number'] = reduced_topology['number'].astype(str)
         reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
@@ -403,173 +429,240 @@ def parametrize_LJ(meGO_ensemble, parameters):
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
+    return pairs14, exclusion_bonds14
 
-    if parameters.egos != 'rc':
-        meGO_atomic_contacts_merged = pd.merge(meGO_ensemble['meGO_atomic_contacts'], meGO_ensemble['reference_atomic_contacts'], left_index=True, right_index=True, how='outer')
-        # TODO throw an error if rc data is missing for some contacts
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[meGO_atomic_contacts_merged['same_chain'] == meGO_atomic_contacts_merged['rc_same_chain']]
 
+def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
+
+    # we cycle over train matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
+    train_dataset = pd.DataFrame()
+    for (name, ref_name) in meGO_ensemble['train_matrix_tuples']:
+        #sysname_train_from_intramat_1_1 <-> sysname_reference_intramat_1_1
+        if not ref_name in meGO_ensemble['reference_matrices'].keys():
+            raise RuntimeError('say something')
+
+        temp_merged = pd.merge(meGO_ensemble['train_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
+        train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
+
+    # This is to FLAG 1-2, 1-3, 1-4 cases:
+    train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
+    train_dataset.loc[(train_dataset['ai']==train_dataset['aj']), '1-4'] = '0'
+    train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
+    # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
+    train_dataset = pd.merge(train_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
+    train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
+    train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
+    train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
+    train_dataset['rep'] = train_dataset['rep'].fillna(np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+
+    # we cycle over check matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
+    check_dataset = pd.DataFrame()
+    for (name, ref_name) in meGO_ensemble['check_matrix_tuples']:
+        #sysname_check_from_intramat_1_1 <-> sysname_reference_intramat_1_1
+        if not ref_name in meGO_ensemble['reference_matrices'].keys():
+            raise RuntimeError('say something')
+
+        temp_merged = pd.merge(meGO_ensemble['check_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
+        check_dataset = pd.concat([check_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
+
+    if not check_dataset.empty:
         # This is to FLAG 1-2, 1-3, 1-4 cases:
-        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
-        meGO_atomic_contacts_merged['1-4'] = meGO_atomic_contacts_merged['1-4'].fillna('1>4')
+        check_dataset = pd.merge(check_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
+        check_dataset.loc[(check_dataset['ai']==check_dataset['aj']), '1-4'] = '0'
+        check_dataset['1-4'] = check_dataset['1-4'].fillna('1>4')
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
-        meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['rep'].notna())&(meGO_atomic_contacts_merged['rep']!=0.), '1-4'] = '1_4'
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']=="1_2_3"), 'rep'] = 0.
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['rep'].isnull()), 'rep'] = 0.
-        meGO_atomic_contacts_merged['rep'] = meGO_atomic_contacts_merged['rep'].fillna(np.sqrt(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_atomic_contacts_merged['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+        check_dataset = pd.merge(check_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
+        check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
+        check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
+        check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
+        check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
 
-        # this is the minimum probability ratio for attractive contacts and is set so that epsilon should not be smaller than 0.1*epsilon
-        limit_rc = 1./parameters.rc_threshold**0.1
-        # This keep only significat attractive/repulsive interactions
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)|((meGO_atomic_contacts_merged['probability']<=parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)))]
-        # This cleans contacts with just a small tailed histogram
-        #meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['distance']<meGO_atomic_contacts_merged['cutoff']-0.02)|(meGO_atomic_contacts_merged['probability']>0.01)] 
+    return train_dataset, check_dataset
 
-        # Add sigma, add epsilon reweighted, add c6 and c12
-        meGO_atomic_contacts_merged['sigma'] = (meGO_atomic_contacts_merged['distance']) / (2.**(1./6.))
-        meGO_atomic_contacts_merged['epsilon'] = np.nan 
 
-        # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
-        # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
-        meGO_atomic_contacts_merged.reset_index(inplace=True)
+def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
+    '''
+    This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
+    The random coil probabilities are used to reweight the explicit water ones.
+    Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
+    For each atom contact the sigma and epsilon are obtained.
 
-        # Epsilon reweight based on probability
-        # Paissoni Equation 2.1
-        # Attractive intramolecular
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
-        # Attractive intermolecular
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_atomic_contacts_merged['probability']/np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold)))
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        Contains the relevant meGO data such as interactions and statistics
+    parameters : dict
+        Contains the command-line parsed parameters
 
-        # Probability only Repulsive intramolecular
-        meGO_atomic_contacts_merged.loc[(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)<1./limit_rc*meGO_atomic_contacts_merged['rc_probability'])&(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_atomic_contacts_merged['cutoff']**12*np.log(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-meGO_atomic_contacts_merged['rep']
-        # Probability only Repulsive intermolecular
-        meGO_atomic_contacts_merged.loc[(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)<1./limit_rc*meGO_atomic_contacts_merged['rc_probability'])&(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*meGO_atomic_contacts_merged['cutoff']**12*np.log(np.maximum(meGO_atomic_contacts_merged['probability'],parameters.rc_threshold)/meGO_atomic_contacts_merged['rc_probability'])-meGO_atomic_contacts_merged['rep']
+    Returns
+    -------
+    meGO_atomic_contacts_merged : pd.DataFrame
+        Contains the non-bonded atomic contacts associated to LJ parameters and statistics
+    meGO_LJ_14 : pd.DataFrame
+        Contains the 1-4 (paris-exclusions) atomic contacts associated to LJ parameters and statistics
+    '''
 
-        # Full Repulsive intramolecular
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']<1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['same_chain']==True)&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_atomic_contacts_merged['distance_m']**12*np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
-        # Full Repulsive intermolecular
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']<1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['same_chain']==False)&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*meGO_atomic_contacts_merged['distance_m']**12*np.log(meGO_atomic_contacts_merged['probability']/meGO_atomic_contacts_merged['rc_probability'])-(meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']**12/meGO_atomic_contacts_merged['rc_distance_m']**12))
+    # this is the minimum probability ratio for attractive contacts and is set so that epsilon should not be smaller than 0.1*epsilon
+    limit_rc = 1./parameters.rc_threshold**0.1
+    # This keep only significat attractive/repulsive interactions
+    meGO_LJ = train_dataset.loc[(train_dataset['probability']>parameters.md_threshold)|((train_dataset['probability']<=parameters.md_threshold)&(train_dataset['rc_probability']>limit_rc*np.maximum(train_dataset['probability'],parameters.rc_threshold)))].copy()
 
-        # mild c12s (for small probability ratios): smaller
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']<=limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']>meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])>0.)&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold), 'epsilon'] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12 
-        # mild c12s (for small probability ratios): larger 
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['probability']>=1./limit_rc*np.maximum(meGO_atomic_contacts_merged['rc_probability'],parameters.rc_threshold))&(meGO_atomic_contacts_merged['probability']<=meGO_atomic_contacts_merged['rc_probability'])&((meGO_atomic_contacts_merged['rc_distance_m']-meGO_atomic_contacts_merged['distance_m'])<0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['probability']>parameters.md_threshold), 'epsilon'] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_m']/meGO_atomic_contacts_merged['rc_distance_m'])**12
+    # Add sigma, add epsilon reweighted, add c6 and c12
+    meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
+    meGO_LJ['epsilon'] = np.nan 
 
-        # This set the default (random coil) value for selected 1-4 interactions
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4'] == '1_4'), 'epsilon'] = -meGO_atomic_contacts_merged['rep']
-        # Rescale c12 1-4 interactions 
-        meGO_atomic_contacts_merged.loc[(np.abs(meGO_atomic_contacts_merged['rc_distance_14']-meGO_atomic_contacts_merged['distance_14'])>0.)&(meGO_atomic_contacts_merged['rc_probability']>parameters.md_threshold)&(meGO_atomic_contacts_merged['1-4']=="1_4")&(meGO_atomic_contacts_merged['same_chain']==True), 'epsilon'] = -meGO_atomic_contacts_merged['rep']*(meGO_atomic_contacts_merged['distance_14']/meGO_atomic_contacts_merged['rc_distance_14'])**12
+    # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
+    # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
+    meGO_LJ.reset_index(inplace=True)
 
-        # remove self interactions for proteins' side-chains
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['ai']==meGO_atomic_contacts_merged['aj'])&(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&~((meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'epsilon'] = 0.
+    # Epsilon reweight based on probability
+    # Paissoni Equation 2.1
+    # Attractive intramolecular
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    # Attractive intermolecular
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
 
-        # Here we are reindexing like before
-        meGO_atomic_contacts_merged[['idx_ai', 'idx_aj']] = meGO_atomic_contacts_merged[['ai', 'aj']]
-        meGO_atomic_contacts_merged.set_index(['idx_ai', 'idx_aj'], inplace=True)
+    # Probability only Repulsive intramolecular
+    meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
+    # Probability only Repulsive intermolecular
+    meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==False)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
 
-        # clean NaN and zeros
-        meGO_atomic_contacts_merged.dropna(subset=['epsilon'], inplace=True)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged.epsilon != 0]
+    # Full Repulsive intramolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['same_chain']==True)&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['distance_m']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance_m']**12/meGO_LJ['rc_distance_m']**12))
+    # Full Repulsive intermolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['same_chain']==False)&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*meGO_LJ['distance_m']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance_m']**12/meGO_LJ['rc_distance_m']**12))
 
-        # remove unnecessary fields
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']]
-        # Inverse pairs calvario
-        # this must list ALL COLUMNS!
-        inverse_meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']].copy()
-        inverse_meGO_atomic_contacts_merged.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-        'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']
-        # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
-        meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, inverse_meGO_atomic_contacts_merged], axis=0, sort=False, ignore_index=True)
+    # mild c12s (for small probability ratios): smaller
+    meGO_LJ.loc[(meGO_LJ['probability']<=limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']>meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])>0.)&(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12 
+    # mild c12s (for small probability ratios): larger 
+    meGO_LJ.loc[(meGO_LJ['probability']>=1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']<=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12
 
-        # process check_atomic_contacts
-        if 'check_atomic_contacts' in meGO_ensemble.keys():
-            if not meGO_ensemble['check_atomic_contacts'].empty:
-                # Remove low probability ones
-                meGO_ensemble['check_atomic_contacts'] = meGO_ensemble['check_atomic_contacts'].loc[(meGO_ensemble['check_atomic_contacts']['probability']>limit_rc*parameters.md_threshold)] 
-                meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged, meGO_ensemble['check_atomic_contacts']], axis=0, sort=False, ignore_index=True)
-                meGO_atomic_contacts_merged.drop_duplicates(inplace=True, ignore_index = True)
-                # this calculates the increase in energy (if any) to reach the "check" configuration
-                energy_at_check_dist = meGO_atomic_contacts_merged.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
-                meGO_atomic_contacts_merged = pd.merge(meGO_atomic_contacts_merged, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
-                ## remove check_with contacts 
-                meGO_atomic_contacts_merged=meGO_atomic_contacts_merged[~meGO_atomic_contacts_merged.source.isin(parameters.check_with)]
-                ## rescale problematic contacts
-                meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==True)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.epsilon)&(meGO_atomic_contacts_merged['1-4']!="1_4"), 'epsilon'] *= parameters.epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
-                meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['same_chain']==False)&(meGO_atomic_contacts_merged['energy_at_check_dist']>parameters.inter_epsilon), 'epsilon'] *= parameters.inter_epsilon/meGO_atomic_contacts_merged['energy_at_check_dist']
-                meGO_atomic_contacts_merged.drop('energy_at_check_dist', axis=1, inplace=True)
+    # This set the default (random coil) value for selected 1-4 interactions
+    meGO_LJ.loc[(meGO_LJ['1-4'] == '1_4'), 'epsilon'] = -meGO_LJ['rep']
+    # Rescale c12 1-4 interactions 
+    meGO_LJ.loc[(np.abs(meGO_LJ['rc_distance_14']-meGO_LJ['distance_14'])>0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['1-4']=="1_4")&(meGO_LJ['same_chain']==True), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
 
-        # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
-        # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
-        # meGO_LJ_14 will be handled differently to overcome this issue.
-        meGO_LJ_14 = meGO_atomic_contacts_merged.copy()
+    # remove self interactions for proteins' side-chains
+    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'epsilon'] = 0.
 
-        # Here we sort all the atom pairs based on the distance and we keep the closer ones.
-        # Sorting the pairs prioritising intermolecular interactions and shorter length ones
-        meGO_atomic_contacts_merged.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
+    # Here we are reindexing like before
+    meGO_LJ[['idx_ai', 'idx_aj']] = meGO_LJ[['ai', 'aj']]
+    meGO_LJ.set_index(['idx_ai', 'idx_aj'], inplace=True)
+
+    # clean NaN and zeros
+    meGO_LJ.dropna(subset=['epsilon'], inplace=True)
+    meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
+
+    # remove unnecessary fields
+    meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']]
+    # Inverse pairs calvario
+    # this must list ALL COLUMNS!
+    inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']].copy()
+    inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']
+    # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
+    meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
+
+    # add a flag to identify learned contacts vs check ones
+    meGO_LJ['learned'] = 1
+
+    # process check_dataset
+    if not check_dataset.empty:
+        # Remove low probability ones
+        meGO_check_contacts = check_dataset.loc[(check_dataset['probability']>limit_rc*parameters.md_threshold)].copy()
+        meGO_check_contacts = meGO_check_contacts.loc[~((meGO_check_contacts['same_chain']==True)&(meGO_check_contacts['1-4']!="1>4"))]
+        meGO_check_contacts['sigma'] = (meGO_check_contacts['distance']) / (2.**(1./6.))
+        meGO_check_contacts['learned'] = 0
+        # set the epsilon of these contacts using the default c12 repulsive term
+        meGO_check_contacts['epsilon'] = -meGO_check_contacts['rep']
+        meGO_LJ = pd.concat([meGO_LJ, meGO_check_contacts], axis=0, sort=False, ignore_index=True)
+        meGO_LJ.drop_duplicates(inplace=True, ignore_index = True)
+        # this calculates the increase in energy (if any) to form the "check" contact 
+        energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
+        meGO_LJ = pd.merge(meGO_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
+        # now we should keep only those check_with contacts that are unique and whose energy_at_check_dist is large 
+        meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'learned'], ascending = [True, True, True, False], inplace = True)
         # Cleaning the duplicates
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        # Removing the reverse duplicates
-        cols = ['ai', 'aj']
-        meGO_atomic_contacts_merged[cols] = np.sort(meGO_atomic_contacts_merged[cols].values, axis=1)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+        meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
+        ## rescale problematic contacts
+        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon)&(meGO_LJ['1-4']=="1>4"), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
+        meGO_LJ.loc[(meGO_LJ['same_chain']==False)&(meGO_LJ['energy_at_check_dist']>parameters.inter_epsilon), 'epsilon'] *= parameters.inter_epsilon/meGO_LJ['energy_at_check_dist']
+        meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
 
-        # Pairs prioritise intramolecular interactions
-        meGO_LJ_14.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
-        meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-        meGO_LJ_14[cols] = np.sort(meGO_LJ_14[cols].values, axis=1)
-        meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
+    # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
+    # meGO_LJ_14 will be handled differently to overcome this issue.
+    meGO_LJ_14 = meGO_LJ.copy()
 
-        # where meGO_LJ_14 is the same of meGO_atomic_contacts_merged and same_chain is yes that the line can be dropped
-        # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_atomic_contacts_merged
-        test = pd.merge(meGO_LJ_14, meGO_atomic_contacts_merged, how="right", on=["ai", "aj"])
-        meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
-        meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y'])
-        meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff'}, inplace = True)
+    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
+    # Sorting the pairs prioritising intermolecular interactions and shorter length ones
+    meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, True, True], inplace = True)
+    # Cleaning the duplicates
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    meGO_LJ[cols] = np.sort(meGO_LJ[cols].values, axis=1)
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-        # copy 1-4 interactions into meGO_LJ_14
-        copy14 = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']=='1_4')]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14,copy14], axis=0, sort = False, ignore_index = True)
-        # remove them from the default force-field
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['1-4']!='1_4')]
+    # Pairs prioritise intramolecular interactions
+    meGO_LJ_14.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma'], ascending = [True, True, False, True], inplace = True)
+    meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+    meGO_LJ_14[cols] = np.sort(meGO_LJ_14[cols].values, axis=1)
+    meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
-        meGO_atomic_contacts_merged['c6'] = 4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 6)
-        meGO_atomic_contacts_merged['c12'] = abs(4 * meGO_atomic_contacts_merged['epsilon'] * (meGO_atomic_contacts_merged['sigma'] ** 12))
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['epsilon']<0.), 'c6'] = 0.
-        meGO_atomic_contacts_merged.loc[(meGO_atomic_contacts_merged['epsilon']<0.), 'c12'] = -meGO_atomic_contacts_merged['epsilon']
+    # where meGO_LJ_14 is the same of meGO_LJ and same_chain is yes that the line can be dropped
+    # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_LJ
+    test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
+    meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
+    meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y'])
+    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff'}, inplace = True)
 
-        meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
-        meGO_LJ_14['c12'] = abs(4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 12))
-        # repulsive interactions have just a very large C12
-        meGO_LJ_14.loc[(meGO_LJ_14['epsilon']<0.), 'c6'] = 0.
-        meGO_LJ_14.loc[(meGO_LJ_14['epsilon']<0.), 'c12'] = -meGO_LJ_14['epsilon']  
+    # copy 1-4 interactions into meGO_LJ_14
+    copy14 = meGO_LJ.loc[(meGO_LJ['1-4']=='1_4')]
+    meGO_LJ_14 = pd.concat([meGO_LJ_14,copy14], axis=0, sort = False, ignore_index = True)
+    # remove them from the default force-field
+    meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_4')]
 
-        meGO_atomic_contacts_merged['type'] = 1
-        meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['ai'].map(meGO_ensemble['sbtype_number_dict'])
-        meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['aj'].map(meGO_ensemble['sbtype_number_dict'])
-        meGO_atomic_contacts_merged['number_ai'] = meGO_atomic_contacts_merged['number_ai'].astype(int)
-        meGO_atomic_contacts_merged['number_aj'] = meGO_atomic_contacts_merged['number_aj'].astype(int)
+    meGO_LJ['c6'] = 4 * meGO_LJ['epsilon'] * (meGO_LJ['sigma'] ** 6)
+    meGO_LJ['c12'] = abs(4 * meGO_LJ['epsilon'] * (meGO_LJ['sigma'] ** 12))
+    meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c6'] = 0.
+    meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c12'] = -meGO_LJ['epsilon']
 
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff']]
-        # Here we want to sort so that ai is smaller than aj
-        inv_meGO = meGO_atomic_contacts_merged[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff']].copy()
-        inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff'] 
-        meGO_atomic_contacts_merged = pd.concat([meGO_atomic_contacts_merged,inv_meGO], axis=0, sort = False, ignore_index = True)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged[meGO_atomic_contacts_merged['number_ai']<=meGO_atomic_contacts_merged['number_aj']]
-        meGO_atomic_contacts_merged.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
-        meGO_atomic_contacts_merged = meGO_atomic_contacts_merged.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-    else:
-        meGO_atomic_contacts_merged = pd.DataFrame()
-        meGO_LJ_14 = pairs14
-        meGO_LJ_14['epsilon'] = -meGO_LJ_14['c12'] 
+    meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
+    meGO_LJ_14['c12'] = abs(4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 12))
+    # repulsive interactions have just a very large C12
+    meGO_LJ_14.loc[(meGO_LJ_14['epsilon']<0.), 'c6'] = 0.
+    meGO_LJ_14.loc[(meGO_LJ_14['epsilon']<0.), 'c12'] = -meGO_LJ_14['epsilon']  
 
-    return meGO_atomic_contacts_merged, meGO_LJ_14
+    meGO_LJ['type'] = 1
+    meGO_LJ['number_ai'] = meGO_LJ['ai'].map(meGO_ensemble['sbtype_number_dict'])
+    meGO_LJ['number_aj'] = meGO_LJ['aj'].map(meGO_ensemble['sbtype_number_dict'])
+    meGO_LJ['number_ai'] = meGO_LJ['number_ai'].astype(int)
+    meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
+
+    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff']]
+    # Here we want to sort so that ai is smaller than aj
+    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff']].copy()
+    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff'] 
+    meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
+    meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
+    meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    return meGO_LJ, meGO_LJ_14
+
 
 def check_LJ(test, parameters):
-    if len(test) == 1: 
-        return 0. 
+    energy = 0
+    if len(test) == 1:
+        if (len(test.loc[test.source.isin(parameters.check_with)])) == 1:
+            # default c12
+            eps = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+            #distance comes from check
+            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+            energy = -eps/(dist_check)**12
     else:
         #distance comes from check
         dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
@@ -578,15 +671,12 @@ def check_LJ(test, parameters):
         #epsilon from train
         if dist_check < dist_train:
             eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
-        else:
-            eps = 0.
+            energy = -eps/(dist_check)**12+eps/(dist_train)**12
  
-        if eps < 0. :
-            return -eps/(dist_check)**12+eps/(dist_train)**12
-        else:
-            return 0.
+    return energy
 
-def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14): #topology_dataframe, bond_tuple, type_c12_dict, meGO_LJ_14, parameters):
+
+def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
     
@@ -604,7 +694,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14): #topology_datafram
     '''
     pairs_molecule_dict = {}
     for molecule, bond_pair in meGO_ensemble['bond_pairs'].items():
-        reduced_topology = meGO_ensemble['reference_topology_dataframe'].loc[meGO_ensemble['reference_topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
+        reduced_topology = meGO_ensemble['topology_dataframe'].loc[meGO_ensemble['topology_dataframe']['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'name', 'type', 'resname', 'molecule_type']].copy()
 
         reduced_topology['number'] = reduced_topology['number'].astype(str)
         reduced_topology['resnum'] = reduced_topology['resnum'].astype(int)
@@ -658,27 +748,3 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14): #topology_datafram
         pairs_molecule_dict[molecule] = pairs
 
     return pairs_molecule_dict
-
-def generate_LJ_potential(meGO_ensemble, parameters):
-    '''
-    Wrapper for parameterize_LJ and make_pairs_exlusion_topology.
-    Takes care of passing meGO_LJ_14 to make_pairs_exlusion_topology and returns the potentials.
-
-    Parameters
-    ----------
-    meGO_ensemlbe : dict
-        The meGO_ensemble object contains all the relevant system information
-    parameters : dict
-        Contains the command-line parsed parameters
-
-    Returns
-    -------
-    meGO_LJ_potential : pd.DataFrame
-        Contains the nonbonded interaction parameters (LJ)
-    meGO_LJ_14 : pd.DataFrame
-        Contains the 1-4 inteaction parameters (LJ)
-    '''
-    meGO_LJ_potential, meGO_LJ_14 = parametrize_LJ(meGO_ensemble, parameters)
-    meGO_LJ_14 = make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
-
-    return meGO_LJ_potential, meGO_LJ_14
