@@ -12,7 +12,7 @@ def read_outfile(path):
 
     return out_string
 
-def test_system(name, egos):
+def prep_system(name, egos):
     if egos == 'rc': out_egos = egos
     else:
         out_egos = f'production_e{egos}_{egos}' if type(egos) != list else f'production_e{egos[0]}_{egos[1]}'
@@ -64,7 +64,7 @@ class TestOutputs(unittest.TestCase):
         name = 'gpref'
         egos = 0.35
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = test_system(name=name, egos=egos)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system(name=name, egos=egos)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
@@ -72,7 +72,7 @@ class TestOutputs(unittest.TestCase):
         name = 'gpref'
         egos = 'rc'
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = test_system(name=name, egos=egos)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system(name=name, egos=egos)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
@@ -80,7 +80,7 @@ class TestOutputs(unittest.TestCase):
         name = 'abetaref'
         egos = 0.35
         
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = test_system(name=name, egos=egos)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system(name=name, egos=egos)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
@@ -88,7 +88,7 @@ class TestOutputs(unittest.TestCase):
         name = 'ttrref'
         egos = [0.225, 0.3]
         
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = test_system(name=name, egos=egos)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system(name=name, egos=egos)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
