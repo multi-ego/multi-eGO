@@ -1,6 +1,6 @@
 
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
-; Created on the 31-05-2023 22:29
+; Created on the 01-06-2023 11:33
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = production          
@@ -1067,6 +1067,7 @@ OE2_GProtein_56              8 15.9994     0.0     A 0.000000e+00 1.724403e-07
   CA_GProtein_2  CG_GProtein_50     1 6.485364e-03 4.969886e-05 ; 0.444019  2.115740e-01     0.013853        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         10        382 0.569576
   CA_GProtein_2  CD_GProtein_50     1 6.925892e-03 4.951297e-05 ; 0.438908  2.421991e-01     0.035703        0.000020        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         10        383 0.569576
   CA_GProtein_2  CE_GProtein_50     1 3.898203e-03 2.119688e-05 ; 0.419342  1.792243e-01     0.012740        0.000050        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         10        384 0.569576
+  CB_GProtein_2   CA_GProtein_3     1 0.000000e+00 5.040167e-05 ; 0.413182 -5.040167e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         11         17 0.604948
   CB_GProtein_2   CB_GProtein_3     1 0.000000e+00 1.196275e-04 ; 0.501963 -1.196275e-04     0.049432        0.426551        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         11         18 0.569576
   CB_GProtein_2   CG_GProtein_3     1 0.000000e+00 1.375202e-04 ; 0.000000 -1.375202e-04     0.000000        0.062373        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         11         19 0.528818
   CB_GProtein_2  CD1_GProtein_3     1 0.000000e+00 1.374591e-04 ; 0.000000 -1.374591e-04     0.000000        0.062127        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         11         20 0.528818
@@ -1380,6 +1381,7 @@ OE2_GProtein_56              8 15.9994     0.0     A 0.000000e+00 1.724403e-07
   CA_GProtein_3  CE1_GProtein_3     1 0.000000e+00 1.148312e-05 ; 0.405526 -1.148312e-05     1.000000        0.999106        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         22 0.528818
   CA_GProtein_3  CE2_GProtein_3     1 0.000000e+00 1.188421e-05 ; 0.407636 -1.188421e-05     0.999995        0.999023        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         23 0.528818
   CA_GProtein_3   CZ_GProtein_3     1 0.000000e+00 1.269590e-05 ; 0.451002 -1.269590e-05     0.948230        0.807459        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         24 0.528818
+  CA_GProtein_3   CB_GProtein_4     1 0.000000e+00 2.687385e-05 ; 0.415453 -2.687385e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         30 0.569576
   CA_GProtein_3    O_GProtein_4     1 0.000000e+00 6.220757e-06 ; 0.416454 -6.220757e-06     0.244766        0.407868        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         36 0.480693
   CA_GProtein_3    N_GProtein_5     1 0.000000e+00 8.087301e-05 ; 0.445669 -8.087301e-05     0.000055        0.193004        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         37 0.505377
   CA_GProtein_3   CA_GProtein_5     1 0.000000e+00 6.821355e-04 ; 0.534835 -6.821355e-04     0.000050        0.139607        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         17         38 0.604948
@@ -2177,6 +2179,7 @@ OE2_GProtein_56              8 15.9994     0.0     A 0.000000e+00 1.724403e-07
   CA_GProtein_4  CB_GProtein_52     1 1.535744e-02 2.413177e-04 ; 0.500470  2.443367e-01     0.038142        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         29        397 0.569576
   CA_GProtein_4 CD1_GProtein_52     1 1.074160e-02 1.028124e-04 ; 0.460783  2.805642e-01     0.116891        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         29        399 0.528818
   CB_GProtein_4   NZ_GProtein_4     1 0.000000e+00 1.190111e-05 ; 0.314281 -1.190111e-05     0.789790        0.886851        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         30         34 0.497878
+  CB_GProtein_4   CA_GProtein_5     1 0.000000e+00 2.076757e-05 ; 0.404042 -2.076757e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         30         38 0.569576
   CB_GProtein_4   CB_GProtein_5     1 0.000000e+00 9.452075e-05 ; 0.474146 -9.452075e-05     0.002084        0.136662        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         30         39 0.536272
   CB_GProtein_4   CG_GProtein_5     1 0.000000e+00 3.563549e-04 ; 0.000000 -3.563549e-04     0.000000        0.109284        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         30         40 0.569576
   CB_GProtein_4  CD1_GProtein_5     1 0.000000e+00 9.705009e-05 ; 0.000000 -9.705009e-05     0.000000        0.010502        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         30         41 0.523344
@@ -5261,6 +5264,7 @@ OE2_GProtein_56              8 15.9994     0.0     A 0.000000e+00 1.724403e-07
   N_GProtein_11  CD_GProtein_56     1 6.648485e-04 8.311669e-07 ; 0.328217  1.329527e-01     0.001219        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         82        431 0.441778
   N_GProtein_11 OE1_GProtein_56     1 1.998395e-04 4.782728e-08 ; 0.249172  2.087502e-01     0.012695        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         82        432 0.394563
   N_GProtein_11 OE2_GProtein_56     1 1.992831e-04 4.737069e-08 ; 0.248889  2.095903e-01     0.013029        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         82        433 0.394563
+ CA_GProtein_11  CB_GProtein_12     1 0.000000e+00 2.514263e-05 ; 0.415505 -2.514263e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         83         91 0.569576
  CA_GProtein_11  CG_GProtein_12     1 0.000000e+00 1.032474e-04 ; 0.435119 -1.032474e-04     0.487412        0.823061        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         83         92 0.604948
  CA_GProtein_11   O_GProtein_12     1 0.000000e+00 9.404230e-06 ; 0.411993 -9.404230e-06     0.140377        0.417100        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         83         96 0.480693
  CA_GProtein_11   N_GProtein_13     1 0.000000e+00 1.881887e-05 ; 0.433521 -1.881887e-05     0.068455        0.204563        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx         83         97 0.505377
@@ -6891,6 +6895,7 @@ CG2_GProtein_16  OH_GProtein_33     1 1.114267e-03 1.312532e-06 ; 0.324978  2.36
   N_GProtein_17  CB_GProtein_20     1 0.000000e+00 7.040515e-06 ; 0.000000 -7.040515e-06     0.000000        0.000075        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        126        151 0.464357
   N_GProtein_17 CE1_GProtein_30     1 3.313572e-03 9.057317e-06 ; 0.373924  3.030632e-01     0.234339        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        126        222 0.441778
   N_GProtein_17  CZ_GProtein_30     1 3.288098e-03 9.945800e-06 ; 0.380291  2.717627e-01     0.089046        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        126        224 0.441778
+ CA_GProtein_17  CB_GProtein_18     1 0.000000e+00 4.292718e-05 ; 0.415954 -4.292718e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        135 0.604948
  CA_GProtein_17   O_GProtein_18     1 0.000000e+00 6.310911e-06 ; 0.414690 -6.310911e-06     0.317088        0.477505        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        139 0.480693
  CA_GProtein_17   N_GProtein_19     1 0.000000e+00 6.847924e-05 ; 0.441945 -6.847924e-05     0.000286        0.252418        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        140 0.505377
  CA_GProtein_17  CA_GProtein_19     1 0.000000e+00 7.032660e-04 ; 0.535607 -7.032660e-04     0.000058        0.212549        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        141 0.604948
@@ -6919,6 +6924,7 @@ CG2_GProtein_16  OH_GProtein_33     1 1.114267e-03 1.312532e-06 ; 0.324978  2.36
  CA_GProtein_17 CE1_GProtein_30     1 5.129475e-03 1.887141e-05 ; 0.392906  3.485631e-01     0.956551        0.000011        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        222 0.528818
  CA_GProtein_17 CE2_GProtein_30     1 1.065058e-02 9.950140e-05 ; 0.458926  2.850083e-01     0.134105        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        223 0.528818
  CA_GProtein_17  CZ_GProtein_30     1 4.307721e-03 1.329163e-05 ; 0.381553  3.490253e-01     0.970317        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        127        224 0.528818
+ CB_GProtein_17  CA_GProtein_18     1 0.000000e+00 2.323358e-05 ; 0.386707 -2.323358e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        128        134 0.604948
  CB_GProtein_17  CB_GProtein_18     1 0.000000e+00 4.654407e-05 ; 0.493789 -4.654407e-05     0.998180        0.801702        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        128        135 0.604948
  CB_GProtein_17 OG1_GProtein_18     1 0.000000e+00 5.460038e-05 ; 0.000000 -5.460038e-05     0.000000        0.026445        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        128        136 0.493798
  CB_GProtein_17 CG2_GProtein_18     1 0.000000e+00 2.575948e-04 ; 0.493078 -2.575948e-04     0.000005        0.081372        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        128        137 0.555845
@@ -8584,6 +8590,7 @@ OD2_GProtein_22  NZ_GProtein_31     1 0.000000e+00 1.717415e-06 ; 0.000000 -1.71
  CA_GProtein_25  CE_GProtein_31     1 0.000000e+00 1.148825e-04 ; 0.000000 -1.148825e-04     0.000000        0.000181        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        180        232 0.569576
  CA_GProtein_25  NZ_GProtein_31     1 0.000000e+00 5.592165e-05 ; 0.000000 -5.592165e-05     0.000000        0.000320        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        180        233 0.528798
  CA_GProtein_25 NE2_GProtein_32     1 0.000000e+00 3.912460e-05 ; 0.000000 -3.912460e-05     0.000000        0.000108        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        180        242 0.528798
+ CB_GProtein_25  CA_GProtein_26     1 0.000000e+00 3.522898e-05 ; 0.401573 -3.522898e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        181        187 0.604948
  CB_GProtein_25  CB_GProtein_26     1 1.824731e-03 2.009961e-05 ; 0.471699  4.141430e-02     0.811939        0.225689        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        181        188 0.555845
  CB_GProtein_25   C_GProtein_26     1 0.000000e+00 5.301319e-05 ; 0.467345 -5.301319e-05     0.049423        0.428677        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        181        189 0.528818
  CB_GProtein_25   O_GProtein_26     1 0.000000e+00 4.933524e-05 ; 0.000000 -4.933524e-05     0.000000        0.193438        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        181        190 0.480693
@@ -9033,6 +9040,7 @@ CG2_GProtein_25  OH_GProtein_33     1 0.000000e+00 5.912922e-06 ; 0.000000 -5.91
  CA_GProtein_27 CE1_GProtein_52     1 3.558494e-03 9.114048e-06 ; 0.369891  3.473452e-01     0.921207        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        192        401 0.528818
  CA_GProtein_27 CE2_GProtein_52     1 4.603285e-03 1.558833e-05 ; 0.387515  3.398412e-01     0.913108        0.000025        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        192        402 0.528818
  CA_GProtein_27  CZ_GProtein_52     1 3.401257e-03 8.543127e-06 ; 0.368691  3.385338e-01     0.982172        0.000028        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        192        403 0.528818
+ CB_GProtein_27  CA_GProtein_28     1 0.000000e+00 1.995446e-05 ; 0.402114 -1.995446e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        193        201 0.569576
  CB_GProtein_27  CB_GProtein_28     1 1.393499e-03 1.386201e-05 ; 0.463753  3.502087e-02     0.471837        0.159814        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        193        202 0.536272
  CB_GProtein_27  CD_GProtein_28     1 0.000000e+00 9.411097e-06 ; 0.423129 -9.411097e-06     0.024382        0.011782        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        193        204 0.536272
  CB_GProtein_27  CE_GProtein_28     1 0.000000e+00 1.161675e-05 ; 0.375207 -1.161675e-05     0.009529        0.006328        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        193        205 0.536272
@@ -11071,6 +11079,7 @@ CE2_GProtein_30 OE1_GProtein_56     1 0.000000e+00 1.718214e-06 ; 0.000000 -1.71
  CA_GProtein_32  CB_GProtein_37     1 0.000000e+00 7.851418e-05 ; 0.000000 -7.851418e-05     0.000000        0.000069        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        237        280 0.569576
  CA_GProtein_32 OD1_GProtein_37     1 0.000000e+00 1.227047e-05 ; 0.000000 -1.227047e-05     0.000000        0.000104        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        237        282 0.480693
  CA_GProtein_32  CA_GProtein_38     1 0.000000e+00 8.165860e-05 ; 0.000000 -8.165860e-05     0.000000        0.000075        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        237        287 0.569576
+ CB_GProtein_32  CA_GProtein_33     1 0.000000e+00 2.330625e-05 ; 0.405695 -2.330625e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        238        246 0.569576
  CB_GProtein_32  CB_GProtein_33     1 1.393489e-03 1.378906e-05 ; 0.463346  3.520567e-02     0.469914        0.158256        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        238        247 0.536272
  CB_GProtein_32  CG_GProtein_33     1 0.000000e+00 7.096555e-06 ; 0.381670 -7.096555e-06     0.011557        0.031686        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        238        248 0.497898
  CB_GProtein_32 CD1_GProtein_33     1 0.000000e+00 7.357573e-06 ; 0.362812 -7.357573e-06     0.021655        0.035405        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        238        249 0.497898
@@ -12065,6 +12074,7 @@ CE2_GProtein_33  CA_GProtein_56     1 0.000000e+00 3.350103e-05 ; 0.000000 -3.35
  CA_GProtein_35 CH2_GProtein_43     1 0.000000e+00 4.189145e-05 ; 0.000000 -4.189145e-05     0.000000        0.000129        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        263        329 0.528818
  CA_GProtein_35 CG2_GProtein_44     1 0.000000e+00 5.602359e-05 ; 0.000000 -5.602359e-05     0.000000        0.000063        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        263        336 0.555845
  CA_GProtein_35  CE_GProtein_50     1 0.000000e+00 8.115240e-05 ; 0.000000 -8.115240e-05     0.000000        0.000074        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        263        384 0.569576
+ CB_GProtein_35  CA_GProtein_36     1 0.000000e+00 2.301781e-05 ; 0.407000 -2.301781e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        264        271 0.569576
  CB_GProtein_35  CG_GProtein_36     1 0.000000e+00 8.319571e-06 ; 0.426657 -8.319571e-06     0.025580        0.036249        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        264        273 0.497898
  CB_GProtein_35 OD1_GProtein_36     1 0.000000e+00 2.397347e-06 ; 0.340306 -2.397347e-06     0.013503        0.017847        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        264        274 0.444685
  CB_GProtein_35 OD2_GProtein_36     1 0.000000e+00 2.246471e-06 ; 0.369940 -2.246471e-06     0.011351        0.018368        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        264        275 0.444685
@@ -15639,6 +15649,7 @@ CG2_GProtein_44 OE2_GProtein_56     1 0.000000e+00 3.664463e-06 ; 0.000000 -3.66
  CA_GProtein_45  CB_GProtein_53     1 2.241508e-02 4.719810e-04 ; 0.525489  2.661314e-01     0.074819        0.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        340        408 0.604948
  CA_GProtein_45 CG2_GProtein_53     1 3.957398e-03 2.226133e-05 ; 0.421719  1.758767e-01     0.004595        0.000009        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        340        410 0.555845
  CB_GProtein_45  CZ_GProtein_45     1 0.000000e+00 6.445270e-06 ; 0.383864 -6.445270e-06     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        341        347 0.497898
+ CB_GProtein_45  CA_GProtein_46     1 0.000000e+00 2.678864e-05 ; 0.412844 -2.678864e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        341        352 0.569576
  CB_GProtein_45  CB_GProtein_46     1 0.000000e+00 1.118290e-04 ; 0.474420 -1.118290e-04     0.000654        0.126764        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        341        353 0.536272
  CB_GProtein_45  CG_GProtein_46     1 0.000000e+00 6.182559e-05 ; 0.000000 -6.182559e-05     0.000000        0.032421        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        341        354 0.497898
  CB_GProtein_45 OD1_GProtein_46     1 0.000000e+00 1.458380e-05 ; 0.000000 -1.458380e-05     0.000000        0.016195        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        341        355 0.444685
@@ -16754,6 +16765,7 @@ OD2_GProtein_47 CG2_GProtein_55     1 0.000000e+00 3.305561e-06 ; 0.000000 -3.30
   N_GProtein_49  CB_GProtein_51     1 0.000000e+00 2.968092e-05 ; 0.447724 -2.968092e-05     0.000044        0.000516        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        372        390 0.505377
   N_GProtein_49 OG1_GProtein_51     1 0.000000e+00 2.904619e-06 ; 0.000000 -2.904619e-06     0.000000        0.000347        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        372        391 0.412522
   N_GProtein_49 CG2_GProtein_51     1 0.000000e+00 1.497596e-05 ; 0.000000 -1.497596e-05     0.000000        0.000861        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        372        392 0.464357
+ CA_GProtein_49  CB_GProtein_50     1 0.000000e+00 2.033300e-05 ; 0.407902 -2.033300e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        373        381 0.569576
  CA_GProtein_49  CG_GProtein_50     1 0.000000e+00 1.841742e-05 ; 0.423654 -1.841742e-05     0.999598        0.668098        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        373        382 0.569576
  CA_GProtein_49  CD_GProtein_50     1 8.723428e-04 3.209275e-06 ; 0.392904  5.927990e-02     0.562237        0.089960        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        373        383 0.569576
  CA_GProtein_49  CE_GProtein_50     1 1.928151e-03 2.545610e-05 ; 0.486155  3.651156e-02     0.055591        0.017981        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        373        384 0.569576
@@ -16987,6 +16999,7 @@ CG2_GProtein_49 OE2_GProtein_56     1 0.000000e+00 4.227366e-06 ; 0.000000 -4.22
   N_GProtein_50 CG2_GProtein_53     1 0.000000e+00 1.203052e-05 ; 0.000000 -1.203052e-05     0.000000        0.000348        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        379        410 0.464357
   N_GProtein_50 CG2_GProtein_54     1 0.000000e+00 6.673769e-06 ; 0.000000 -6.673769e-06     0.000000        0.000067        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        379        417 0.464357
  CA_GProtein_50  NZ_GProtein_50     1 0.000000e+00 1.676728e-05 ; 0.364268 -1.676728e-05     0.284430        0.347770        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        380        385 0.528798
+ CA_GProtein_50  CB_GProtein_51     1 0.000000e+00 4.597684e-05 ; 0.416559 -4.597684e-05     1.000000        1.000000        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        380        390 0.604948
  CA_GProtein_50 OG1_GProtein_51     1 0.000000e+00 3.645819e-06 ; 0.398495 -3.645819e-06     0.970460        0.453894        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        380        391 0.493798
  CA_GProtein_50   O_GProtein_51     1 0.000000e+00 1.721856e-05 ; 0.419079 -1.721856e-05     0.039707        0.518875        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        380        394 0.480693
  CA_GProtein_50   N_GProtein_52     1 0.000000e+00 6.161930e-05 ; 0.444913 -6.161930e-05     0.000564        0.231867        True md_ensemble intramat_1_1.ndx intramat_1_1.ndx        380        395 0.505377
