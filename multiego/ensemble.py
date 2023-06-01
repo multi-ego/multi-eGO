@@ -39,7 +39,7 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     return molecule_type_dict
 
 
-def initialize_reference_topology(topology):
+def initialize_topology(topology):
     '''
     '''
     # In a single topology different type of molecules can be present (e.g. protein, ligand).
@@ -89,57 +89,6 @@ def initialize_reference_topology(topology):
     sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()
 
     return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
-
-
-def initialize_ensemble_topology(topology):
-    '''
-    '''
-    # In a single topology different type of molecules can be present (e.g. protein, ligand).
-    columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
-                       'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
-    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
-
-    molecule_type_dict = {}
-    # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
-    for atom in topology.atoms:
-        temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
-
-    for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
-        molecule_type_dict = assign_molecule_type(
-            molecule_type_dict, molecule_name, molecule_topology[0])
-        ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
-        ensemble_topology_dataframe = pd.concat(
-            [ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
-        for atom in molecule_topology[0].atoms:
-            new_number.append(str(atom.idx+1))
-            col_molecule.append(f'{molecule_number}_{molecule_name}')
-            new_resnum.append(str(atom.residue.number))
-
-    ensemble_topology_dataframe['number'] = new_number
-    ensemble_topology_dataframe['molecule'] = col_molecule
-    ensemble_topology_dataframe['molecule_number'] = col_molecule
-    ensemble_topology_dataframe[['molecule_number', 'molecule_name']] = ensemble_topology_dataframe.molecule.str.split('_', expand=True)
-    ensemble_topology_dataframe['resnum'] = new_resnum
-    ensemble_topology_dataframe['cgnr'] = ensemble_topology_dataframe['resnum']
-    ensemble_topology_dataframe['ptype'] = 'A'
-    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({'name': multiego.resources.type_definitions.from_ff_to_multiego})
-    ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_' + ensemble_topology_dataframe['molecule_name'] + '_' + ensemble_topology_dataframe['resnum'].astype(str)
-    ensemble_topology_dataframe.rename(columns={'epsilon': 'c12'}, inplace=True)
-
-    ensemble_topology_dataframe['charge'] = 0.
-    ensemble_topology_dataframe['c6'] = 0.
-    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
-    ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
-
-    for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
-        temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
-        number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
-        ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
-    sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
-    sbtype_name_dict = ensemble_topology_dataframe[['sb_type', 'name']].set_index('sb_type')['name'].to_dict()
-    sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()   # For each molecule the different atomtypes are saved.
-
-    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary
 
 
 def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_sbtype_dictionary, simulation):
@@ -206,10 +155,12 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     return contact_matrix
 
 
-def init_meGO_ensemble(sysname, egos, train_from, check_with):
-
+def init_meGO_ensemble(args):
+    '''
+    TODO
+    '''
     # we initialize the reference topology
-    reference_path = f'inputs/{sysname}/reference'
+    reference_path = f'inputs/{args.system}/reference'
     ensemble_type = reference_path.split('/')[-1]
     print('\t-', f'Initializing {ensemble_type} ensemble topology')
     topology_path = f'{reference_path}/topol.top'
@@ -220,10 +171,10 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
         warnings.simplefilter("ignore")
         reference_topology = parmed.load_file(topology_path)
 
-    topology_dataframe, molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict = initialize_reference_topology(reference_topology)
+    topology_dataframe, molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict = initialize_topology(reference_topology)
 
     reference_contact_matrices = {}
-    if egos != 'rc':
+    if args.egos != 'rc':
         matrix_paths = glob.glob(f'{reference_path}/int??mat_?_?.ndx')
         if matrix_paths == []: 
             raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
@@ -247,7 +198,7 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
     ensemble['train_matrix_tuples'] = []
     ensemble['check_matrix_tuples'] = []
   
-    if egos == 'rc':
+    if args.egos == 'rc':
         return ensemble
 
     reference_set = set(ensemble['topology_dataframe']['name'].to_list())
@@ -255,9 +206,9 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
     # now we process the train contact matrices
     train_contact_matrices = {}
     train_topology_dataframe = pd.DataFrame()
-    for simulation in train_from: 
+    for simulation in args.train_from: 
         print('\t-', f'Initializing {simulation} ensemble topology')
-        simulation_path = f'inputs/{sysname}/{simulation}'
+        simulation_path = f'inputs/{args.system}/{simulation}'
         topology_path = f'{simulation_path}/topol.top'
         if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
         print('\t-', f'Reading {topology_path}')
@@ -267,7 +218,7 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
             topology = parmed.load_file(topology_path)
 
         print('\t-', f'{simulation} topology contains: {topology.molecules}')
-        temp_topology_dataframe, molecules_idx_sbtype_dictionary = initialize_ensemble_topology(topology)
+        temp_topology_dataframe, molecules_idx_sbtype_dictionary, _, _, _, _ = initialize_topology(topology)
         train_topology_dataframe = pd.concat([train_topology_dataframe, temp_topology_dataframe], axis=0, ignore_index=True) 
         matrix_paths = glob.glob(f'{simulation_path}/int??mat_?_?.ndx')
         if matrix_paths == []: 
@@ -298,9 +249,9 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
     # now we process the check contact matrices
     check_contact_matrices = {}
     check_topology_dataframe = pd.DataFrame()
-    for simulation in check_with: 
+    for simulation in args.check_with: 
         print('\t-', f'Initializing {simulation} ensemble topology')
-        simulation_path = f'inputs/{sysname}/{simulation}'
+        simulation_path = f'inputs/{args.system}/{simulation}'
         topology_path = f'{simulation_path}/topol.top'
         if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
         print('\t-', f'Reading {topology_path}')
@@ -311,7 +262,7 @@ def init_meGO_ensemble(sysname, egos, train_from, check_with):
 
         print('\t-', f'{simulation} topology contains: {topology.molecules}')
  
-        temp_topology_dataframe, molecules_idx_sbtype_dictionary = initialize_ensemble_topology(topology)
+        temp_topology_dataframe, molecules_idx_sbtype_dictionary, _, _, _, _ = initialize_topology(topology)
         check_topology_dataframe = pd.concat([check_topology_dataframe, temp_topology_dataframe], axis=0, ignore_index=True) 
 
         matrix_paths = glob.glob(f'{simulation_path}/int??mat_?_?.ndx')

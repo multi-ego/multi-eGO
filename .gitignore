@@ -36,6 +36,7 @@ MANIFEST
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+log
 
 # Unit test / coverage reports
 htmlcov/
@@ -130,14 +131,10 @@ dmypy.json
 .vscode/settings.json
 
 # more
-/inputs/*
-/outputs/*
+inputs/*
+outputs/*
 *.swp
-
 analysis/*
-analysis/new_monomer_analysis.ipynb
-charmm22star.ff/
-amber99SBdisp.ff
-temp_read.md
-plots*
-old_cose
+.DS_Store
+*.ff
+!multi-ego-basic.ff/

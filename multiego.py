@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')
-    meGO_ensemble = multiego.ensemble.init_meGO_ensemble(args.system, args.egos, args.train_from, args.check_with)
+    meGO_ensemble = multiego.ensemble.init_meGO_ensemble(args)
     meGO_ensemble = multiego.ensemble.generate_bonded_interactions(meGO_ensemble)
 
     print('- Generating the model')
