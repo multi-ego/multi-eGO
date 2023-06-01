@@ -503,13 +503,13 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # remove unnecessary fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']]
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']]
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']].copy()
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff']
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']
     # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
@@ -564,8 +564,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_LJ
     test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
     meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
-    meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y'])
-    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff'}, inplace = True)
+    meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y', 'rep_y'])
+    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff', 'rep_x': 'rep'}, inplace = True)
 
     # copy 1-4 interactions into meGO_LJ_14
     copy14 = meGO_LJ.loc[(meGO_LJ['1-4']=='1_4')]
