@@ -397,11 +397,12 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
 
     # This is to FLAG 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
-    train_dataset.loc[(train_dataset['ai']==train_dataset['aj']), '1-4'] = '0'
+    train_dataset.loc[(train_dataset['ai']==train_dataset['aj'])&(train_dataset['same_chain']==True), '1-4'] = '0'
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
     # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
     train_dataset = pd.merge(train_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
     train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
+    train_dataset.loc[(train_dataset['1-4']=="0"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
     train_dataset['rep'] = train_dataset['rep'].fillna(np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
@@ -419,11 +420,12 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     if not check_dataset.empty:
         # This is to FLAG 1-2, 1-3, 1-4 cases:
         check_dataset = pd.merge(check_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
-        check_dataset.loc[(check_dataset['ai']==check_dataset['aj']), '1-4'] = '0'
+        check_dataset.loc[(check_dataset['ai']==check_dataset['aj'])&(check_dataset['same_chain']==True), '1-4'] = '0'
         check_dataset['1-4'] = check_dataset['1-4'].fillna('1>4')
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
         check_dataset = pd.merge(check_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
         check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
+        check_dataset.loc[(check_dataset['1-4']=="0"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
         check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
@@ -520,7 +522,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     if not check_dataset.empty:
         # Remove low probability ones
         meGO_check_contacts = check_dataset.loc[(check_dataset['probability']>parameters.md_threshold)&(check_dataset['probability']>=check_dataset['rc_probability'])].copy()
-        meGO_check_contacts = meGO_check_contacts.loc[~((meGO_check_contacts['same_chain']==True)&(meGO_check_contacts['1-4']!="1>4"))]
+        meGO_check_contacts = meGO_check_contacts.loc[~((meGO_check_contacts['same_chain']==True)&(meGO_check_contacts['rep']==0))]
         meGO_check_contacts['sigma'] = (meGO_check_contacts['distance']) / (2.**(1./6.))
         meGO_check_contacts['learned'] = 0
         # set the epsilon of these contacts using the default c12 repulsive term
@@ -535,7 +537,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         # Cleaning the duplicates
         meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
         ## rescale problematic contacts
-        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon)&(meGO_LJ['1-4']=="1>4"), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
+        #meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon)&(meGO_LJ['1-4']=="1>4"), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
+        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
         meGO_LJ.loc[(meGO_LJ['same_chain']==False)&(meGO_LJ['energy_at_check_dist']>parameters.inter_epsilon), 'epsilon'] *= parameters.inter_epsilon/meGO_LJ['energy_at_check_dist']
         meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
 
@@ -577,9 +580,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['c12'] = abs(4 * meGO_LJ['epsilon'] * (meGO_LJ['sigma'] ** 12))
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c6'] = 0.
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c12'] = -meGO_LJ['epsilon']
-    # remove self interactions for proteins' side-chains and scale their c12s
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c12'] = np.minimum(meGO_LJ['c12'], meGO_LJ['rep'])
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c6'] = 0 
+    # remove attractive self interactions for proteins' side-chains and scale their c12s
+    aver_inter_eps = meGO_LJ['epsilon'].loc[(meGO_LJ['same_chain']==False)].mean()
+    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c12'] = np.minimum(meGO_LJ['c12']*aver_inter_eps/(meGO_LJ['c12']/meGO_LJ['distance']**12), meGO_LJ['rep'])
+    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c6'] = 0 
 
 
     meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
