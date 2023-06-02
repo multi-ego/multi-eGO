@@ -521,24 +521,28 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # process check_dataset
     if not check_dataset.empty:
         # Remove low probability ones
-        meGO_check_contacts = check_dataset.loc[(check_dataset['probability']>parameters.md_threshold)&(check_dataset['probability']>=check_dataset['rc_probability'])].copy()
+        meGO_check_contacts = check_dataset.loc[((check_dataset['probability']>parameters.md_threshold)&(check_dataset['probability']>=check_dataset['rc_probability']))|(check_dataset['1-4']=="1_4")].copy()
         meGO_check_contacts = meGO_check_contacts.loc[~((meGO_check_contacts['same_chain']==True)&(meGO_check_contacts['rep']==0))]
         meGO_check_contacts['sigma'] = (meGO_check_contacts['distance']) / (2.**(1./6.))
         meGO_check_contacts['learned'] = 0
         # set the epsilon of these contacts using the default c12 repulsive term
         meGO_check_contacts['epsilon'] = -meGO_check_contacts['rep']
+        # Rescale c12 1-4 interactions 
+        meGO_check_contacts.loc[(np.abs(meGO_check_contacts['rc_distance_14']-meGO_check_contacts['distance_14'])>0.)&(meGO_check_contacts['rc_probability']>parameters.md_threshold)&(meGO_check_contacts['1-4']=="1_4")&(meGO_check_contacts['same_chain']==True), 'epsilon'] = -meGO_check_contacts['rep']*(meGO_check_contacts['distance_14']/meGO_check_contacts['rc_distance_14'])**12
         meGO_LJ = pd.concat([meGO_LJ, meGO_check_contacts], axis=0, sort=False, ignore_index=True)
         meGO_LJ.drop_duplicates(inplace=True, ignore_index = True)
         # this calculates the increase in energy (if any) to form the "check" contact 
-        energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain']].apply(check_LJ, parameters)
+        energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['distance', 'epsilon', 'source', 'same_chain', '1-4']].apply(check_LJ, parameters)
         meGO_LJ = pd.merge(meGO_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
         # now we should keep only those check_with contacts that are unique and whose energy_at_check_dist is large 
         meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'learned'], ascending = [True, True, True, False], inplace = True)
         # Cleaning the duplicates
         meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
-        ## rescale problematic contacts
-        #meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon)&(meGO_LJ['1-4']=="1>4"), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
-        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
+        # rescale problematic contacts
+        # For 1-4 interactions we take the minimum between the one from train and the one from check
+        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['energy_at_check_dist']
+        # for the other we rescale them
+        meGO_LJ.loc[(meGO_LJ['same_chain']==True)&(meGO_LJ['energy_at_check_dist']>parameters.epsilon)&(meGO_LJ['1-4']=="1>4"), 'epsilon'] *= parameters.epsilon/meGO_LJ['energy_at_check_dist']
         meGO_LJ.loc[(meGO_LJ['same_chain']==False)&(meGO_LJ['energy_at_check_dist']>parameters.inter_epsilon), 'epsilon'] *= parameters.inter_epsilon/meGO_LJ['energy_at_check_dist']
         meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
 
@@ -620,14 +624,20 @@ def check_LJ(test, parameters):
             dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
             energy = -eps/(dist_check)**12
     else:
-        #distance comes from check
-        dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
-        #distance comes from train 
-        dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
-        #epsilon from train
-        if dist_check < dist_train:
-            eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
-            energy = -eps/(dist_check)**12+eps/(dist_train)**12
+        # this is the special case for 1-4 interactions
+        if((test.loc[test.source.isin(parameters.check_with)]).iloc[0]['1-4'] == "1_4"):
+            e_train = -test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon'] 
+            e_check = -test.loc[(test.source.isin(parameters.check_with))].iloc[0]['epsilon'] 
+            energy = np.minimum(e_train, e_check)
+        else:
+            #distance comes from check
+            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
+            #distance comes from train 
+            dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
+            #epsilon from train
+            if dist_check < dist_train:
+                eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
+                energy = -eps/(dist_check)**12+eps/(dist_train)**12
  
     return energy
 
