@@ -182,24 +182,31 @@ def weighted_avg(values, weights, callback=allfunction):
 def single_gaussian_check(values, weights, callback=allfunction):
     dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
-    values, weights = remove_monotonic(values, weights)
+    #values, weights = remove_monotonic(values, weights)
     a = weights[:-2]
     b = weights[2:]
     slope = (b - a) / (2. * dx)
     danger_sign=0
     danger_trend=0
-    increasing=1
+    increasing=3
+    begin = 0
     for i in range(slope.size-1):
         if slope[i+1] != 0. or slope[i] != 0.:
-            if increasing and slope[i] > 15. and slope[i+1] < slope[i]:
-                increasing=0
-                danger_trend+=1
-            if not increasing and slope[i+1] > slope[i]:
-                increasing=1
-                danger_trend+=1
+            if slope[i] > 15:
+                begin = 1;
+            if increasing > 0. and slope[i] > 15. and slope[i+1] < slope[i]:
+                increasing-=1;
+                if increasing == 0:
+                    increasing = -2
+                    danger_trend+=1
+            if increasing <=0 and slope[i+1] > slope[i]:
+                increasing+=1
+                if increasing == 1:
+                    danger_trend+=1
+                    increasing = 3
             if danger_trend > 2: return 0
             if not danger_sign and danger_trend > 1: return 0
-            if slope[i] * slope[i+1] < 0.:
+            if begin and slope[i] * slope[i+1] < 0.:
                 if danger_sign: return 0
                 danger_sign = 1
 
@@ -210,15 +217,15 @@ def c12_avg(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
     #v, w = remove_monotonic(v, w)
-    #r = np.where(w > 0.)
+    r = np.where(w > 0.)
     
-    #if not single_gaussian:
-    #    i_start = r[0][0]
-    #    i_stop = int(w.size - (w.size - i_start) / 2)
-    #    w = w[i_start:i_stop] 
-    #    v = v[i_start:i_stop]
+    if not single_gaussian:
+        i_start = r[0][0]
+        i_stop = int(w.size - (w.size - i_start) / 2)
+        w = w[i_start:i_stop] 
+        v = v[i_start:i_stop]
 
-    #norm = np.sum(w)    
+    norm = np.sum(w)    
 
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
 
@@ -400,7 +407,7 @@ def calculate_inter_probabilities(args):
         original_size_j = len(protein_ref_j.atoms)
 
         if mol_i==mol_j:
-            if N_mols[mol_i-1]==1:
+            if N_mols[mol_i-1]==0:
                 print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
                 columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
                 matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
