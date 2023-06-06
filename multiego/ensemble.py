@@ -472,10 +472,12 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Paissoni Equation 2.1
     # Attractive intramolecular
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rc_probability']<=parameters.md_threshold)&(meGO_LJ['rc_probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
-    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['distance']<meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['distance']<=meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['distance']>meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = 0 
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['rc_probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
-    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['distance']<meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['distance']<=meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['distance']>meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = 0 
 
     # Probability only Repulsive intramolecular
     meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
@@ -510,7 +512,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # clean NaN and zeros
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
-    meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
+    #meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
     # remove unnecessary fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
@@ -521,9 +523,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
     'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']
-    # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
+    # Symmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
+    # Merging of multiple simulations:
+    # Here we sort all the atom pairs based on the distance and the probability and we keep the closer ones.
+    meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma', 'probability'], ascending = [True, True, True, True, False], inplace = True)
+    # Cleaning the duplicates
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
+    # Removing the reverse duplicates
+    cols = ['ai', 'aj']
+    meGO_LJ[cols] = np.sort(meGO_LJ[cols].values, axis=1)
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
+
+    # now we can remove the epsilon == 0
+    meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
     # add a flag to identify learned contacts vs check ones
     meGO_LJ['learned'] = 1
 
@@ -557,10 +571,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
     meGO_LJ_14 = meGO_LJ.copy()
 
-    # Here we sort all the atom pairs based on the distance and we keep the closer ones.
-    # Sorting the pairs prioritising intermolecular interactions and shorter length ones
-    # When distances are the same than we choose the most likely 
-    meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma', 'probability'], ascending = [True, True, True, True, False], inplace = True)
+    # Sorting the pairs prioritising intermolecular interactions
+    meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain'], ascending = [True, True, True], inplace = True)
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     # Removing the reverse duplicates
@@ -569,7 +581,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     # Pairs prioritise intramolecular interactions
-    meGO_LJ_14.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma', 'probability'], ascending = [True, True, False, True, False], inplace = True)
+    meGO_LJ_14.sort_values(by = ['ai', 'aj', 'same_chain'], ascending = [True, True, False], inplace = True)
     meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
     meGO_LJ_14[cols] = np.sort(meGO_LJ_14[cols].values, axis=1)
     meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
