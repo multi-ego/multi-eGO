@@ -182,7 +182,6 @@ def weighted_avg(values, weights, callback=allfunction):
 def single_gaussian_check(values, weights, callback=allfunction):
     dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
-    #values, weights = remove_monotonic(values, weights)
     a = weights[:-2]
     b = weights[2:]
     slope = (b - a) / (2. * dx)
@@ -216,7 +215,6 @@ def c12_avg(values, weights, callback=allfunction):
     single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
-    #v, w = remove_monotonic(v, w)
     r = np.where(w > 0.)
     
     if not single_gaussian:
@@ -229,14 +227,6 @@ def c12_avg(values, weights, callback=allfunction):
 
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
 
-def remove_monotonic(values, weights):
-    # from last point on
-    a = weights[::-1][:-1]
-    b = weights[::-1][1:]
-    m_index = np.where((a <= b) & (b > 0))[0]
-    if m_index.size == 0: return values, weights
-    until_i = weights.size - m_index[0]
-    return values[:until_i], weights[:until_i]
 
 def warning_cutoff_histo(args, max_adaptive_cutoff):
     
