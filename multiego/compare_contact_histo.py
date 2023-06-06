@@ -209,16 +209,16 @@ def c12_avg(values, weights, callback=allfunction):
     single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
-    v, w = remove_monotonic(v, w)
-    r = np.where(w > 0.)
+    #v, w = remove_monotonic(v, w)
+    #r = np.where(w > 0.)
     
-    if not single_gaussian:
-        i_start = r[0][0]
-        i_stop = int(w.size - (w.size - i_start) / 2)
-        w = w[i_start:i_stop] 
-        v = v[i_start:i_stop]
+    #if not single_gaussian:
+    #    i_start = r[0][0]
+    #    i_stop = int(w.size - (w.size - i_start) / 2)
+    #    w = w[i_start:i_stop] 
+    #    v = v[i_start:i_stop]
 
-    norm = np.sum(w)    
+    #norm = np.sum(w)    
 
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
 

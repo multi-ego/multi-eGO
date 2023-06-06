@@ -471,9 +471,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rc_probability']<=parameters.md_threshold)&(meGO_LJ['rc_probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True)&(meGO_LJ['distance']<meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
     # Attractive intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['rc_probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+    meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False)&(meGO_LJ['distance']<meGO_LJ['rc_distance'])&(meGO_LJ['rc_probability']>parameters.md_threshold), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
 
     # Probability only Repulsive intramolecular
     meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
@@ -494,6 +496,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['1-4'] == '1_4'), 'epsilon'] = -meGO_LJ['rep']
     # Rescale c12 1-4 interactions 
     meGO_LJ.loc[(np.abs(meGO_LJ['rc_distance_14']-meGO_LJ['distance_14'])>0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['1-4']=="1_4")&(meGO_LJ['same_chain']==True), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
+
+    # This removes the attractive self interactions among protein's sidechain
+    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'epsilon'] = 0
 
     # where the probability is less than md_threshold we do not trust the sigma estimate and so we set it to cutoff, so that then this low probability contact are
     # better accounted for when merging contact from multiple simulations
@@ -525,7 +530,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # process check_dataset
     # the idea here is that if a contact would be attractive/mild c12 smaller in the check dataset
     # and the same contact is instead repulsive in the training, then the repulsive term can be rescaled
-    #
     if not check_dataset.empty:
         # Remove low probability ones
         meGO_check_contacts = check_dataset.loc[((check_dataset['probability']>parameters.md_threshold)&(check_dataset['probability']>=check_dataset['rc_probability']))|(check_dataset['1-4']=="1_4")].copy()
@@ -587,10 +591,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['c12'] = abs(4 * meGO_LJ['epsilon'] * (meGO_LJ['sigma'] ** 12))
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c6'] = 0.
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c12'] = -meGO_LJ['epsilon']
-    # remove attractive self interactions for proteins' side-chains and scale their c12s
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c12'] = np.minimum(meGO_LJ['distance']**12, meGO_LJ['rep'])
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c6'] = 0 
-
 
     meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
     meGO_LJ_14['c12'] = abs(4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 12))
