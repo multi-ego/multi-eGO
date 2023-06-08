@@ -46,12 +46,13 @@ def initialize_topology(topology):
     # For each molecule the different atomtypes are saved.
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
-    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
+    ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict, temp_number_c6_dict = pd.DataFrame(), [], [], [], {}, {}, {}
 
     molecule_type_dict = {}
     # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
     for atom in topology.atoms:
         temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
+        temp_number_c6_dict[str(atom.idx+1)] = atom.sigma*0.1
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = assign_molecule_type(
@@ -76,7 +77,7 @@ def initialize_topology(topology):
     ensemble_topology_dataframe.rename(columns={'epsilon': 'c12'}, inplace=True)
 
     ensemble_topology_dataframe['charge'] = 0.
-    ensemble_topology_dataframe['c6'] = 0.
+    ensemble_topology_dataframe['c6'] = ensemble_topology_dataframe['number'].map(temp_number_c6_dict)
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
 
