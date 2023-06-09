@@ -197,7 +197,9 @@ def protein_LJ14(reduced_topology):
     ct_oxygen = reduced_topology.loc[(reduced_topology['name']=='O1')|(reduced_topology['name']=='O2')]
     sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
     pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
-    sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
+    sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')&(reduced_topology['resname'] != 'PRO')]
+    sidechain_ogs = reduced_topology.loc[(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
+    sidechain_sgs = reduced_topology.loc[(reduced_topology['name'] == 'SG')&(reduced_topology['resname'] != 'PRO')]
     pairs = pd.DataFrame()  
 
     # For proline CD take the CB, N of the previous residue and save in a pairs tuple
@@ -228,10 +230,14 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=backbone_carbonyl, constant=1.3e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
     # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
     #pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078)], axis=0, sort=False, ignore_index=True)
-    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, constant=3.7e-07)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, constant=2.e-07)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_ogs, atomtype2=backbone_carbonyl, constant=6.4e-08)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_sgs, atomtype2=backbone_carbonyl, constant=2.1e-07)], axis=0, sort=False, ignore_index=True)
     # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
     #pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
-    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, constant=2.4e-07)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, constant=1.3e-07)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_ogs, atomtype2=backbone_nitrogen, constant=4.2e-08)], axis=0, sort=False, ignore_index=True)
+    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_sgs, atomtype2=backbone_nitrogen, constant=1.3e-07)], axis=0, sort=False, ignore_index=True)
 
     # make it symmetric 
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
