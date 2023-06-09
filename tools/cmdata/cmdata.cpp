@@ -35,7 +35,7 @@
  * \brief
  * Implements gmx::analysismodules::Distance.
  *
- * \author Multi-eGO gang <gang@multiego.com>
+ * \author multi-eGO development team
  * \ingroup module_trajectoryanalysis
  */
 #include "gmxpre.h"
