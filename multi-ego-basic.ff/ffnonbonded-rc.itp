@@ -1,5 +1,5 @@
 [ atomtypes ]
-;head -n 22 ffnonbonded-rc.itp | tail -19 | awk -v EPS=0.3 'BEGIN {print"[ atomtypes ]"} {c6=$9^6*EPS*4; c12=$9^12*EPS*4; printf("%8s %8i %5.3lf %5.3lf %8s %.6e %.6e\n", $1, $2, $3, $4, $5, c6, c12)}'
+;head -n 22 ffnonbonded-rc.itp | tail -19 | awk -v EPS=0.3 'BEGIN {print"[ atomtypes ]"} {c6=$9^6*EPS*4; c12=$9^12*EPS*4; printf("%5s %4i %10.3lf %10.3lf %5s  %.6e  %.6e\n", $1, $2, $3, $4, $5, c6, c12)}'
 ;name  at.num   mass      charge  ptype       c6           c12     ; sigma
     O    8      0.000      0.000     A  0.0000000000  2.631580e-07 ; 0.27601
    OM    8      0.000      0.000     A  0.0000000000  1.724403e-07 ; 0.26259
