@@ -185,9 +185,6 @@ def single_gaussian_check(values, weights, callback=allfunction):
     if norm == 0.: return 1
     a = weights[:-2]
     b = weights[2:]
-    #print(weights.argmax(), values[weights.argmax()], np.sum(weights*values)/norm)
-    if np.sum(weights*values)/norm > 1.03*values[weights.argmax()] or np.sum(weights*values)/norm < 1.03*values[weights.argmax()]:
-        return 0 
     slope = ((b - a) / (2. * dx)) / (norm*dx)
     danger_sign=0
     danger_trend=0
