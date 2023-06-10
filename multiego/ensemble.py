@@ -142,7 +142,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     contact_matrix = contact_matrix[~contact_matrix['ai'].astype(str).str.startswith('H')]
     contact_matrix = contact_matrix[~contact_matrix['aj'].astype(str).str.startswith('H')]
 
-    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff']]
+    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff', 'unimod']]
     if name[0] == 'intramat': contact_matrix['same_chain'] = True
     elif name[0] == 'intermat': contact_matrix['same_chain'] = False
     else: raise Exception('There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
@@ -462,6 +462,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
+    #meGO_LJ.loc[(meGO_LJ['unimod']==1)&(meGO_LJ['cutoff']/meGO_LJ['distance']<1.2), 'sigma'] *= 0.95
     meGO_LJ['epsilon'] = np.nan 
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
@@ -474,6 +475,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
+
+    #print( meGO_LJ.loc[(meGO_LJ['unimod']==1)&(meGO_LJ['distance_m']-meGO_LJ['distance']<0.02)&(meGO_LJ['distance_m']-meGO_LJ['distance']>0.005)&(meGO_LJ['epsilon']>0.)].to_string())
 
     # Probability only Repulsive intramolecular
     meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
@@ -509,13 +512,13 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # remove unnecessary fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']]
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep', 'unimod']]
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']].copy()
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep', 'unimod']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep']
+    'probability', 'same_chain', 'source', 'file', 'rc_probability', 'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 'cutoff', 'rep', 'unimod']
     # The contacts are duplicated before cleaning due to the inverse pairs and the sigma calculation requires a simmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
@@ -604,10 +607,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['number_ai'] = meGO_LJ['number_ai'].astype(int)
     meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
 
-    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff']]
+    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff', 'unimod']]
     # Here we want to sort so that ai is smaller than aj
-    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff']].copy()
-    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff'] 
+    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff', 'unimod']].copy()
+    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff', 'unimod'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
