@@ -462,10 +462,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
+    #meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
-    #meGO_LJ['sigma'] = (meGO_LJ['cutoff'])/1.45
-    #meGO_LJ.loc[(meGO_LJ['rc_probability']>parameters.md_threshold), 'sigma'] *= meGO_LJ['distance_m']/meGO_LJ['rc_distance_m']
-    #meGO_LJ.loc[(meGO_LJ['rc_probability']<=parameters.md_threshold), 'sigma'] = (meGO_LJ['distance_m']) / (2.**(1./6.))
+    meGO_LJ.loc[(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['probability']>parameters.md_threshold), 'sigma'] = (meGO_LJ['rep']/0.1)**(1./12.)*meGO_LJ['distance_m']/meGO_LJ['rc_distance_m']
+    meGO_LJ.loc[(meGO_LJ['probability']>parameters.md_threshold)&(meGO_LJ['rc_probability']<=parameters.md_threshold), 'sigma'] = (meGO_LJ['rep']/0.1)**(1./12.)*meGO_LJ['distance_m']/meGO_LJ['cutoff']
     meGO_LJ['epsilon'] = np.nan 
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
