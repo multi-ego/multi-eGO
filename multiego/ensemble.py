@@ -459,10 +459,13 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     limit_rc = 1./parameters.rc_threshold**0.1
     # This keep only significat attractive/repulsive interactions
     meGO_LJ = train_dataset.loc[(train_dataset['probability']>parameters.md_threshold)|((train_dataset['probability']<=parameters.md_threshold)&(train_dataset['rc_probability']>limit_rc*np.maximum(train_dataset['probability'],parameters.rc_threshold)))].copy()
+    meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
 
     # Add sigma, add epsilon reweighted, add c6 and c12
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
-    #meGO_LJ.loc[(meGO_LJ['unimod']==1)&(meGO_LJ['cutoff']/meGO_LJ['distance']<1.2), 'sigma'] *= 0.95
+    #meGO_LJ['sigma'] = (meGO_LJ['cutoff'])/1.45
+    #meGO_LJ.loc[(meGO_LJ['rc_probability']>parameters.md_threshold), 'sigma'] *= meGO_LJ['distance_m']/meGO_LJ['rc_distance_m']
+    #meGO_LJ.loc[(meGO_LJ['rc_probability']<=parameters.md_threshold), 'sigma'] = (meGO_LJ['distance_m']) / (2.**(1./6.))
     meGO_LJ['epsilon'] = np.nan 
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
@@ -475,8 +478,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(parameters.rc_threshold))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold)))
-
-    #print( meGO_LJ.loc[(meGO_LJ['unimod']==1)&(meGO_LJ['distance_m']-meGO_LJ['distance']<0.02)&(meGO_LJ['distance_m']-meGO_LJ['distance']>0.005)&(meGO_LJ['epsilon']>0.)].to_string())
 
     # Probability only Repulsive intramolecular
     meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)<1./limit_rc*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=parameters.md_threshold), 'epsilon'] = -(parameters.epsilon/np.log(parameters.rc_threshold))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],parameters.rc_threshold)/meGO_LJ['rc_probability'])-meGO_LJ['rep']
