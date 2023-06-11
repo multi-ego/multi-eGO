@@ -591,8 +591,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c6'] = 0.
     meGO_LJ.loc[(meGO_LJ['epsilon']<0.), 'c12'] = -meGO_LJ['epsilon']
     # remove attractive self interactions for proteins' side-chains and scale their c12s
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c12'] = np.minimum(meGO_LJ['distance']**12, meGO_LJ['rep'])
-    meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c6'] = 0 
+    #meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c12'] = np.minimum(meGO_LJ['distance']**12, meGO_LJ['rep'])
+    #meGO_LJ.loc[(meGO_LJ['ai']==meGO_LJ['aj'])&(meGO_LJ['ai'].map(meGO_ensemble['sbtype_moltype_dict'])=="protein")&(meGO_LJ['epsilon']>0.)&~((meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="CA")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="N")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="C")|(meGO_LJ['ai'].map(meGO_ensemble['sbtype_name_dict'])=="O")), 'c6'] = 0 
 
 
     meGO_LJ_14['c6'] = 4 * meGO_LJ_14['epsilon'] * (meGO_LJ_14['sigma'] ** 6)
