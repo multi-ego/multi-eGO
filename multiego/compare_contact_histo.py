@@ -7,86 +7,27 @@ import argparse
 import itertools
 import time
 import sys
+import warnings
 
-################################################################
-import warnings                                                #
-warnings.filterwarnings("ignore")                              #
-################################################################
+import resources.type_definitions as type_definitions
 
-from_ff_to_multiego = {
-    'OC1' : 'O1',
-    'OC2' : 'O2',
-    'OT1' : 'O1',
-    'OT2' : 'O2',
-    'C13' :'CN1',
-    'C14' :'CN2',
-    'C15' :'CN3',
-    'N'   :'N',
-    'C12' :'CA',
-    'C11' :'CB',
-    'O12' :'OA',
-    'P'   :'P',
-    'O13' :'OB',
-    'O14' :'OC',
-    'O11' :'OD',
-    'C1'  :'CC',
-    'C2'  :'CD',
-    'O21' :'OE',
-    'C21' :'C1A',
-    'O22' :'OF',
-    'C22' :'C1B',
-    'C23' :'C1C',
-    'C24' :'C1D',
-    'C25' :'C1E',
-    'C26' :'C1F',
-    'C27' :'C1G',
-    'C28' :'C1H',
-    'C29' :'C1I',
-    'C210':'C1J',
-    'C211':'C1K',
-    'C212':'C1L',
-    'C213':'C1M',
-    'C214':'C1N',
-    'C215':'C1O',
-    'C216':'C1P',
-    'C217':'C1Q',
-    'C218':'C1R',
-    'C3'  :'CE',
-    'O31' :'OG',
-    'C31' :'C2A',
-    'O32' :'OH',
-    'C32' :'C2B',
-    'C33' :'C2C',
-    'C34' :'C2D',
-    'C35' :'C2E',
-    'C36' :'C2F',
-    'C37' :'C2G',
-    'C38' :'C2H',
-    'C39' :'C2I',
-    'C310':'C2J',
-    'C311':'C2K',
-    'C312':'C2L',
-    'C313':'C2M',
-    'C314':'C2N',
-    'C315':'C2O',
-    'C316':'C2P',
-}
-
-gromos_atp = pd.DataFrame(
-    {'name': ['O', 'OA', 'N', 'C', 'CH1', 
-              'CH2', 'CH3', 'CH2r', 'NT', 'S',
-              'NR', 'OM', 'NE', 'NL', 'NZ',
-              'CH3p', 'P', 'OE', 'CR1'],            
-     'c12': [2.631580e-07, 5.018430e-07, 8.752940e-07, 2.598570e-06, 6.555574e-05, # CH1
-             1.543890e-05, 8.595562e-06, 1.193966e-05, 2.596154e-06, 2.724050e-06, 
-             1.506347e-06, 1.724403e-07, 8.752940e-07, 8.752940e-07, 8.752940e-07,
-             8.736473e-06, 3.893600e-06, 3.558824e-07, 6.29856e-06]
-     }
-)
-
-d = { gromos_atp.name[i] : gromos_atp.c12[i] for i in range(len(gromos_atp.name))}
+d = { type_definitions.gromos_atp.name[i] : type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
 
 def run_(arguments):
+    '''
+    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
+    Is used in combination with multiprocessing to speed up the calculations.
+
+    Parameters
+    ----------
+    arguments : dict
+        Contains all the command-line parsed arguments
+
+    Returns
+    -------
+    out_path : str
+        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data 
+    '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
@@ -144,17 +85,101 @@ def run_(arguments):
 
     return out_path
 
-def map_if_exists(x):
-    if x in from_ff_to_multiego.keys(): return from_ff_to_multiego[x]
-    else: return x
+def read_topologies(mego_top, target_top):
+    '''
+    Reads the input topologies using parmed. Ignores warnings to prevent printing
+    of GromacsWarnings regarding 1-4 interactions commonly seen when using
+    parmed in combination with multi-eGO topologies.
+
+    Parameters
+    ----------
+    mego_top : str
+        Path to the multi-eGO topology obtained from gmx pdb2gmx with multi-ego-basic force fields
+    target_top : str
+        Path to the toplogy of the system on which the analysis is to be performed
+    '''
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        topology_mego = pmd.load_file(mego_top)
+        topology_ref = pmd.load_file(target_top)
+
+    n_mol=len(list(topology_mego.molecules.keys()))
+    mol_names=list(topology_mego.molecules.keys())
+    mol_list=np.arange(1,n_mol+1,1)
+
+    return topology_mego, topology_ref, n_mol, mol_names, mol_list
+
+def map_if_exists(atom_name):
+    '''
+    Maps an atom name to a multi-eGO atom name if possible
+
+    Parameters
+    ----------
+    atom_name : str
+        The atom name with which to attempt the mapping
+    
+    Return
+    ------
+    atom_name : str
+        Mapped atom name. Equal to the input if mapping was not possible
+    '''
+    if atom_name in type_definitions.from_ff_to_multiego.keys(): return type_definitions.from_ff_to_multiego[atom_name]
+    else: return atom_name
 
 def hallfunction(values, weights):
+    '''
+    A substitute to the allfunction without considering the cutoff.
+    Does not change the data except for the removal of the cutoff from the array.
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+
+    Return
+    ------
+    norm : float
+        The normalization constant
+    v : np.array
+        The unchanged x values of the histogram
+    w : np.array
+        The unchanged weights of the histogram
+    '''
     v = values[:-1]
     w = weights[:-1]
     norm = np.sum(w)
     return norm, v, w
 
 def allfunction(values, weights):
+    '''
+    TODO rename pls
+
+    Preprocesses arrays (histograms) to allow for proper analysis. Last values are removed from the arrays
+    and should correspond to the respective cutoff for the histogram. The histograms are truncated
+    according to the cutoff.
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+
+    Returns
+    -------
+    cutoff : float
+        The cutoff which is deduced by reading the last value of the weights array
+    i : int
+        The index at which the cutoff is greter or equal than the values array
+    norm : float
+        The new normalization constant after truncation
+    v : np.array
+        The truncated x values of the histogram according to the cutoff
+    w : np.array
+        The truncated weights of the histogram according to the cutoff
+    '''
     v = values[:-1]
     cutoff = weights[len(weights)-1]
     w = weights[:-1]
@@ -167,6 +192,30 @@ def allfunction(values, weights):
     return cutoff, i, norm, v, w
 
 def zero_callback(values, weights):
+    '''
+    A zero callback doing nothing but returning the normalization constant, values and weights.
+    The first two return values so the function can be switched with allfunction.
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+
+    Returns
+    -------
+    None : None
+        None
+    None : None
+        None
+    np.sum(weights) : float
+        The normalization constant
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights  
+    '''
     return None, None, np.sum(weights), values, weights
 
 def weighted_havg(values, weights, callback=hallfunction):
@@ -175,13 +224,47 @@ def weighted_havg(values, weights, callback=hallfunction):
     return np.sum(v * w) / norm
 
 def weighted_avg(values, weights, callback=allfunction):
+    '''
+    Calculates the weighted average as 1 / n * \sum_i^n v[i] * w[i]
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+    callback : function
+        Preprocesses the data before going in to the analysis
+
+    Returns
+    -------
+    The weighted average
+    '''
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
     return np.sum(v * w) / norm
 
 def single_gaussian_check(values, weights, callback=allfunction):
+    '''
+    Heuristic approach to calculate if the histogram consists of a single caussian 
+    distribution by analysing slopes of the histogram.
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+    callback : function
+        Preprocesses the data before going in to the analysis
+
+    Returns
+    -------
+    1 if histogram describes a single gaussian 0 if it doesn't 
+    '''
     dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
+    if np.sum(weights) == 0.: return 0
     a = weights[:-2]
     b = weights[2:]
     slope = ((b - a) / (2. * dx)) / (norm*dx)
@@ -212,6 +295,22 @@ def single_gaussian_check(values, weights, callback=allfunction):
     return 1
 
 def c12_avg(values, weights, callback=allfunction):
+    '''
+    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+    callback : function
+        Preprocesses the data before going in to the analysis
+
+    Returns
+    -------
+    The c12 average
+    '''
     single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
@@ -228,8 +327,17 @@ def c12_avg(values, weights, callback=allfunction):
     return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
 
 
-def warning_cutoff_histo(args, max_adaptive_cutoff):
-    
+def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
+    '''
+    Prints warning if the histogram cutoff is smaller as the maximum adaptive cutoff.
+
+    Parameters
+    ----------
+    cutoff : float
+        The cutoff of the histogram calculations. Parsed from the command-line in the standard programm.
+    max_adaptive_cutoff : float
+        The maximum adaptive cutoff calculated from the LJ c12 parameters.
+    '''    
     print(f"""
     #############################
     
@@ -238,7 +346,7 @@ def warning_cutoff_histo(args, max_adaptive_cutoff):
     -------------------
 
     Found an adaptive cutoff greater then the cutoff used to generate the histogram:
-    histogram cutoff = {args.cutoff}
+    histogram cutoff = {cutoff}
     maximum adaptive cutoff = {max_adaptive_cutoff}
 
     Be careful!. This could create errors.
@@ -249,13 +357,19 @@ def warning_cutoff_histo(args, max_adaptive_cutoff):
 
 
 def calculate_intra_probabilities(args):
-
-    topology_mego = pmd.load_file(args.mego_top)
-    topology_ref = pmd.load_file(args.target_top)
-
-    N_molecules=len(list(topology_mego.molecules.keys()))
-    molecules_name=list(topology_mego.molecules.keys())
-    mol_list=np.arange(1,N_molecules+1,1)
+    '''
+    Starts the main routine for calculating the intramat by:
+     - reading the topologies
+     - calculating the cutoffs
+     - and caclulating the probabilities
+    The operation is finalized by writing out a csv with the name pattern intramat<_name>_{mol_i}_{mol_j}.ndx
+    
+    Parameters
+    ----------
+    args : dict
+        The command-line parsed parameters
+    '''
+    topology_mego, topology_ref, N_molecules, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
     print(f"""
     Topology contains {N_molecules} molecules species. Namely {molecules_name}. 
@@ -291,7 +405,7 @@ def calculate_intra_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args, np.max(c12_cutoff) )
+        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0+0.75
 
         ########################
@@ -337,24 +451,28 @@ def calculate_intra_probabilities(args):
         df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
-        if not args.out_name:
-            output_file=args.out+f"intramat_{mol_list[i]}_{mol_list[i]}.ndx"
-            print(f"Saving output for molecule {mol_list[i]} in {output_file}")
-
-        else:
-            output_file=args.out+f"intramat_"+args.out_name+f"_{mol_list[i]}_{mol_list[i]}.ndx"
-            print(f"Saving output for molecule {mol_list[i]} in {output_file}")
+        out_name = args.out_name+'_' if args.out_name else ''
+        
+        output_file=f'{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx'
+        print(f"Saving output for molecule {mol_list[i]} in {output_file}")
         
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_inter_probabilities(args):
-
-    topology_mego = pmd.load_file(args.mego_top)
-    topology_ref = pmd.load_file(args.target_top)
-
-    N_species=len(list(topology_mego.molecules.keys()))
-    molecules_name=list(topology_mego.molecules.keys())
-    mol_list=np.arange(1,N_species+1,1)
+    '''
+    Starts the main routine for calculating the intermat by:
+     - reading the topologies
+     - figuring out all the interacting molecules
+     - calculating the cutoffs
+     - and caclulating the probabilities
+    The operation is finalized by writing out a csv with the name pattern intermat<_name>_{mol_i}_{mol_j}.ndx
+    
+    Parameters
+    ----------
+    args : dict
+        The command-line parsed parameters
+    '''
+    topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
     pairs=list(itertools.combinations_with_replacement(mol_list,2))
     
     chain_list=[]
@@ -424,15 +542,11 @@ def calculate_inter_probabilities(args):
                 df['p'] = df['p'].map('{:,.6f}'.format)
                 df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
                 df['is_gauss'] = df['is_gauss'].map('{:}'.format)
+
                 df.index = range(len(df.index))
-                if not args.out_name:
-                    output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
-                    print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-
-                else:
-                    output_file=args.out+f"intermat_"+args.out_name+f"_{mol_i}_{mol_j}.ndx"
-                    print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-
+                out_name = args.out_name+'_' if args.out_name else ''
+                output_file=f'{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx'
+        
                 df.to_csv(output_file, index=False, sep=' ', header=False)
                 continue
 
@@ -474,7 +588,7 @@ def calculate_inter_probabilities(args):
 
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args, np.max(c12_cutoff) )
+        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0 + 0.75
 
         ########################
@@ -520,17 +634,28 @@ def calculate_inter_probabilities(args):
         df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
-        if not args.out_name:
-            output_file=args.out+f"intermat_{mol_i}_{mol_j}.ndx"
-            print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-
-        else:
-            output_file=args.out+f"intermat_"+args.out_name+f"_{mol_i}_{mol_j}.ndx"
-            print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+        out_name = args.out_name+'_' if args.out_name else ''
+        output_file=f'{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx'
         
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_probability(values, weights, callback=allfunction):
+    '''
+    Calculates a plain probability accoring to \sum_x x * dx
+
+    Parameters
+    ----------
+    values : np.array
+        The array of the histograms x values
+    weights : np.array
+        The array with the respective weights
+    callback : function
+        Preprocesses the data before going in to the analysis
+
+    Returns
+    -------
+    The probability of the histogram
+    '''
     dx = values[1] - values[0]
     cutoff, i, norm, v, w = callback(values, weights)
     return np.minimum( np.sum(w * dx), 1 )
@@ -552,11 +677,6 @@ if __name__ == '__main__':
         print(f"The path '{args.out}' does not exist.")
         sys.exit()
 
-    #check if directory has a final "/" in name and adding it if doesn't
-    if args.out[-1]!="/":
-        print("--out requires a path: path/to/directory/. Missing last '/'. Adding '/' to output file ") 
-        args.out=args.out+"/"
-
     N_BINS = args.cutoff / ( 0.01 / 4 )
     DX = args.cutoff / N_BINS
     PREFIX = 'inter_mol_' if args.inter else 'intra_mol_'
@@ -568,7 +688,6 @@ if __name__ == '__main__':
                   on {args.proc} threads
     """)
 
-    
     if not args.inter:
         calculate_intra_probabilities(args)
     else:
