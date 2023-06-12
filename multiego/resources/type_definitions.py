@@ -16,8 +16,6 @@ gromos_atp = pd.DataFrame(
              8.736473e-06, 3.893600e-06, 3.558824e-07, 6.29856e-06]
      }
 )
-gromos_atp.to_dict()
-gromos_atp.set_index('name', inplace=True)
 
 from_ff_to_multiego = {
     'OC1' : 'O1',
