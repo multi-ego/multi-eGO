@@ -30,7 +30,7 @@ def run_(arguments):
     '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff', 'is_gauss']
+    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff']
     df = pd.DataFrame(columns=columns)
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
@@ -50,7 +50,6 @@ def run_(arguments):
             results_df['hdist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
-            results_df['is_gauss'] = 0
             
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
@@ -74,7 +73,6 @@ def run_(arguments):
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'hdist'] = hdist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
-            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'is_gauss'] = ref_df.apply(lambda x: single_gaussian_check(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
     
         df = pd.concat([df, results_df])
         df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
@@ -244,56 +242,6 @@ def weighted_avg(values, weights, callback=allfunction):
     if norm == 0.: return 0
     return np.sum(v * w) / norm
 
-def single_gaussian_check(values, weights, callback=allfunction):
-    '''
-    Heuristic approach to calculate if the histogram consists of a single caussian 
-    distribution by analysing slopes of the histogram.
-
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
-
-    Returns
-    -------
-    1 if histogram describes a single gaussian 0 if it doesn't 
-    '''
-    dx = values[1] - values[0]
-    cutoff, i, norm, values, weights = callback(values, weights)
-    if norm == 0.: return 1
-
-    a = weights[:-2]
-    b = weights[2:]
-    slope = ((b - a) / (2. * dx)) / (norm*dx)
-    danger_sign=0
-    danger_trend=0
-    increasing=4
-    begin = 0
-    for i in range(slope.size-1):
-        if slope[i+1] != 0. or slope[i] != 0.:
-            if slope[i] > 15:
-                begin = 1;
-            if begin and increasing > 0. and slope[i+1] < slope[i]:
-                increasing-=1;
-                if increasing == 0:
-                    increasing = -3
-                    danger_trend+=1
-            if increasing <=0 and slope[i+1] > slope[i]:
-                increasing+=1
-                if increasing == 1:
-                    danger_trend+=1
-                    increasing = 4
-            if danger_trend > 2: return 0
-            if not danger_sign and danger_trend > 1: return 0
-            if begin and slope[i] * slope[i+1] < 0.:
-                if danger_sign: return 0
-                danger_sign = 1
-
-    return 1
 
 def c12_avg(values, weights, callback=allfunction):
     '''
@@ -312,20 +260,13 @@ def c12_avg(values, weights, callback=allfunction):
     -------
     The c12 average
     '''
-    single_gaussian = single_gaussian_check(values, weights)
     cutoff, i, norm, v, w = callback(values, weights)
     if norm == 0.: return 0
     r = np.where(w > 0.)
+    v = v[r[0][0]:w.size]
+    w = w[r[0][0]:w.size]
     
-    if not single_gaussian:
-        i_start = r[0][0]
-        i_stop = int(w.size - (w.size - i_start) / 2)
-        w = w[i_start:i_stop] 
-        v = v[i_start:i_stop]
-
-    norm = np.sum(w)    
-
-    return np.power( 1. / ( np.sum(w*np.power(1./v, 12.)) / norm ), 1. / 12.)
+    return (1./0.1)/np.log(np.sum(w*np.exp(1./v/0.1))/norm)
 
 
 def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
@@ -434,7 +375,6 @@ def calculate_intra_probabilities(args):
              'mj': 'int32', 
              'ai': 'int32', 
              'aj': 'int32', 
-             'is_gauss': 'int32'
             })
 
         df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
@@ -449,7 +389,6 @@ def calculate_intra_probabilities(args):
         df['hdist'] = df['hdist'].map('{:,.6f}'.format)
         df['p'] = df['p'].map('{:,.6f}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-        df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
         out_name = args.out_name+'_' if args.out_name else ''
@@ -516,9 +455,9 @@ def calculate_inter_probabilities(args):
         original_size_j = len(protein_ref_j.atoms)
 
         if mol_i==mol_j:
-            if N_mols[mol_i-1]==1:
+            if N_mols[mol_i-1]==0:
                 print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
-                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff' , 'is_gauss']
+                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff']
                 matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
                 indeces_ai=np.array(list(matrix_index)).T[0]
                 indeces_aj=np.array(list(matrix_index)).T[1]
@@ -532,7 +471,6 @@ def calculate_inter_probabilities(args):
                 df['hdist']   = 0.
                 df['p']       = 0.
                 df['cutoff']  = 0.
-                df['is_gauss']= 0
                 df['mi'] = df['mi'].map('{:}'.format)
                 df['mj'] = df['mj'].map('{:}'.format)
                 df['ai'] = df['ai'].map('{:}'.format)
@@ -542,7 +480,6 @@ def calculate_inter_probabilities(args):
                 df['hdist'] = df['hdist'].map('{:,.6f}'.format)
                 df['p'] = df['p'].map('{:,.6f}'.format)
                 df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-                df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
                 df.index = range(len(df.index))
                 out_name = args.out_name+'_' if args.out_name else ''
@@ -616,8 +553,7 @@ def calculate_inter_probabilities(args):
              'mi': 'int32', 
              'mj': 'int32', 
              'ai': 'int32', 
-             'aj': 'int32', 
-             'is_gauss': 'int32'
+             'aj': 'int32'
             })
 
         df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
@@ -632,7 +568,6 @@ def calculate_inter_probabilities(args):
         df['hdist'] = df['hdist'].map('{:,.6f}'.format)
         df['p'] = df['p'].map('{:,.6f}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
-        df['is_gauss'] = df['is_gauss'].map('{:}'.format)
 
         df.index = range(len(df.index))
         out_name = args.out_name+'_' if args.out_name else ''
