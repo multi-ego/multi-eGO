@@ -264,7 +264,8 @@ def single_gaussian_check(values, weights, callback=allfunction):
     '''
     dx = values[1] - values[0]
     cutoff, i, norm, values, weights = callback(values, weights)
-    if np.sum(weights) == 0.: return 0
+    if norm == 0.: return 1
+
     a = weights[:-2]
     b = weights[2:]
     slope = ((b - a) / (2. * dx)) / (norm*dx)
