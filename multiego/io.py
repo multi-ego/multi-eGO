@@ -44,11 +44,12 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     output_folder : str
         The path to the output directory
     '''
+    write_header = not parameters.no_header
     header = make_header(vars(parameters))
     # pd.set_option('display.colheader_justify', 'right')
     with open(f'{output_folder}/ffnonbonded.itp', 'w') as file:
-        file.write(header)
-        file.write('\n[ atomtypes ]\n')
+        if write_header: file.write(header)
+        file.write('[ atomtypes ]\n')
         atomtypes = topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
         atomtypes['c6'] = atomtypes['c6'].map(lambda x: '{:.6e}'.format(x))
         atomtypes['c12'] = atomtypes['c12'].map(lambda x: '{:.6e}'.format(x))
@@ -134,6 +135,7 @@ def make_header(parameters):
 ; With the following parameters:
 '''
     for parameter, value in parameters.items():
+        if parameter == 'no_header': continue
         if type(value) is list:
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
         elif not value:
@@ -141,6 +143,8 @@ def make_header(parameters):
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
         else:
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, value)
+    header += '\n'
+
     return header
 
 def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_dict, lj_14, parameters, output_folder):
@@ -162,6 +166,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
     output_folder : str
         Path to the ouput directory
     '''
+    write_header = not parameters.no_header
     molecule_footer = []
     header = make_header(vars(parameters))
     with open(f'{output_folder}/topol_GRETA.top', 'w') as file:
@@ -170,7 +175,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
 #include "multi-ego-basic.ff/forcefield.itp"
 '''
 
-        file.write(header)
+        if write_header: file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
             # TODO here I defined an empty exclusion. In the case we are not reading a protein topology, the exclusion part is not read and needed to be added in someway.
             # Hence, an empty exclusion gives error. Here I define an empty variable so it does not gets stuck
@@ -185,8 +190,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
             exclusions = pairs[['ai', 'aj']].copy()
 
             molecule_footer.append(molecule)
-            molecule_header = f'''
-[ moleculetype ]
+            molecule_header = f'''[ moleculetype ]
 ; Name\tnrexcl
 {molecule}\t\t\t3
 
