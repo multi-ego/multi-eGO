@@ -1,6 +1,6 @@
 
 ; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
-; Created on the 14-06-2023 14:22
+; Created on the 14-06-2023 15:46
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = production          
@@ -11,9 +11,9 @@
 ;	- rc_threshold    = 2e-05               
 ;	- inter_epsilon   = 0.35                
 
+
 ; Include forcefield parameters
 #include "multi-ego-basic.ff/forcefield.itp"
-
 [ moleculetype ]
 ; Name	nrexcl
 GProtein			3
