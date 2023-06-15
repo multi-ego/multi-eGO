@@ -130,7 +130,10 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f'''
-; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
+; Multi-eGO force field version alpha2
+; https://github.com/multi-ego/multi-eGO
+; Please read and cite:
+; Scalone, E. et al. PNAS 119, e2203181119 (2022)
 ; Created on the {now}
 ; With the following parameters:
 '''
