@@ -1,6 +1,9 @@
 
-; Multi-eGO force field provided by Emanuele Scalone and Carlo Camilloni at Camilloni Lab
-; Created on the 14-06-2023 15:46
+; Multi-eGO force field version alpha2
+; https://github.com/multi-ego/multi-eGO
+; Please read and cite:
+; Scalone, E. et al. PNAS 119, e2203181119 (2022)
+; Created on the 15-06-2023 13:29
 ; With the following parameters:
 ;	- system          = abetaref            
 ;	- egos            = production          
