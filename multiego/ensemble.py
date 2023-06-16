@@ -593,7 +593,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
     meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
     meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y', 'rep_y'])
-    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff', 'rep_x': 'rep'}, inplace = True)
+    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 
+                                 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 
+                                 'cutoff_x': 'cutoff', 'rep_x': 'rep'}, inplace = True)
 
     # copy 1-4 interactions into meGO_LJ_14
     copy14 = meGO_LJ.loc[(meGO_LJ['1-4']=='1_4')]
@@ -617,10 +619,16 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['number_ai'] = meGO_LJ['number_ai'].astype(int)
     meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
 
-    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff']]
+    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability',
+                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                       'number_ai', 'number_aj', 'cutoff']]
     # Here we want to sort so that ai is smaller than aj
-    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff']].copy()
-    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff'] 
+    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 
+                        'number_aj', 'number_ai', 'cutoff']].copy()
+    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                        'number_ai', 'number_aj', 'cutoff'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
