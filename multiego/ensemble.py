@@ -395,7 +395,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         temp_merged = pd.merge(meGO_ensemble['train_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
 
-    # This is to FLAG 1-2, 1-3, 1-4 cases:
+    # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
     train_dataset.loc[(train_dataset['ai']==train_dataset['aj'])&(train_dataset['same_chain']==True), '1-4'] = '0'
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
@@ -495,10 +495,12 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # mild c12s (for small probability ratios): larger 
     meGO_LJ.loc[(meGO_LJ['probability']>=1./limit_rc*np.maximum(meGO_LJ['rc_probability'],parameters.rc_threshold))&(meGO_LJ['probability']<=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance_m']-meGO_LJ['distance_m'])<0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['probability']>parameters.md_threshold), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_m']/meGO_LJ['rc_distance_m'])**12
 
-    # This set the default (random coil) value for selected 1-4 interactions
-    meGO_LJ.loc[(meGO_LJ['1-4'] == '1_4'), 'epsilon'] = -meGO_LJ['rep']
-    # Rescale c12 1-4 interactions 
-    meGO_LJ.loc[(np.abs(meGO_LJ['rc_distance_14']-meGO_LJ['distance_14'])>0.)&(meGO_LJ['rc_probability']>parameters.md_threshold)&(meGO_LJ['1-4']=="1_4")&(meGO_LJ['same_chain']==True), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
+    # update the c12 1-4 interactions 
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
+    # but within a lower
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
+    # and an upper value
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']>np.maximum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -np.maximum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
 
 
     # Here we are reindexing like before
@@ -591,7 +593,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
     meGO_LJ_14 = test.loc[(test['same_chain_x']==False)|((test['same_chain_x']==True)&(test['same_chain_y']==False))]
     meGO_LJ_14 = meGO_LJ_14.drop(columns = ['sigma_y', 'epsilon_y', 'same_chain_y', 'probability_y', 'rc_probability_y', 'source_y', '1-4_y', 'cutoff_y', 'rep_y'])
-    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 'cutoff_x': 'cutoff', 'rep_x': 'rep'}, inplace = True)
+    meGO_LJ_14.rename(columns = {'sigma_x': 'sigma', 'probability_x': 'probability', 'rc_probability_x': 'rc_probability', 
+                                 'epsilon_x': 'epsilon', 'same_chain_x': 'same_chain', 'source_x': 'source', '1-4_x': '1-4', 
+                                 'cutoff_x': 'cutoff', 'rep_x': 'rep'}, inplace = True)
 
     # copy 1-4 interactions into meGO_LJ_14
     copy14 = meGO_LJ.loc[(meGO_LJ['1-4']=='1_4')]
@@ -615,10 +619,16 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['number_ai'] = meGO_LJ['number_ai'].astype(int)
     meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
 
-    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff']]
+    meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability',
+                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                       'number_ai', 'number_aj', 'cutoff']]
     # Here we want to sort so that ai is smaller than aj
-    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 'number_aj', 'number_ai', 'cutoff']].copy()
-    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 'number_ai', 'number_aj', 'cutoff'] 
+    inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 
+                        'number_aj', 'number_ai', 'cutoff']].copy()
+    inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                        'number_ai', 'number_aj', 'cutoff'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
