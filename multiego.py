@@ -37,6 +37,10 @@ if __name__ == '__main__':
         print('--epsilon is required when using --egos=production')
         sys.exit()
 
+    if args.md_threshold < args.rc_threshold:
+        print('--rc_thresdhold cannot be smaller than --md_threshold')
+        sys.exit()
+
     if not os.path.exists('outputs'): os.mkdir('outputs')
     output_dir = multiego.io.create_output_directories(args)
 
