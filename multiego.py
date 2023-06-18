@@ -38,7 +38,7 @@ if __name__ == '__main__':
         sys.exit()
 
     if args.md_threshold < args.rc_threshold:
-        print('--rc_thresdhold cannot be smaller than --md_threshold')
+        print('--md_thresdhold cannot be smaller than --rc_threshold')
         sys.exit()
 
     if not os.path.exists('outputs'): os.mkdir('outputs')
