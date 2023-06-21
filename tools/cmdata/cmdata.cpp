@@ -67,6 +67,9 @@
 #include <algorithm>
 #include <functional>
 #include <numeric>
+#include <sstream>
+#include <fstream>
+
 
 namespace gmx
 {
@@ -103,13 +106,16 @@ private:
   std::string outfile_inter_;
   std::string outfile_intra_;
   std::vector<double> inv_num_mol_;
+  std::string sym_file_path_;
+  std::vector<std::vector<std::vector<int>>> equivalence_list_;
+  bool list_sym_;
+  std::string list_sym_path_;
 
   std::vector<int> natmol2_;
   int nindex_;
   gmx::RangePartitioning mols_;
   std::vector<std::vector<int>> cross_index_;
   std::vector<t_atoms> molecules_;
-  const char *atomname_;
   std::vector<double> density_bins_;
 
   double mcut2_;
@@ -121,7 +127,9 @@ private:
 
 CMData::CMData() : histo_(false),
                    outfile_intra_(""),
-                   outfile_inter_("") {}
+                   outfile_inter_(""),
+                   sym_file_path_(""),
+                   list_sym_(false) {}
 
 void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings *settings)
 {
@@ -153,9 +161,82 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                          .required()
                          .dynamicMask()
                          .description("Groups to calculate distances to"));
+  options->addOption(FileNameOption("sym")
+                    .store(&sym_file_path_)
+                    .description("Atoms symmetry file path"));
 
   // always require topology
   settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
+}
+
+static inline void read_symmetry_indices(
+  const std::string &path, gmx_mtop_t &top, 
+  const gmx::RangePartitioning &mols_,
+  std::vector<std::vector<std::vector<int>>> &eq_list,
+  const std::vector<int> natmol2_, std::vector<int> &mol_id_)
+{
+  eq_list.resize(natmol2_.size());
+  for (std::size_t i = 0; i < natmol2_.size(); i++)
+    eq_list[i].resize(natmol2_[i]);
+
+  int molb = 0;
+  std::string residue_entry, atom_entry_i, atom_entry_j;
+  std::string line;
+  std::ifstream infile(path);
+  std::string buffer;
+  if (path=="") // no file provided => use no symmetry
+  {
+    for (std::size_t i = 0; i < natmol2_.size(); i++)
+    {
+      for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
+      {
+        for (int jj = mols_.block(i).begin(); jj < mols_.block(i).end(); jj++)
+        {
+          if (ii==jj) eq_list[mol_id_[i]][ii].push_back(jj);
+        }
+      }
+    }
+  }
+  else // symmetry file provided
+  {
+    while (std::getline(infile, line)) 
+    {
+      int atom1_index, atom2_index;
+      std::istringstream iss(line);
+      int a, b;
+      if (!(iss >> residue_entry >> atom_entry_i >> atom_entry_j)) // each necessary field is there
+      {
+        if (line=="") continue;
+        printf("Skipping line\n%s\n due to syntax non-conformity\n", line.c_str());
+        continue;
+      }
+
+      const char *atom_name_i, *atom_name_j, *residue_name_i, *residue_name_j;
+      int resn_i, resn_j;
+      for (std::size_t i = 0; i < natmol2_.size(); i++)
+      {
+        for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
+        {
+          mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
+          for (int jj = mols_.block(i).begin(); jj < mols_.block(i).end(); jj++)
+          {
+            mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
+            if (ii==jj||(atom_name_i==atom_entry_i&&atom_name_j==atom_entry_j&&residue_entry==residue_name_i&&residue_entry==residue_name_j&&resn_i==resn_j))
+            {
+              bool insert = true;
+              // check if element is already inserted
+              for ( auto e : eq_list[mol_id_[i]][ii] )
+              {
+                if (e==jj) insert = false;
+              }
+              // insert if not yet present
+              if (insert) eq_list[mol_id_[i]][ii].push_back(jj);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 static inline void kernel_density_estimator(std::vector<double> &x, const std::vector<double> &bins, const double mu, const double norm)
@@ -223,9 +304,9 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   nframe_ = 0;
   mtop_ = top.mtop();
   mols_ = gmx_mtop_molecules(*top.mtop());
-
   // number of molecules
   nindex_ = mols_.numBlocks();
+
   std::vector<int> num_mol;
   num_mol.push_back(1);
   int num_unique_molecules = 0;
@@ -289,9 +370,37 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     }
   }
 
+  if (sym_file_path_=="") printf("No symmetry file provided. Running with standard settings.\n");
+  else printf("Running with symmetry file %s\nReading file...\n", sym_file_path_.c_str());
+  read_symmetry_indices(sym_file_path_, *mtop_, mols_, equivalence_list_, natmol2_, mol_id_);
+
+  if (list_sym_) // for now always false
+  {
+    printf("Writing out symmetry listing into %s\n", "sym_list.txt");
+    std::fstream sym_list_file("sym_list.txt", std::fstream::out);
+    for (int i = 0; i < equivalence_list_.size(); i++)
+    {
+      sym_list_file << "[ molecule_" << i << " ]\n";
+      for (int j = 0; j < equivalence_list_[i].size(); j++)
+      {
+        sym_list_file << "atom " << j << ":";
+        for (int k = 0; k < equivalence_list_[i][j].size(); k++)
+        {
+          sym_list_file << " " << equivalence_list_[i][j][k];
+        }
+        sym_list_file << "\n";
+      }
+      sym_list_file << "\n";
+    }
+    sym_list_file << "\n";
+    sym_list_file.close();
+  }
+
   mcut2_ = mol_cutoff_ * mol_cutoff_;
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
+
+  printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
@@ -323,6 +432,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         xcm_[i][m] /= tm;
       }
     }
+
+    const char * atomname;
 
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
@@ -358,25 +469,37 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
         {
           int a_j = 0;
-          mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname_, nullptr, nullptr, nullptr);
-          if (atomname_[0] == 'H')
+          mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
+          if (atomname[0] == 'H')
           {
             a_i++;
             continue;
           }
           for (int jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
           {
-            mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname_, nullptr, nullptr, nullptr);
-            if (atomname_[0] == 'H')
+            mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
+            if (atomname[0] == 'H')
             {
               a_j++;
               continue;
             }
             if (pbc != nullptr) pbc_dx(pbc, x[ii], x[jj], dx);
             else rvec_sub(x[ii], x[jj], dx);
-            double dx2 = iprod(dx, dx);
+            double dx2 = 100; // iprod(dx, dx);
             double dx3 = 100;
             int delta = a_i - a_j;
+            // check for chemical equivalence
+            for (int eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][ii].size(); eq_i++)
+            {
+              for (int eq_j = 0; eq_j < equivalence_list_[mol_id_[i]][jj].size(); eq_j++)
+              {
+                rvec sym_dx;
+                if (pbc != nullptr) pbc_dx(pbc, x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[i]][jj][eq_j]], sym_dx);
+                else rvec_sub(x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[i]][jj][eq_j]], sym_dx);
+                double dx2_sym = iprod(sym_dx, sym_dx);
+                if (dx2_sym<dx2) dx2 = dx2_sym;                  
+              }
+            }
             if (i != j && mol_id_[i] == mol_id_[j])
             {
               // this is to account for inversion atom/molecule
