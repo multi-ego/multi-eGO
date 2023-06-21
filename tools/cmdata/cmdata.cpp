@@ -494,8 +494,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
               for (int eq_j = 0; eq_j < equivalence_list_[mol_id_[i]][jj].size(); eq_j++)
               {
                 rvec sym_dx;
-                if (pbc != nullptr) pbc_dx(pbc, x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[i]][jj][eq_j]], sym_dx);
-                else rvec_sub(x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[i]][jj][eq_j]], sym_dx);
+                if (pbc != nullptr) pbc_dx(pbc, x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[j]][jj][eq_j]], sym_dx);
+                else rvec_sub(x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[j]][jj][eq_j]], sym_dx);
                 double dx2_sym = iprod(sym_dx, sym_dx);
                 if (dx2_sym<dx2) dx2 = dx2_sym;                  
               }
