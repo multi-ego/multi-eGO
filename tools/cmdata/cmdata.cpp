@@ -347,6 +347,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   }
 
   printf("number of different molecules %lu\n", natmol2_.size());
+  for(std::size_t i=0; i<natmol2_.size();i++) printf("mol %lu num %u size %u\n", i, num_mol[i], natmol2_[i]);
 
   interm_same_mat_density_.resize(natmol2_.size());
   interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
@@ -489,13 +490,13 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             double dx3 = 100;
             int delta = a_i - a_j;
             // check for chemical equivalence
-            for (int eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][ii].size(); eq_i++)
+            for (int eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
             {
-              for (int eq_j = 0; eq_j < equivalence_list_[mol_id_[i]][jj].size(); eq_j++)
+              for (int eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
               {
                 rvec sym_dx;
-                if (pbc != nullptr) pbc_dx(pbc, x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[j]][jj][eq_j]], sym_dx);
-                else rvec_sub(x[equivalence_list_[mol_id_[i]][ii][eq_i]], x[equivalence_list_[mol_id_[j]][jj][eq_j]], sym_dx);
+                if (pbc != nullptr) pbc_dx(pbc, x[equivalence_list_[mol_id_[i]][a_i][eq_i]], x[equivalence_list_[mol_id_[j]][a_j][eq_j]], sym_dx);
+                else rvec_sub(x[equivalence_list_[mol_id_[i]][a_i][eq_i]], x[equivalence_list_[mol_id_[j]][a_j][eq_j]], sym_dx);
                 double dx2_sym = iprod(sym_dx, sym_dx);
                 if (dx2_sym<dx2) dx2 = dx2_sym;                  
               }
