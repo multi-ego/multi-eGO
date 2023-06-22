@@ -34,6 +34,8 @@ def run_(arguments):
     process = multiprocessing.current_process()
     columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff']
     df = pd.DataFrame(columns=columns)
+    # We do not consider old histograms
+    frac_target_list = [ x for x in frac_target_list if x[0]!="#" and x[-1]!="#" ]
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
