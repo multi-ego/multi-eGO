@@ -184,16 +184,14 @@ static inline void read_symmetry_indices(
   std::string line;
   std::ifstream infile(path);
   std::string buffer;
-  if (path=="") // no file provided => use no symmetry
+  if (path==""||!infile.good()) // no file provided => use no symmetry
   {
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
+      // WARNING THIS IS WRONG FOR CROSS CASES
       for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
       {
-        for (int jj = mols_.block(i).begin(); jj < mols_.block(i).end(); jj++)
-        {
-          if (ii==jj) eq_list[mol_id_[i]][ii].push_back(jj);
-        }
+          eq_list[mol_id_[i]][ii].push_back(ii);
       }
     }
   }
