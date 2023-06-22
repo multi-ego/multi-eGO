@@ -263,12 +263,16 @@ def c12_avg(values, weights, callback=allfunction):
     The c12 average
     '''
     cutoff, i, norm, v, w = callback(values, weights)
-    if norm == 0.: return 0
+    if np.sum(w)==0: return 0
     r = np.where(w > 0.)
     v = v[r[0][0]:v.size]
     w = w[r[0][0]:w.size]
     
-    return (1./0.1)/np.log(np.sum(w*np.exp(1./v/0.1))/norm)
+    #exp_aver = (1./0.1)/np.log(np.sum(w*np.exp(1./v/0.1))/norm)
+    res = np.maximum(cutoff/4.5, 0.1)
+    exp_aver = (1./res)/np.log(np.sum(w*np.exp(1./v/res))/norm)
+
+    return exp_aver
 
 
 def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
