@@ -215,6 +215,7 @@ static inline void read_symmetry_indices(
       int resn_i, resn_j;
       for (std::size_t i = 0; i < natmol2_.size(); i++)
       {
+        // WARNING THIS IS WRONG FOR CROSS CASES
         for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
         {
           mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
@@ -230,7 +231,10 @@ static inline void read_symmetry_indices(
                 if (e==jj) insert = false;
               }
               // insert if not yet present
-              if (insert) eq_list[mol_id_[i]][ii].push_back(jj);
+              if (insert) {
+                eq_list[mol_id_[i]][ii].push_back(jj);
+                eq_list[mol_id_[i]][jj].push_back(ii);
+              }
             }
           }
         }
