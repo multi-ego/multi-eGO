@@ -1,4 +1,4 @@
-# Multi-*e*GO: a multi-ensemble, Go-like, model
+# Multi-*e*GO: a multi-ensemble Gō model
 Original version by [Emanuele Scalone](https://github.com/emalacs), Cristina Paissoni, and [Carlo Camilloni](https://github.com/carlocamilloni), Computational Structural Biology Lab, Department of Biosciences, University of Milano, Italy.
 
 ### Codename: VANESSA (Alpha2)
