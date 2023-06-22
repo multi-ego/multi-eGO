@@ -539,7 +539,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       {
         for (int jj = ii; jj < natmol2_[mol_id_[i]]; jj++)
         {
-          double sym = std::sqrt(equivalence_list_[mol_id_[i]][ii].size()*equivalence_list_[mol_id_[i]][jj].size());
+          double sym = (equivalence_list_[mol_id_[i]][ii].size()*equivalence_list_[mol_id_[i]][jj].size());
           if (interm_same_mat_mdist[ii][jj] < 100.)
           {
             kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][ii][jj], density_bins_, std::sqrt(interm_same_mat_mdist[ii][jj]), inv_num_mol_[i]/sym);
@@ -558,7 +558,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           {
             if (interm_cross_mat_mdist[cross_index_[mol_id_[i]][j]][ii][jj] < 100.)
             {
-              double sym = std::sqrt(equivalence_list_[mol_id_[i]][ii].size()*equivalence_list_[mol_id_[j]][jj].size());
+              double sym = (equivalence_list_[mol_id_[i]][ii].size()*equivalence_list_[mol_id_[j]][jj].size());
               kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][j]][ii][jj], density_bins_, std::sqrt(interm_cross_mat_mdist[cross_index_[mol_id_[i]][j]][ii][jj]), std::max(inv_num_mol_[i], inv_num_mol_[j])/sym);
             }
           }
