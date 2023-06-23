@@ -164,16 +164,21 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
   options->addOption(FileNameOption("sym")
                     .store(&sym_file_path_)
                     .description("Atoms symmetry file path"));
+  options->addOption(BooleanOption("write_sym")
+                         .store(&list_sym_)
+                         .description("Write symmetry list"));
 
   // always require topology
   settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
 }
 
 static inline void read_symmetry_indices(
-  const std::string &path, gmx_mtop_t &top, 
-  const gmx::RangePartitioning &mols_,
+  const std::string &path,
+  gmx_mtop_t &top,
   std::vector<std::vector<std::vector<int>>> &eq_list,
-  const std::vector<int> natmol2_)
+  const std::vector<int> &natmol2_,
+  const std::vector<int> &start_index
+  )
 {
 
   eq_list.resize(natmol2_.size());
@@ -209,29 +214,33 @@ static inline void read_symmetry_indices(
     }
 
     const char *atom_name_i, *atom_name_j, *residue_name_i, *residue_name_j;
-    int resn_i, resn_j;
+    int a_i, a_j, resn_i, resn_j;
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
-      for (int ii = 0; ii < natmol2_[i]; ii++)
+      a_i = 0;
+      for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
       {
         mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
-        for (int jj = 0; jj < natmol2_[i]; jj++)
+	      a_j = 0;
+        for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
         {
           mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
           if (((atom_name_i==atom_entry_i&&atom_name_j==atom_entry_j)||(atom_name_i==atom_entry_j&&atom_name_j==atom_entry_i))&&residue_entry==residue_name_i&&resn_i==resn_j)
           {
             bool insert = true;
             // check if element is already inserted
-            for ( auto e : eq_list[i][ii] )
+            for ( auto e : eq_list[i][a_i] )
             {
-              if (e==jj) insert = false;
+              if (e==a_j) insert = false;
             }
             // insert if not yet present
             if (insert) {
-              eq_list[i][ii].push_back(jj);
+              eq_list[i][a_i].push_back(a_j);
             }
           }
+	        a_j++;
         }
+	      a_i++;
       }
     }
   }
@@ -371,9 +380,9 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   if (sym_file_path_=="") printf("No symmetry file provided. Running with standard settings.\n");
   else printf("Running with symmetry file %s\nReading file...\n", sym_file_path_.c_str());
-  read_symmetry_indices(sym_file_path_, *mtop_, mols_, equivalence_list_, natmol2_);
+  read_symmetry_indices(sym_file_path_, *mtop_, equivalence_list_, natmol2_, start_index);
 
-  if (1) // for now always false
+  if (list_sym_)
   {
     printf("Writing out symmetry listing into %s\n", "sym_list.txt");
     std::fstream sym_list_file("sym_list.txt", std::fstream::out);
@@ -442,7 +451,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       for (int j = 0; j < nindex_; j++)
       {
         /* intermolecular interactions are evaluated only among neighbour molecules */
-        if (i!=j)
+	      if (i!=j)
         {
           rvec dx;
           if (pbc != nullptr) pbc_dx(pbc, xcm_[i], xcm_[j], dx);
@@ -492,33 +501,36 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 double dx2 = iprod(sym_dx, sym_dx);
                 if(i==j) 
                 {
+                  if (dx2 < cut_sig_2_)
+                  {
+                    kernel_density_estimator(intram_mat_density_[mol_id_[i]][eqa_i][eqa_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+                  }
+                }
+                else
+                {
+                  if(mol_id_[i]==mol_id_[j])
+                  { // inter same molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(intram_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+                      kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][eqa_i][eqa_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
+                      // this is to account for inversion atom/molecule
                     }
-                 }
-                 else
-                 {
-                    if(mol_id_[i]==mol_id_[j]) { // inter same molecule specie
-                      if (dx2 < cut_sig_2_)
-                      {
-                         kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
-                         // this is to account for inversion atom/molecule
-                      }
-                      if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                      else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                      dx2 = iprod(sym_dx, sym_dx);
-                      if (dx2 < cut_sig_2_)
-                      {
-                         kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
-                      }
-                    } else { // inter cross molecule specie
-                      if (dx2 < cut_sig_2_)
-                      {
-                         kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][j]][a_i][a_j], density_bins_, std::sqrt(dx2),std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
-                      }
+                    if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
+                    else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
+                    dx2 = iprod(sym_dx, sym_dx);
+                    if (dx2 < cut_sig_2_)
+                    {
+                      kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][eqa_i][eqa_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
                     }
-                 }
+                  }
+                  else
+                  { // inter cross molecule specie
+                    if (dx2 < cut_sig_2_)
+                    {
+                      kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][eqa_i][eqa_j], density_bins_, std::sqrt(dx2),std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                    }
+                  }
+                }
               }
             }
             a_j++;
