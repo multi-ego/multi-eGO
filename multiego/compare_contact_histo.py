@@ -395,7 +395,7 @@ def calculate_intra_probabilities(args):
         df['dist'] = df['dist'].map('{:,.6f}'.format)
         df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
         df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-        df['p'] = df['p'].map('{:,.6f}'.format)
+        df['p'] = df['p'].map('{:,.6e}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
         df.index = range(len(df.index))
@@ -486,7 +486,7 @@ def calculate_inter_probabilities(args):
                 df['dist'] = df['dist'].map('{:,.6f}'.format)
                 df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
                 df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-                df['p'] = df['p'].map('{:,.6f}'.format)
+                df['p'] = df['p'].map('{:,.6e}'.format)
                 df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
                 df.index = range(len(df.index))
@@ -574,7 +574,7 @@ def calculate_inter_probabilities(args):
         df['dist'] = df['dist'].map('{:,.6f}'.format)
         df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
         df['hdist'] = df['hdist'].map('{:,.6f}'.format)
-        df['p'] = df['p'].map('{:,.6f}'.format)
+        df['p'] = df['p'].map('{:,.6e}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
         df.index = range(len(df.index))
