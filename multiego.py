@@ -21,7 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     
     parser.add_argument('--p_to_learn', type=float, default=0.999, help='Amount of the simulation to learn.')
-    parser.add_argument('--fraction', type=float, default=0.1, help='Minimum fraction of the maximum interaction energy per contact.')
+    parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
 
     #parser.add_argument('--rc_threshold', type=float, default=0.000100, help='Minimum population for repulsive interactions in reference simulations.')
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
