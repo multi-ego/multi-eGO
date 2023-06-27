@@ -3,15 +3,15 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 16-06-2023 11:06
+; Created on the 27-06-2023 20:35
 ; With the following parameters:
 ;	- system          = abetaref            
 ;	- egos            = production          
 ;	- epsilon         = 0.35                
 ;	- train_from      = native_MD           
 ;	- check_with      =                     
-;	- md_threshold    = 0.001               
-;	- rc_threshold    = 0.0001              
+;	- p_to_learn      = 0.9995              
+;	- fraction        = 0.2                 
 ;	- inter_epsilon   = 0.35                
 
 
@@ -1540,7 +1540,7 @@ ABeta			3
 [ pairs ]
  ; ai  aj  func           c6          c12 ;  probability  rc_probability    source
     1   4     1 0.000000e+00 3.480817e-07 ;     1.000000        0.999985 native_MD
-    1   9     1 0.000000e+00 8.752940e-07 ;     0.999995        0.999956 native_MD
+    1   9     1 0.000000e+00 4.000000e-06 ;     0.999995        0.999956 native_MD
     3   8     1 0.000000e+00 9.778328e-07 ;     1.000000        1.000000 native_MD
     3   9     1 0.000000e+00 5.507659e-07 ;     1.000000        0.999999 native_MD
     4   7     1 0.000000e+00 1.291718e-07 ;     0.999998        1.000000 native_MD

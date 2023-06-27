@@ -3,15 +3,15 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 16-06-2023 11:05
+; Created on the 27-06-2023 20:35
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = rc                  
 ;	- epsilon         =                     
 ;	- train_from      =                     
 ;	- check_with      =                     
-;	- md_threshold    = 0.001               
-;	- rc_threshold    = 0.0001              
+;	- p_to_learn      = 0.9995              
+;	- fraction        = 0.2                 
 ;	- inter_epsilon   =                     
 
 
