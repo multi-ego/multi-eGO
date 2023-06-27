@@ -221,7 +221,7 @@ static inline void read_symmetry_indices(
       for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
       {
         mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
-	      a_j = 0;
+	a_j = 0;
         for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
         {
           mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
@@ -238,9 +238,9 @@ static inline void read_symmetry_indices(
               eq_list[i][a_i].push_back(a_j);
             }
           }
-	        a_j++;
+	  a_j++;
         }
-	      a_i++;
+	a_i++;
       }
     }
   }
