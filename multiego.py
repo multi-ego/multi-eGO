@@ -20,7 +20,7 @@ if __name__ == '__main__':
     parser.add_argument('--train_from', nargs='+', type=str, default=[], help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     
-    parser.add_argument('--p_to_learn', type=float, default=0.999, help='Amount of the simulation to learn.')
+    parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
     parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
 
     #parser.add_argument('--rc_threshold', type=float, default=0.000100, help='Minimum population for repulsive interactions in reference simulations.')
@@ -40,7 +40,7 @@ if __name__ == '__main__':
         print('--epsilon is required when using --egos=production')
         sys.exit()
 
-    if args.p_to_learn<0.5:
+    if args.p_to_learn<0.9:
         print('WARNING: --p_to_learn should be high enough')
 
     if args.fraction<0.1 or args.fraction>0.3:
