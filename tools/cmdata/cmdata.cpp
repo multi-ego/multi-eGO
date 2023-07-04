@@ -527,7 +527,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter cross molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][j]][a_i][a_j], density_bins_, std::sqrt(dx2),std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                      kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j], density_bins_, std::sqrt(dx2),std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
                     }
                   }
                  }
