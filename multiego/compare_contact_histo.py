@@ -15,7 +15,7 @@ import resources.type_definitions as type_definitions
 
 d = { type_definitions.gromos_atp.name[i] : type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
 
-def run_(arguments):
+def run_intra_(arguments):
     '''
     Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
     Is used in combination with multiprocessing to speed up the calculations.
@@ -79,6 +79,88 @@ def run_(arguments):
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
     
         df = pd.concat([df, results_df])
+        df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
+
+    df.fillna(0)
+    out_path = f'mat_{process.pid}_t{time.time()}.part'
+    df.to_csv(out_path, index=False)
+
+    return out_path
+
+def run_inter_(arguments):
+    '''
+    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
+    Is used in combination with multiprocessing to speed up the calculations.
+
+    Parameters
+    ----------
+    arguments : dict
+        Contains all the command-line parsed arguments
+
+    Returns
+    -------
+    out_path : str
+        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data 
+    '''
+    (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
+    # frac_target_list, frac_cumulative_probabilities = [ x[0] for x in frac_target_list ], [ x[1] for x in frac_target_list ]
+    process = multiprocessing.current_process()
+    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff']
+    df = pd.DataFrame(columns=columns)
+    # We do not consider old histograms
+    frac_target_list = [ x for x in frac_target_list if x[0]!="#" and x[-1]!="#" ]
+    for i, ref_f in enumerate(frac_target_list):
+        results_df = pd.DataFrame()
+        ai = ref_f.split('.')[-2].split('_')[-1]
+        
+        if True:
+            all_ai = [ ai for _ in range(1, original_size_j+1) ]
+            range_list = [ str(x) for x in range(1, original_size_j+1) ]
+
+            results_df['ai'] = np.array(all_ai).astype(int)
+            results_df['aj'] = np.array(range_list).astype(int)
+
+            results_df['mi'] = mi
+            results_df['mj'] = mj
+            results_df['dist'] = 0
+            results_df['c12dist'] = 0
+            results_df['hdist'] = 0
+            results_df['p'] = 0
+            results_df['cutoff'] = 0
+            
+        if np.isin(int(ai), protein_ref_indices_i):
+            cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
+
+            # column mapping
+            ref_f = f'{args.histo}/{ref_f}'
+            ref_df = pd.read_csv(ref_f, header=None, sep='\s+', usecols=[ 0, *protein_ref_indices_j ])
+            ref_df_columns = ['distance', *[ str(x) for x in protein_ref_indices_j ]]
+            ref_df.columns = ref_df_columns
+            ref_df.set_index('distance', inplace=True)
+            ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
+
+            # repeat for cumulative
+            c_ref_f = ref_f.replace('inter_mol_', 'inter_mol_c_')
+            c_ref_df = pd.read_csv(c_ref_f, header=None, sep='\s+', usecols=[ 0, *protein_ref_indices_j ])
+            c_ref_df_columns = ['distance', *[ str(x) for x in protein_ref_indices_j ]]
+            c_ref_df.columns = c_ref_df_columns
+            c_ref_df.set_index('distance', inplace=True)
+            c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
+
+            # calculate data
+            dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            p = c_ref_df.apply(lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'dist'] = dist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'hdist'] = hdist
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
+            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
+    
+        df = pd.concat([df, results_df])
+
         df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
 
     df.fillna(0)
@@ -191,6 +273,7 @@ def allfunction(values, weights):
     w = w[i]
     v = v[i]
     norm = np.sum(w)
+    i = i[-1]
     return cutoff, i, norm, v, w
 
 def zero_callback(values, weights):
@@ -219,6 +302,10 @@ def zero_callback(values, weights):
         The array with the respective weights  
     '''
     return None, None, np.sum(weights), values, weights
+
+def get_cumulative_probability(values, weights, callback=allfunction):
+    cutoff, i, norm, v, w = callback(values, weights)
+    return weights[i]
 
 def weighted_havg(values, weights, callback=hallfunction):
     norm, v, w = callback(values, weights)
@@ -364,7 +451,7 @@ def calculate_intra_probabilities(args):
 
         chunks = np.array_split(target_list, args.proc)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(run_, [ (args, protein_ref_indices, protein_ref_indices, original_size, c12_cutoff, mol_list[i], mol_list[i], x) for x in chunks ])
+        results = pool.map(run_intra_, [ (args, protein_ref_indices, protein_ref_indices, original_size, c12_cutoff, mol_list[i], mol_list[i], x) for x in chunks ])
         pool.close()
         pool.join()
 
@@ -450,8 +537,17 @@ def calculate_inter_probabilities(args):
         mol_j=pair[1]        
         
         print(f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}")
-        prefix=f"inter_mol_{mol_i}_{mol_j}"
+        prefix = f"inter_mol_{mol_i}_{mol_j}"
+        # prefix_cum = f'inter_mol_c_{mol_i}_{mol_j}'
         target_list = [ x for x in os.listdir(args.histo) if prefix in x ]
+        # target_list_cum = [ x for x in os.listdir(args.histo) if prefix_cum in x ]
+        # target_list_norm = sorted(target_list_norm)
+        # target_list_cum = sorted(target_list_cum)
+        # target_list = list(zip(target_list_norm, target_list_cum))
+        # for n, c in target_list:
+        #     n = n.replace('inter_mol_','')
+        #     c = c.replace('inter_mol_c_','')
+        #     assert n == c, f'inter_mol {n} and inter_mol_d {c} are not the same'
 
         protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i-1]][0]
         protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j-1]][0]
@@ -543,7 +639,7 @@ def calculate_inter_probabilities(args):
 
         chunks = np.array_split(target_list, args.proc)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(run_, [ (args, protein_ref_indices_i,protein_ref_indices_j, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
+        results = pool.map(run_inter_, [ (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mol_i, mol_j, x) for x in chunks ])
         pool.close()
         pool.join()
 
