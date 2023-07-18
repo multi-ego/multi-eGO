@@ -125,6 +125,12 @@ private:
   std::vector<std::vector<std::vector<std::vector<double>>>> intram_mat_density_;
   std::vector<std::vector<std::vector<std::vector<double>>>> interm_same_maxcdf_mol_;
   std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_maxcdf_mol_;
+
+  // temporary containers for maxcdf operations
+  std::vector<std::vector<std::vector<std::vector<double>>>> frame_same_mat_;
+  std::vector<std::vector<std::vector<std::vector<double>>>> frame_cross_mat_;
+  std::vector<std::vector<std::vector<double>>> frame_same_count_;
+  std::vector<std::vector<std::vector<double>>> frame_cross_count_;
 };
 
 CMData::CMData() : histo_(false),
@@ -223,7 +229,7 @@ static inline void read_symmetry_indices(
       for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
       {
         mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
-	a_j = 0;
+	      a_j = 0;
         for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
         {
           mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
@@ -240,9 +246,9 @@ static inline void read_symmetry_indices(
               eq_list[i][a_i].push_back(a_j);
             }
           }
-	  a_j++;
+	        a_j++;
         }
-	a_i++;
+	      a_i++;
       }
     }
   }
@@ -414,6 +420,11 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
+  frame_same_mat_.resize(natmol2_.size());
+  frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+  frame_same_count_.resize(natmol2_.size());
+  frame_cross_count_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
 
@@ -452,16 +463,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
     {
-      /* temporary structures for intermolecular contacts */
-      std::vector<std::vector<std::vector<std::vector<double>>>> frame_same_mat_;
-      std::vector<std::vector<std::vector<std::vector<double>>>> frame_cross_mat_;
-      frame_same_mat_.resize(natmol2_.size());
-      frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-      std::vector<std::vector<std::vector<double>>> frame_same_count_;
-      std::vector<std::vector<std::vector<double>>> frame_cross_count_;
-      frame_same_count_.resize(natmol2_.size());
-      frame_cross_count_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-    
       for (std::size_t ii = 0; ii < natmol2_.size(); ii++)
       {
         frame_same_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[ii], std::vector<double>(n_bins(cutoff_), 0)));
