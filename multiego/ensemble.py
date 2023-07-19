@@ -530,19 +530,19 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # remove unnecessary fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
-                       'probability', 'same_chain', 'source', 'file', 'rc_probability', 
-                       'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                       'cutoff', 'rep']]
+                       'probability', 'same_chain', 'source', 'rc_probability', 
+                       'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
+                       'cutoff', 'rep', 'md_threshold', 'rc_threshold']]
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
-                               'probability', 'same_chain', 'source', 'file', 'rc_probability', 
-                               'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep']].copy()
+                               'probability', 'same_chain', 'source', 'rc_probability', 
+                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
+                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
-                               'probability', 'same_chain', 'source', 'file', 'rc_probability', 
-                               'rc_file', 'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep']
+                               'probability', 'same_chain', 'source', 'rc_probability', 
+                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
+                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']
     # Symmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
@@ -637,14 +637,14 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
 
     meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability',
-                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
                        'number_ai', 'number_aj', 'cutoff']]
     # Here we want to sort so that ai is smaller than aj
     inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
-                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'file', 'rc_file', 
+                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
                         'number_aj', 'number_ai', 'cutoff']].copy()
     inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
-                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'file', 'rc_file', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
                         'number_ai', 'number_aj', 'cutoff'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
