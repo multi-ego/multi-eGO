@@ -123,6 +123,14 @@ private:
   std::vector<std::vector<std::vector<std::vector<double>>>> interm_same_mat_density_;
   std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_mat_density_;
   std::vector<std::vector<std::vector<std::vector<double>>>> intram_mat_density_;
+  std::vector<std::vector<std::vector<std::vector<double>>>> interm_same_maxcdf_mol_;
+  std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_maxcdf_mol_;
+
+  // temporary containers for maxcdf operations
+  std::vector<std::vector<std::vector<std::vector<double>>>> frame_same_mat_;
+  std::vector<std::vector<std::vector<std::vector<double>>>> frame_cross_mat_;
+  std::vector<std::vector<std::vector<double>>> frame_same_count_;
+  std::vector<std::vector<std::vector<double>>> frame_cross_count_;
 };
 
 CMData::CMData() : histo_(false),
@@ -221,7 +229,7 @@ static inline void read_symmetry_indices(
       for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
       {
         mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
-	a_j = 0;
+	      a_j = 0;
         for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
         {
           mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
@@ -238,9 +246,9 @@ static inline void read_symmetry_indices(
               eq_list[i][a_i].push_back(a_j);
             }
           }
-	  a_j++;
+	        a_j++;
         }
-	a_i++;
+	      a_i++;
       }
     }
   }
@@ -294,7 +302,7 @@ static inline double calc_prob(const std::vector<double> &v, const double dx)
     unsigned i = std::distance(v.begin(), it);
     if (v[i] > 0.) prob += v[i] * dx;
   }
-  if (prob > 1.) prob = 1.;
+  //if (prob > 1.) prob = 1.;
   return prob;
 }
 
@@ -358,6 +366,8 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   interm_same_mat_density_.resize(natmol2_.size());
   interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+  interm_same_maxcdf_mol_.resize(natmol2_.size());
+  interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
   intram_mat_density_.resize(natmol2_.size());
 
   density_bins_.resize(n_bins(cutoff_));
@@ -369,10 +379,12 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
     interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
+    interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     for (std::size_t j = i + 1; j < natmol2_.size(); j++)
     {
       interm_cross_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
+      interm_cross_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
       cross_index_[i][j] = cross_count;
       cross_count++;
     }
@@ -407,6 +419,11 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   mcut2_ = mol_cutoff_ * mol_cutoff_;
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
+
+  frame_same_mat_.resize(natmol2_.size());
+  frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+  frame_same_count_.resize(natmol2_.size());
+  frame_cross_count_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
@@ -446,6 +463,17 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
     {
+      for (std::size_t ii = 0; ii < natmol2_.size(); ii++)
+      {
+        frame_same_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[ii], std::vector<double>(n_bins(cutoff_), 0)));
+        frame_same_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[ii], 0));
+        for (std::size_t jj = ii + 1; jj < natmol2_.size(); jj++)
+        {
+          frame_cross_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[jj], std::vector<double>(n_bins(cutoff_), 0)));
+          frame_cross_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[jj], 0));
+        }
+      }
+
       int molb = 0;
       /* Loop over molecules  */
       for (int j = 0; j < nindex_; j++)
@@ -512,22 +540,25 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter same molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
-                      // this is to account for inversion atom/molecule
+                      kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
                     }
-                    if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                    else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                    dx2 = iprod(sym_dx, sym_dx);
-                    if (dx2 < cut_sig_2_)
-                    {
-                      kernel_density_estimator(interm_same_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]*(1./(1./inv_num_mol_[i]-1))/nsym);
+                    if(delta!=0.) {
+                      // this is to account for inversion atom/molecule
+                      if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
+                      else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
+                      dx2 = iprod(sym_dx, sym_dx);
+                      if (dx2 < cut_sig_2_)
+                      {
+                        kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
+                      }
                     }
                   } 
                   else
                   { // inter cross molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j], density_bins_, std::sqrt(dx2),std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                      kernel_density_estimator(frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j], density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                      frame_cross_count_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]++;
                     }
                   }
                  }
@@ -538,6 +569,43 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           a_i++;
         }
       }
+      /* accumulate the mean saturated cdf per molecule */
+      /* accumulate intermolecular matrices */
+      for (std::size_t im = 0; im < natmol2_.size(); im++)
+      {
+        for (int ii = 0; ii < natmol2_[im]; ii++)
+        {
+          for (int jj = ii; jj < natmol2_[im]; jj++)
+          {
+            double sum=0;
+            for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
+            {
+               sum+=frame_same_mat_[im][ii][jj][kk]*0.0025;
+               if(sum>1.0) sum=1.0;
+               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[im][ii][jj][kk]; 
+               interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
+            }
+            interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
+            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj] ; 
+          }
+        }
+        for (std::size_t j = im + 1; j < natmol2_.size(); j++)
+        {
+          for (int ii = 0; ii < natmol2_[im]; ii++)
+          {
+            for (int jj = 0; jj < natmol2_[j]; jj++)
+            {
+              if(frame_cross_count_[cross_index_[im][j]][ii][jj]>0.)
+              {
+                for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
+                {
+                  interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[cross_index_[im][j]][ii][jj][kk]; 
+                }
+              }
+            }
+          }
+        }
+      } 
     }
     n_x_++;
   }
@@ -555,6 +623,10 @@ void CMData::finishAnalysis(int /*nframes*/)
     {
       for (int jj = ii; jj < natmol2_[i]; jj++)
       {
+        std::transform(interm_same_maxcdf_mol_[i][ii][jj].begin(), 
+                       interm_same_maxcdf_mol_[i][ii][jj].end(), 
+                       interm_same_maxcdf_mol_[i][ii][jj].begin(), 
+                       [&norm](auto &c) { return c * norm; });
         std::transform(interm_same_mat_density_[i][ii][jj].begin(), 
                        interm_same_mat_density_[i][ii][jj].end(), 
                        interm_same_mat_density_[i][ii][jj].begin(), 
@@ -564,6 +636,7 @@ void CMData::finishAnalysis(int /*nframes*/)
                        intram_mat_density_[i][ii][jj].begin(),
                        [&norm](auto &c) { return c * norm; });
         interm_same_mat_density_[i][jj][ii] = interm_same_mat_density_[i][ii][jj];
+        interm_same_maxcdf_mol_[i][jj][ii] = interm_same_maxcdf_mol_[i][ii][jj];
         intram_mat_density_[i][jj][ii] = intram_mat_density_[i][ii][jj];
       }
     }
@@ -592,24 +665,31 @@ void CMData::writeOutput()
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
         FILE *fp_inter = nullptr;
+        FILE *fp_inter_cum = nullptr;
         FILE *fp_intra = nullptr;
         std::string ffh_inter = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
         fp_inter = gmx_ffopen(ffh_inter, "w");
+        std::string ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+        fp_inter_cum = gmx_ffopen(ffh_inter_cum, "w");
         std::string ffh_intra = "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
         fp_intra = gmx_ffopen(ffh_intra, "w");
         for (int k = 0; k < interm_same_mat_density_[i][ii][0].size(); k++)
         {
           fprintf(fp_inter, "%lf", density_bins_[k]);
+          fprintf(fp_inter_cum, "%lf", density_bins_[k]);
           fprintf(fp_intra, "%lf", density_bins_[k]);
           for (int jj = 0; jj < natmol2_[i]; jj++)
           {
             fprintf(fp_inter, " %lf", interm_same_mat_density_[i][ii][jj][k]);
+            fprintf(fp_inter_cum, " %lf", interm_same_maxcdf_mol_[i][ii][jj][k]);
             fprintf(fp_intra, " %lf", intram_mat_density_[i][ii][jj][k]);
           }
           fprintf(fp_inter, "\n");
+          fprintf(fp_inter_cum, "\n");
           fprintf(fp_intra, "\n");
         }
         gmx_ffclose(fp_inter);
+        gmx_ffclose(fp_inter_cum);
         gmx_ffclose(fp_intra);
       }
       for (std::size_t j = i + 1; j < natmol2_.size(); j++)
