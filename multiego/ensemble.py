@@ -474,8 +474,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
 
     # This keep only significat attractive/repulsive interactions
-    #meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['rc_probability']>train_dataset['limit_rc']*np.maximum(train_dataset['probability'],train_dataset['rc_threshold'])))].copy()
-    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.))].copy()
+    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<1./train_dataset['limit_rc']*np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
     meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
@@ -498,10 +497,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
 
     # Probability only Repulsive intramolecular
-    #meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],meGO_LJ['rc_threshold'])<1./meGO_LJ['limit_rc']*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],meGO_LJ['rc_threshold'])/meGO_LJ['rc_probability'])-meGO_LJ['rep']
     meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
     # Probability only Repulsive intermolecular
-    #meGO_LJ.loc[(np.maximum(meGO_LJ['probability'],meGO_LJ['rc_threshold'])<1./meGO_LJ['limit_rc']*meGO_LJ['rc_probability'])&(meGO_LJ['same_chain']==False)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(np.maximum(meGO_LJ['probability'],meGO_LJ['rc_threshold'])/meGO_LJ['rc_probability'])-meGO_LJ['rep']
     meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
 
     # Full Repulsive intramolecular
@@ -551,7 +548,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability and we keep the closer ones.
-    #meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma', 'probability'], ascending = [True, True, True, True, False], inplace = True)
     meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'sigma', 'epsilon'], ascending = [True, True, True, True, False], inplace = True)
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep = 'first')
