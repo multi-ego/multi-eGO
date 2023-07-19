@@ -3,7 +3,7 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 27-06-2023 20:35
+; Created on the 19-07-2023 10:36
 ; With the following parameters:
 ;	- system          = abetaref            
 ;	- egos            = production          
@@ -1848,8 +1848,8 @@ ABeta			3
   310 312     1 0.000000e+00 3.662759e-07 ;     1.000000        1.000000 native_MD
   312 316     1 0.000000e+00 1.388235e-06 ;     1.000000        1.000000 native_MD
   312 317     1 0.000000e+00 1.373319e-06 ;     1.000000        0.999999 native_MD
-  313 318     1 0.000000e+00 2.428469e-06 ;     0.319323        0.186181 native_MD
-  313 319     1 0.000000e+00 2.428469e-06 ;     0.321150        0.189809 native_MD
+  313 318     1 0.000000e+00 2.428469e-06 ;     0.902800        0.577363 native_MD
+  313 319     1 0.000000e+00 2.428469e-06 ;     0.901811        0.587862 native_MD
   316 318     1 0.000000e+00 1.565837e-07 ;     0.999989        0.999999 native_MD
   316 319     1 0.000000e+00 1.460134e-07 ;     1.000000        0.999999 native_MD
 
