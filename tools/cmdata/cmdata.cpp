@@ -129,8 +129,6 @@ private:
   // temporary containers for maxcdf operations
   std::vector<std::vector<std::vector<std::vector<double>>>> frame_same_mat_;
   std::vector<std::vector<std::vector<std::vector<double>>>> frame_cross_mat_;
-  std::vector<std::vector<std::vector<double>>> frame_same_count_;
-  std::vector<std::vector<std::vector<double>>> frame_cross_count_;
 };
 
 CMData::CMData() : histo_(false),
@@ -369,6 +367,8 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   interm_same_maxcdf_mol_.resize(natmol2_.size());
   interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
   intram_mat_density_.resize(natmol2_.size());
+  frame_same_mat_.resize(natmol2_.size());
+  frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
 
   density_bins_.resize(n_bins(cutoff_));
   for (int i = 0; i < density_bins_.size(); i++)
@@ -381,10 +381,12 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
+    frame_same_mat_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     for (std::size_t j = i + 1; j < natmol2_.size(); j++)
     {
       interm_cross_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
       interm_cross_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
+      frame_cross_mat_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
       cross_index_[i][j] = cross_count;
       cross_count++;
     }
@@ -420,10 +422,6 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
-  frame_same_mat_.resize(natmol2_.size());
-  frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-  frame_same_count_.resize(natmol2_.size());
-  frame_cross_count_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
@@ -465,12 +463,28 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     {
       for (std::size_t ii = 0; ii < natmol2_.size(); ii++)
       {
-        frame_same_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[ii], std::vector<double>(n_bins(cutoff_), 0)));
-        frame_same_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[ii], 0));
+         for (int a_i = 0; a_i < natmol2_[ii]; a_i++)
+         {
+           for (int a_j = 0; a_j < natmol2_[ii]; a_j++)
+           {
+             for (int kk = 0; kk < frame_same_mat_[ii][a_i][a_j].size(); kk++) 
+             {
+                frame_same_mat_[ii][a_i][a_j][kk]=0.;
+             }
+           }
+        }
         for (std::size_t jj = ii + 1; jj < natmol2_.size(); jj++)
         {
-          frame_cross_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[jj], std::vector<double>(n_bins(cutoff_), 0)));
-          frame_cross_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[jj], 0));
+          for (int a_i = 0; a_i < natmol2_[ii]; a_i++)
+          {
+            for (int a_j = 0; a_j < natmol2_[jj]; a_j++)
+            {
+              for (int kk = 0; kk < frame_cross_mat_[cross_index_[ii][jj]][a_i][a_j].size(); kk++) 
+              {
+                 frame_cross_mat_[cross_index_[ii][jj]][a_i][a_j][kk]=0.;
+              }
+            }
+          }
         }
       }
 
@@ -558,7 +572,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                     if (dx2 < cut_sig_2_)
                     {
                       kernel_density_estimator(frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j], density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
-                      frame_cross_count_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]++;
                     }
                   }
                  }
@@ -580,9 +593,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             double sum=0;
             for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
             {
+               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[im][ii][jj][kk]; 
                sum+=frame_same_mat_[im][ii][jj][kk]*0.0025;
                if(sum>1.0) sum=1.0;
-               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[im][ii][jj][kk]; 
                interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
             }
             interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
@@ -595,12 +608,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           {
             for (int jj = 0; jj < natmol2_[j]; jj++)
             {
-              if(frame_cross_count_[cross_index_[im][j]][ii][jj]>0.)
+              for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
               {
-                for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
-                {
-                  interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[cross_index_[im][j]][ii][jj][kk]; 
-                }
+                interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[cross_index_[im][j]][ii][jj][kk]; 
               }
             }
           }
