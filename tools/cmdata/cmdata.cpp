@@ -70,6 +70,13 @@
 #include <sstream>
 #include <fstream>
 
+#define timing
+
+#ifdef timing
+#include <chrono>
+#endif // timing
+
+#include "boost/multi_array.hpp"
 
 namespace gmx
 {
@@ -100,6 +107,8 @@ private:
   double mol_cutoff_;
   int n_x_;
   int nframe_;
+  int max_mol_size_;
+  int smax_mol_size_;
   rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
@@ -127,10 +136,8 @@ private:
   std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_maxcdf_mol_;
 
   // temporary containers for maxcdf operations
-  std::vector<std::vector<std::vector<std::vector<double>>>> frame_same_mat_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> frame_cross_mat_;
-  std::vector<std::vector<std::vector<double>>> frame_same_count_;
-  std::vector<std::vector<std::vector<double>>> frame_cross_count_;
+  std::vector<double> frame_same_mat_;
+  std::vector<double> frame_cross_mat_;
 };
 
 CMData::CMData() : histo_(false),
@@ -254,7 +261,8 @@ static inline void read_symmetry_indices(
   }
 }
 
-static inline void kernel_density_estimator(std::vector<double> &x, const std::vector<double> &bins, const double mu, const double norm)
+// static inline void kernel_density_estimator(std::vector<double> &x, const std::vector<double> &bins, const double mu, const double norm)
+static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
   double from_x = std::max(mu - 2 * h, bins[0]);
@@ -420,13 +428,24 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
-  frame_same_mat_.resize(natmol2_.size());
-  frame_cross_mat_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-  frame_same_count_.resize(natmol2_.size());
-  frame_cross_count_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+  int max_mol_size = *std::max_element(std::begin(natmol2_), std::end(natmol2_));
+  int smax_mol_size = *std::max_element(std::begin(natmol2_), std::end(natmol2_),
+                                        [max_mol_size](int a, int b) {
+                                          if (a == max_mol_size) return true;
+                                          if (b == max_mol_size) return false;                                         
+                                          return a < b;
+                                        });
+  max_mol_size_ = max_mol_size;
+  smax_mol_size_ = smax_mol_size;
+
+  frame_same_mat_.resize(natmol2_.size() * max_mol_size_ * max_mol_size_ * n_bins(cutoff_), 0);
+  frame_cross_mat_.resize(( ( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * max_mol_size_ * smax_mol_size_ * n_bins(cutoff_), 0);
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
+
+#define access_same_(i, a_i, a_j) i * (natmol2_.size() * natmol2_[i] * natmol2_[i]) + a_i * (natmol2_[i] * natmol2_[i]) + a_j * natmol2_[i]
+#define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
 {
@@ -463,17 +482,19 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
     {
-      for (std::size_t ii = 0; ii < natmol2_.size(); ii++)
-      {
-        frame_same_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[ii], std::vector<double>(n_bins(cutoff_), 0)));
-        frame_same_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[ii], 0));
-        for (std::size_t jj = ii + 1; jj < natmol2_.size(); jj++)
-        {
-          frame_cross_mat_[ii].resize(natmol2_[ii], std::vector<std::vector<double>>(natmol2_[jj], std::vector<double>(n_bins(cutoff_), 0)));
-          frame_cross_count_[ii].resize(natmol2_[ii], std::vector<double>(natmol2_[jj], 0));
-        }
-      }
+      #ifdef timing
+      auto start = std::chrono::high_resolution_clock::now();
+      #endif
+      // works at time of 3500 ms for ttr
+      std::fill(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.);
+      std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
 
+      #ifdef timing
+      auto end = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+      printf("frame :: %i, allocation took %li ms\n", frnr, duration.count());
+      #endif // timing
+      
       int molb = 0;
       /* Loop over molecules  */
       for (int j = 0; j < nindex_; j++)
@@ -520,7 +541,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 int eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
                 int geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
                 int eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-                int geqa_j = jj + (eqa_j -equivalence_list_[mol_id_[j]][a_j][0]);  // global equivalence index j
+                int geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]);  // global equivalence index j
                 int delta  = eqa_i - eqa_j;
                 double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[i]][a_j].size());
                 rvec sym_dx;
@@ -531,7 +552,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 {
                   if (dx2 < cut_sig_2_)
                   {
-                    kernel_density_estimator(intram_mat_density_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+                    kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
                   }
                 }
                 else
@@ -540,7 +561,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter same molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
+                      // kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
+                      std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
+                      kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
                     }
                     if(delta!=0.) {
                       // this is to account for inversion atom/molecule
@@ -549,7 +572,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                       dx2 = iprod(sym_dx, sym_dx);
                       if (dx2 < cut_sig_2_)
                       {
-                        kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
+                        std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
+                        kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
                       }
                     }
                   } 
@@ -557,11 +581,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter cross molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      kernel_density_estimator(frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j], density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
-                      frame_cross_count_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]++;
+                      std::vector<double>::iterator starting_point = std::begin(frame_cross_mat_) + access_cross_(mol_id_[i], mol_id_[j], a_i, a_j);
+                      kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                      // frame_cross_count_[access_cross_(i, j, a_i, a_j)]++;
                     }
                   }
-                 }
+                }
               }
             }
             a_j++;
@@ -580,13 +605,13 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             double sum=0;
             for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
             {
-               sum+=frame_same_mat_[im][ii][jj][kk]*0.0025;
+               sum+=frame_same_mat_[access_same_(im, ii, jj) + kk]*0.0025;
                if(sum>1.0) sum=1.0;
-               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[im][ii][jj][kk]; 
+               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[access_same_(im, ii, jj) + kk]; 
                interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
             }
             interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
-            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj] ; 
+            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj]; 
           }
         }
         for (std::size_t j = im + 1; j < natmol2_.size(); j++)
@@ -595,13 +620,13 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           {
             for (int jj = 0; jj < natmol2_[j]; jj++)
             {
-              if(frame_cross_count_[cross_index_[im][j]][ii][jj]>0.)
+              // if(true)
+              // {
+              for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
               {
-                for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
-                {
-                  interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[cross_index_[im][j]][ii][jj][kk]; 
-                }
+                interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[access_cross_(im, j, ii, jj) + kk]; 
               }
+              // }
             }
           }
         }
