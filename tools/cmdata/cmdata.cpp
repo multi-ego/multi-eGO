@@ -126,6 +126,7 @@ private:
   std::vector<std::vector<int>> cross_index_;
   std::vector<t_atoms> molecules_;
   std::vector<double> density_bins_;
+  int n_bins_;
 
   double mcut2_;
   double cut_sig_2_;
@@ -262,6 +263,7 @@ static inline void read_symmetry_indices(
 }
 
 // static inline void kernel_density_estimator(std::vector<double> &x, const std::vector<double> &bins, const double mu, const double norm)
+// static inline void kernel_density_estimator(std::vector<double> &x, std::vector<double> &max_cdf, const std::vector<double> &bins, const double mu, const double norm)
 static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
@@ -424,6 +426,8 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     sym_list_file.close();
   }
 
+  n_bins_ = n_bins(cutoff_);
+
   mcut2_ = mol_cutoff_ * mol_cutoff_;
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
@@ -444,8 +448,10 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
 
-#define access_same_(i, a_i, a_j) i * (natmol2_.size() * natmol2_[i] * natmol2_[i]) + a_i * (natmol2_[i] * natmol2_[i]) + a_j * natmol2_[i]
-#define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
+// #define access_same_(i, a_i, a_j) i * (natmol2_.size() * natmol2_[i] * natmol2_[i]) + a_i * (natmol2_[i] * natmol2_[i]) + a_j * natmol2_[i] 
+#define access_same_(i, a_i, a_j) i * (natmol2_[i] * natmol2_[i] * n_bins_) + a_i * (natmol2_[i] * n_bins_) + a_j * n_bins_
+#define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (natmol2_[i] * natmol2_[j] * n_bins_ ) + (natmol2_[j] * n_bins_) * a_i + n_bins_ * a_j
+// #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
 {
@@ -483,18 +489,25 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     for (int i = 0; i < nindex_; i++)
     {
       #ifdef timing
-      auto start = std::chrono::high_resolution_clock::now();
+      auto start_zeroing = std::chrono::high_resolution_clock::now();
       #endif
       // works at time of 3500 ms for ttr
-      std::fill(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.);
-      std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
+      // std::fill(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.);
+      // std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
+
+      #pragma omp parallel for num_threads(4)
+      for ( int n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0;
+      #pragma omp parallel for num_threads(4)
+      for ( int n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0;
 
       #ifdef timing
-      auto end = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-      printf("frame :: %i, allocation took %li ms\n", frnr, duration.count());
+      auto end_zeroing = std::chrono::high_resolution_clock::now();
+      auto duration_zeroing = std::chrono::duration_cast<std::chrono::microseconds>(end_zeroing - start_zeroing);
+      printf("frame :: %i, allocation took %li ms\n", frnr, duration_zeroing.count());
       #endif // timing
       
+      // printf("acc %f\n", std::accumulate(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.));
+
       int molb = 0;
       /* Loop over molecules  */
       for (int j = 0; j < nindex_; j++)
@@ -541,7 +554,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 int eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
                 int geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
                 int eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-                int geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]);  // global equivalence index j
+                int geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
                 int delta  = eqa_i - eqa_j;
                 double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[i]][a_j].size());
                 rvec sym_dx;
@@ -552,7 +565,15 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 {
                   if (dx2 < cut_sig_2_)
                   {
+                    #ifdef timing
+                    auto start_intra_kde = std::chrono::high_resolution_clock::now();
+                    #endif
                     kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+                    #ifdef timing
+                    auto end_intra_kde = std::chrono::high_resolution_clock::now();
+                    auto duration_intra_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_intra_kde - start_intra_kde);
+                    printf("frame :: %i, intra took %li ms\n", frnr, duration_intra_kde.count());
+                    #endif
                   }
                 }
                 else
@@ -561,9 +582,17 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter same molecule specie
                     if (dx2 < cut_sig_2_)
                     {
+                      #ifdef timing
+                      auto start_inter_kde = std::chrono::high_resolution_clock::now();
+                      #endif
                       // kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
                       std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
                       kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
+                      #ifdef timing
+                      auto end_inter_kde = std::chrono::high_resolution_clock::now();
+                      auto duration_inter_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_inter_kde - start_inter_kde);
+                      printf("frame :: %i, inter took %li ms\n", frnr, duration_inter_kde.count());
+                      #endif
                     }
                     if(delta!=0.) {
                       // this is to account for inversion atom/molecule
@@ -572,8 +601,16 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                       dx2 = iprod(sym_dx, sym_dx);
                       if (dx2 < cut_sig_2_)
                       {
+                        #ifdef timing
+                        auto start_interinv_kde = std::chrono::high_resolution_clock::now();
+                        #endif
                         std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
                         kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
+                        #ifdef timing
+                        auto end_interinv_kde = std::chrono::high_resolution_clock::now();
+                        auto duration_interinv_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_interinv_kde - start_interinv_kde);
+                        printf("frame :: %i, interinv took %li ms\n", frnr, duration_interinv_kde.count());
+                        #endif
                       }
                     }
                   } 
@@ -581,9 +618,17 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter cross molecule specie
                     if (dx2 < cut_sig_2_)
                     {
+                      #ifdef timing
+                      auto start_cross_kde = std::chrono::high_resolution_clock::now();
+                      #endif
                       std::vector<double>::iterator starting_point = std::begin(frame_cross_mat_) + access_cross_(mol_id_[i], mol_id_[j], a_i, a_j);
                       kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
                       // frame_cross_count_[access_cross_(i, j, a_i, a_j)]++;
+                      #ifdef timing
+                      auto end_cross_kde = std::chrono::high_resolution_clock::now();
+                      auto duration_cross_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_cross_kde - start_cross_kde);
+                      printf("frame :: %i, cross took %li ms\n", frnr, duration_cross_kde.count());
+                      #endif
                     }
                   }
                 }
@@ -596,24 +641,49 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       }
       /* accumulate the mean saturated cdf per molecule */
       /* accumulate intermolecular matrices */
+      #ifdef timing
+      auto start_acc_sat = std::chrono::high_resolution_clock::now();
+      #endif
       for (std::size_t im = 0; im < natmol2_.size(); im++)
       {
+        #ifdef timing
+        auto start_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
+        #endif
+        // #pragma omp parallel for num_threads(4)
         for (int ii = 0; ii < natmol2_[im]; ii++)
         {
           for (int jj = ii; jj < natmol2_[im]; jj++)
           {
             double sum=0;
+            // #pragma omp parallel for num_threads(4)
+            // #ifdef timing
+            // auto start_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
+            // #endif
+
+            int index = access_same_(im, ii, jj);
+            if (std::find_if(frame_same_mat_.begin()+index, frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size(), [](double v){ return v > 0.;}) == frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size()) continue;
             for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
             {
-               sum+=frame_same_mat_[access_same_(im, ii, jj) + kk]*0.0025;
-               if(sum>1.0) sum=1.0;
-               interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[access_same_(im, ii, jj) + kk]; 
-               interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
+              sum+=frame_same_mat_[index + kk]*0.0025;
+              if(sum>1.0) sum=1.0;
+              interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[index + kk]; 
+              interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
             }
             interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
-            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj]; 
+            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj];
+
+            // #ifdef timing
+            // auto end_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
+            // auto duration_acc_sat_same_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_inner - start_acc_sat_same_inner);
+            // printf("frame :: %i, acc_sat_same_inner took %li ms\n", frnr, duration_acc_sat_same_inner.count());
+            // #endif
           }
         }
+        #ifdef timing
+        auto end_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
+        auto duration_acc_sat_same_outer = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_outer - start_acc_sat_same_outer);
+        printf("frame :: %i; im :: %li, acc_sat_same_outer took %li ms\n", frnr, im, duration_acc_sat_same_outer.count());
+        #endif
         for (std::size_t j = im + 1; j < natmol2_.size(); j++)
         {
           for (int ii = 0; ii < natmol2_[im]; ii++)
@@ -622,15 +692,29 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             {
               // if(true)
               // {
+              #ifdef timing
+              auto start_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
+              #endif
+              int index = access_cross_(im, j, ii, jj);
               for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
               {
-                interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[access_cross_(im, j, ii, jj) + kk]; 
+                interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[index + kk]; 
               }
+              #ifdef timing
+              auto end_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
+              auto duration_acc_sat_cross_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_cross_inner - start_acc_sat_cross_inner);
+              printf("frame :: %i, acc_sat_cross_inner took %li ms\n", frnr, duration_acc_sat_cross_inner.count());
+              #endif
               // }
             }
           }
         }
-      } 
+      }
+      #ifdef timing
+      auto end_acc_sat = std::chrono::high_resolution_clock::now();
+      auto duration_acc_sat = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat - start_acc_sat);
+      printf("frame :: %i, acc_sat took %li ms\n", frnr, duration_acc_sat.count());
+      #endif
     }
     n_x_++;
   }
