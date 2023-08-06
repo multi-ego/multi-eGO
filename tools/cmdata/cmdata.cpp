@@ -61,6 +61,9 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 
+#include <omp.h>
+#include <thread>
+
 #include <cmath>
 #include <memory>
 #include <string>
@@ -70,13 +73,32 @@
 #include <sstream>
 #include <fstream>
 
-#define timing
-
+// #define timing
 #ifdef timing
 #include <chrono>
+#define T_START(name) auto name##_start = std::chrono::high_resolution_clock::now()
+static void _log_time(const int ms_time, const char* name ) { printf("timing :: %s :: %i us\n", name, ms_time);}
+#define T_END(name) auto name##_end = std::chrono::high_resolution_clock::now(); auto name##_duration = std::chrono::duration_cast<std::chrono::microseconds>(name##_end - name##_start); _log_time(name##_duration.count(), #name)
+#else
+#define T_START(name) 0;
+#define T_END(name) 0;
 #endif // timing
 
 #include "boost/multi_array.hpp"
+
+// TODO have a look into why i changes values
+
+// #define ACTIVATE_FILTER
+#ifndef ACTIVATE_FILTER
+#define FILTER(x) x
+#else 
+#define FILTER(x) 0
+#endif
+
+#define INDEXING_TEST
+#ifdef INDEXING_TEST
+#include <mutex>
+#endif // INDEXING_TEST
 
 namespace gmx
 {
@@ -127,6 +149,8 @@ private:
   std::vector<t_atoms> molecules_;
   std::vector<double> density_bins_;
   int n_bins_;
+  // std::vector<std::jthreads> threads_;
+  int num_threads_;
 
   double mcut2_;
   double cut_sig_2_;
@@ -442,8 +466,31 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   max_mol_size_ = max_mol_size;
   smax_mol_size_ = smax_mol_size;
 
-  frame_same_mat_.resize(natmol2_.size() * max_mol_size_ * max_mol_size_ * n_bins(cutoff_), 0);
-  frame_cross_mat_.resize(( ( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * max_mol_size_ * smax_mol_size_ * n_bins(cutoff_), 0);
+  int sum_same_mol_sizes = 0; // std::accumulate(std::begin(natmol2_), std::end(natmol2_), 1., [](double acc, double v){ return acc += v * v;});
+  int sum_cross_mol_sizes = 0;
+  for (int i = 0; i < natmol2_.size(); i++)
+  {
+    sum_same_mol_sizes += natmol2_[i] * natmol2_[i];
+    for (int j = i+1; j < natmol2_.size(); j++)
+    {
+      sum_cross_mol_sizes += natmol2_[i] * natmol2_[j];
+    }
+  }
+
+  // frame_same_mat_.resize(natmol2_.size() * max_mol_size_ * max_mol_size_ * n_bins(cutoff_), 0);
+  frame_same_mat_.resize(sum_same_mol_sizes * n_bins(cutoff_), 0);
+  // frame_cross_mat_.resize(( ( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * max_mol_size_ * smax_mol_size_ * n_bins(cutoff_), 0);
+  frame_cross_mat_.resize(sum_cross_mol_sizes * n_bins(cutoff_), 0);
+
+  
+  // num_threads_ = 12;
+  // for (int i = 0; i < num_threads_; i++)
+  // {
+  //   threads_.emplace_back(
+
+  //   );
+  // }
+
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
@@ -453,8 +500,75 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (natmol2_[i] * natmol2_[j] * n_bins_ ) + (natmol2_[j] * n_bins_) * a_i + n_bins_ * a_j
 // #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
 
+static void accumulate_maxcdf_same(
+  int start_im, const std::vector<int> start_i, const std::vector<int> start_j,
+  int end_im, const std::vector<int> end_i, const std::vector<int> end_j,
+  const int n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol,
+  #ifdef INDEXING_TEST
+  const int tid, int &gc, std::mutex &mutex,
+  #endif // INDEXING_TEST
+  std::vector<double> &frame_same_mat,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
+)
+{
+  bool first = true;
+  int counter = 0;
+  std::vector<bool> first_i(end_im - start_im, true);
+  std::vector<bool> first_j(end_im - start_im, true);
+
+  for (int im = start_im; im < end_im; im++)
+  {
+    int from_i = start_i[counter];
+    int to_i = (im == end_im - 1) ? end_i[counter] : natmol2_[im];
+    for (int i = from_i; i < to_i; i++)
+    {
+      int from_j = first_j[counter] ? start_j[counter] : i;
+      int to_j = (i == end_i[counter]-1) ? end_j[counter] : natmol2_[im];
+      for (int j = from_j; j < to_j; j++)
+      {
+        double sum = 0;
+        int index = access_same_(im, i, j);
+        for (int k = 0; k < n_bins_; ++k) 
+        {
+          sum+=frame_same_mat[index + k]*0.0025;
+          if(sum>1.0) sum=1.0;
+          interm_same_mat_density[im][i][j][k] += frame_same_mat[index + k]; 
+          interm_same_maxcdf_mol[im][i][j][k] += sum*inv_num_mol[im]; 
+        }
+        interm_same_mat_density[im][j][i] = interm_same_mat_density[im][i][j];
+        interm_same_maxcdf_mol[im][j][i] = interm_same_maxcdf_mol[im][i][j];
+        #ifdef INDEXING_TEST
+        mutex.lock();
+        gc++;
+        if ( gc > natmol2_[im] * (natmol2_[im] + 1) / 2 ) printf("MORE OP from tid :: %i, (ii, jj) :: (%i, %i) with %i\n", tid, i, j, gc);
+        // GMX_RELEASE_ASSERT(gc < natmol2_[im] * (natmol2_[im] + 1) / 2, "Performed more operations than should! Check matrix partitioning and indexing!");
+        mutex.unlock();
+        #endif // INDEXING_TEST
+      }
+      first_j[counter] = false;
+    }
+    first_i[counter] = false;
+    counter++;
+  }
+}
+
+static void accumulate_maxcdf_cross(
+  int tid, int im, int n_per_thread, // int n_per_thread_cross,
+  // std::vector<double> &frame_same_mat_,
+  // std::vector<std::vector<std::vector<double>>> &interm_same_mat_density_,
+  // std::vector<std::vector<std::vector<double>>> &interm_same_maxcdf_mol_,
+  std::vector<double> &frame_cross_mat_,
+  std::vector<std::vector<std::vector<double>>> &interm_cross_mat_density_,
+  std::vector<std::vector<std::vector<double>>> &interm_cross_maxcdf_mol_
+)
+{
+  return;
+}
+
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
 {
+  // omp_set_nested(1);
   // WARNING IMPLEMENT
   int nskip = 0;
   // WARNING END
@@ -488,6 +602,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
     {
+      FILTER(printf("RUNNING %i\n", i));
       #ifdef timing
       auto start_zeroing = std::chrono::high_resolution_clock::now();
       #endif
@@ -496,9 +611,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       // std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
 
       #pragma omp parallel for num_threads(4)
-      for ( int n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0;
+      for ( int n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0.;
       #pragma omp parallel for num_threads(4)
-      for ( int n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0;
+      for ( int n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0.;
 
       #ifdef timing
       auto end_zeroing = std::chrono::high_resolution_clock::now();
@@ -638,83 +753,227 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           }
           a_i++;
         }
+        // FILTER(printf("Running j %i of %i\n", j, nindex_));
       }
+
       /* accumulate the mean saturated cdf per molecule */
-      /* accumulate intermolecular matrices */
-      #ifdef timing
-      auto start_acc_sat = std::chrono::high_resolution_clock::now();
-      #endif
-      for (std::size_t im = 0; im < natmol2_.size(); im++)
+      FILTER(printf("Accumulating run for molecule %i\n", i));
+      // for (std::size_t im = 0; im < natmol2_.size(); im++)
       {
-        #ifdef timing
-        auto start_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
-        #endif
-        // #pragma omp parallel for num_threads(4)
-        for (int ii = 0; ii < natmol2_[im]; ii++)
-        {
-          for (int jj = ii; jj < natmol2_[im]; jj++)
-          {
-            double sum=0;
-            // #pragma omp parallel for num_threads(4)
-            // #ifdef timing
-            // auto start_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
-            // #endif
+        /* same inter */
+        // FILTER(printf("NATMOL SIZE :: %li\n", natmol2_.size()));
+        // FILTER(printf("run %li of %li\n", im, natmol2_.size()));
+        // int num_threads = 8;
+        // int num_ops_same = ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+        // int n_per_thread_same = num_ops_same / num_threads;
+        // int n_threads_same_uneven = num_ops_same % num_threads;
 
-            int index = access_same_(im, ii, jj);
-            if (std::find_if(frame_same_mat_.begin()+index, frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size(), [](double v){ return v > 0.;}) == frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size()) continue;
-            for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
-            {
-              sum+=frame_same_mat_[index + kk]*0.0025;
-              if(sum>1.0) sum=1.0;
-              interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[index + kk]; 
-              interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
-            }
-            interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
-            interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj];
+        std::vector<std::thread> threads_same;
+        // int start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
+        // FILTER(printf("Starting %i threads with each doing %i tasks\n", num_threads, n_per_thread_same));
 
-            // #ifdef timing
-            // auto end_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
-            // auto duration_acc_sat_same_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_inner - start_acc_sat_same_inner);
-            // printf("frame :: %i, acc_sat_same_inner took %li ms\n", frnr, duration_acc_sat_same_inner.count());
-            // #endif
-          }
-        }
-        #ifdef timing
-        auto end_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
-        auto duration_acc_sat_same_outer = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_outer - start_acc_sat_same_outer);
-        printf("frame :: %i; im :: %li, acc_sat_same_outer took %li ms\n", frnr, im, duration_acc_sat_same_outer.count());
-        #endif
-        for (std::size_t j = im + 1; j < natmol2_.size(); j++)
+        #ifdef INDEXING_TEST
+        std::mutex mtx;
+        int gc = 0;
+        #endif // INDEXING_TEST
+        // T_START(create_threads);
+        // for ( int tid = 0; tid < num_threads; tid++ )
+        // {
+        //   int n_loop_operations = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+        //   FILTER(printf("Starting while with end_i :: %i and end_j :: %i\n", end_i, end_j));
+        //   T_START(index_loop);
+        //   while (n_loop_operations - natmol2_[im] + end_j >= 0)
+        //   {
+        //     int sub = natmol2_[im] - end_j;
+        //     n_loop_operations -= sub;
+        //     end_i++;
+        //     end_j = end_i;
+        //     if (n_loop_operations == 0) break;
+        //   }
+        //   end_j += n_loop_operations;
+        //   T_END(index_loop);
+
+        //   threads_same.emplace_back(std::thread(
+        //     // accumulate_maxcdf_same, tid, im, n_per_thread_same, n_bins_,
+        //     accumulate_maxcdf_same, im, n_bins_, start_i, start_j, end_i, end_j,
+        //     // start_i, start_j, n_loop_operations,
+        //     std::cref(natmol2_), std::cref(inv_num_mol_),
+        //     #ifdef INDEXING_TEST
+        //     tid, std::ref(gc), std::ref(mtx),
+        //     #endif // INDEXING_TEST
+        //     std::ref(frame_same_mat_), std::ref(interm_same_mat_density_),
+        //     std::ref(interm_same_maxcdf_mol_)
+        //     )
+        //   );
+        //   FILTER(printf("partitioned tid :: %i, i :: (%i, %i), j :: (%i, %i)\n", tid, start_i, end_i, start_j, end_j));
+        //   start_i = end_i - 1;
+        //   start_j = end_j;
+        // }
+        // T_END(create_threads);
+        // for (auto &thread : threads) threads_same.join();
+        // #ifdef INDEXING_TEST
+        // printf("Loop finished with performed ops :: %i and theoretical ops :: %i\n", gc, num_ops_same);
+        // printf("uneven %i\n", n_threads_same_uneven);
+        // #endif // INDEXING_TEST
+
+        int num_threads = 9;
+        int num_ops_same = 0;
+        for (int im = 0; im < natmol2_.size(); im++ ) num_ops_same += ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+        int n_per_thread_same = num_ops_same / num_threads;
+        int n_threads_same_uneven = num_ops_same % num_threads;
+        // int tmp_start_im = 0, start_im = 0, start_i = 0, start_j = 0, end_im = 1, end_i = 0, end_j = 0;
+        // int tmp_start_im = 0;
+        // im probabliy unnecessary 
+        int start_im = 0, end_im = 1; 
+        std::vector<int> start_i ({0}), start_j({0}), end_i({0}), end_j({0}); // keep the starting and ending indices
+        for ( int tid = 0; tid < num_threads; tid++ )
         {
-          for (int ii = 0; ii < natmol2_[im]; ii++)
+          // end_im = std::vector<int>(start_im[0]+1);
+          int n_loop_operations = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+          while (n_loop_operations - natmol2_[end_im - 1] + end_j.back() >= 0)
           {
-            for (int jj = 0; jj < natmol2_[j]; jj++)
+            int sub = natmol2_[end_im - 1] - end_j.back();
+            FILTER(printf("sub :: %i\n", sub));
+            n_loop_operations -= sub;
+            end_i.back()++;
+            end_j.back() = end_i.back();
+            FILTER(printf("im = (%i, %i), i = (%i, %i), j = (%i, %i), sub = %i, n_r = %i\n", 
+            start_im, end_im, start_i.back(), end_i.back(), start_j.back(), end_j.back(), sub, n_loop_operations));
+            if ( end_i.back() == natmol2_[end_im - 1] )
             {
-              // if(true)
-              // {
-              #ifdef timing
-              auto start_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
-              #endif
-              int index = access_cross_(im, j, ii, jj);
-              for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
-              {
-                interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[index + kk]; 
-              }
-              #ifdef timing
-              auto end_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
-              auto duration_acc_sat_cross_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_cross_inner - start_acc_sat_cross_inner);
-              printf("frame :: %i, acc_sat_cross_inner took %li ms\n", frnr, duration_acc_sat_cross_inner.count());
-              #endif
-              // }
+              FILTER(printf("increment i to %i", start_im+1));
+              end_im++;
+              start_i.push_back(0);
+              start_j.push_back(0);
+              end_i.push_back(0);
+              end_j.push_back(0);
             }
+            if (n_loop_operations == 0) break;
           }
+          end_j.back() += n_loop_operations;  
+          FILTER(printf("Final coordinates im = (%i, %i), i = (%i, %i) & j = (%i, %i)\n", start_im, end_im, start_i.front(), end_i.back(), start_j.front(), end_j.back()));
+          
+          /* start thread same */
+          threads_same.emplace_back(
+            std::thread(
+              accumulate_maxcdf_same, start_im, start_i, start_j,
+              end_im, end_i, end_j, n_bins_,
+              std::cref(natmol2_), std::cref(inv_num_mol_),
+              #ifdef INDEXING_TEST
+              tid, std::ref(gc), std::ref(mtx),
+              #endif // INDEXING_TEST
+              std::ref(frame_same_mat_), std::ref(interm_same_mat_density_),
+              std::ref(interm_same_maxcdf_mol_)
+            )
+          );
+          /* end thread same */
+          
+          start_im = end_im-1;
+          start_i = std::vector<int>({end_i.back() - 1});
+          start_j = std::vector<int>({end_j.back()});
+          end_i = std::vector<int>({end_i.back()});
+          end_j = std::vector<int>({end_j.back()});
         }
+        for (auto &thread : threads_same ) thread.join();
+    //start_i = end_i - 1;
+    //start_j = end_j;
+        
+        /* cross inter */
+        for ( int jm = im + 1; jm < natmol2_.size(); jm++ ) num_ops_cross += natmol2_[im] * natmol2_[jm];
+        int n_per_thread_cross = num_ops_cross / num_threads;
+        int n_threads_cross_uneven = num_ops_cross % num_threads;
+
+        std::vector<std::thread>> threads_cross;
+        // int start_i_cross = 0, start_j_cross = 0, start_k_cross = 0, end_i_cross = 0, end_j_cross = 0, end_k_cross = 0;
+
+        // for (int j = im + 1; j < natmol2_.size(); j++ )
+        // {
+        //   threads_cross.emplace_back(
+        //     std::thread(
+        //       accumulate_maxcdf_cross, im, n_bins_, start_i_cross, start_j_cross, start_k_cross,
+        //       end_i_cross, end_j_cross, end_k_cross, std::cref(natmol2_), std::cref(inv_num_mol_),
+        //       std::ref(frame_cross_mat_), std::ref(interm_cross_mat_density_),
+        //       std::ref(interm_cross_maxcdf_mol_) 
+        //     )
+        //   );
+        // }
       }
-      #ifdef timing
-      auto end_acc_sat = std::chrono::high_resolution_clock::now();
-      auto duration_acc_sat = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat - start_acc_sat);
-      printf("frame :: %i, acc_sat took %li ms\n", frnr, duration_acc_sat.count());
-      #endif
+      // #ifdef timing
+      // auto start_acc_sat = std::chrono::high_resolution_clock::now();
+      // #endif
+      // #pragma omp parallel for num_threads(natmol2_.size())
+      // for (std::size_t im = 0; im < natmol2_.size(); im++)
+      // {
+      //   #ifdef timing
+      //   auto start_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
+      //   #endif
+      //   #pragma omp parallel for num_threads(8)
+      //   for (int ii = 0; ii < natmol2_[im]; ii++)
+      //   {
+      //     for (int jj = ii; jj < natmol2_[im]; jj++)
+      //     {
+      //       double sum=0;
+      //       // #pragma omp parallel for num_threads(4)
+      //       // #ifdef timing
+      //       // auto start_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
+      //       // #endif
+
+      //       int index = access_same_(im, ii, jj);
+      //       // if (std::find_if(frame_same_mat_.begin()+index, frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size(), [](double v){ return v > 0.;}) == frame_same_mat_.begin()+index+interm_same_mat_density_[im][ii][0].size()) continue;
+      //       for (int kk = 0; kk < interm_same_mat_density_[im][ii][0].size(); kk++) 
+      //       {
+      //         sum+=frame_same_mat_[index + kk]*0.0025;
+      //         if(sum>1.0) sum=1.0;
+      //         interm_same_mat_density_[im][ii][jj][kk] += frame_same_mat_[index + kk]; 
+      //         interm_same_maxcdf_mol_[im][ii][jj][kk] += sum*inv_num_mol_[im]; 
+      //       }
+      //       interm_same_mat_density_[im][jj][ii] = interm_same_mat_density_[im][ii][jj];
+      //       interm_same_maxcdf_mol_[im][jj][ii] = interm_same_maxcdf_mol_[im][ii][jj];
+
+      //       // #ifdef timing
+      //       // auto end_acc_sat_same_inner = std::chrono::high_resolution_clock::now();
+      //       // auto duration_acc_sat_same_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_inner - start_acc_sat_same_inner);
+      //       // printf("frame :: %i, acc_sat_same_inner took %li ms\n", frnr, duration_acc_sat_same_inner.count());
+      //       // #endif
+      //     }
+      //   }
+      //   #ifdef timing
+      //   auto end_acc_sat_same_outer = std::chrono::high_resolution_clock::now();
+      //   auto duration_acc_sat_same_outer = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_same_outer - start_acc_sat_same_outer);
+      //   printf("frame :: %i; im :: %li, acc_sat_same_outer took %li ms\n", frnr, im, duration_acc_sat_same_outer.count());
+      //   #endif
+      //   #pragma omp parallel for num_threads(4)
+      //   for (std::size_t j = im + 1; j < natmol2_.size(); j++)
+      //   {
+      //     for (int ii = 0; ii < natmol2_[im]; ii++)
+      //     {
+      //       for (int jj = 0; jj < natmol2_[j]; jj++)
+      //       {
+      //         // if(true)
+      //         // {
+      //         #ifdef timing
+      //         auto start_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
+      //         #endif
+      //         int index = access_cross_(im, j, ii, jj);
+      //         for (int kk = 0; kk < interm_cross_mat_density_[cross_index_[im][j]][ii][0].size(); kk++) 
+      //         {
+      //           interm_cross_mat_density_[cross_index_[im][j]][ii][jj][kk] += frame_cross_mat_[index + kk]; 
+      //         }
+      //         #ifdef timing
+      //         auto end_acc_sat_cross_inner = std::chrono::high_resolution_clock::now();
+      //         auto duration_acc_sat_cross_inner = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat_cross_inner - start_acc_sat_cross_inner);
+      //         printf("frame :: %i, acc_sat_cross_inner took %li ms\n", frnr, duration_acc_sat_cross_inner.count());
+      //         #endif
+      //         // }
+      //       }
+      //     }
+      //   }
+      // }
+      // #ifdef timing
+      // auto end_acc_sat = std::chrono::high_resolution_clock::now();
+      // auto duration_acc_sat = std::chrono::duration_cast<std::chrono::microseconds>(end_acc_sat - start_acc_sat);
+      // printf("frame :: %i, acc_sat took %li ms\n", frnr, duration_acc_sat.count());
+      // #endif
     }
     n_x_++;
   }
