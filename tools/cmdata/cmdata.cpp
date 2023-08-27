@@ -132,7 +132,7 @@ private:
   std::vector<std::vector<int>> cross_index_;
   std::vector<t_atoms> molecules_;
   std::vector<double> density_bins_;
-  int n_bins_;
+  std::size_t n_bins_;
   int num_threads_;
 
   double mcut2_;
@@ -399,7 +399,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   intram_mat_density_.resize(natmol2_.size());
 
   density_bins_.resize(n_bins(cutoff_));
-  for (int i = 0; i < density_bins_.size(); i++)
+  for (std::size_t i = 0; i < density_bins_.size(); i++)
     density_bins_[i] = cutoff_ / static_cast<double>(density_bins_.size()) * static_cast<double>(i) + cutoff_ / static_cast<double>(density_bins_.size() * 2);
 
   int cross_count = 0;
@@ -460,12 +460,12 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   max_mol_size_ = max_mol_size;
   smax_mol_size_ = smax_mol_size;
 
-  int sum_same_mol_sizes = 0; // std::accumulate(std::begin(natmol2_), std::end(natmol2_), 1., [](double acc, double v){ return acc += v * v;});
-  int sum_cross_mol_sizes = 0;
-  for (int i = 0; i < natmol2_.size(); i++)
+  std::size_t sum_same_mol_sizes = 0; // std::accumulate(std::begin(natmol2_), std::end(natmol2_), 1., [](double acc, double v){ return acc += v * v;});
+  std::size_t sum_cross_mol_sizes = 0;
+  for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
     sum_same_mol_sizes += natmol2_[i] * natmol2_[i];
-    for (int j = i+1; j < natmol2_.size(); j++)
+    for (std::size_t j = i+1; j < natmol2_.size(); j++)
     {
       sum_cross_mol_sizes += natmol2_[i] * natmol2_[j];
     }
@@ -481,31 +481,32 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 // #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
 
 static void accumulate_maxcdf_same(
-  int start_im, const std::vector<int> start_i, const std::vector<int> start_j,
-  int end_im, const std::vector<int> end_i, const std::vector<int> end_j,
-  const int n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol,
+  std::size_t start_im, const std::vector<std::size_t> start_i, const std::vector<std::size_t> start_j,
+  std::size_t end_im, const std::vector<std::size_t> end_i, const std::vector<std::size_t> end_j,
+  const std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol,
   std::vector<double> &frame_same_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
 )
 {
   bool first = true;
-  int counter = 0;
+  std::size_t counter = 0;
   std::vector<bool> first_i(end_im - start_im, true);
   std::vector<bool> first_j(end_im - start_im, true);
 
-  for (int im = start_im; im < end_im; im++)
+  for (std::size_t im = start_im; im < end_im; im++)
   {
-    int from_i = start_i[counter];
-    int to_i = (im == end_im - 1) ? end_i[counter] : natmol2_[im];
-    for (int i = from_i; i < to_i; i++)
+    std::size_t from_i = start_i[counter];
+    std::size_t to_i = (im == end_im - 1) ? end_i[counter] : natmol2_[im];
+    for (std::size_t i = from_i; i < to_i; i++)
     {
-      int from_j = first_j[counter] ? start_j[counter] : i;
-      int to_j = (i == end_i[counter]-1) ? end_j[counter] : natmol2_[im];
-      for (int j = from_j; j < to_j; j++)
+      std::size_t from_j = first_j[counter] ? start_j[counter] : i;
+      std::size_t to_j = (i == end_i[counter]-1) ? end_j[counter] : natmol2_[im];
+      for (std::size_t j = from_j; j < to_j; j++)
       {
         double sum = 0;
-        int index = im * (natmol2_[im] * natmol2_[im] * n_bins_) + i * (natmol2_[im] * n_bins_) + j * n_bins_;
+        std::size_t mol_size = static_cast<std::size_t>(natmol2_[im]);
+        std::size_t index = im * (mol_size * mol_size * n_bins_) + i * (mol_size * n_bins_) + j * n_bins_;
         for (int k = 0; k < n_bins_; ++k) 
         {
           sum+=frame_same_mat[index + k]*0.0025;
@@ -524,25 +525,27 @@ static void accumulate_maxcdf_same(
 }
 
 static void accumulate_maxcdf_cross(
-  int start_im_cross, int start_jm_cross, int start_i_cross, int start_j_cross, int n_loop_operations_cross, int n_bins_,
-  const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
+  std::size_t start_im_cross, std::size_t start_jm_cross, std::size_t start_i_cross, std::size_t start_j_cross,
+  long int n_loop_operations_cross, std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
   std::vector<double> &frame_cross_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
   bool first_jm_cross = true, first_i_cross = true, first_j_cross = true;
-  int cross_counter = 0;
+  std::size_t cross_counter = 0;
 
-  for ( int im = start_im_cross; im < natmol2_.size(); im++ )
+  for ( std::size_t im = start_im_cross; im < natmol2_.size(); im++ )
   {
-    for ( int jm = (first_jm_cross) ? start_jm_cross : (im + 1); jm < natmol2_.size(); jm++ )
+    for ( std::size_t jm = (first_jm_cross) ? start_jm_cross : (im + 1); jm < natmol2_.size(); jm++ )
     {
-      for ( int i = (first_i_cross) ? start_i_cross : 0; i < natmol2_[im]; i++ )
+      for ( std::size_t i = (first_i_cross) ? start_i_cross : 0; i < natmol2_[im]; i++ )
       {
-        for ( int j = (first_j_cross) ? start_j_cross : 0; j < natmol2_[jm]; j++ )
+        for ( std::size_t j = (first_j_cross) ? start_j_cross : 0; j < natmol2_[jm]; j++ )
         {
-          int index = cross_index_[im][jm] * (natmol2_[im] * natmol2_[jm] * n_bins_) + (natmol2_[jm] * n_bins_) * i + n_bins_ * j;
+          std::size_t mol_size_im = static_cast<std::size_t>(natmol2_[im]);
+          std::size_t mol_size_jm = static_cast<std::size_t>(natmol2_[jm]); 
+          std::size_t index = cross_index_[im][jm] * (mol_size_im * mol_size_jm * n_bins_) + (mol_size_jm * n_bins_) * i + n_bins_ * j;
           for (int kk = 0; kk < interm_cross_mat_density[cross_index_[im][jm]][i][0].size(); kk++) 
           {
             interm_cross_mat_density[cross_index_[im][jm]][i][j][kk] += frame_cross_mat[index + kk]; 
@@ -558,14 +561,14 @@ static void accumulate_maxcdf_cross(
 }
 
 static void accumulate_max_cdf(
-  const int n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol, // general parameters
-  int start_im_same, const std::vector<int> start_i_same, const std::vector<int> start_j_same, // same parameters
-  int end_im_same, const std::vector<int> end_i_same, const std::vector<int> end_j_same,
+  const std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol, // general parameters
+  std::size_t start_im_same, const std::vector<std::size_t> start_i_same, const std::vector<std::size_t> start_j_same, // same parameters
+  std::size_t end_im_same, const std::vector<std::size_t> end_i_same, const std::vector<std::size_t> end_j_same,
   std::vector<double> &frame_same_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
-  int start_im_cross, int start_jm_cross, int start_i_cross, int start_j_cross, int n_loop_operations_cross, // cross parameters
-  const std::vector<std::vector<int>> &cross_index_,
+  std::size_t start_im_cross, std::size_t start_jm_cross, std::size_t start_i_cross, std::size_t start_j_cross, 
+  long int n_loop_operations_cross, const std::vector<std::vector<int>> &cross_index_,
   std::vector<double> &frame_cross_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
@@ -627,9 +630,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       // std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
 
       #pragma omp parallel for num_threads(4)
-      for ( int n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0.;
+      for ( std::size_t n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0.;
       #pragma omp parallel for num_threads(4)
-      for ( int n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0.;
+      for ( std::size_t n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0.;
 
       #ifdef timing
       auto end_zeroing = std::chrono::high_resolution_clock::now();
@@ -655,12 +658,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         /* for molecules of different specie we fill half a matrix */
         if (mol_id_[i] != mol_id_[j] && j < i) continue;
 
-        int a_i = 0;
+        std::size_t a_i = 0;
         GMX_RELEASE_ASSERT(mols_.numBlocks() > 0, "Cannot access index[] from empty mols");
         /* cycle over the atoms of a molecule i */
-        for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
+        for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
         {
-          int a_j = 0;
+          std::size_t a_j = 0;
           mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
           if (atomname[0] == 'H')
           {
@@ -668,7 +671,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             continue;
           }
           /* cycle over the atoms of a molecule j */
-          for (int jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
+          for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
           {
             mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
             if (atomname[0] == 'H')
@@ -677,16 +680,16 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
               continue;
             }
             // check for chemical equivalence
-            for (int eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
+            for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
             {
-              for (int eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
+              for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
               {
                 // get molecule-wise atom index considering equivalence
-                int eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
-                int geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
-                int eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-                int geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
-                int delta  = eqa_i - eqa_j;
+                std::size_t eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
+                std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
+                std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
+                std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
+                std::size_t delta  = eqa_i - eqa_j;
                 double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[i]][a_j].size());
                 rvec sym_dx;
                 if (pbc != nullptr) pbc_dx(pbc, x[geqa_i], x[geqa_j], sym_dx);
@@ -774,33 +777,33 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       /* accumulate the saturated cdf */
       std::vector<std::thread> threads(num_threads_);
 
-      int num_ops_same = 0;
-      for (int im = 0; im < natmol2_.size(); im++ ) num_ops_same += ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-      int n_per_thread_same = num_ops_same / num_threads_;
-      int n_threads_same_uneven = num_ops_same % num_threads_;
-      int start_im_same = 0, end_im_same = 1; 
-      std::vector<int> start_i_same({0}), start_j_same({0}), end_i_same({0}), end_j_same({0});
-      int num_ops_cross = 0;
-      for ( int im = 0; im < natmol2_.size(); im++ )
+      std::size_t num_ops_same = 0;
+      for (std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+      long int n_per_thread_same = num_ops_same / num_threads_;
+      long int n_threads_same_uneven = num_ops_same % num_threads_;
+      std::size_t start_im_same = 0, end_im_same = 1; 
+      std::vector<std::size_t> start_i_same({0}), start_j_same({0}), end_i_same({0}), end_j_same({0});
+      std::size_t num_ops_cross = 0;
+      for ( std::size_t im = 0; im < natmol2_.size(); im++ )
       {
-        for ( int jm = im + 1; jm < natmol2_.size(); jm++ )
+        for ( std::size_t jm = im + 1; jm < natmol2_.size(); jm++ )
         {
           num_ops_cross += natmol2_[im] * natmol2_[jm];
         }
       }
-      int n_per_thread_cross = num_ops_cross / num_threads_;
-      int n_threads_cross_uneven = num_ops_cross % num_threads_;
+      long int n_per_thread_cross = num_ops_cross / num_threads_;
+      long int n_threads_cross_uneven = num_ops_cross % num_threads_;
 
-      int start_im_cross = 0, end_im_cross = 1;
-      int start_jm_cross = 1, end_jm_cross = 2, start_i_cross = 0, end_i_cross = 0, start_j_cross = 0, end_j_cross = 0;
+      std::size_t start_im_cross = 0, end_im_cross = 1;
+      std::size_t start_jm_cross = 1, end_jm_cross = 2, start_i_cross = 0, end_i_cross = 0, start_j_cross = 0, end_j_cross = 0;
       
       for ( int tid = 0; tid < num_threads_; tid++ )
       {
         /* calculate same indices */
-        int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+        long int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
         while (n_loop_operations_same - natmol2_[end_im_same - 1] + end_j_same.back() >= 0)
         {
-          int sub_same = natmol2_[end_im_same - 1] - end_j_same.back();
+          long int sub_same = natmol2_[end_im_same - 1] - end_j_same.back();
           n_loop_operations_same -= sub_same;
           end_i_same.back()++;
           end_j_same.back() = end_i_same.back();
@@ -817,14 +820,14 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         end_j_same.back() += n_loop_operations_same;  
 
         /* calculate cross indices */
-        int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
+        long int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
 
         if ( natmol2_.size() < 2 )
         {
-          int n_loop_operations_cross = n_loop_operations_total_cross;
+          long int n_loop_operations_cross = n_loop_operations_total_cross;
           while ( natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * end_i_cross + end_j_cross) <= n_loop_operations_cross )// && n_loop_operations_cross != 0 );
           {
-            int sub_cross = natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * end_i_cross + end_j_cross);
+            long int sub_cross = natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * end_i_cross + end_j_cross);
             n_loop_operations_cross -= sub_cross;
 
             end_jm_cross++;
@@ -858,10 +861,10 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
 
         /* set new starts */
         start_im_same = end_im_same - 1;
-        start_i_same = std::vector<int>({end_i_same.back() - 1});
-        start_j_same = std::vector<int>({end_j_same.back()});
-        end_i_same = std::vector<int>({end_i_same.back()});
-        end_j_same = std::vector<int>({end_j_same.back()});
+        start_i_same = std::vector<std::size_t>({end_i_same.back() - 1});
+        start_j_same = std::vector<std::size_t>({end_j_same.back()});
+        end_i_same = std::vector<std::size_t>({end_i_same.back()});
+        end_j_same = std::vector<std::size_t>({end_j_same.back()});
 
         start_im_cross = end_im_cross - 1;
         start_jm_cross = end_jm_cross - 1;
