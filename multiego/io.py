@@ -99,7 +99,8 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         - Repulsive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']<0.])}
         - The average epsilon is {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
         - The min/max epsilon are {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}, {meGO_LJ_potential['epsilon'].max():{5}.{3}}
-        - The maximum sigma is {meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}, suggested cut-off at {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
+        - The maximum sigma is {meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}
+        - Suggested rlist and cut-off at {1.1*2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} and {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
         ''')
     print(
         f'\nAnd it can be found in the following folder:\n{output_dir}')
