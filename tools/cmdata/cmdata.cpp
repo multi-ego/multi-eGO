@@ -73,8 +73,8 @@
 #include <sstream>
 #include <fstream>
 
-// #define timing
-#ifdef timing
+// #define TIMING
+#ifdef TIMING
 #include <chrono>
 #define T_START(name) auto name##_start = std::chrono::high_resolution_clock::now()
 static void _log_time(const int ms_time, const char* name ) { printf("timing :: %s :: %i us\n", name, ms_time);}
@@ -82,7 +82,7 @@ static void _log_time(const int ms_time, const char* name ) { printf("timing :: 
 #else
 #define T_START(name) 0;
 #define T_END(name) 0;
-#endif // timing
+#endif // TIMING
 
 namespace gmx
 {
@@ -113,8 +113,7 @@ private:
   double mol_cutoff_;
   int n_x_;
   int nframe_;
-  int max_mol_size_;
-  int smax_mol_size_;
+  int nskip_;
   rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
@@ -178,6 +177,10 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&histo_)
                     .defaultValue(false)
                     .description("Set to true to output histograms"));
+  options->addOption(IntegerOption("nskip")
+                    .store(&nskip_)
+                    .defaultValue(0)
+                    .description("Use every nskip-th frame"));
   options->addOption(SelectionOption("reference")
                     .store(&refsel_)
                     .required()
@@ -337,11 +340,19 @@ static inline int n_bins(const double cut, const double factor = 4.0)
 
 void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const TopologyInformation &top)
 {
+  /* Checking inputs */
   if (outfile_inter_ == "") outfile_inter_ = std::string("intermat.ndx");
   if (outfile_intra_ == "") outfile_intra_ = std::string("intramat.ndx");
 
-  /* Checking inputs */
   GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
+  if ( num_threads_ > std::thread::hardware_concurrency() )
+  {
+    printf("Maximum thread number of %i surpassed. Scaling num_threads down accordingly.\n", std::thread::hardware_concurrency());
+    num_threads_ = static_cast<int>(std::thread::hardware_concurrency());
+  }
+  printf("Running operations on %i threads\n", num_threads_);
+
+  GMX_RELEASE_ASSERT(nskip_ >= 0, "nskip needs to be greater than or equal to 0\n");
 
   n_x_ = 0;
   nframe_ = 0;
@@ -404,12 +415,12 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   int cross_count = 0;
   cross_index_.resize(natmol2_.size(), std::vector<int>(natmol2_.size(), 0));
-  for (std::size_t i = 0; i < natmol2_.size(); i++)
+  for ( std::size_t i = 0; i < natmol2_.size(); i++ )
   {
     interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
     intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
-    for (std::size_t j = i + 1; j < natmol2_.size(); j++)
+    for ( std::size_t j = i + 1; j < natmol2_.size(); j++ )
     {
       interm_cross_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
       interm_cross_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
@@ -429,10 +440,10 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     for (int i = 0; i < equivalence_list_.size(); i++)
     {
       sym_list_file << "[ molecule_" << i << " ]\n";
-      for (int j = 0; j < equivalence_list_[i].size(); j++)
+      for ( int j = 0; j < equivalence_list_[i].size(); j++ )
       {
         sym_list_file << "atom " << j << ":";
-        for (int k = 0; k < equivalence_list_[i][j].size(); k++)
+        for ( int k = 0; k < equivalence_list_[i][j].size(); k++ )
         {
           sym_list_file << " " << equivalence_list_[i][j][k];
         }
@@ -450,16 +461,6 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
-  int max_mol_size = *std::max_element(std::begin(natmol2_), std::end(natmol2_));
-  int smax_mol_size = *std::max_element(std::begin(natmol2_), std::end(natmol2_),
-                                        [max_mol_size](int a, int b) {
-                                          if (a == max_mol_size) return true;
-                                          if (b == max_mol_size) return false;                                         
-                                          return a < b;
-                                        });
-  max_mol_size_ = max_mol_size;
-  smax_mol_size_ = smax_mol_size;
-
   std::size_t sum_same_mol_sizes = 0; // std::accumulate(std::begin(natmol2_), std::end(natmol2_), 1., [](double acc, double v){ return acc += v * v;});
   std::size_t sum_cross_mol_sizes = 0;
   for (std::size_t i = 0; i < natmol2_.size(); i++)
@@ -476,9 +477,6 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
-
-// #define access_same_(i, a_i, a_j) i * (natmol2_.size() * natmol2_[i] * natmol2_[i]) + a_i * (natmol2_[i] * natmol2_[i]) + a_j * natmol2_[i] 
-// #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (( natmol2_.size() * (natmol2_.size() - 1)) / 2 ) * natmol2_[i] * natmol2_[j] + natmol2_[i] * natmol2_[j] * a_i + natmol2_[j] * a_j
 
 static void accumulate_maxcdf_same(
   std::size_t start_im, const std::vector<std::size_t> start_i, const std::vector<std::size_t> start_j,
@@ -526,14 +524,14 @@ static void accumulate_maxcdf_same(
 
 static void accumulate_maxcdf_cross(
   std::size_t start_im_cross, std::size_t start_jm_cross, std::size_t start_i_cross, std::size_t start_j_cross,
-  long int n_loop_operations_cross, std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
+  int n_loop_operations_cross, std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
   std::vector<double> &frame_cross_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
   bool first_jm_cross = true, first_i_cross = true, first_j_cross = true;
-  std::size_t cross_counter = 0;
+  int cross_counter = 0;
 
   for ( std::size_t im = start_im_cross; im < natmol2_.size(); im++ )
   {
@@ -545,7 +543,7 @@ static void accumulate_maxcdf_cross(
         {
           std::size_t mol_size_im = static_cast<std::size_t>(natmol2_[im]);
           std::size_t mol_size_jm = static_cast<std::size_t>(natmol2_[jm]); 
-          std::size_t index = cross_index_[im][jm] * (mol_size_im * mol_size_jm * n_bins_) + (mol_size_jm * n_bins_) * i + n_bins_ * j;
+          std::size_t index = static_cast<std::size_t>(cross_index_[im][jm]) * (mol_size_im * mol_size_jm * n_bins_) + (mol_size_jm * n_bins_) * i + n_bins_ * j;
           for (int kk = 0; kk < interm_cross_mat_density[cross_index_[im][jm]][i][0].size(); kk++) 
           {
             interm_cross_mat_density[cross_index_[im][jm]][i][j][kk] += frame_cross_mat[index + kk]; 
@@ -560,6 +558,16 @@ static void accumulate_maxcdf_cross(
   }
 }
 
+/**
+ * @brief Calculates maximum cumulative distributions.
+ * 
+ * @todo test counter method as well on same
+ * 
+ * Calculates the maximum cumulative distribution functions for both
+ * same molecule type and cross molecules type atom interactions by
+ * calling accumulate_maxcdf_cross and accumulate_maxcdf_same.
+ * Skips call to function if operations for given interactions are 0.
+*/
 static void accumulate_max_cdf(
   const std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol, // general parameters
   std::size_t start_im_same, const std::vector<std::size_t> start_i_same, const std::vector<std::size_t> start_j_same, // same parameters
@@ -589,14 +597,9 @@ static void accumulate_max_cdf(
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
 {
-  // WARNING IMPLEMENT
-  int nskip = 0;
-  // WARNING END
-
-  // WARNING free memory again
   rvec *x = fr.x;
 
-  if ((nskip == 0) || ((nskip > 0) && ((frnr % nskip) == 0)))
+  if ((nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
   {
     /* calculate the center of each molecule */
     for (int i = 0; (i < nindex_); i++)
@@ -622,26 +625,11 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* Loop over molecules */
     for (int i = 0; i < nindex_; i++)
     {
-      #ifdef timing
-      auto start_zeroing = std::chrono::high_resolution_clock::now();
-      #endif
-      // works at time of 3500 ms for ttr
-      // std::fill(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.);
-      // std::fill(std::begin(frame_cross_mat_), std::end(frame_cross_mat_), 0.);
-
-      #pragma omp parallel for num_threads(4)
+      #pragma omp parallel for num_threads(num_threads_)
       for ( std::size_t n = 0; n < frame_same_mat_.size(); n++ ) frame_same_mat_[n] = 0.;
-      #pragma omp parallel for num_threads(4)
+      #pragma omp parallel for num_threads(num_threads_)
       for ( std::size_t n = 0; n < frame_cross_mat_.size(); n++ ) frame_cross_mat_[n] = 0.;
-
-      #ifdef timing
-      auto end_zeroing = std::chrono::high_resolution_clock::now();
-      auto duration_zeroing = std::chrono::duration_cast<std::chrono::microseconds>(end_zeroing - start_zeroing);
-      printf("frame :: %i, allocation took %li ms\n", frnr, duration_zeroing.count());
-      #endif // timing
       
-      // printf("acc %f\n", std::accumulate(std::begin(frame_same_mat_), std::end(frame_same_mat_), 0.));
-
       int molb = 0;
       /* Loop over molecules  */
       for (int j = 0; j < nindex_; j++)
@@ -699,15 +687,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 {
                   if (dx2 < cut_sig_2_)
                   {
-                    #ifdef timing
-                    auto start_intra_kde = std::chrono::high_resolution_clock::now();
-                    #endif
                     kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
-                    #ifdef timing
-                    auto end_intra_kde = std::chrono::high_resolution_clock::now();
-                    auto duration_intra_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_intra_kde - start_intra_kde);
-                    printf("frame :: %i, intra took %li ms\n", frnr, duration_intra_kde.count());
-                    #endif
                   }
                 }
                 else
@@ -716,17 +696,9 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                   { // inter same molecule specie
                     if (dx2 < cut_sig_2_)
                     {
-                      #ifdef timing
-                      auto start_inter_kde = std::chrono::high_resolution_clock::now();
-                      #endif
                       // kernel_density_estimator(frame_same_mat_[mol_id_[i]][a_i][a_j], density_bins_, std::sqrt(dx2), 1.0);
                       std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
                       kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
-                      #ifdef timing
-                      auto end_inter_kde = std::chrono::high_resolution_clock::now();
-                      auto duration_inter_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_inter_kde - start_inter_kde);
-                      printf("frame :: %i, inter took %li ms\n", frnr, duration_inter_kde.count());
-                      #endif
                     }
                     if(delta!=0.) {
                       // this is to account for inversion atom/molecule
@@ -735,34 +707,18 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                       dx2 = iprod(sym_dx, sym_dx);
                       if (dx2 < cut_sig_2_)
                       {
-                        #ifdef timing
-                        auto start_interinv_kde = std::chrono::high_resolution_clock::now();
-                        #endif
                         std::vector<double>::iterator starting_point = std::begin(frame_same_mat_) + access_same_(mol_id_[i], a_i, a_j);
                         kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);
-                        #ifdef timing
-                        auto end_interinv_kde = std::chrono::high_resolution_clock::now();
-                        auto duration_interinv_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_interinv_kde - start_interinv_kde);
-                        printf("frame :: %i, interinv took %li ms\n", frnr, duration_interinv_kde.count());
-                        #endif
                       }
                     }
                   } 
                   else
-                  { // inter cross molecule specie
+                  { // inter cross molecule species
                     if (dx2 < cut_sig_2_)
                     {
-                      #ifdef timing
-                      auto start_cross_kde = std::chrono::high_resolution_clock::now();
-                      #endif
                       std::vector<double>::iterator starting_point = std::begin(frame_cross_mat_) + access_cross_(mol_id_[i], mol_id_[j], a_i, a_j);
                       kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
                       // frame_cross_count_[access_cross_(i, j, a_i, a_j)]++;
-                      #ifdef timing
-                      auto end_cross_kde = std::chrono::high_resolution_clock::now();
-                      auto duration_cross_kde = std::chrono::duration_cast<std::chrono::microseconds>(end_cross_kde - start_cross_kde);
-                      printf("frame :: %i, cross took %li ms\n", frnr, duration_cross_kde.count());
-                      #endif
                     }
                   }
                 }
@@ -778,12 +734,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       std::vector<std::thread> threads(num_threads_);
 
       std::size_t num_ops_same = 0;
-      for (std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-      long int n_per_thread_same = num_ops_same / num_threads_;
-      long int n_threads_same_uneven = num_ops_same % num_threads_;
+      for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+      int n_per_thread_same = num_ops_same / num_threads_;
+      int n_threads_same_uneven = num_ops_same % num_threads_;
       std::size_t start_im_same = 0, end_im_same = 1; 
       std::vector<std::size_t> start_i_same({0}), start_j_same({0}), end_i_same({0}), end_j_same({0});
-      std::size_t num_ops_cross = 0;
+      int num_ops_cross = 0;
       for ( std::size_t im = 0; im < natmol2_.size(); im++ )
       {
         for ( std::size_t jm = im + 1; jm < natmol2_.size(); jm++ )
@@ -791,8 +747,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           num_ops_cross += natmol2_[im] * natmol2_[jm];
         }
       }
-      long int n_per_thread_cross = num_ops_cross / num_threads_;
-      long int n_threads_cross_uneven = num_ops_cross % num_threads_;
+      int n_per_thread_cross = num_ops_cross / num_threads_;
+      int n_threads_cross_uneven = num_ops_cross % num_threads_;
 
       std::size_t start_im_cross = 0, end_im_cross = 1;
       std::size_t start_jm_cross = 1, end_jm_cross = 2, start_i_cross = 0, end_i_cross = 0, start_j_cross = 0, end_j_cross = 0;
@@ -800,14 +756,14 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       for ( int tid = 0; tid < num_threads_; tid++ )
       {
         /* calculate same indices */
-        long int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
-        while (n_loop_operations_same - natmol2_[end_im_same - 1] + end_j_same.back() >= 0)
+        int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+        while ( natmol2_[end_im_same - 1] - static_cast<int>(end_j_same.back()) <= n_loop_operations_same )
         {
-          long int sub_same = natmol2_[end_im_same - 1] - end_j_same.back();
+          int sub_same = natmol2_[end_im_same - 1] - static_cast<int>(end_j_same.back());
           n_loop_operations_same -= sub_same;
           end_i_same.back()++;
           end_j_same.back() = end_i_same.back();
-          if ( end_i_same.back() == natmol2_[end_im_same - 1] )
+          if ( static_cast<int>(end_j_same.back()) == natmol2_[end_im_same - 1] )
           {
             end_im_same++;
             start_i_same.push_back(0);
@@ -820,14 +776,13 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         end_j_same.back() += n_loop_operations_same;  
 
         /* calculate cross indices */
-        long int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
-
-        if ( natmol2_.size() < 2 )
+        int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
+        if ( natmol2_.size() > 1 )
         {
-          long int n_loop_operations_cross = n_loop_operations_total_cross;
-          while ( natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * end_i_cross + end_j_cross) <= n_loop_operations_cross )// && n_loop_operations_cross != 0 );
+          int n_loop_operations_cross = n_loop_operations_total_cross;
+          while ( natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
           {
-            long int sub_cross = natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * end_i_cross + end_j_cross);
+            int sub_cross = natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross));
             n_loop_operations_cross -= sub_cross;
 
             end_jm_cross++;
@@ -843,11 +798,13 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
             if (end_im_cross == natmol2_.size() - 1) break;
           }
 
+          // calculate overhangs and add them
           end_i_cross += n_loop_operations_cross / natmol2_[end_jm_cross-1];
           end_j_cross += n_loop_operations_cross % natmol2_[end_jm_cross-1];
           end_i_cross += end_j_cross / natmol2_[end_jm_cross-1];
           end_j_cross %= natmol2_[end_jm_cross-1]; 
         }
+
         /* start thread */
         /* TODO run last run on main thread */
         threads[tid] = std::thread(
@@ -963,18 +920,25 @@ void CMData::writeOutput()
         for (int ii = 0; ii < natmol2_[i]; ii++)
         {
           FILE *fp = nullptr;
+          FILE *fp_cum = nullptr;
           std::string ffh = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+          std::string ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
           fp = gmx_ffopen(ffh, "w");
+          fp = gmx_ffopen(ffh_cum, "w");
           for (int k = 0; k < interm_cross_mat_density_[cross_index_[i][j]][ii][0].size(); k++)
           {
             fprintf(fp, "%lf", density_bins_[k]);
+            fprintf(fp_cum, "%lf", density_bins_[k]);
             for (int jj = 0; jj < natmol2_[j]; jj++)
             {
               fprintf(fp, " %lf", interm_cross_mat_density_[cross_index_[i][j]][ii][jj][k]);
+              fprintf(fp_cum, " %lf", interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k]);
             }
             fprintf(fp, "\n");
+            fprintf(fp_cum, "\n");
           }
           gmx_ffclose(fp);
+          gmx_ffclose(fp_cum);
         }
       }
     }
