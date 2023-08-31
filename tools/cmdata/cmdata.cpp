@@ -277,8 +277,6 @@ static inline void read_symmetry_indices(
   }
 }
 
-// static inline void kernel_density_estimator(std::vector<double> &x, const std::vector<double> &bins, const double mu, const double norm)
-// static inline void kernel_density_estimator(std::vector<double> &x, std::vector<double> &max_cdf, const std::vector<double> &bins, const double mu, const double norm)
 static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
@@ -463,7 +461,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
-  std::size_t sum_same_mol_sizes = 0; // std::accumulate(std::begin(natmol2_), std::end(natmol2_), 1., [](double acc, double v){ return acc += v * v;});
+  std::size_t sum_same_mol_sizes = 0;
   std::size_t sum_cross_mol_sizes = 0;
   for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
@@ -554,7 +552,7 @@ static void accumulate_maxcdf_cross(
             sum+=frame_cross_mat[index + k]*0.0025;
             if(sum>1.0) sum=1.0;
             interm_cross_mat_density[cross_index_[im][jm]][i][j][k] += frame_cross_mat[index + k];
-            interm_cross_maxcdf_mol[cross_index_[im][jm]][i][j][k] += sum;//*max_inv_num_mol;
+            interm_cross_maxcdf_mol[cross_index_[im][jm]][i][j][k] += sum*max_inv_num_mol;
           }
           ++cross_counter;
         }
@@ -725,7 +723,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                     if (dx2 < cut_sig_2_)
                     {
                       std::vector<double>::iterator starting_point = std::begin(frame_cross_mat_) + access_cross_(mol_id_[i], mol_id_[j], a_i, a_j);
-                      kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
+                      kernel_density_estimator(starting_point, density_bins_, std::sqrt(dx2), 1.0);//std::max(inv_num_mol_[i],inv_num_mol_[j])/nsym);
                       // frame_cross_count_[access_cross_(i, j, a_i, a_j)]++;
                     }
                   }
@@ -880,6 +878,10 @@ void CMData::finishAnalysis(int /*nframes*/)
           std::transform(interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
                          interm_cross_mat_density_[cross_index_[i][j]][ii][jj].end(),
                          interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
+                         [&norm](auto &c) { return c * norm; });
+          std::transform(interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].begin(),
+                         interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].end(),
+                         interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].begin(),
                          [&norm](auto &c) { return c * norm; });
         }
       }
