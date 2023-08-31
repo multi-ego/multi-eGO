@@ -120,6 +120,7 @@ private:
   std::string outfile_inter_;
   std::string outfile_intra_;
   std::vector<double> inv_num_mol_;
+  std::vector<double> inv_num_mol_unique_;
   std::string sym_file_path_;
   std::vector<std::vector<std::vector<int>>> equivalence_list_;
   bool list_sym_;
@@ -384,7 +385,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   start_index.push_back(0);
   num_unique_molecules = 0;
   inv_num_mol_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
-
+  inv_num_mol_unique_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
   for (int i = 1; i < nindex_; i++)
   {
     if (mols_.block(i).end() - mols_.block(i - 1).end() == natmol2_[num_unique_molecules])
@@ -395,6 +396,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     {
       start_index.push_back(natmol2_[num_unique_molecules]);
       num_unique_molecules++;
+      inv_num_mol_unique_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
     }
     mol_id_.push_back(num_unique_molecules);
     inv_num_mol_.push_back(1. / static_cast<double>(num_mol[num_unique_molecules]));
@@ -525,7 +527,7 @@ static void accumulate_maxcdf_same(
 static void accumulate_maxcdf_cross(
   std::size_t start_im_cross, std::size_t start_jm_cross, std::size_t start_i_cross, std::size_t start_j_cross,
   int n_loop_operations_cross, std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
-  std::vector<double> &frame_cross_mat,
+  const std::vector<double> &inv_num_mol, std::vector<double> &frame_cross_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
@@ -537,18 +539,24 @@ static void accumulate_maxcdf_cross(
   {
     for ( std::size_t jm = (first_jm_cross) ? start_jm_cross : (im + 1); jm < natmol2_.size(); jm++ )
     {
+      double max_inv_num_mol = std::max(inv_num_mol[im], inv_num_mol[jm]);
       for ( std::size_t i = (first_i_cross) ? start_i_cross : 0; i < natmol2_[im]; i++ )
       {
         for ( std::size_t j = (first_j_cross) ? start_j_cross : 0; j < natmol2_[jm]; j++ )
         {
+          if ( cross_counter == n_loop_operations_cross ) return;
+          double sum = 0;
           std::size_t mol_size_im = static_cast<std::size_t>(natmol2_[im]);
           std::size_t mol_size_jm = static_cast<std::size_t>(natmol2_[jm]); 
           std::size_t index = static_cast<std::size_t>(cross_index_[im][jm]) * (mol_size_im * mol_size_jm * n_bins_) + (mol_size_jm * n_bins_) * i + n_bins_ * j;
-          for (int kk = 0; kk < interm_cross_mat_density[cross_index_[im][jm]][i][0].size(); kk++) 
+          for (int k = 0; k < interm_cross_mat_density[cross_index_[im][jm]][i][0].size(); k++) 
           {
-            interm_cross_mat_density[cross_index_[im][jm]][i][j][kk] += frame_cross_mat[index + kk]; 
+            sum+=frame_cross_mat[index + k]*0.0025;
+            if(sum>1.0) sum=1.0;
+            interm_cross_mat_density[cross_index_[im][jm]][i][j][k] += frame_cross_mat[index + k];
+            interm_cross_maxcdf_mol[cross_index_[im][jm]][i][j][k] += sum;//*max_inv_num_mol;
           }
-          if ( cross_counter == n_loop_operations_cross ) return;
+          ++cross_counter;
         }
         first_j_cross = false;
       }
@@ -591,7 +599,7 @@ static void accumulate_max_cdf(
 
   accumulate_maxcdf_cross(
     start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_cross, n_bins_,
-    natmol2_, cross_index_, frame_cross_mat, interm_cross_mat_density, interm_cross_maxcdf_mol
+    natmol2_, cross_index_, inv_num_mol, frame_cross_mat, interm_cross_mat_density, interm_cross_maxcdf_mol
   );
 }
 
@@ -808,7 +816,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         /* start thread */
         /* TODO run last run on main thread */
         threads[tid] = std::thread(
-          accumulate_max_cdf, n_bins_,  std::cref(natmol2_), std::cref(inv_num_mol_), // general parameters
+          accumulate_max_cdf, n_bins_, std::cref(natmol2_), std::cref(inv_num_mol_unique_), // general parameters
           start_im_same, start_i_same, start_j_same, end_im_same, end_i_same, end_j_same, // same parameters
           std::ref(frame_same_mat_), std::ref(interm_same_mat_density_), std::ref(interm_same_maxcdf_mol_),
           start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_total_cross, // cross parameters
@@ -924,7 +932,7 @@ void CMData::writeOutput()
           std::string ffh = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
           std::string ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
           fp = gmx_ffopen(ffh, "w");
-          fp = gmx_ffopen(ffh_cum, "w");
+          fp_cum = gmx_ffopen(ffh_cum, "w");
           for (int k = 0; k < interm_cross_mat_density_[cross_index_[i][j]][ii][0].size(); k++)
           {
             fprintf(fp, "%lf", density_bins_[k]);
