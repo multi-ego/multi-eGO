@@ -73,7 +73,7 @@
 #include <sstream>
 #include <fstream>
 
-// #define TIMING
+#define TIMING
 #ifdef TIMING
 #include <chrono>
 #define T_START(name) auto name##_start = std::chrono::high_resolution_clock::now()
@@ -479,29 +479,24 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 }
 
 static void accumulate_maxcdf_same(
-  std::size_t start_im, const std::vector<std::size_t> start_i, const std::vector<std::size_t> start_j,
-  std::size_t end_im, const std::vector<std::size_t> end_i, const std::vector<std::size_t> end_j,
+  std::size_t start_im_same, std::size_t start_i_same, std::size_t start_j_same,
+  long int n_loop_operations,
   const std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol,
   std::vector<double> &frame_same_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
 )
 {
-  bool first = true;
-  std::size_t counter = 0;
-  std::vector<bool> first_i(end_im - start_im, true);
-  std::vector<bool> first_j(end_im - start_im, true);
+  bool first_i_same = true, first_j_same = true;
+  int same_counter = 0;
 
-  for (std::size_t im = start_im; im < end_im; im++)
+  for (std::size_t im = start_im_same; im < natmol2_.size(); im++)
   {
-    std::size_t from_i = start_i[counter];
-    std::size_t to_i = (im == end_im - 1) ? end_i[counter] : natmol2_[im];
-    for (std::size_t i = from_i; i < to_i; i++)
+    for (std::size_t i = first_i_same ? start_i_same : 0; i < natmol2_[im]; i++)
     {
-      std::size_t from_j = first_j[counter] ? start_j[counter] : i;
-      std::size_t to_j = (i == end_i[counter]-1) ? end_j[counter] : natmol2_[im];
-      for (std::size_t j = from_j; j < to_j; j++)
+      for (std::size_t j = first_j_same ? start_j_same : i; j < natmol2_[im]; j++)
       {
+        if ( same_counter == n_loop_operations ) return;
         double sum = 0;
         std::size_t mol_size = static_cast<std::size_t>(natmol2_[im]);
         std::size_t index = im * (mol_size * mol_size * n_bins_) + i * (mol_size * n_bins_) + j * n_bins_;
@@ -514,11 +509,11 @@ static void accumulate_maxcdf_same(
         }
         interm_same_mat_density[im][j][i] = interm_same_mat_density[im][i][j];
         interm_same_maxcdf_mol[im][j][i] = interm_same_maxcdf_mol[im][i][j];
+        ++same_counter;
       }
-      first_j[counter] = false;
+      first_j_same = false;
     }
-    first_i[counter] = false;
-    counter++;
+    first_i_same = false;
   }
 }
 
@@ -576,8 +571,7 @@ static void accumulate_maxcdf_cross(
 */
 static void accumulate_max_cdf(
   const std::size_t n_bins_, const std::vector<int> &natmol2_, const std::vector<double> &inv_num_mol, // general parameters
-  std::size_t start_im_same, const std::vector<std::size_t> start_i_same, const std::vector<std::size_t> start_j_same, // same parameters
-  std::size_t end_im_same, const std::vector<std::size_t> end_i_same, const std::vector<std::size_t> end_j_same,
+  std::size_t start_im_same, std::size_t start_i_same, std::size_t start_j_same, long int n_loop_operations_same, // same parameters
   std::vector<double> &frame_same_mat,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
@@ -589,7 +583,8 @@ static void accumulate_max_cdf(
 )
 {
   accumulate_maxcdf_same(
-    start_im_same, start_i_same, start_j_same, end_im_same, end_i_same, end_j_same, n_bins_, natmol2_, inv_num_mol,
+    start_im_same, start_i_same, start_j_same, 
+    n_loop_operations_same, n_bins_, natmol2_, inv_num_mol,
     frame_same_mat, interm_same_mat_density, interm_same_maxcdf_mol
   );
 
@@ -744,7 +739,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       int n_per_thread_same = num_ops_same / num_threads_;
       int n_threads_same_uneven = num_ops_same % num_threads_;
       std::size_t start_im_same = 0, end_im_same = 1; 
-      std::vector<std::size_t> start_i_same({0}), start_j_same({0}), end_i_same({0}), end_j_same({0});
+      std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
       int num_ops_cross = 0;
       for ( std::size_t im = 0; im < natmol2_.size(); im++ )
       {
@@ -763,23 +758,22 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       {
         /* calculate same indices */
         int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
-        while ( natmol2_[end_im_same - 1] - static_cast<int>(end_j_same.back()) <= n_loop_operations_same )
+        long int n_loop_operations_total_same = n_loop_operations_same;
+        while ( natmol2_[end_im_same - 1] - static_cast<int>(end_j_same) <= n_loop_operations_same )
         {
-          int sub_same = natmol2_[end_im_same - 1] - static_cast<int>(end_j_same.back());
+          int sub_same = natmol2_[end_im_same - 1] - static_cast<int>(end_j_same);
           n_loop_operations_same -= sub_same;
-          end_i_same.back()++;
-          end_j_same.back() = end_i_same.back();
-          if ( static_cast<int>(end_j_same.back()) == natmol2_[end_im_same - 1] )
+          end_i_same++;
+          end_j_same = end_i_same;
+          if ( static_cast<int>(end_j_same) == natmol2_[end_im_same - 1] )
           {
             end_im_same++;
-            start_i_same.push_back(0);
-            start_j_same.push_back(0);
-            end_i_same.push_back(0);
-            end_j_same.push_back(0);
+            end_i_same = 0;
+            end_j_same = 0;
           }
           if (n_loop_operations_same == 0) break;
         }
-        end_j_same.back() += n_loop_operations_same;  
+        end_j_same += n_loop_operations_same;  
 
         /* calculate cross indices */
         int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
@@ -811,23 +805,23 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           end_j_cross %= natmol2_[end_jm_cross-1]; 
         }
 
+        T_START(accumulate_whole);
         /* start thread */
         /* TODO run last run on main thread */
         threads[tid] = std::thread(
           accumulate_max_cdf, n_bins_, std::cref(natmol2_), std::cref(inv_num_mol_unique_), // general parameters
-          start_im_same, start_i_same, start_j_same, end_im_same, end_i_same, end_j_same, // same parameters
+          start_im_same, start_i_same, start_j_same, n_loop_operations_total_same, // same parameters
           std::ref(frame_same_mat_), std::ref(interm_same_mat_density_), std::ref(interm_same_maxcdf_mol_),
           start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_total_cross, // cross parameters
           std::cref(cross_index_), std::ref(frame_cross_mat_), std::ref(interm_cross_mat_density_), std::ref(interm_cross_maxcdf_mol_)
         );
         /* end thread */
+        T_END(accumulate_whole);
 
         /* set new starts */
         start_im_same = end_im_same - 1;
-        start_i_same = std::vector<std::size_t>({end_i_same.back() - 1});
-        start_j_same = std::vector<std::size_t>({end_j_same.back()});
-        end_i_same = std::vector<std::size_t>({end_i_same.back()});
-        end_j_same = std::vector<std::size_t>({end_j_same.back()});
+        start_i_same = end_i_same;
+        start_j_same = end_j_same;
 
         start_im_cross = end_im_cross - 1;
         start_jm_cross = end_jm_cross - 1;
