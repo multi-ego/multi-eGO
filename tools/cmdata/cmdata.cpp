@@ -73,17 +73,6 @@
 #include <sstream>
 #include <fstream>
 
-#define TIMING
-#ifdef TIMING
-#include <chrono>
-#define T_START(name) auto name##_start = std::chrono::high_resolution_clock::now()
-static void _log_time(const int ms_time, const char* name ) { printf("timing :: %s :: %i us\n", name, ms_time);}
-#define T_END(name) auto name##_end = std::chrono::high_resolution_clock::now(); auto name##_duration = std::chrono::duration_cast<std::chrono::microseconds>(name##_end - name##_start); _log_time(name##_duration.count(), #name)
-#else
-#define T_START(name) 0;
-#define T_END(name) 0;
-#endif // TIMING
-
 namespace gmx
 {
  
@@ -805,7 +794,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           end_j_cross %= natmol2_[end_jm_cross-1]; 
         }
 
-        T_START(accumulate_whole);
         /* start thread */
         /* TODO run last run on main thread */
         threads[tid] = std::thread(
@@ -816,7 +804,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           std::cref(cross_index_), std::ref(frame_cross_mat_), std::ref(interm_cross_mat_density_), std::ref(interm_cross_maxcdf_mol_)
         );
         /* end thread */
-        T_END(accumulate_whole);
 
         /* set new starts */
         start_im_same = end_im_same - 1;
