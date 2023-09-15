@@ -474,12 +474,16 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
 
     # This keep only significat attractive/repulsive interactions
-    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<1./train_dataset['limit_rc']*np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
+    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
     meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
     # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
     meGO_LJ.reset_index(inplace=True)
+
+    # when distance estimates are poor we use the cutoff value
+    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'distance'] = meGO_LJ['cutoff']
+    meGO_LJ.loc[(meGO_LJ['rc_probability']<=meGO_LJ['md_threshold']), 'rc_distance'] = meGO_LJ['cutoff']
 
     # Epsilon is initialised to nan to easily remove unlearned contacts
     meGO_LJ['epsilon'] = np.nan 
@@ -487,7 +491,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
     # where the probability is less than md_threshold we do not trust the sigma estimate and so we set it to cutoff, so that then this low probability contact are
     # better accounted for when merging contact from multiple simulations
-    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'sigma'] = meGO_LJ['cutoff'] / (2.**(1./6.))
+    #meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'sigma'] = meGO_LJ['cutoff'] / (2.**(1./6.))
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
@@ -496,20 +500,14 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
 
-    # Probability only Repulsive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
-    # Probability only Repulsive intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
 
-    # Full Repulsive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['same_chain']==True)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance']**12/meGO_LJ['rc_distance']**12))
-    # Full Repulsive intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['same_chain']==False)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance']**12/meGO_LJ['rc_distance']**12))
-
+    # General repulsive term (larger c12s)
+    # Intramolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<=0.), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    # Intermolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<=0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
     # mild c12s (for small probability ratios): smaller
-    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance']-meGO_LJ['distance'])>0.)&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold']), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
-    # mild c12s (for small probability ratios): larger 
-    meGO_LJ.loc[(meGO_LJ['probability']>=1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']<=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.)&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['probability']>meGO_LJ['md_threshold']), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
+    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance']-meGO_LJ['distance'])>0.), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
 
     # update the c12 1-4 interactions 
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
