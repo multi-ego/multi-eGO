@@ -485,13 +485,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'distance'] = meGO_LJ['cutoff']
     meGO_LJ.loc[(meGO_LJ['rc_probability']<=meGO_LJ['md_threshold']), 'rc_distance'] = meGO_LJ['cutoff']
 
-    # Epsilon is initialised to nan to easily remove unlearned contacts
+    # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ['epsilon'] = np.nan 
-    # Add sigma, add epsilon reweighted
+    # Sigma is set from the estimated interaction length 
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
-    # where the probability is less than md_threshold we do not trust the sigma estimate and so we set it to cutoff, so that then this low probability contact are
-    # better accounted for when merging contact from multiple simulations
-    #meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'sigma'] = meGO_LJ['cutoff'] / (2.**(1./6.))
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
@@ -526,21 +523,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
-    # remove unnecessary fields
+    # keep only needed fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
                        'probability', 'same_chain', 'source', 'rc_probability', 
-                       'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                       'cutoff', 'rep', 'md_threshold', 'rc_threshold']]
+                       'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 
+                       'rep', 'md_threshold', 'rc_threshold']]
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
                                'probability', 'same_chain', 'source', 'rc_probability', 
-                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']].copy()
+                               'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 
+                               'rep', 'md_threshold', 'rc_threshold']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
                                'probability', 'same_chain', 'source', 'rc_probability', 
-                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']
+                               'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 'rep', 
+                               'md_threshold', 'rc_threshold']
     # Symmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
