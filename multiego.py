@@ -66,9 +66,9 @@ if __name__ == '__main__':
     print('- Generating the model')
     pairs14, exclusion_bonds14 = multiego.ensemble.generate_14_data(meGO_ensemble)
     if args.egos == 'rc':
-        meGO_LJ = pd.DataFrame()
+        meGO_LJ = multiego.ensemble.generate_basic_LJ(meGO_ensemble)
         meGO_LJ_14 = pairs14
-        meGO_LJ_14['epsilon'] = - meGO_LJ_14['c12']
+        meGO_LJ_14['epsilon'] = -meGO_LJ_14['c12']
     else:
        train_dataset, check_dataset = multiego.ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14) 
        meGO_LJ, meGO_LJ_14  = multiego.ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
