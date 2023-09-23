@@ -49,6 +49,7 @@ def initialize_topology(topology):
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
 
     molecule_type_dict = {}
+    first_index = topology.atoms[0].idx+1
     # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
     for atom in topology.atoms:
         temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
@@ -77,7 +78,8 @@ def initialize_topology(topology):
 
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
+    ensemble_topology_dataframe['c12'] = [ str(i+first_index) for i in range(len(ensemble_topology_dataframe['number']))]
+    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -157,11 +159,15 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         #sort probabilities, and calculate the normalized cumulative distribution
         p_sort = np.sort(contact_matrix['probability'].to_numpy())[::-1]
         norm = np.sum(p_sort)
-        p_sort_normalized = np.cumsum( p_sort ) / norm
- 
-        #find md/rc threshold 
-        md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
-        rc_threshold = md_threshold**(1./(1.-args.fraction))
+        if norm == 0: 
+            p_sort_normalized = 0
+            md_threshold = 1
+            rc_threshold = 1
+        else:
+            p_sort_normalized = np.cumsum( p_sort ) / norm
+            #find md/rc threshold 
+            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
+            rc_threshold = md_threshold**(1./(1.-args.fraction))
         print('\t\t-', f'Set md_threshold = {md_threshold}')
         print('\t\t-', f'Set rc_threshold = {rc_threshold}')
  
@@ -450,6 +456,65 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
 
     return train_dataset, check_dataset
 
+def generate_basic_LJ(meGO_ensemble):
+    columns=['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
+                        'number_ai', 'number_aj', 'cutoff']
+    basic_LJ = pd.DataFrame(columns=columns)
+    
+    topol_df = meGO_ensemble['topology_dataframe']
+    name_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+    # for (name, ref_name) in meGO_ensemble['reference_matrices']:
+    if meGO_ensemble['reference_matrices'] == {}:
+        basic_LJ = pd.DataFrame(columns=columns)
+        basic_LJ['ai'] = [ i for i in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) for j in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) ]
+        basic_LJ['aj'] = np.array(len(meGO_ensemble['sbtype_number_dict']) * [ meGO_ensemble['sbtype_number_dict'][key] for key in meGO_ensemble['sbtype_number_dict'].keys() ], dtype=np.int64)
+        ai_name = topol_df['type']
+        c12_list = ai_name.map(name_to_c12).to_numpy()
+        ai_name = ai_name.to_numpy(dtype=str)
+        oxygen_mask = (np.char.startswith(ai_name, 'O') * np.char.startswith(ai_name[:,np.newaxis], 'O')).flatten()
+        basic_LJ.type = 1
+        basic_LJ['source'] = 'basic'
+        basic_LJ.c6 = 0.0
+        basic_LJ.c12 = 0.0
+        basic_LJ.same_chain = True 
+        #basic_LJ.loc[oxygen_mask, 'c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()})['c12']
+        basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ = basic_LJ[oxygen_mask]
+        basic_LJ['ai'], basic_LJ['aj'] = basic_LJ[['ai', 'aj']].min(axis=1), basic_LJ[['ai', 'aj']].max(axis=1)
+        basic_LJ = basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
+
+
+    for name in meGO_ensemble['reference_matrices'].keys():
+        temp_basic_LJ = pd.DataFrame(columns=columns)
+        mol_num_i = str(name.split('_')[-2])
+        mol_num_j = str(name.split('_')[-1])
+        ensemble = meGO_ensemble['reference_matrices'][name]
+        temp_basic_LJ['ai'] = ensemble['rc_ai']
+        temp_basic_LJ['aj'] = ensemble['rc_aj']
+        temp_basic_LJ['type'] = 1
+        temp_basic_LJ['c6'] = 0.0
+        temp_basic_LJ['c12'] = 0.0
+        temp_basic_LJ['same_chain'] = ensemble['rc_same_chain'][0]
+        temp_basic_LJ['molecule_name_ai'] = ensemble['rc_molecule_name_ai']
+        temp_basic_LJ['molecule_name_aj'] = ensemble['rc_molecule_name_aj']
+        temp_basic_LJ['source'] = 'basic'
+
+        atom_set_i = topol_df[topol_df['molecule_number'] == mol_num_i]['type']
+        atom_set_j = topol_df[topol_df['molecule_number'] == mol_num_j]['type']
+        c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
+        c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
+        ai_name = atom_set_i.to_numpy(dtype=str)
+        aj_name = atom_set_j.to_numpy(dtype=str)
+        oxygen_mask = (np.char.startswith(ai_name, 'O') * np.char.startswith(aj_name[:,np.newaxis], 'O')).flatten()
+        temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
+        temp_basic_LJ = temp_basic_LJ[oxygen_mask]
+        temp_basic_LJ['ai'], temp_basic_LJ['aj'] = temp_basic_LJ[['ai', 'aj']].min(axis=1), temp_basic_LJ[['ai', 'aj']].max(axis=1)
+        temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
+
+        basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
+    
+    return basic_LJ
 
 def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
@@ -646,6 +711,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
     meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    # TODO insert basic
+    basic_LJ = generate_basic_LJ(meGO_ensemble)
+    meGO_LJ = pd.concat([meGO_LJ, basic_LJ]).drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep='first')
 
     return meGO_LJ, meGO_LJ_14
 
