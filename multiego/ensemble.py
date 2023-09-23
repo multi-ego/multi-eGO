@@ -466,7 +466,7 @@ def generate_basic_LJ(meGO_ensemble):
     name_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
     # for (name, ref_name) in meGO_ensemble['reference_matrices']:
     if meGO_ensemble['reference_matrices'] == {}:
-        temp_basic_LJ = pd.DataFrame(columns=columns)
+        basic_LJ = pd.DataFrame(columns=columns)
         basic_LJ['ai'] = [ i for i in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) for j in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) ]
         basic_LJ['aj'] = np.array(len(meGO_ensemble['sbtype_number_dict']) * [ meGO_ensemble['sbtype_number_dict'][key] for key in meGO_ensemble['sbtype_number_dict'].keys() ], dtype=np.int64)
         ai_name = topol_df['type']
@@ -474,11 +474,16 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = (np.char.startswith(ai_name, 'O') * np.char.startswith(ai_name[:,np.newaxis], 'O')).flatten()
         basic_LJ.type = 1
-        temp_basic_LJ['source'] = 'basic'
+        basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
         basic_LJ.c12 = 0.0
         basic_LJ.same_chain = True 
-        basic_LJ.loc[oxygen_mask, 'c12'] = pd.DataFrame({'c12':11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()})['c12']
+        #basic_LJ.loc[oxygen_mask, 'c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()})['c12']
+        basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ = basic_LJ[oxygen_mask]
+        basic_LJ['ai'], basic_LJ['aj'] = basic_LJ[['ai', 'aj']].min(axis=1), basic_LJ[['ai', 'aj']].max(axis=1)
+        basic_LJ = basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
+
 
     for name in meGO_ensemble['reference_matrices'].keys():
         temp_basic_LJ = pd.DataFrame(columns=columns)
