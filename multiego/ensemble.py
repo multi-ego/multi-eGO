@@ -467,8 +467,11 @@ def generate_basic_LJ(meGO_ensemble):
     # for (name, ref_name) in meGO_ensemble['reference_matrices']:
     if meGO_ensemble['reference_matrices'] == {}:
         basic_LJ = pd.DataFrame(columns=columns)
-        basic_LJ['ai'] = [ i for i in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) for j in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) ]
-        basic_LJ['aj'] = np.array(len(meGO_ensemble['sbtype_number_dict']) * [ meGO_ensemble['sbtype_number_dict'][key] for key in meGO_ensemble['sbtype_number_dict'].keys() ], dtype=np.int64)
+        basic_LJ['index_ai'] = [ i for i in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) for j in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) ]
+        basic_LJ['index_aj'] = np.array(len(meGO_ensemble['sbtype_number_dict']) * [ meGO_ensemble['sbtype_number_dict'][key] for key in meGO_ensemble['sbtype_number_dict'].keys() ], dtype=np.int64)
+        basic_LJ['ai'] = [ x for x in meGO_ensemble['sbtype_number_dict'].keys() for _ in meGO_ensemble['sbtype_number_dict'].keys() ]
+        basic_LJ['aj'] = [ y for _ in meGO_ensemble['sbtype_number_dict'].keys() for y in meGO_ensemble['sbtype_number_dict'].keys() ]
+        
         ai_name = topol_df['type']
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
@@ -478,12 +481,11 @@ def generate_basic_LJ(meGO_ensemble):
         basic_LJ.c6 = 0.0
         basic_LJ.c12 = 0.0
         basic_LJ.same_chain = True 
-        #basic_LJ.loc[oxygen_mask, 'c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()})['c12']
         basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
         basic_LJ = basic_LJ[oxygen_mask]
-        basic_LJ['ai'], basic_LJ['aj'] = basic_LJ[['ai', 'aj']].min(axis=1), basic_LJ[['ai', 'aj']].max(axis=1)
-        basic_LJ = basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
-
+        basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
+        basic_LJ = basic_LJ.drop_duplicates(subset=['index_ai', 'index_aj', 'same_chain'], keep='first')
+        basic_LJ = basic_LJ.drop(['index_ai', 'index_aj'], axis=1)
 
     for name in meGO_ensemble['reference_matrices'].keys():
         temp_basic_LJ = pd.DataFrame(columns=columns)
