@@ -711,12 +711,12 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                         'number_ai', 'number_aj', 'cutoff'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
-    meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
-    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    # TODO insert basic
+    # insert additional basic repulsions
     basic_LJ = generate_basic_LJ(meGO_ensemble)
-    meGO_LJ = pd.concat([meGO_LJ, basic_LJ]).drop_duplicates(subset = ['ai', 'aj', 'same_chain'], keep='first')
+    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+
+    meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True, na_position = 'last')
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     return meGO_LJ, meGO_LJ_14
 
