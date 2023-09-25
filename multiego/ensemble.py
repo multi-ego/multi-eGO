@@ -475,7 +475,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = topol_df['type']
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( ai_name == 'O') + ( ai_name == 'OM '))[:,np.newaxis] ).flatten()
+        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( ai_name == 'O') + ( ai_name == 'OM'))[:,np.newaxis] ).flatten()
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
