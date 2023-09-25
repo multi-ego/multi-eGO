@@ -508,7 +508,7 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
-        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( aj_name == 'O') + ( aj_name == 'OM '))[:,np.newaxis] ).flatten()
+        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( aj_name == 'O') + ( aj_name == 'OM'))[:,np.newaxis] ).flatten()
         temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
         temp_basic_LJ['ai'], temp_basic_LJ['aj'] = temp_basic_LJ[['ai', 'aj']].min(axis=1), temp_basic_LJ[['ai', 'aj']].max(axis=1)
