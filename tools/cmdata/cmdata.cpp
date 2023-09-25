@@ -735,7 +735,7 @@ void CMData::finishAnalysis(int /*nframes*/)
       {
         for (int jj = 0; jj < natmol2_[j]; jj++)
         {
-          double inv_num_mol_cross = std::max(inv_num_mol_unique_[i], inv_num_mol_unique_[j]);
+          double inv_num_mol_cross = std::min(inv_num_mol_unique_[i], inv_num_mol_unique_[j]);
 
           std::transform(interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
                          interm_cross_mat_density_[cross_index_[i][j]][ii][jj].end(),
