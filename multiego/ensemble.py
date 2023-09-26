@@ -430,6 +430,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
     train_dataset['rep'] = train_dataset['rep'].fillna(np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+    # TODO rep should be updated for special cases included in basic
 
     # we cycle over check matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     check_dataset = pd.DataFrame()
@@ -453,6 +454,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
         check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+        # TODO rep should be updated for special cases included in basic
 
     return train_dataset, check_dataset
 
@@ -711,7 +713,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                         'number_ai', 'number_aj', 'cutoff'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
-    # insert additional basic repulsions
+    meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
+    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
+
+    # TODO this should be moved up before the split between meGO_LJ and meGO_LJ_14
+    # but we should also think wheter we need the same_chain true/false stuff 
     basic_LJ = generate_basic_LJ(meGO_ensemble)
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
