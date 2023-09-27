@@ -12,6 +12,7 @@ import sys
 import warnings
 
 import resources.type_definitions as type_definitions
+import util.masking
 
 d = { type_definitions.gromos_atp.name[i] : type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
 
@@ -440,8 +441,18 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
 
+        # consider special cases
+        oxygen_mask = util.masking.create_matrix_mask(
+            topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
+            [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
+        )
+
         #define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+        c12_cutoff = CUTOFF_FACTOR * np.where(
+            oxygen_mask,
+            np.power(11.4 * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.),
+            np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+        )
         if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0+0.75
 
@@ -628,9 +639,19 @@ def calculate_inter_probabilities(args):
         topology_df_j.sort_values(by='ref_ai', inplace=True)
         topology_df_j['c12'] = topology_df_j['mego_type'].map(d)
 
+        oxygen_mask = util.masking.create_matrix_mask(
+            topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
+            [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
+        )
+
         #define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
-        if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
+        c12_cutoff = CUTOFF_FACTOR * np.where(
+            oxygen_mask,
+            np.power(11.4 * np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.),
+            np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
+        )
+        # c12_cutoff = CUTOFF_FACTOR * np.power(np.sqrt(topology_df_j['c12'].values * topology_df_i['c12'].values[:,np.newaxis]),1./12.)
+        # if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0 + 0.75
 
         ########################
