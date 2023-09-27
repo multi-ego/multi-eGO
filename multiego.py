@@ -23,7 +23,6 @@ if __name__ == '__main__':
     parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
     parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
 
-    #parser.add_argument('--rc_threshold', type=float, default=0.000100, help='Minimum population for repulsive interactions in reference simulations.')
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
     args = parser.parse_args()
 
@@ -46,10 +45,6 @@ if __name__ == '__main__':
     if args.fraction<0.1 or args.fraction>0.3:
         print('--fraction should be between 0.1 and 0.3')
         sys.exit()
-
-    #if args.md_threshold < args.rc_threshold:
-    #    print('--md_thresdhold cannot be smaller than --rc_threshold')
-    #    sys.exit()
 
     if not os.path.exists('outputs'): os.mkdir('outputs')
     output_dir = multiego.io.create_output_directories(args)
