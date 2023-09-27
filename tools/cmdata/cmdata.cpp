@@ -735,7 +735,7 @@ void CMData::finishAnalysis(int /*nframes*/)
       {
         for (int jj = 0; jj < natmol2_[j]; jj++)
         {
-          double inv_num_mol_cross = std::min(inv_num_mol_unique_[i], inv_num_mol_unique_[j]);
+          double inv_num_mol_cross = inv_num_mol_unique_[i];
 
           std::transform(interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
                          interm_cross_mat_density_[cross_index_[i][j]][ii][jj].end(),
@@ -751,7 +751,7 @@ void CMData::finishAnalysis(int /*nframes*/)
           {
             sum += dx_ * interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k];
             if ( sum > 1.0 ) sum = 1.0;
-            interm_cross_mat_density_[cross_index_[i][j]][ii][jj][k] = sum;
+            interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k] = sum;
           }
         }
       }
