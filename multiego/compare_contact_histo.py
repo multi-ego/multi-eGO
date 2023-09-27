@@ -640,7 +640,7 @@ def calculate_inter_probabilities(args):
         topology_df_j['c12'] = topology_df_j['mego_type'].map(d)
 
         oxygen_mask = util.masking.create_matrix_mask(
-            topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
+            topology_df_j['mego_type'].to_numpy(), topology_df_i['mego_type'].to_numpy(),
             [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
         )
 
