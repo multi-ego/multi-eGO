@@ -218,11 +218,12 @@ def init_meGO_ensemble(args):
     ensemble['sbtype_name_dict'] = sbtype_name_dict
     ensemble['sbtype_moltype_dict'] = sbtype_moltype_dict
     ensemble['sbtype_number_dict'] = ensemble['topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
+    ensemble['sbtype_type_dict'] = { key: name for key, name in ensemble['topology_dataframe'][['sb_type', 'type']].values }
     ensemble['molecule_type_dict'] = molecule_type_dict
     ensemble['reference_matrices'] = reference_contact_matrices
     ensemble['train_matrix_tuples'] = []
     ensemble['check_matrix_tuples'] = []
-  
+
     if args.egos == 'rc':
         return ensemble
 
@@ -419,9 +420,6 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         temp_merged = pd.merge(meGO_ensemble['train_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
 
-    # create dictionary to map sb_type to type
-    sbtype_to_type = { key: name for key, name in meGO_ensemble['topology_dataframe'][['sb_type', 'type']].values }
-
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
     train_dataset.loc[(train_dataset['ai']==train_dataset['aj'])&(train_dataset['same_chain']==True), '1-4'] = '0'
@@ -434,8 +432,8 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
 
     # update for special cases
-    train_dataset['type_ai'] = train_dataset['ai'].map(sbtype_to_type)
-    train_dataset['type_aj'] = train_dataset['aj'].map(sbtype_to_type)
+    train_dataset['type_ai'] = train_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
+    train_dataset['type_aj'] = train_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
     type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
     oxygen_mask = multiego.util.masking.create_linearized_mask(
         train_dataset['type_ai'].to_numpy(), train_dataset['type_aj'].to_numpy(),
@@ -472,8 +470,8 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
 
         # update for special cases
-        check_dataset['type_ai'] = check_dataset['ai'].map(sbtype_to_type)
-        check_dataset['type_aj'] = check_dataset['aj'].map(sbtype_to_type)
+        check_dataset['type_ai'] = check_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
+        check_dataset['type_aj'] = check_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
         type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
         oxygen_mask = multiego.util.masking.create_linearized_mask(
             check_dataset['type_ai'].to_numpy(), check_dataset['type_aj'].to_numpy(),
@@ -839,8 +837,22 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain']==True)), 'remove'] = 'No'
             mask = pairs.remove == 'Yes'
             pairs = pairs[~mask]
+            
+            # account for special oxygens
+            oxygen_mask = multiego.util.masking.create_linearized_mask(
+                pairs['c12_ai'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
+                pairs['c12_aj'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
+                [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+            )
+            pairs['tmp_oxy_i'] = np.where(oxygen_mask, 11.4 * pairs['c12_ai'].map(meGO_ensemble['sbtype_c12_dict']), np.nan)
+            pairs['tmp_oxy_j'] = np.where(oxygen_mask, 11.4 * pairs['c12_aj'].map(meGO_ensemble['sbtype_c12_dict']), np.nan)
             pairs['c12_ai'] = pairs['c12_ai'].map(meGO_ensemble['sbtype_c12_dict'])
             pairs['c12_aj'] = pairs['c12_aj'].map(meGO_ensemble['sbtype_c12_dict'])
+            pairs['tmp_oxy_i'] = pairs['tmp_oxy_i'].fillna(pairs['c12_ai'])
+            pairs['tmp_oxy_j'] = pairs['tmp_oxy_j'].fillna(pairs['c12_aj'])
+            pairs[['c12_ai', 'c12_aj']] = pairs[['tmp_oxy_i', 'tmp_oxy_j']].copy()
+            pairs = pairs.drop(['tmp_oxy_i', 'tmp_oxy_j'], axis=1)
+
             pairs['func'] = 1
             # Intermolecular interactions are excluded 
             pairs.loc[(pairs['same_chain'] == False), 'c6'] = 0.
