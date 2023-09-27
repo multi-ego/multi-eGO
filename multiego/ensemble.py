@@ -428,7 +428,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
     # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
     train_dataset = pd.merge(train_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-    train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
+    #train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
     train_dataset.loc[(train_dataset['1-4']=="0"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
@@ -465,11 +465,11 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset['1-4'] = check_dataset['1-4'].fillna('1>4')
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
         check_dataset = pd.merge(check_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-        check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
+        #check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
         check_dataset.loc[(check_dataset['1-4']=="0"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
-        check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+        #check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
 
         # update for special cases
         check_dataset['type_ai'] = check_dataset['ai'].map(sbtype_to_type)
@@ -487,6 +487,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset['rep'] = check_dataset['rep'].fillna(pd.Series(pairwise_c12))
 
     return train_dataset, check_dataset
+
 
 def generate_basic_LJ(meGO_ensemble):
     columns=['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
@@ -547,6 +548,15 @@ def generate_basic_LJ(meGO_ensemble):
         temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
 
         basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
+
+    basic_LJ['epsilon'] = -basic_LJ['c12']
+    basic_LJ['cutoff'] = 1.45*basic_LJ['c12']**(1./12.)
+    basic_LJ['sigma'] = basic_LJ['cutoff']/ (2.**(1./6.)) 
+    basic_LJ['learned'] = 0
+    # Sorting the pairs prioritising intermolecular interactions
+    basic_LJ.sort_values(by = ['ai', 'aj', 'same_chain'], ascending = [True, True, True], inplace = True)
+    # Cleaning the duplicates
+    basic_LJ = basic_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first') 
     
     return basic_LJ
 
@@ -609,6 +619,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # update the c12 1-4 interactions 
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance_14']/(2.**(1./6.))
+    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
+    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
     # but within a lower
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
     # and an upper value
@@ -680,6 +692,15 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         # safety cleaning
         meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
+
+    # Adding special default interactions
+    basic_LJ = generate_basic_LJ(meGO_ensemble)
+    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+    # Sorting the pairs prioritising learned interactions
+    meGO_LJ.sort_values(by = ['ai', 'aj', 'learned'], ascending = [True, True, False], inplace = True)
+    # Cleaning the duplicates, that is that we retained a not learned interaction only if it is unique
+    meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset = ['ai', 'aj'], keep = False))|(meGO_LJ['learned']==1))]
+
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
     # meGO_LJ_14 will be handled differently to overcome this issue.
@@ -744,14 +765,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
-    meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
-
-    # TODO this should be moved up before the split between meGO_LJ and meGO_LJ_14
-    # but we should also think wheter we need the same_chain true/false stuff 
-    basic_LJ = generate_basic_LJ(meGO_ensemble)
-    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
-
-    meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True, na_position = 'last')
     meGO_LJ = meGO_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first')
 
     return meGO_LJ, meGO_LJ_14
