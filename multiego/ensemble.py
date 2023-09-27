@@ -1,6 +1,7 @@
 import multiego.resources.type_definitions
 import multiego.io
 import multiego.topology
+import multiego.util.masking
 
 import glob
 import pandas as pd
@@ -408,7 +409,6 @@ def generate_14_data(meGO_ensemble):
 
 
 def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
-
     # we cycle over train matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
     for (name, ref_name) in meGO_ensemble['train_matrix_tuples']:
@@ -418,6 +418,9 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
 
         temp_merged = pd.merge(meGO_ensemble['train_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
+
+    # create dictionary to map sb_type to type
+    sbtype_to_type = { key: name for key, name in meGO_ensemble['topology_dataframe'][['sb_type', 'type']].values }
 
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
@@ -429,8 +432,21 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset.loc[(train_dataset['1-4']=="0"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
-    train_dataset['rep'] = train_dataset['rep'].fillna(np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
-    # TODO rep should be updated for special cases included in basic
+
+    # update for special cases
+    train_dataset['type_ai'] = train_dataset['ai'].map(sbtype_to_type)
+    train_dataset['type_aj'] = train_dataset['aj'].map(sbtype_to_type)
+    type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+    oxygen_mask = multiego.util.masking.create_linearized_mask(
+        train_dataset['type_ai'].to_numpy(), train_dataset['type_aj'].to_numpy(),
+        [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+    )
+    pairwise_c12 = np.where(
+        oxygen_mask, 
+        11.4 * np.sqrt(train_dataset['type_ai'].map(type_to_c12)*train_dataset['type_aj'].map(type_to_c12)),
+        np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict']))
+    )
+    train_dataset['rep'] = train_dataset['rep'].fillna(pd.Series(pairwise_c12))
 
     # we cycle over check matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     check_dataset = pd.DataFrame()
@@ -454,7 +470,21 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
         check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
-        # TODO rep should be updated for special cases included in basic
+
+        # update for special cases
+        check_dataset['type_ai'] = check_dataset['ai'].map(sbtype_to_type)
+        check_dataset['type_aj'] = check_dataset['aj'].map(sbtype_to_type)
+        type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+        oxygen_mask = multiego.util.masking.create_linearized_mask(
+            check_dataset['type_ai'].to_numpy(), check_dataset['type_aj'].to_numpy(),
+            [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+        )
+        pairwise_c12 = np.where(
+            oxygen_mask, 
+            11.4 * np.sqrt(check_dataset['type_ai'].map(type_to_c12)*check_dataset['type_aj'].map(type_to_c12)),
+            np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict']))
+        )
+        check_dataset['rep'] = check_dataset['rep'].fillna(pd.Series(pairwise_c12))
 
     return train_dataset, check_dataset
 
@@ -477,7 +507,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = topol_df['type']
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( ai_name == 'O') + ( ai_name == 'OM'))[:,np.newaxis] ).flatten()
+        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
@@ -510,7 +540,7 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
-        oxygen_mask = ( (( ai_name == 'O' ) + ( ai_name == 'OM' )) * (( aj_name == 'O') + ( aj_name == 'OM'))[:,np.newaxis] ).flatten()
+        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, aj_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
         temp_basic_LJ['ai'], temp_basic_LJ['aj'] = temp_basic_LJ[['ai', 'aj']].min(axis=1), temp_basic_LJ[['ai', 'aj']].max(axis=1)
