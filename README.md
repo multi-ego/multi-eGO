@@ -1,7 +1,7 @@
 # Multi-*e*GO: a multi-ensemble Gō model
 Original version by [Emanuele Scalone](https://github.com/emalacs), Cristina Paissoni, and [Carlo Camilloni](https://github.com/carlocamilloni), Computational Structural Biology Lab, Department of Biosciences, University of Milano, Italy.
 
-### Codename: VANESSA (Alpha2)
+### Codename: VANESSA (Beta 1)
 
     Current Developers: Fran Bacic Toplek, Carlo Camilloni, Riccardo Capelli, Emanuele Scalone, Bruno Stegani
     
