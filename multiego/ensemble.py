@@ -145,7 +145,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     contact_matrix = contact_matrix[~contact_matrix['ai'].astype(str).str.startswith('H')]
     contact_matrix = contact_matrix[~contact_matrix['aj'].astype(str).str.startswith('H')]
 
-    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance_m', 'distance', 'distance_14', 'probability', 'cutoff']]
+    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'cutoff']]
     if name[0] == 'intramat': contact_matrix['same_chain'] = True
     elif name[0] == 'intermat': contact_matrix['same_chain'] = False
     else: raise Exception('There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
@@ -426,7 +426,6 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
     # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
     train_dataset = pd.merge(train_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-    #train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
     train_dataset.loc[(train_dataset['1-4']=="0"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
@@ -463,11 +462,9 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset['1-4'] = check_dataset['1-4'].fillna('1>4')
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
         check_dataset = pd.merge(check_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-        #check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
         check_dataset.loc[(check_dataset['1-4']=="0"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
-        #check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
 
         # update for special cases
         check_dataset['type_ai'] = check_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
@@ -616,13 +613,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # update the c12 1-4 interactions 
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
-    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
-    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
-    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
     # but within a lower
-    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.666*meGO_LJ['rep']), 'epsilon'] = -0.666*meGO_LJ['rep']
     # and an upper value
-    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']>np.maximum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -np.maximum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']>1.5*meGO_LJ['rep']), 'epsilon'] = -1.5*meGO_LJ['rep']
 
 
     # Here we are reindexing like before
@@ -678,7 +672,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         meGO_LJ = pd.concat([meGO_LJ, meGO_check_contacts], axis=0, sort=False, ignore_index=True)
         meGO_LJ.drop_duplicates(inplace=True, ignore_index = True)
         # this calculates the increase in energy (if any) to form the "check" contact 
-        energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'distance', 'distance_14', 'rc_distance', 'epsilon', 'source', 'same_chain', '1-4']].apply(check_LJ, parameters)
+        energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'distance', 'rc_distance', 'epsilon', 'source', 'same_chain', '1-4']].apply(check_LJ, parameters)
         meGO_LJ = pd.merge(meGO_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
         # now we should keep only those check_with contacts that are unique and whose energy_at_check_dist is large 
         meGO_LJ.sort_values(by = ['ai', 'aj', 'same_chain', 'learned'], ascending = [True, True, True, False], inplace = True)
