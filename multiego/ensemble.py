@@ -1,6 +1,7 @@
 import multiego.resources.type_definitions
 import multiego.io
 import multiego.topology
+import multiego.util.masking
 
 import glob
 import pandas as pd
@@ -49,6 +50,7 @@ def initialize_topology(topology):
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
 
     molecule_type_dict = {}
+    first_index = topology.atoms[0].idx+1
     # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
     for atom in topology.atoms:
         temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
@@ -77,7 +79,8 @@ def initialize_topology(topology):
 
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['number'].map(temp_number_c12_dict)
+    ensemble_topology_dataframe['c12'] = [ str(i+first_index) for i in range(len(ensemble_topology_dataframe['number']))]
+    ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -157,11 +160,15 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         #sort probabilities, and calculate the normalized cumulative distribution
         p_sort = np.sort(contact_matrix['probability'].to_numpy())[::-1]
         norm = np.sum(p_sort)
-        p_sort_normalized = np.cumsum( p_sort ) / norm
- 
-        #find md/rc threshold 
-        md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
-        rc_threshold = md_threshold**(1./(1.-args.fraction))
+        if norm == 0: 
+            p_sort_normalized = 0
+            md_threshold = 1
+            rc_threshold = 1
+        else:
+            p_sort_normalized = np.cumsum( p_sort ) / norm
+            #find md/rc threshold 
+            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
+            rc_threshold = md_threshold**(1./(1.-args.fraction))
         print('\t\t-', f'Set md_threshold = {md_threshold}')
         print('\t\t-', f'Set rc_threshold = {rc_threshold}')
  
@@ -211,11 +218,12 @@ def init_meGO_ensemble(args):
     ensemble['sbtype_name_dict'] = sbtype_name_dict
     ensemble['sbtype_moltype_dict'] = sbtype_moltype_dict
     ensemble['sbtype_number_dict'] = ensemble['topology_dataframe'][['sb_type', 'number']].set_index('sb_type')['number'].to_dict()
+    ensemble['sbtype_type_dict'] = { key: name for key, name in ensemble['topology_dataframe'][['sb_type', 'type']].values }
     ensemble['molecule_type_dict'] = molecule_type_dict
     ensemble['reference_matrices'] = reference_contact_matrices
     ensemble['train_matrix_tuples'] = []
     ensemble['check_matrix_tuples'] = []
-  
+
     if args.egos == 'rc':
         return ensemble
 
@@ -402,7 +410,6 @@ def generate_14_data(meGO_ensemble):
 
 
 def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
-
     # we cycle over train matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
     for (name, ref_name) in meGO_ensemble['train_matrix_tuples']:
@@ -419,11 +426,25 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
     # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
     train_dataset = pd.merge(train_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-    train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
+    #train_dataset.loc[(train_dataset['rep'].notna())&(train_dataset['rep']!=0.), '1-4'] = '1_4'
     train_dataset.loc[(train_dataset['1-4']=="0"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_2_3"), 'rep'] = 0.
     train_dataset.loc[(train_dataset['1-4']=="1_4")&(train_dataset['rep'].isnull()), 'rep'] = 0.
-    train_dataset['rep'] = train_dataset['rep'].fillna(np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+
+    # update for special cases
+    train_dataset['type_ai'] = train_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
+    train_dataset['type_aj'] = train_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
+    type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+    oxygen_mask = multiego.util.masking.create_linearized_mask(
+        train_dataset['type_ai'].to_numpy(), train_dataset['type_aj'].to_numpy(),
+        [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+    )
+    pairwise_c12 = np.where(
+        oxygen_mask, 
+        11.4 * np.sqrt(train_dataset['type_ai'].map(type_to_c12)*train_dataset['type_aj'].map(type_to_c12)),
+        np.sqrt(train_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*train_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict']))
+    )
+    train_dataset['rep'] = train_dataset['rep'].fillna(pd.Series(pairwise_c12))
 
     # we cycle over check matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     check_dataset = pd.DataFrame()
@@ -442,14 +463,100 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset['1-4'] = check_dataset['1-4'].fillna('1>4')
         # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
         check_dataset = pd.merge(check_dataset, pairs14[["ai", "aj", "same_chain", "rep"]], how="left", on=["ai", "aj", "same_chain"])
-        check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
+        #check_dataset.loc[(check_dataset['rep'].notna())&(check_dataset['rep']!=0.), '1-4'] = '1_4'
         check_dataset.loc[(check_dataset['1-4']=="0"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_2_3"), 'rep'] = 0.
         check_dataset.loc[(check_dataset['1-4']=="1_4")&(check_dataset['rep'].isnull()), 'rep'] = 0.
-        check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+        #check_dataset['rep'] = check_dataset['rep'].fillna(np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict'])))
+
+        # update for special cases
+        check_dataset['type_ai'] = check_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
+        check_dataset['type_aj'] = check_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
+        type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+        oxygen_mask = multiego.util.masking.create_linearized_mask(
+            check_dataset['type_ai'].to_numpy(), check_dataset['type_aj'].to_numpy(),
+            [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+        )
+        pairwise_c12 = np.where(
+            oxygen_mask, 
+            11.4 * np.sqrt(check_dataset['type_ai'].map(type_to_c12)*check_dataset['type_aj'].map(type_to_c12)),
+            np.sqrt(check_dataset['ai'].map(meGO_ensemble['sbtype_c12_dict'])*check_dataset['aj'].map(meGO_ensemble['sbtype_c12_dict']))
+        )
+        check_dataset['rep'] = check_dataset['rep'].fillna(pd.Series(pairwise_c12))
 
     return train_dataset, check_dataset
 
+
+def generate_basic_LJ(meGO_ensemble):
+    columns=['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
+                        'number_ai', 'number_aj', 'cutoff']
+    basic_LJ = pd.DataFrame(columns=columns)
+    
+    topol_df = meGO_ensemble['topology_dataframe']
+    name_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+    # for (name, ref_name) in meGO_ensemble['reference_matrices']:
+    if meGO_ensemble['reference_matrices'] == {}:
+        basic_LJ = pd.DataFrame(columns=columns)
+        basic_LJ['index_ai'] = [ i for i in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) for j in range(1, len(meGO_ensemble['sbtype_number_dict']) + 1) ]
+        basic_LJ['index_aj'] = np.array(len(meGO_ensemble['sbtype_number_dict']) * [ meGO_ensemble['sbtype_number_dict'][key] for key in meGO_ensemble['sbtype_number_dict'].keys() ], dtype=np.int64)
+        basic_LJ['ai'] = [ x for x in meGO_ensemble['sbtype_number_dict'].keys() for _ in meGO_ensemble['sbtype_number_dict'].keys() ]
+        basic_LJ['aj'] = [ y for _ in meGO_ensemble['sbtype_number_dict'].keys() for y in meGO_ensemble['sbtype_number_dict'].keys() ]
+        
+        ai_name = topol_df['type']
+        c12_list = ai_name.map(name_to_c12).to_numpy()
+        ai_name = ai_name.to_numpy(dtype=str)
+        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
+        basic_LJ.type = 1
+        basic_LJ['source'] = 'basic'
+        basic_LJ.c6 = 0.0
+        basic_LJ.c12 = 0.0
+        basic_LJ.same_chain = True 
+        basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ = basic_LJ[oxygen_mask]
+        basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
+        basic_LJ = basic_LJ.drop_duplicates(subset=['index_ai', 'index_aj', 'same_chain'], keep='first')
+        basic_LJ = basic_LJ.drop(['index_ai', 'index_aj'], axis=1)
+
+    for name in meGO_ensemble['reference_matrices'].keys():
+        temp_basic_LJ = pd.DataFrame(columns=columns)
+        mol_num_i = str(name.split('_')[-2])
+        mol_num_j = str(name.split('_')[-1])
+        ensemble = meGO_ensemble['reference_matrices'][name]
+        temp_basic_LJ['ai'] = ensemble['rc_ai']
+        temp_basic_LJ['aj'] = ensemble['rc_aj']
+        temp_basic_LJ['type'] = 1
+        temp_basic_LJ['c6'] = 0.0
+        temp_basic_LJ['c12'] = 0.0
+        temp_basic_LJ['same_chain'] = ensemble['rc_same_chain'][0]
+        temp_basic_LJ['molecule_name_ai'] = ensemble['rc_molecule_name_ai']
+        temp_basic_LJ['molecule_name_aj'] = ensemble['rc_molecule_name_aj']
+        temp_basic_LJ['source'] = 'basic'
+
+        atom_set_i = topol_df[topol_df['molecule_number'] == mol_num_i]['type']
+        atom_set_j = topol_df[topol_df['molecule_number'] == mol_num_j]['type']
+        c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
+        c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
+        ai_name = atom_set_i.to_numpy(dtype=str)
+        aj_name = atom_set_j.to_numpy(dtype=str)
+        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, aj_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
+        temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
+        temp_basic_LJ = temp_basic_LJ[oxygen_mask]
+        temp_basic_LJ['ai'], temp_basic_LJ['aj'] = temp_basic_LJ[['ai', 'aj']].min(axis=1), temp_basic_LJ[['ai', 'aj']].max(axis=1)
+        temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
+
+        basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
+
+    basic_LJ['epsilon'] = -basic_LJ['c12']
+    basic_LJ['cutoff'] = 1.45*basic_LJ['c12']**(1./12.)
+    basic_LJ['sigma'] = basic_LJ['cutoff']/ (2.**(1./6.)) 
+    basic_LJ['learned'] = 0
+    # Sorting the pairs prioritising intermolecular interactions
+    basic_LJ.sort_values(by = ['ai', 'aj', 'same_chain'], ascending = [True, True, True], inplace = True)
+    # Cleaning the duplicates
+    basic_LJ = basic_LJ.drop_duplicates(subset = ['ai', 'aj'], keep = 'first') 
+    
+    return basic_LJ
 
 def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
@@ -474,20 +581,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
 
     # This keep only significat attractive/repulsive interactions
-    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<1./train_dataset['limit_rc']*np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
+    meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
     meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
 
     # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
     # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
     meGO_LJ.reset_index(inplace=True)
 
-    # Epsilon is initialised to nan to easily remove unlearned contacts
+    # when distance estimates are poor we use the cutoff value
+    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'distance'] = meGO_LJ['cutoff']
+    meGO_LJ.loc[(meGO_LJ['rc_probability']<=meGO_LJ['md_threshold']), 'rc_distance'] = meGO_LJ['cutoff']
+
+    # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ['epsilon'] = np.nan 
-    # Add sigma, add epsilon reweighted
+    # Sigma is set from the estimated interaction length 
     meGO_LJ['sigma'] = (meGO_LJ['distance']) / (2.**(1./6.))
-    # where the probability is less than md_threshold we do not trust the sigma estimate and so we set it to cutoff, so that then this low probability contact are
-    # better accounted for when merging contact from multiple simulations
-    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'sigma'] = meGO_LJ['cutoff'] / (2.**(1./6.))
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
@@ -496,24 +604,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
 
-    # Probability only Repulsive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
-    # Probability only Repulsive intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&(meGO_LJ['probability']<=meGO_LJ['md_threshold']), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['cutoff']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-meGO_LJ['rep']
 
-    # Full Repulsive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['same_chain']==True)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance']**12/meGO_LJ['rc_distance']**12))
-    # Full Repulsive intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['same_chain']==False)&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/meGO_LJ['rc_probability'])-(meGO_LJ['rep']*(meGO_LJ['distance']**12/meGO_LJ['rc_distance']**12))
-
-    # mild c12s (for small probability ratios): smaller
-    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance']-meGO_LJ['distance'])>0.)&(meGO_LJ['probability']>meGO_LJ['md_threshold'])&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold']), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
-    # mild c12s (for small probability ratios): larger 
-    meGO_LJ.loc[(meGO_LJ['probability']>=1./meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']<=meGO_LJ['rc_probability'])&((meGO_LJ['rc_distance']-meGO_LJ['distance'])<0.)&(meGO_LJ['rc_probability']>meGO_LJ['md_threshold'])&(meGO_LJ['probability']>meGO_LJ['md_threshold']), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
+    # General repulsive term
+    # These are with negative sign to store them as epsilon values 
+    # Intramolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    # Intermolecular
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    # mid case for Pmd>Prc but not enough to be attractive 
+    meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
 
     # update the c12 1-4 interactions 
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance_14']/(2.**(1./6.))
+    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
+    #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
     # but within a lower
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])), 'epsilon'] = -0.2*np.minimum(np.sqrt(meGO_LJ['ai'].map(meGO_ensemble['sbtype_c12_dict'])*meGO_LJ['aj'].map(meGO_ensemble['sbtype_c12_dict'])),meGO_LJ['rep'])
     # and an upper value
@@ -528,21 +633,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
-    # remove unnecessary fields
+    # keep only needed fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
                        'probability', 'same_chain', 'source', 'rc_probability', 
-                       'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                       'cutoff', 'rep', 'md_threshold', 'rc_threshold']]
+                       'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 
+                       'rep', 'md_threshold', 'rc_threshold']]
     # Inverse pairs calvario
     # this must list ALL COLUMNS!
     inverse_meGO_LJ = meGO_LJ[['molecule_name_aj', 'aj', 'molecule_name_ai', 'ai',
                                'probability', 'same_chain', 'source', 'rc_probability', 
-                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']].copy()
+                               'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 
+                               'rep', 'md_threshold', 'rc_threshold']].copy()
     inverse_meGO_LJ.columns = ['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj',
                                'probability', 'same_chain', 'source', 'rc_probability', 
-                               'sigma', 'epsilon', '1-4', 'distance', 'distance_m', 
-                               'cutoff', 'rep', 'md_threshold', 'rc_threshold']
+                               'sigma', 'epsilon', '1-4', 'distance', 'cutoff', 'rep', 
+                               'md_threshold', 'rc_threshold']
     # Symmetric dataframe
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
@@ -584,6 +689,15 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
         # safety cleaning
         meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
+
+
+    # Adding special default interactions
+    basic_LJ = generate_basic_LJ(meGO_ensemble)
+    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+    # Sorting the pairs prioritising learned interactions
+    meGO_LJ.sort_values(by = ['ai', 'aj', 'learned'], ascending = [True, True, False], inplace = True)
+    # Cleaning the duplicates, that is that we retained a not learned interaction only if it is unique
+    meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset = ['ai', 'aj'], keep = False))|(meGO_LJ['learned']==1))]
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
@@ -736,8 +850,22 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain']==True)), 'remove'] = 'No'
             mask = pairs.remove == 'Yes'
             pairs = pairs[~mask]
+            
+            # account for special oxygens
+            oxygen_mask = multiego.util.masking.create_linearized_mask(
+                pairs['c12_ai'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
+                pairs['c12_aj'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
+                [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
+            )
+            pairs['tmp_oxy_i'] = np.where(oxygen_mask, 11.4 * pairs['c12_ai'].map(meGO_ensemble['sbtype_c12_dict']), np.nan)
+            pairs['tmp_oxy_j'] = np.where(oxygen_mask, 11.4 * pairs['c12_aj'].map(meGO_ensemble['sbtype_c12_dict']), np.nan)
             pairs['c12_ai'] = pairs['c12_ai'].map(meGO_ensemble['sbtype_c12_dict'])
             pairs['c12_aj'] = pairs['c12_aj'].map(meGO_ensemble['sbtype_c12_dict'])
+            pairs['tmp_oxy_i'] = pairs['tmp_oxy_i'].fillna(pairs['c12_ai'])
+            pairs['tmp_oxy_j'] = pairs['tmp_oxy_j'].fillna(pairs['c12_aj'])
+            pairs[['c12_ai', 'c12_aj']] = pairs[['tmp_oxy_i', 'tmp_oxy_j']].copy()
+            pairs = pairs.drop(['tmp_oxy_i', 'tmp_oxy_j'], axis=1)
+
             pairs['func'] = 1
             # Intermolecular interactions are excluded 
             pairs.loc[(pairs['same_chain'] == False), 'c6'] = 0.
