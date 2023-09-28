@@ -138,7 +138,7 @@ def get_14_interaction_list(reduced_topology, bond_pair):
 
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
     '''
-    Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with 
+    Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with
     specific shifts in the residue index can be fed to the function to obtain a new set of 1-4 interaction pairs.
 
     Parameters
@@ -160,7 +160,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefact
     Returns
     -------
     pairs_14 : pd.DataFrame
-        A DataFrame containing output containing the additional atom indices and LJ parameters 
+        A DataFrame containing output containing the additional atom indices and LJ parameters
     '''
     if prefactor != None and constant != None: raise ValueError("Either prefactor or constant has to be set.")
     if prefactor == None and constant == None: raise ValueError("Neither prefactor nor constant has been set.")
@@ -190,7 +190,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefact
     return pairs_14
 
 def protein_LJ14(reduced_topology):
-    # Here we make a dictionary of the atoms used for local geometry 
+    # Here we make a dictionary of the atoms used for local geometry
     first_backbone_nitrogen = reduced_topology.loc[(reduced_topology['name'] == 'N')&(reduced_topology['type'] == 'NL')]
     backbone_nitrogen = reduced_topology.loc[(reduced_topology['name'] == 'N')&(reduced_topology['type'] != 'NL')]
     backbone_carbonyl = reduced_topology.loc[reduced_topology['name'] == 'C']
@@ -199,7 +199,7 @@ def protein_LJ14(reduced_topology):
     sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
     pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
     sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
-    pairs = pd.DataFrame()  
+    pairs = pd.DataFrame()
 
     # For proline CD take the CB, N of the previous residue and save in a pairs tuple
     pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
@@ -223,7 +223,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
     pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=first_backbone_nitrogen, prefactor=0.087)], axis=0, sort=False, ignore_index=True)
 
-    # make it symmetric 
+    # make it symmetric
     inv_LJ = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
     inv_LJ.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']
 

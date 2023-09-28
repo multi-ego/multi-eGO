@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 
@@ -75,6 +76,54 @@ from_ff_to_multiego = {
     'C315':'C2O',
     'C316':'C2P',
 }
+
+def lj14_generator(df):
+    types_dict = {}
+    types_dict['first_backbone_nitrogen'] = ((df['name'] == 'N')&(df['type'] == 'NL')).to_numpy()
+    types_dict['backbone_nitrogen'] = ((df['name'] == 'N')&(df['type'] != 'NL')).to_numpy()
+    types_dict['backbone_carbonyl'] = (df['name'] == 'C').to_numpy()
+    types_dict['backbone_oxygen'] = (df['name']=='O').to_numpy()
+    types_dict['ct_oxygen'] = ((df['name']=='O1')|(df['name']=='O2')).to_numpy()
+    types_dict['sidechain_cb'] = (df['name'] == 'CB').to_numpy()
+    types_dict['pro_cd'] = ((df['name'] == 'CD')&(df['resname'] == 'PRO')).to_numpy()
+    types_dict['sidechain_cgs'] = ((df['name'] == 'CG')|(df['name'] == 'CG1')|(df['name'] == 'CG2')|(df['name'] == 'SG')|(df['name'] == 'OG')|(df['name'] == 'OG1')&(df['resname'] != 'PRO')).to_numpy()
+
+    return types_dict
+
+atom_types = {
+    'first_backbone_nitrogen': { 'atoms': [('name', np.equal, 'N'), ('type', np.equal, 'NL')], 'linkers': [np.logical_and]},
+    'backbone_nitrogen': { 'atoms': [('name', np.equal, 'N'), ('type', np.not_equal, 'NL')], 'linkers': [np.logical_and]},
+    'backbone_oxygen': { 'atoms': [('name', np.equal, 'O')], 'linkers': []},
+    'backbone_carbonyl': { 'atoms': [('name', np.equal, 'C')], 'linkers': []},
+    'ct_oxygen': { 'atoms': [('name', np.equal, 'O1'), ('name', np.equal, 'O2')], 'linkers': [np.logical_or]},
+    'sidechain_cb': { 'atoms': [('name', np.equal, 'CB')], 'linkers': []},
+    'pro_cd': { 'atoms': [('name', np.equal, 'CD'), ('resname', np.not_equal, 'PRO')], 'linkers': [np.logical_and]},
+    'sidechain_cgs': {
+        'atoms': [
+        ('name', np.equal, 'CG'),
+        ('name', np.equal, 'CG1'),
+        ('name', np.equal, 'CG2'),
+        ('name', np.equal, 'SG'),
+        ('name', np.equal, 'OG'),
+        ('name', np.equal, 'OG1'),
+        ('resname', np.not_equal, 'PRO'),
+        ], 'linkers': [np.logical_and, np.logical_and, np.logical_and, np.logical_and, np.logical_and, np.logical_or]
+    }
+}
+
+atom_type_combinations = [
+    ('pro_cd', 'sidechain_cb', None, 2.715402e-06, -1),
+    ('backbone_carbonyl', 'sidechain_cb', 0.275, None, -1),
+    ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
+    ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),
+    ('backbone_nitrogen', 'sidechain_cb', 0.65, None, -1),
+    ('first_backbone_nitrogen', 'backbone_nitrogen', 4.0e-6, None, 1),
+    ('backbone_nitrogen', 'backbone_nitrogen', 0.343, None, 1),
+    ('backbone_carbonyl', 'backbone_carbonyl', 0.5, None, -1),
+    ('sidechain_cgs', 'backbone_carbonyl', 0.078, None, 0),
+    ('sidechain_cgs', 'backbone_nitrogen', 0.087, None, 0),
+    ('sidechain_cgs', 'first_backbone_nitrogen', 0.087, None, 0),
+]
 
 # TODO add capped termini
 aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS']
