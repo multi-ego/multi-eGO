@@ -615,8 +615,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
 
     # update the c12 1-4 interactions 
-    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance_14']/meGO_LJ['rc_distance_14'])**12
-    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance_14']/(2.**(1./6.))
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
+    meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
     #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
     #meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'sigma'] = meGO_LJ['distance']/(2.**(1./6.))
     # but within a lower
@@ -784,9 +784,9 @@ def check_LJ(test, parameters):
         # this is the special case for 1-4 interactions
         if((test.loc[test.source.isin(parameters.check_with)]).iloc[0]['1-4'] == "1_4"):
             #distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance_14']
+            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]['distance']
             #distance from train 
-            dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance_14']
+            dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['distance']
             if dist_check < dist_train:
                 energy = (dist_check/dist_train)**12
 
