@@ -605,9 +605,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # General repulsive term
     # These are with negative sign to store them as epsilon values 
     # Intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
     # Intermolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
     # mid case for Pmd>Prc but not enough to be attractive 
     meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
 
