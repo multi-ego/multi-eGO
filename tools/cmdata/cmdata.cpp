@@ -61,6 +61,8 @@
 #include "gromacs/utility/gmxassert.h"
 #include "gromacs/utility/smalloc.h"
 
+#include <omp.h>
+#include <thread>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -120,7 +122,7 @@ private:
   std::vector<t_atoms> molecules_;
   std::vector<double> density_bins_;
   std::size_t n_bins_;
-  // int num_threads_;
+  int num_threads_;
 
   double mcut2_;
   double cut_sig_2_;
@@ -134,6 +136,7 @@ private:
   // temporary containers for maxcdf operations
   std::vector<std::vector<double>> frame_same_mat_;
   std::vector<std::vector<double>> frame_cross_mat_;
+  std::vector<std::vector<omp_lock_t>> frame_same_mutex_;
 };
 
 CMData::CMData() : outfile_intra_(""),
@@ -182,10 +185,10 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&list_sym_)
                     .defaultValue(false)
                     .description("Write symmetry list"));
-  // options->addOption(IntegerOption("num_threads")
-  //                   .store(&num_threads_)
-  //                   .defaultValue(1)
-  //                   .description("Number of threads to run task on"));
+  options->addOption(IntegerOption("num_threads")
+                    .store(&num_threads_)
+                    .defaultValue(1)
+                    .description("Number of threads to run task on"));
 
   // always require topology
   settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
@@ -313,7 +316,6 @@ static inline double calc_prob(const std::vector<double> &v, const double dx)
     unsigned i = std::distance(v.begin(), it);
     if (v[i] > 0.) prob += v[i] * dx;
   }
-  //if (prob > 1.) prob = 1.;
   return prob;
 }
 
@@ -321,9 +323,6 @@ static inline int n_bins(const double cut, const double factor = 4.0)
 {
   return cut / (0.01 / factor);
 }
-
-// #define access_same_(i, a_i, a_j) i * (natmol2_[i] * natmol2_[i] * n_bins_) + a_i * (natmol2_[i] * n_bins_) + a_j * n_bins_
-// #define access_cross_(i, j, a_i, a_j) cross_index_[i][j] * (natmol2_[i] * natmol2_[j] * n_bins_ ) + (natmol2_[j] * n_bins_) * a_i + n_bins_ * a_j
 
 static std::size_t offset_same( std::size_t i, int mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
 {
@@ -333,6 +332,11 @@ static std::size_t offset_same( std::size_t i, int mol_i, std::size_t a_i, std::
 static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
 {
   return mol_i * (natmol2[i] * natmol2[i]) + a_i * natmol2[i] + a_j;
+}
+
+static std::size_t offset_mutex_same( std::size_t i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
+{
+  return a_i * natmol2[i] + a_j;
 }
 
 static std::size_t offset_cross( 
@@ -349,13 +353,13 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   if (outfile_inter_ == "") outfile_inter_ = std::string("intermat.ndx");
   if (outfile_intra_ == "") outfile_intra_ = std::string("intramat.ndx");
 
-  // GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
-  // if ( num_threads_ > std::thread::hardware_concurrency() )
-  // {
-  //   printf("Maximum thread number of %i surpassed. Scaling num_threads down accordingly.\n", std::thread::hardware_concurrency());
-  //   num_threads_ = static_cast<int>(std::thread::hardware_concurrency());
-  // }
-  // printf("Running operations on %i threads\n", num_threads_);
+  GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
+  if ( num_threads_ > std::thread::hardware_concurrency() )
+  {
+    printf("Maximum thread number of %i surpassed. Scaling num_threads down accordingly.\n", std::thread::hardware_concurrency());
+    num_threads_ = static_cast<int>(std::thread::hardware_concurrency());
+  }
+  printf("Running operations on %i threads\n", num_threads_);
 
   GMX_RELEASE_ASSERT(nskip_ >= 0, "nskip needs to be greater than or equal to 0\n");
 
@@ -471,11 +475,14 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   snew(xcm_, nindex_);
 
   frame_same_mat_.resize(natmol2_.size());
+  frame_same_mutex_.resize(natmol2_.size());
   frame_cross_mat_.resize(cross_index_.size());
   std::size_t sum_cross_mol_sizes = 0;
   for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
     frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
+    frame_same_mutex_[i] = std::vector<omp_lock_t>(natmol2_[i] *  natmol2_[i]);
+    for ( int mi = 0; mi < frame_same_mutex_.size(); mi++ ) omp_init_lock(&frame_same_mutex_[i][mi]);
     for (std::size_t j = i+1; j < natmol2_.size(); j++)
     {
       frame_cross_mat_[cross_index_[i][j]].resize(natmol2_[i] * natmol2_[j] * num_mol_unique_[i] * num_mol_unique_[j], 0);
@@ -542,7 +549,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
     }
     
-    std::size_t mol_i = 0, mol_j = 0;
     /* calculate the center of each molecule */
     for (int i = 0; (i < nindex_); i++)
     {
@@ -562,11 +568,19 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       }
     }
 
-    const char * atomname;
-
     /* Loop over molecules */
+    #pragma omp parallel for num_threads(num_threads_)
     for (int i = 0; i < nindex_; i++)
     {
+      const char * atomname;
+      int tmp_i = 0;
+      std::size_t mol_i = i, mol_j = 0;
+      while ( static_cast<int>(mol_i) - num_mol_unique_[tmp_i] > 0  )
+      {
+        mol_i -= num_mol_unique_[tmp_i];
+        tmp_i++;
+        if (tmp_i == num_mol_unique_.size()) break;
+      }
       if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
       int molb = 0;
       /* Loop over molecules  */
@@ -627,7 +641,10 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                 {
                   if (dx2 < cut_sig_2_)
                   {
+                    std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
+                    omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                     kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+                    omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                   }
                 }
                 else
@@ -637,9 +654,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                     if (dx2 < cut_sig_2_)
                     {
                       double dist = std::sqrt(dx2);
-                      kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist,  1.0);
                       std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
+                      std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
+                      omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+                      kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist,  1.0);
                       frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
+                      omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                     }
                     if(delta!=0.) {
                       // this is to account for inversion atom/molecule
@@ -649,9 +669,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
                       if (dx2 < cut_sig_2_)
                       {
                         double dist = std::sqrt(dx2);
-                        kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
                         std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
+                        std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
+                        omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+                        kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
                         frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
+                        omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                       }
                     }
                   } 
@@ -674,7 +697,6 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         }
         ++mol_j;
       }
-      ++mol_i;
     }
     /* deposit minimal distance gaussians */
     mindist_kernel(
