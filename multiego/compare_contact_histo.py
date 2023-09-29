@@ -11,6 +11,8 @@ import time
 import sys
 import warnings
 
+import topology
+import resources
 import resources.type_definitions as type_definitions
 import util.masking
 
@@ -33,7 +35,7 @@ def run_intra_(arguments):
     '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff']
+    columns = ['mi', 'ai', 'mj', 'aj', 'c12dist', 'p', 'cutoff']
     df = pd.DataFrame(columns=columns)
     # We do not consider old histograms
     frac_target_list = [ x for x in frac_target_list if x[0]!="#" and x[-1]!="#" ]
@@ -50,9 +52,7 @@ def run_intra_(arguments):
 
             results_df['mi'] = mi
             results_df['mj'] = mj
-            results_df['dist'] = 0
             results_df['c12dist'] = 0
-            results_df['hdist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
             
@@ -68,19 +68,15 @@ def run_intra_(arguments):
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
-            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'dist'] = dist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
-            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'hdist'] = hdist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
     
         df = pd.concat([df, results_df])
-        df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
+        df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
 
     df.fillna(0)
     out_path = f'mat_{process.pid}_t{time.time()}.part'
@@ -104,9 +100,8 @@ def run_inter_(arguments):
         Path to the temporary file which contains a partial pd.DataFrame with the analyzed data 
     '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
-    # frac_target_list, frac_cumulative_probabilities = [ x[0] for x in frac_target_list ], [ x[1] for x in frac_target_list ]
     process = multiprocessing.current_process()
-    columns = ['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist', 'hdist', 'p', 'cutoff']
+    columns = ['mi', 'ai', 'mj', 'aj', 'c12dist', 'p', 'cutoff']
     df = pd.DataFrame(columns=columns)
     # We do not consider old histograms
     frac_target_list = [ x for x in frac_target_list if x[0]!="#" and x[-1]!="#" ]
@@ -123,9 +118,7 @@ def run_inter_(arguments):
 
             results_df['mi'] = mi
             results_df['mj'] = mj
-            results_df['dist'] = 0
             results_df['c12dist'] = 0
-            results_df['hdist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
             
@@ -149,20 +142,16 @@ def run_inter_(arguments):
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            dist = ref_df.apply(lambda x: weighted_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            hdist = ref_df.apply(lambda x: weighted_havg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = c_ref_df.apply(lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
 
-            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'dist'] = dist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
-            results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'hdist'] = hdist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
     
         df = pd.concat([df, results_df])
 
-        df = df.sort_values(by = ['p', 'c12dist', 'dist'], ascending=True)
+        df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
 
     df.fillna(0)
     out_path = f'mat_{process.pid}_t{time.time()}.part'
@@ -308,32 +297,6 @@ def get_cumulative_probability(values, weights, callback=allfunction):
     cutoff, i, norm, v, w = callback(values, weights)
     return weights[i]
 
-def weighted_havg(values, weights, callback=hallfunction):
-    norm, v, w = callback(values, weights)
-    if norm == 0.: return 0
-    return np.sum(v * w) / norm
-
-def weighted_avg(values, weights, callback=allfunction):
-    '''
-    Calculates the weighted average as 1 / n * \sum_i^n v[i] * w[i]
-
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
-
-    Returns
-    -------
-    The weighted average
-    '''
-    cutoff, i, norm, v, w = callback(values, weights)
-    if norm == 0.: return 0
-    return np.sum(v * w) / norm
-
 
 def c12_avg(values, weights, callback=allfunction):
     '''
@@ -393,6 +356,30 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     #############################
     """)
 
+def generate_c12_values(df, types, combinations):
+    '''
+    TODO
+    ----
+    Change symmetric to be a variable 
+    '''
+    all_c12 = np.sqrt(df['c12'].to_numpy() * df['c12'].to_numpy()[:,np.newaxis])
+    c12_map = np.full(all_c12.shape, None)
+    resnums = df['resnum'].to_numpy()
+    for combination in combinations:
+        symmetric=True
+        (name_1, name_2, factor, constant, shift) = combination
+        if factor != None and constant != None or factor == constant:
+            raise RuntimeError("constant and error should be defined and mutualy exclusive")
+        if factor: operation = lambda x: factor * x
+        if constant: operation = lambda _: constant
+        combined_map = (types[name_1] & types[name_2][:,np.newaxis]) & (resnums+shift == (resnums)[:,np.newaxis])
+        if symmetric: 
+            combined_map = combined_map | combined_map.T
+        c12_map = np.where(combined_map, operation(all_c12), c12_map)
+
+    c12_map = np.where(c12_map == None, all_c12, c12_map)
+
+    return c12_map
 
 def calculate_intra_probabilities(args):
     '''
@@ -437,22 +424,45 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by='sorter', inplace=True)
         topology_df['mego_type'] = [ a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1]) ]
         topology_df['mego_name'] = [ a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1]) ]
+        topology_df['name'] = topology_df['mego_name']
+        topology_df['type'] = topology_df['mego_type']
+        topology_df['resname'] = [ a.residue.name for a in protein_ref ]
+        topology_df['resnum'] = [ a.residue.idx for a in protein_ref ]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
 
+        types = resources.type_definitions.lj14_generator(topology_df)
+        atom_type_combinations = [
+            ('pro_cd', 'sidechain_cb', None, 2.715402e-06, -1),
+            ('backbone_carbonyl', 'sidechain_cb', 0.275, None, +1),
+            ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
+            ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),
+            ('backbone_nitrogen', 'sidechain_cb', 0.65, None, -1),
+            ('first_backbone_nitrogen', 'backbone_nitrogen', None, 4.0e-6, +1),
+            ('backbone_nitrogen', 'backbone_nitrogen', 0.343, None, 1),
+            ('backbone_carbonyl', 'backbone_carbonyl', 0.5, None, -1),
+            ('sidechain_cgs', 'backbone_carbonyl', 0.078, None, 0),
+            ('sidechain_cgs', 'backbone_nitrogen', 0.087, None, 0),
+            ('sidechain_cgs', 'first_backbone_nitrogen', 0.087, None, 0),
+        ]
+        c12_values = generate_c12_values(topology_df, types, atom_type_combinations)
+        # c12_cutoff = CUTOFF_FACTOR * np.power(c12_values, 1./12.)
+        
         # consider special cases
+        # print(c12_cutoff)
         oxygen_mask = util.masking.create_matrix_mask(
             topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
             [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
         )
 
         #define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.where(
-            oxygen_mask,
-            np.power(11.4 * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.),
-            np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
-        )
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(
+            oxygen_mask, 11.4 * c12_values, c12_values
+            # np.power(11.4 * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.),
+            # np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
+        ), 1./12.)
+        
         if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0+0.75
 
@@ -490,9 +500,7 @@ def calculate_intra_probabilities(args):
         df['mj'] = df['mj'].map('{:}'.format)
         df['ai'] = df['ai'].map('{:}'.format)
         df['aj'] = df['aj'].map('{:}'.format)
-        df['dist'] = df['dist'].map('{:,.6f}'.format)
         df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-        df['hdist'] = df['hdist'].map('{:,.6f}'.format)
         df['p'] = df['p'].map('{:,.6e}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
@@ -572,7 +580,7 @@ def calculate_inter_probabilities(args):
         if mol_i==mol_j:
             if N_mols[mol_i-1]==0:
                 print(f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}")
-                columns=['mi', 'ai', 'mj', 'aj', 'dist', 'c12dist' , 'hdist' , 'p' , 'cutoff']
+                columns=['mi', 'ai', 'mj', 'aj', 'c12dist', 'p' , 'cutoff']
                 matrix_index = pd.MultiIndex.from_product([ range(1,original_size_i+1) , range(1, original_size_j+1)], names=['ai', 'aj'])
                 indeces_ai=np.array(list(matrix_index)).T[0]
                 indeces_aj=np.array(list(matrix_index)).T[1]
@@ -581,18 +589,14 @@ def calculate_inter_probabilities(args):
                 df['mj'] = [ mol_j for x in range(1, original_size_i*original_size_j+1) ]
                 df['ai'] = indeces_ai
                 df['aj'] = indeces_aj
-                df['dist']    = 0.
                 df['c12dist'] = 0.
-                df['hdist']   = 0.
                 df['p']       = 0.
                 df['cutoff']  = 0.
                 df['mi'] = df['mi'].map('{:}'.format)
                 df['mj'] = df['mj'].map('{:}'.format)
                 df['ai'] = df['ai'].map('{:}'.format)
                 df['aj'] = df['aj'].map('{:}'.format)
-                df['dist'] = df['dist'].map('{:,.6f}'.format)
                 df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-                df['hdist'] = df['hdist'].map('{:,.6f}'.format)
                 df['p'] = df['p'].map('{:,.6e}'.format)
                 df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
@@ -688,9 +692,7 @@ def calculate_inter_probabilities(args):
         df['mj'] = df['mj'].map('{:}'.format)
         df['ai'] = df['ai'].map('{:}'.format)
         df['aj'] = df['aj'].map('{:}'.format)
-        df['dist'] = df['dist'].map('{:,.6f}'.format)
         df['c12dist'] = df['c12dist'].map('{:,.6f}'.format)
-        df['hdist'] = df['hdist'].map('{:,.6f}'.format)
         df['p'] = df['p'].map('{:,.6e}'.format)
         df['cutoff'] = df['cutoff'].map('{:,.6f}'.format)
 
