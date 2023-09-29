@@ -681,6 +681,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         # rescale problematic contacts
         meGO_LJ['epsilon'] *= meGO_LJ['energy_at_check_dist']
         meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
+        # reapply 1-4 boundaries 
+        meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.666*meGO_LJ['rep']), 'epsilon'] = -0.666*meGO_LJ['rep']
+        meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']>1.5*meGO_LJ['rep']), 'epsilon'] = -1.5*meGO_LJ['rep']
         # safety cleaning
         meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
