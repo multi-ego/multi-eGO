@@ -22,10 +22,10 @@ elif len(sys.argv)==3:
     intra_md[4] = np.where(map, intra_md[4], 0)
     intra_md[5] = np.where(map, intra_md[5], 0)
     intra_md[6] = np.where(map, intra_md[6], 0)
-    intra_md[7] = np.where(map, intra_md[7], 0)
+    #intra_md[7] = np.where(map, intra_md[7], 0)
     #intra_md[8] = np.where(map, intra_md[8], 0)
 
-    np.savetxt("split_intramat.ndx",intra_md.T, delimiter=" ", fmt = ['%4i', '%4i', '%4i', '%4i', '%2.6f', '%2.6f', '%2.6f', '%2.6f', '%2.6f'])
+    np.savetxt("split_intramat.ndx",intra_md.T, delimiter=" ", fmt = ['%4i', '%4i', '%4i', '%4i', '%2.6f', '%2.6f', '%2.6f' ])
 
 elif len(sys.argv)==4:
     print("reading")
@@ -47,10 +47,8 @@ elif len(sys.argv)==4:
     intra_rc[4] = np.where(map, intra_rc[4], intra_domain_rc[4])
     intra_rc[5] = np.where(map, intra_rc[5], intra_domain_rc[5])
     intra_rc[6] = np.where(map, intra_rc[6], intra_domain_rc[6])
-    intra_rc[7] = np.where(map, intra_rc[7], intra_domain_rc[7])
+    #intra_rc[7] = np.where(map, intra_rc[7], intra_domain_rc[7])
     #intra_rc[8] = np.where(map, intra_rc[8], intra_domain_rc[8])
 
-    np.savetxt("grouped_intramat.ndx",intra_rc.T, delimiter=" ",fmt = ['%4i', '%4i', '%4i', '%4i', '%2.6f', '%2.6f', '%2.6f', '%2.6f', '%2.6f'])
+    np.savetxt("grouped_intramat.ndx",intra_rc.T, delimiter=" ",fmt = ['%4i', '%4i', '%4i', '%4i', '%2.6f', '%2.6f', '%2.6' ])
 
-print(i_block)
-print(len(sys.argv))
