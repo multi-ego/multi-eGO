@@ -126,7 +126,7 @@ atom_type_combinations = [
 ]
 
 # TODO add capped termini
-aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS']
+aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS','ACE']
 
 # TODO to check
 nucleic_acid_list = ['A', 'C', 'G', 'T']
