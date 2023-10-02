@@ -63,6 +63,7 @@
 
 #include <omp.h>
 #include <thread>
+#include <mutex>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -137,6 +138,7 @@ private:
   std::vector<std::vector<double>> frame_same_mat_;
   std::vector<std::vector<double>> frame_cross_mat_;
   std::vector<std::vector<omp_lock_t>> frame_same_mutex_;
+  std::vector<std::vector<std::mutex>> frame_same_tmutex_;
 };
 
 CMData::CMData() : outfile_intra_(""),
@@ -476,20 +478,107 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   frame_same_mat_.resize(natmol2_.size());
   frame_same_mutex_.resize(natmol2_.size());
+  frame_same_tmutex_.resize(natmol2_.size());
   frame_cross_mat_.resize(cross_index_.size());
   std::size_t sum_cross_mol_sizes = 0;
-  for (std::size_t i = 0; i < natmol2_.size(); i++)
+  for ( std::size_t i = 0; i < natmol2_.size(); i++ )
   {
     frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
     frame_same_mutex_[i] = std::vector<omp_lock_t>(natmol2_[i] *  natmol2_[i]);
-    for ( int mi = 0; mi < frame_same_mutex_.size(); mi++ ) omp_init_lock(&frame_same_mutex_[i][mi]);
-    for (std::size_t j = i+1; j < natmol2_.size(); j++)
+    frame_same_tmutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
+    for ( std::size_t mi = 0; mi < frame_same_mutex_.size(); mi++ ) omp_init_lock(&frame_same_mutex_[i][mi]);
+    for ( std::size_t j = i+1; j < natmol2_.size(); j++ )
     {
       frame_cross_mat_[cross_index_[i][j]].resize(natmol2_[i] * natmol2_[j] * num_mol_unique_[i] * num_mol_unique_[j], 0);
     }
   }
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
+}
+
+static void mindist_same(
+  std::size_t start_mti_same, std::size_t start_im_same, std::size_t start_i_same, 
+  std::size_t start_j_same, long int n_loop_operations_same, const std::vector<double> &density_bins,
+  const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2, const std::vector<double> &inv_num_mol,
+  const std::vector<std::vector<double>> &frame_same_mat,
+  std::vector<std::vector<std::mutex>> &tmutex,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
+)
+{
+  printf("Starting with %li %li %li %li %li\n", start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same);
+  bool first_im_same = true, first_i_same = true, first_j_same = true;
+  unsigned counter_same = 0;
+  for (std::size_t mt_i = start_mti_same; mt_i < natmol2.size(); mt_i++)
+  {
+    for (std::size_t im = (first_im_same) ? start_im_same : 0; im < num_mol_unique[mt_i]; im++)
+    {
+      for (std::size_t i = (first_i_same) ? start_i_same : 0; i < natmol2[mt_i]; i++)
+      {
+        for (std::size_t j = (first_j_same) ? start_j_same : i; j < natmol2[mt_i]; j++)
+        {
+          std::size_t offset = offset_same(mt_i, im, i, j, natmol2);
+          printf("operating on (%li %li %li %li) [%li, %li] with %li nops left\n", mt_i, im, i, j, mt_i, offset, n_loop_operations_same - counter_same);
+          double mindist = frame_same_mat[mt_i][offset];
+          std::unique_lock lock(tmutex[mt_i][offset_mutex_same(mt_i, i, j, natmol2)]);
+          kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, 1.0);
+          interm_same_maxcdf_mol[mt_i][j][i] = interm_same_maxcdf_mol[mt_i][i][j];
+          lock.unlock();
+          ++counter_same;
+          if ( counter_same == n_loop_operations_same )
+          {
+            printf("ending of %li %li %li %li %li with %li %li %li %li\n", 
+            start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same,
+            mt_i, im, i, j);
+            return;
+          }
+        }
+        first_j_same = false;
+      }
+      first_i_same = false;
+    }
+    first_im_same = false;
+  }
+}
+
+static void mindist_cross(
+  std::size_t start_mti_cross, std::size_t start_mtj_cross, std::size_t start_im_cross, std::size_t start_jm_cross, 
+  std::size_t start_i_cross, std::size_t start_j_cross, int n_loop_operations_cross, 
+  const std::vector<int> &natmol2, const std::vector<std::vector<int>> &cross_index,
+  const std::vector<double> &density_bins,
+  const std::vector<int> &num_mol_unique, std::vector<std::vector<double>> &frame_cross_mat,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+)
+{
+  bool first_im_cross = true, first_mtj_cross = true, first_jm_cross = true, first_i_cross = true, first_j_cross = true;
+  unsigned counter_cross = 0;
+  for (std::size_t mt_i = start_mti_cross; mt_i < natmol2.size(); mt_i++)
+  {
+    for (std::size_t im = (first_im_cross) ? start_im_cross : 0; im < num_mol_unique[mt_i]; im++)
+    {
+      for (std::size_t mt_j = (first_mtj_cross) ? start_mtj_cross : mt_i + 1; mt_j < natmol2.size(); mt_j++)
+      {
+        for (std::size_t jm = (start_jm_cross) ? start_jm_cross : 0; jm < num_mol_unique[mt_j]; jm++)
+        {
+          for (std::size_t i = (start_i_cross) ? first_i_cross : 0; i < natmol2[mt_i]; i++)
+          {
+            for (std::size_t j = (start_j_cross) ? first_j_cross : 0; j < natmol2[mt_j]; j++)
+            {
+              double mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset_cross(mt_i, mt_j, im, jm, i, j, natmol2)];
+              kernel_density_estimator(std::begin(interm_cross_maxcdf_mol[cross_index[mt_i][mt_j]][i][j]), density_bins, mindist, 1.0);
+              ++counter_cross;
+              if ( counter_cross == n_loop_operations_cross ) return;
+            }
+            first_j_cross = false;
+          }
+          first_i_cross = false;
+        }
+        first_jm_cross = false;
+      }
+      first_mtj_cross = false;
+    }
+    first_im_cross = false;
+  }
 }
 
 static void mindist_kernel(
@@ -503,35 +592,9 @@ static void mindist_kernel(
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
-  for (std::size_t mt_i = 0; mt_i < natmol2.size(); mt_i++)
-  {
-    for (std::size_t im = 0; im < num_mol_unique[mt_i]; im++)
-    {
-      for (std::size_t i = 0; i < natmol2[mt_i]; i++)
-      {
-        for (std::size_t j = i; j < natmol2[mt_i]; j++)
-        {
-          double mindist = frame_same_mat[mt_i][offset_same(mt_i, im, i, j, natmol2)];
-          kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, 1.0);
-          interm_same_maxcdf_mol[mt_i][j][i] = interm_same_maxcdf_mol[mt_i][i][j];
-        }
-      }
-      for (std::size_t mt_j = mt_i + 1; mt_j < natmol2.size(); mt_j++)
-      {
-        for (std::size_t jm = 0; jm < num_mol_unique[mt_j]; jm++)
-        {
-          for (std::size_t i = 0; i < natmol2[mt_i]; i++)
-          {
-            for (std::size_t j = 0; j < natmol2[mt_j]; j++)
-            {
-              double mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset_cross(mt_i, mt_j, im, jm, i, j, natmol2)];
-              kernel_density_estimator(std::begin(interm_cross_maxcdf_mol[cross_index[mt_i][mt_j]][i][j]), density_bins, mindist, 1.0);
-            }
-          }
-        }
-      }
-    }
-  }
+  // if (true) mindist_same();
+
+  // if (true) mindist_cross();
 }
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
@@ -542,10 +605,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* resetting the per frame vector to zero */
     for ( std::size_t i = 0; i < frame_same_mat_.size(); i++ )
     {
+      #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_same_mat_[i].size())))
       for ( std::size_t j = 0; j < frame_same_mat_[i].size(); j++ ) frame_same_mat_[i][j] = 100.;
     }
     for ( std::size_t i = 0; i < frame_cross_mat_.size(); i++ )
     {
+      #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
       for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
     }
     
@@ -698,17 +763,122 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         ++mol_j;
       }
     }
+    /* calculate the mindist accumulation indices */
+    std::vector<std::thread> threads(num_threads_);
+
+    std::size_t num_ops_same = 0;
+    for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+    int n_per_thread_same = num_ops_same / num_threads_;
+    int n_threads_same_uneven = num_ops_same % num_threads_;
+    std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
+    std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
+    int num_ops_cross = 0;
+    for ( std::size_t im = 0; im < natmol2_.size(); im++ )
+    {
+      for ( std::size_t jm = im + 1; jm < natmol2_.size(); jm++ )
+      {
+        num_ops_cross += num_mol_unique_[im] * natmol2_[im] * natmol2_[jm];
+      }
+    }
+    int n_per_thread_cross = num_ops_cross / num_threads_;
+    int n_threads_cross_uneven = num_ops_cross % num_threads_;
+
+    std::size_t start_im_cross = 0, end_im_cross = 1;
+    std::size_t start_jm_cross = 1, end_jm_cross = 2, start_i_cross = 0, end_i_cross = 0, start_j_cross = 0, end_j_cross = 0;
+      
+    for ( int tid = 0; tid < num_threads_; tid++ )
+    {
+      printf("working on thread %i\n", tid);
+      /* calculate same indices */
+      int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+      long int n_loop_operations_total_same = n_loop_operations_same;
+      while ( natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same) <= n_loop_operations_same )
+      {
+        int sub_same = natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same);
+        printf("nlop - [natmol(end_mti - 1)] - endj :: %i %i %li = %i\n", n_loop_operations_same, natmol2_[end_mti_same-1], end_j_same, n_loop_operations_same - sub_same);
+        n_loop_operations_same -= sub_same;
+        end_i_same++;
+        end_j_same = end_i_same;
+        if ( static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1] )
+        {
+          end_im_same++; // what aobut htis
+          end_i_same = 0;
+          end_j_same = 0;
+        }
+        if ( static_cast<int>(end_im_same) == num_mol_unique_[end_mti_same - 1] )
+        {
+          end_mti_same++;
+          end_im_same = 1;
+          end_i_same = 0;
+          end_j_same = 0;
+        }
+        printf("end of loop %i :: end = (%li, %li, %li, %li) with nops = %i\n", tid, end_mti_same, end_im_same, end_i_same, end_j_same, n_loop_operations_same);
+        if (n_loop_operations_same == 0) break;
+      }
+      end_j_same += n_loop_operations_same;  
+
+      /* calculate cross indices */
+      // int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
+      // if ( natmol2_.size() > 1 )
+      // {
+      //   int n_loop_operations_cross = n_loop_operations_total_cross;
+      //   while ( natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
+      //   {
+      //     int sub_cross = natmol2_[end_im_cross-1] * natmol2_[end_jm_cross-1] - (natmol2_[end_jm_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross));
+      //     n_loop_operations_cross -= sub_cross;
+
+      //     end_jm_cross++;
+      //     end_i_cross = 0;
+      //     end_j_cross = 0;
+
+      //     if ( end_jm_cross > natmol2_.size() )
+      //     {
+      //       end_im_cross++;
+      //       end_jm_cross = end_im_cross+1;
+      //     }
+      //     if ( n_loop_operations_cross == 0 ) break;
+      //     if ( end_im_cross == natmol2_.size() - 1 ) break;
+      //   }
+
+      //   // calculate overhangs and add them
+      //   end_i_cross += n_loop_operations_cross / natmol2_[end_jm_cross-1];
+      //   end_j_cross += n_loop_operations_cross % natmol2_[end_jm_cross-1];
+      //   end_i_cross += end_j_cross / natmol2_[end_jm_cross-1];
+      //   end_j_cross %= natmol2_[end_jm_cross-1]; 
+      // }
+
+      /* start thread */
+      /* TODO run last run on main thread */
+      threads[tid] = std::thread(
+        mindist_same, start_mti_same, start_im_same, start_i_same, start_j_same,
+        n_loop_operations_total_same, std::cref(density_bins_), std::cref(num_mol_unique_), std::cref(natmol2_), 
+        std::cref(inv_num_mol_), std::cref(frame_same_mat_), std::ref(frame_same_tmutex_), std::ref(interm_same_maxcdf_mol_)
+      );
+      /* end thread */
+
+      /* set new starts */
+      start_mti_same = end_mti_same - 1;
+      start_im_same = end_im_same - 1;
+      start_i_same = end_i_same;
+      start_j_same = end_j_same;
+
+      // start_im_cross = end_im_cross - 1;
+      // start_jm_cross = end_jm_cross - 1;
+      // start_i_cross = end_i_cross;
+      // start_j_cross = end_j_cross;
+    }
+    for ( auto &thread : threads ) thread.join();
     /* deposit minimal distance gaussians */
-    mindist_kernel(
-      natmol2_,
-      density_bins_,
-      num_mol_unique_,
-      frame_same_mat_,
-      interm_same_maxcdf_mol_,
-      cross_index_,
-      frame_cross_mat_,
-      interm_cross_maxcdf_mol_
-    );
+    // mindist_kernel(
+    //   natmol2_,
+    //   density_bins_,
+    //   num_mol_unique_,
+    //   frame_same_mat_,
+    //   interm_same_maxcdf_mol_,
+    //   cross_index_,
+    //   frame_cross_mat_,
+    //   interm_cross_maxcdf_mol_
+    // );
     ++n_x_;
   }
   ++nframe_;
