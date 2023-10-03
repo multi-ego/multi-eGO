@@ -611,6 +611,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # mid case for Pmd>Prc but not enough to be attractive 
     meGO_LJ.loc[(meGO_LJ['probability']<=meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['probability']>=np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12 
 
+    # lower value for repulsion
+    meGO_LJ.loc[(meGO_LJ['epsilon']<0.)&(-meGO_LJ['epsilon']<0.1*meGO_LJ['rep']), 'epsilon'] = -0.1*meGO_LJ['rep']
+    # higher value for repulsion
+    meGO_LJ.loc[(meGO_LJ['epsilon']<0.)&(-meGO_LJ['epsilon']>20.*meGO_LJ['rep']), 'epsilon'] = -20.*meGO_LJ['rep']
+
     # update the c12 1-4 interactions 
     meGO_LJ.loc[(meGO_LJ['1-4']=="1_4"), 'epsilon'] = -meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12
     # but within a lower
