@@ -510,6 +510,7 @@ def generate_basic_LJ(meGO_ensemble):
         basic_LJ.c12 = 0.0
         basic_LJ.same_chain = True 
         basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ['rep'] = basic_LJ['c12']
         basic_LJ = basic_LJ[oxygen_mask]
         basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
         basic_LJ = basic_LJ.drop_duplicates(subset=['index_ai', 'index_aj', 'same_chain'], keep='first')
@@ -538,6 +539,7 @@ def generate_basic_LJ(meGO_ensemble):
         aj_name = atom_set_j.to_numpy(dtype=str)
         oxygen_mask = multiego.util.masking.create_array_mask(ai_name, aj_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
+        temp_basic_LJ['rep'] = temp_basic_LJ['c12']
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
         temp_basic_LJ['ai'], temp_basic_LJ['aj'] = temp_basic_LJ[['ai', 'aj']].min(axis=1), temp_basic_LJ[['ai', 'aj']].max(axis=1)
         temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=['ai', 'aj', 'same_chain'], keep='first')
@@ -753,15 +755,15 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ['number_aj'] = meGO_LJ['number_aj'].astype(int)
 
     meGO_LJ = meGO_LJ[['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability',
-                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
-                       'number_ai', 'number_aj', 'cutoff']]
+                       'md_threshold', 'rc_threshold', 'rep', 'cutoff', 
+                       'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'number_ai', 'number_aj']]
     # Here we want to sort so that ai is smaller than aj
     inv_meGO = meGO_LJ[['aj', 'ai', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
-                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
-                        'number_aj', 'number_ai', 'cutoff']].copy()
+                        'md_threshold', 'rc_threshold', 'rep', 'cutoff', 
+                        'molecule_name_aj',  'molecule_name_ai', 'same_chain', 'source', 'number_aj', 'number_ai']].copy()
     inv_meGO.columns = ['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
-                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
-                        'number_ai', 'number_aj', 'cutoff'] 
+                        'md_threshold', 'rc_threshold', 'rep', 'cutoff', 
+                        'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'number_ai', 'number_aj'] 
     meGO_LJ = pd.concat([meGO_LJ,inv_meGO], axis=0, sort = False, ignore_index = True)
     meGO_LJ = meGO_LJ[meGO_LJ['number_ai']<=meGO_LJ['number_aj']]
     meGO_LJ.sort_values(by = ['number_ai', 'number_aj'], inplace = True)
