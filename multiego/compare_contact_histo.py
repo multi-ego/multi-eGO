@@ -366,15 +366,13 @@ def generate_c12_values(df, types, combinations):
     c12_map = np.full(all_c12.shape, None)
     resnums = df['resnum'].to_numpy()
     for combination in combinations:
-        symmetric=True
         (name_1, name_2, factor, constant, shift) = combination
         if factor != None and constant != None or factor == constant:
             raise RuntimeError("constant and error should be defined and mutualy exclusive")
         if factor: operation = lambda x: factor * x
         if constant: operation = lambda _: constant
-        combined_map = (types[name_1] & types[name_2][:,np.newaxis]) & (resnums+shift == (resnums)[:,np.newaxis])
-        if symmetric: 
-            combined_map = combined_map | combined_map.T
+        combined_map = (types[name_1] & types[name_2][:,np.newaxis]) & (resnums+shift == resnums[:,np.newaxis])
+        combined_map = combined_map | combined_map.T
         c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
     c12_map = np.where(c12_map == None, all_c12, c12_map)
@@ -419,6 +417,8 @@ def calculate_intra_probabilities(args):
 
         topology_df['ref_ai'] = protein_ref_indices
         topology_df['ref_type'] = [ a.name for a in protein_ref ]
+        topology_df['resname'] = [ a.residue.name for a in protein_ref ]
+        topology_df['resnum'] = [ a.residue.idx for a in protein_ref ]
         topology_df['sorter'] = sorter
         topology_df['ref_ri'] = topology_df['sorter'].str.replace('[a-zA-Z]+[0-9]*', '', regex=True).astype(int)
         topology_df.sort_values(by='sorter', inplace=True)
@@ -426,30 +426,14 @@ def calculate_intra_probabilities(args):
         topology_df['mego_name'] = [ a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1]) ]
         topology_df['name'] = topology_df['mego_name']
         topology_df['type'] = topology_df['mego_type']
-        topology_df['resname'] = [ a.residue.name for a in protein_ref ]
-        topology_df['resnum'] = [ a.residue.idx for a in protein_ref ]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
 
         types = resources.type_definitions.lj14_generator(topology_df)
-        atom_type_combinations = [
-            ('backbone_carbonyl', 'sidechain_cb', 0.275, None, +1),
-            ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
-            ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),
-            ('backbone_nitrogen', 'sidechain_cb', 0.65, None, -1),
-            ('first_backbone_nitrogen', 'backbone_nitrogen', None, 4.0e-6, +1),
-            ('backbone_nitrogen', 'backbone_nitrogen', 0.343, None, 1),
-            ('backbone_carbonyl', 'backbone_carbonyl', 0.5, None, -1),
-            ('sidechain_cgs', 'backbone_carbonyl', 0.078, None, 0),
-            ('sidechain_cgs', 'backbone_nitrogen', 0.087, None, 0),
-            ('sidechain_cgs', 'first_backbone_nitrogen', 0.087, None, 0),
-        ]
-        c12_values = generate_c12_values(topology_df, types, atom_type_combinations)
-        # c12_cutoff = CUTOFF_FACTOR * np.power(c12_values, 1./12.)
-        
+        c12_values = generate_c12_values(topology_df, types, resources.type_definitions.atom_type_combinations)
+
         # consider special cases
-        # print(c12_cutoff)
         oxygen_mask = util.masking.create_matrix_mask(
             topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
             [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
@@ -458,8 +442,6 @@ def calculate_intra_probabilities(args):
         #define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(
             oxygen_mask, 11.4 * c12_values, c12_values
-            # np.power(11.4 * np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.),
-            # np.power(np.sqrt(topology_df['c12'].values * topology_df['c12'].values[:,np.newaxis]),1./12.)
         ), 1./12.)
         
         if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
