@@ -421,7 +421,6 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
 
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
-    exclusion_bonds14.drop_duplicates(subset=['ai', 'aj'], inplace=True)
     train_dataset = pd.merge(train_dataset, exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]], how="left", on=["ai", "aj", "same_chain"])
     train_dataset.loc[(train_dataset['ai']==train_dataset['aj'])&(train_dataset['same_chain']==True), '1-4'] = '0'
     train_dataset['1-4'] = train_dataset['1-4'].fillna('1>4')
