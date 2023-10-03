@@ -634,7 +634,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
     # This is a debug check to avoid data inconsistencies
-    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): 
+        print(meGO_LJ.loc[(np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])>10e-6)].to_string())
+        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
@@ -672,7 +674,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # and the same contact is instead repulsive in the training, then the repulsive term can be rescaled
     if not check_dataset.empty:
         # Remove low probability ones
-        meGO_check_contacts = check_dataset.loc[((check_dataset['probability']>check_dataset['md_threshold'])&(check_dataset['probability']>=check_dataset['rc_probability']))|(check_dataset['1-4']=="1_4")].copy()
+        meGO_check_contacts = check_dataset.loc[((check_dataset['probability']>check_dataset['md_threshold'])&(check_dataset['probability']>=check_dataset['rc_probability'])&(check_dataset['rep']>0.))|((check_dataset['1-4']=="1_4")&(check_dataset['rep']>0.))].copy()
         meGO_check_contacts = meGO_check_contacts.loc[(meGO_check_contacts['1-4']!='1_2_3')&(meGO_check_contacts['1-4']!='0')]
         meGO_check_contacts['sigma'] = (meGO_check_contacts['distance']) / (2.**(1./6.))
         meGO_check_contacts['learned'] = 0
@@ -709,7 +711,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset = ['ai', 'aj'], keep = False))|(meGO_LJ['learned']==1))]
 
     # This is a debug check to avoid data inconsistencies
-    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): 
+        print(meGO_LJ.loc[(np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])>10e-6)].to_string())
+        exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
