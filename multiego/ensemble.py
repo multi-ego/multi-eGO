@@ -633,6 +633,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # clean NaN and zeros
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
+    # This is a debug check to avoid data inconsistencies
+    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 
@@ -688,6 +690,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         # rescale problematic contacts
         meGO_LJ['epsilon'] *= meGO_LJ['energy_at_check_dist']
         meGO_LJ.drop('energy_at_check_dist', axis=1, inplace=True)
+        # reapply boundaries for repulsion
+        meGO_LJ.loc[(meGO_LJ['epsilon']<0.)&(-meGO_LJ['epsilon']<0.1*meGO_LJ['rep']), 'epsilon'] = -0.1*meGO_LJ['rep']
+        meGO_LJ.loc[(meGO_LJ['epsilon']<0.)&(-meGO_LJ['epsilon']>20.*meGO_LJ['rep']), 'epsilon'] = -20.*meGO_LJ['rep']
         # reapply 1-4 boundaries 
         meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']<0.666*meGO_LJ['rep']), 'epsilon'] = -0.666*meGO_LJ['rep']
         meGO_LJ.loc[(meGO_LJ['1-4']=="1_4")&(-meGO_LJ['epsilon']>1.5*meGO_LJ['rep']), 'epsilon'] = -1.5*meGO_LJ['rep']
@@ -702,6 +707,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.sort_values(by = ['ai', 'aj', 'learned'], ascending = [True, True, False], inplace = True)
     # Cleaning the duplicates, that is that we retained a not learned interaction only if it is unique
     meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset = ['ai', 'aj'], keep = False))|(meGO_LJ['learned']==1))]
+
+    # This is a debug check to avoid data inconsistencies
+    if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
