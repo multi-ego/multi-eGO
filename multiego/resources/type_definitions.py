@@ -85,7 +85,6 @@ def lj14_generator(df):
     types_dict['backbone_oxygen'] = (df['name']=='O').to_numpy()
     types_dict['ct_oxygen'] = ((df['name']=='O1')|(df['name']=='O2')).to_numpy()
     types_dict['sidechain_cb'] = (df['name'] == 'CB').to_numpy()
-    types_dict['pro_cd'] = ((df['name'] == 'CD')&(df['resname'] == 'PRO')).to_numpy()
     types_dict['sidechain_cgs'] = ((df['name'] == 'CG')|(df['name'] == 'CG1')|(df['name'] == 'CG2')|(df['name'] == 'SG')|(df['name'] == 'OG')|(df['name'] == 'OG1')&(df['resname'] != 'PRO')).to_numpy()
 
     return types_dict
@@ -97,7 +96,6 @@ atom_types = {
     'backbone_carbonyl': { 'atoms': [('name', np.equal, 'C')], 'linkers': []},
     'ct_oxygen': { 'atoms': [('name', np.equal, 'O1'), ('name', np.equal, 'O2')], 'linkers': [np.logical_or]},
     'sidechain_cb': { 'atoms': [('name', np.equal, 'CB')], 'linkers': []},
-    'pro_cd': { 'atoms': [('name', np.equal, 'CD'), ('resname', np.not_equal, 'PRO')], 'linkers': [np.logical_and]},
     'sidechain_cgs': {
         'atoms': [
         ('name', np.equal, 'CG'),
@@ -112,7 +110,6 @@ atom_types = {
 }
 
 atom_type_combinations = [
-    ('pro_cd', 'sidechain_cb', None, 2.715402e-06, -1),
     ('backbone_carbonyl', 'sidechain_cb', 0.275, None, -1),
     ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
     ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),

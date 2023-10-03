@@ -197,12 +197,9 @@ def protein_LJ14(reduced_topology):
     backbone_oxygen = reduced_topology.loc[reduced_topology['name']=='O']
     ct_oxygen = reduced_topology.loc[(reduced_topology['name']=='O1')|(reduced_topology['name']=='O2')]
     sidechain_cb = reduced_topology.loc[reduced_topology['name'] == 'CB']
-    pro_cd = reduced_topology.loc[(reduced_topology['name'] == 'CD')&(reduced_topology['resname'] == 'PRO')]
     sidechain_cgs = reduced_topology.loc[(reduced_topology['name'] == 'CG')|(reduced_topology['name'] == 'CG1')|(reduced_topology['name'] == 'CG2')|(reduced_topology['name'] == 'SG')|(reduced_topology['name'] == 'OG')|(reduced_topology['name'] == 'OG1')&(reduced_topology['resname'] != 'PRO')]
     pairs = pd.DataFrame()
 
-    # For proline CD take the CB, N of the previous residue and save in a pairs tuple
-    pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=pro_cd, atomtype2=sidechain_cb, constant=2.715402e-06, shift=-1)], axis=0, sort=False, ignore_index=True)
     # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
     pairs = pd.concat([pairs, create_pairs_14_dataframe(atomtype1=backbone_carbonyl, atomtype2=sidechain_cb, prefactor=0.275, shift=+1)], axis=0, sort=False, ignore_index=True)
     # For backbone oxygen take the CB of the same residue and save in a pairs tuple

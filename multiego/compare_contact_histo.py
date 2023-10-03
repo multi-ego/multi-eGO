@@ -434,7 +434,6 @@ def calculate_intra_probabilities(args):
 
         types = resources.type_definitions.lj14_generator(topology_df)
         atom_type_combinations = [
-            ('pro_cd', 'sidechain_cb', None, 2.715402e-06, -1),
             ('backbone_carbonyl', 'sidechain_cb', 0.275, None, +1),
             ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
             ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),
