@@ -64,6 +64,8 @@
 #include <omp.h>
 #include <thread>
 #include <mutex>
+#include <condition_variable>
+// #include <semaphore>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -73,6 +75,8 @@
 #include <sstream>
 #include <fstream>
 
+#define MAX_NUM_THREADS 32
+
 namespace gmx
 {
  
@@ -81,6 +85,42 @@ namespace analysismodules
  
 namespace
 {
+
+class Semaphore
+{
+private:
+  std::mutex mut;
+  std::condition_variable cv;
+  std::uint64_t counter;
+
+public:
+  Semaphore( std::uint64_t counter = 0 ) : counter(counter), cv(std::condition_variable()), mut(std::mutex()) {}
+  void acquire()
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    cv.wait(lock, [this](){ return counter > 0; });
+    --counter;
+    lock.unlock();
+  }
+
+  void release()
+  {
+    std::unique_lock<std::mutex> lock(mut);
+    ++counter;
+    lock.unlock();
+    cv.notify_one();
+  }
+
+  void set_counter( std::uint64_t c )
+  {
+    counter = c;
+  }
+
+  std::uint64_t get_counter() const
+  {
+    return counter;
+  }
+};
 
 class CMData : public TrajectoryAnalysisModule
 {
@@ -96,6 +136,8 @@ public:
   void writeOutput() override;
 
 private:
+  // constexpr std::uint64_t MAX_NUM_THREADS = 32;
+
   Selection refsel_;
   bool histo_;
   double cutoff_;
@@ -137,8 +179,11 @@ private:
   // temporary containers for maxcdf operations
   std::vector<std::vector<double>> frame_same_mat_;
   std::vector<std::vector<double>> frame_cross_mat_;
-  std::vector<std::vector<omp_lock_t>> frame_same_mutex_;
-  std::vector<std::vector<std::mutex>> frame_same_tmutex_;
+  std::vector<std::vector<std::mutex>> frame_same_mutex_;
+  std::vector<std::vector<std::mutex>> frame_cross_mutex_;
+  std::vector<std::thread> threads_;
+  std::vector<std::thread> mol_threads_;
+  Semaphore semaphore_;
 };
 
 CMData::CMData() : outfile_intra_(""),
@@ -336,7 +381,7 @@ static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_
   return mol_i * (natmol2[i] * natmol2[i]) + a_i * natmol2[i] + a_j;
 }
 
-static std::size_t offset_mutex_same( std::size_t i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
+static std::size_t mutex_access( std::size_t i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
 {
   return a_i * natmol2[i] + a_j;
 }
@@ -349,6 +394,13 @@ static std::size_t offset_cross(
   return mol_i * (mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_i * natmol2[j] + a_j; 
 }
 
+// static std::size_t offset_mutex_cross( 
+//   std::size_t cross_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2
+// )
+// {
+//   return cross_i * natmol2[i] * natmol2[j] + j * natmol2[j] + a_i * natmol2[j] + a_j; 
+// }
+
 void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const TopologyInformation &top)
 {
   /* Checking inputs */
@@ -356,12 +408,14 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   if (outfile_intra_ == "") outfile_intra_ = std::string("intramat.ndx");
 
   GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
-  if ( num_threads_ > std::thread::hardware_concurrency() )
+  if ( num_threads_ > std::thread::hardware_concurrency() || num_threads_ > MAX_NUM_THREADS )
   {
-    printf("Maximum thread number of %i surpassed. Scaling num_threads down accordingly.\n", std::thread::hardware_concurrency());
-    num_threads_ = static_cast<int>(std::thread::hardware_concurrency());
+    num_threads_ = std::min(static_cast<int>(std::thread::hardware_concurrency()), MAX_NUM_THREADS);
+    printf("Maximum thread number surpassed. Scaling num_threads down accordingly\n");
   }
   printf("Running operations on %i threads\n", num_threads_);
+  semaphore_.set_counter(num_threads_);
+  threads_.resize(num_threads_);
 
   GMX_RELEASE_ASSERT(nskip_ >= 0, "nskip needs to be greater than or equal to 0\n");
 
@@ -371,6 +425,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   mols_ = gmx_mtop_molecules(*top.mtop());
   // number of molecules
   nindex_ = mols_.numBlocks();
+  mol_threads_.resize(nindex_);
 
   std::vector<int> num_mol;
   num_mol.push_back(1);
@@ -478,18 +533,19 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 
   frame_same_mat_.resize(natmol2_.size());
   frame_same_mutex_.resize(natmol2_.size());
-  frame_same_tmutex_.resize(natmol2_.size());
   frame_cross_mat_.resize(cross_index_.size());
+  frame_cross_mutex_.resize(cross_index_.size());
   std::size_t sum_cross_mol_sizes = 0;
   for ( std::size_t i = 0; i < natmol2_.size(); i++ )
   {
     frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
-    frame_same_mutex_[i] = std::vector<omp_lock_t>(natmol2_[i] *  natmol2_[i]);
-    frame_same_tmutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
-    for ( std::size_t mi = 0; mi < frame_same_mutex_.size(); mi++ ) omp_init_lock(&frame_same_mutex_[i][mi]);
+    frame_same_mutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
+    // frame_same_tmutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
+    // for ( std::size_t mi = 0; mi < frame_same_mutex_.size(); mi++ ) omp_init_lock(&frame_same_mutex_[i][mi]);
     for ( std::size_t j = i+1; j < natmol2_.size(); j++ )
     {
       frame_cross_mat_[cross_index_[i][j]].resize(natmol2_[i] * natmol2_[j] * num_mol_unique_[i] * num_mol_unique_[j], 0);
+      frame_cross_mutex_[cross_index_[i][j]] = std::vector<std::mutex>(natmol2_[i] * natmol2_[j]);
     }
   }
 
@@ -501,7 +557,7 @@ static void mindist_same(
   std::size_t start_j_same, long int n_loop_operations_same, const std::vector<double> &density_bins,
   const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2, const std::vector<double> &inv_num_mol,
   const std::vector<std::vector<double>> &frame_same_mat,
-  std::vector<std::vector<std::mutex>> &tmutex,
+  std::vector<std::vector<std::mutex>> &frame_same_mutex,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
 )
 {
@@ -516,19 +572,16 @@ static void mindist_same(
         for (std::size_t j = (first_j_same) ? start_j_same : i; j < natmol2[mt_i]; j++)
         {
           std::size_t offset = offset_same(mt_i, im, i, j, natmol2);
+          std::size_t mutex_j = mutex_access(mt_i, i, j, natmol2);
           double mindist = frame_same_mat[mt_i][offset];
-          std::unique_lock lock(tmutex[mt_i][offset_mutex_same(mt_i, i, j, natmol2)]);
+
+          std::unique_lock<std::mutex> lock(frame_same_mutex[mt_i][mutex_j]);
           kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, 1.0);
           interm_same_maxcdf_mol[mt_i][j][i] = interm_same_maxcdf_mol[mt_i][i][j];
           lock.unlock();
+
           ++counter_same;
-          if ( counter_same == n_loop_operations_same )
-          {
-            printf("ending of %li %li %li %li %li with %li %li %li %li\n", 
-            start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same,
-            mt_i, im, i, j);
-            return;
-          }
+          if ( counter_same == n_loop_operations_same ) return;
         }
         first_j_same = false;
       }
@@ -596,13 +649,16 @@ static void mindist_kernel(
 }
 
 static void molecule_routine(
-  const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<double> &inv_num_mol_, const double cut_sig_2_, const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_,
-  const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, const double mcut2_, rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, const std::vector<std::vector<std::vector<int>>> &equivalence_list_,
+  const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<double> &inv_num_mol_, const double cut_sig_2_, 
+  const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_, 
+  const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, const double mcut2_, 
+  rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, const std::vector<std::vector<std::vector<int>>> &equivalence_list_,
   std::vector<std::vector<double>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_,
-  std::vector<std::vector<double>> &frame_cross_mat_, // std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_
+  std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_,
+  Semaphore &semaphore_
 )
 {
   const char * atomname;
@@ -616,6 +672,7 @@ static void molecule_routine(
   }
   if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
   int molb = 0;
+  semaphore_.acquire();
   /* Loop over molecules  */
   for (int j = 0; j < nindex_; j++)
   {
@@ -674,11 +731,9 @@ static void molecule_routine(
             {
               if (dx2 < cut_sig_2_)
               {
-                std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-                // omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+                std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
                 std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                 kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
-                // omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                 lock.unlock();
               }
             }
@@ -690,12 +745,10 @@ static void molecule_routine(
                 {
                   double dist = std::sqrt(dx2);
                   std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-                  std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-                  // omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+                  std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
                   std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                   kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist,  1.0);
                   frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-                  // omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                   lock.unlock();
                 }
                 if(delta!=0.) {
@@ -707,12 +760,10 @@ static void molecule_routine(
                   {
                     double dist = std::sqrt(dx2);
                     std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-                    std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-                    // omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+                    std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
                     std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                     kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
                     frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-                    // omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
                     lock.unlock();
                   }
                 }
@@ -722,9 +773,12 @@ static void molecule_routine(
                 if (dx2 < cut_sig_2_)
                 {
                   double dist = std::sqrt(dx2);
-                  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);//std::max(inv_num_mol_[i], inv_num_mol_[j])/nsym);
                   std::size_t cross_access_index = offset_cross(i, j, mol_i, mol_j, a_i, a_j, natmol2_);
+                  std::size_t cross_mutex_index = mutex_access(mol_id_[j], a_i, a_j, natmol2_);
+                  std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
+                  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);//std::max(inv_num_mol_[i], inv_num_mol_[j])/nsym);
                   frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
+                  lock.unlock();
                 }
               }
             }
@@ -736,6 +790,7 @@ static void molecule_routine(
     }
     ++mol_j;
   }
+  semaphore_.release();
 }
 
 void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, TrajectoryAnalysisModuleData *pdata)
@@ -754,164 +809,18 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
       for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
     }
-    
+
     /* calculate the center of each molecule */
-    for (int i = 0; (i < nindex_); i++)
+    for (int i = 0; i < nindex_; i++)
     {
-      molecule_routine(i, nindex_, pbc, x, inv_num_mol_, cut_sig_2_, natmol2_, num_mol_unique_, mol_id_,
-      cross_index_, density_bins_, mcut2_, xcm_, mols_, mtop_, equivalence_list_, frame_same_mat_,
-      frame_same_tmutex_, intram_mat_density_, interm_same_mat_density_, frame_cross_mat_, // std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
-      interm_cross_mat_density_);
-      printf("finit %i\n", i);
-    //   clear_rvec(xcm_[i]);
-    //   double tm = 0.;
-    //   for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
-    //   {
-    //     for (int m = 0; (m < DIM); m++)
-    //     {
-    //       xcm_[i][m] += x[ii][m];
-    //     }
-    //     tm += 1.0;
-    //   }
-    //   for (int m = 0; (m < DIM); m++)
-    //   {
-    //     xcm_[i][m] /= tm;
-    //   }
-    // }
-
-    // /* Loop over molecules */
-    // #pragma omp parallel for num_threads(num_threads_)
-    // for (int i = 0; i < nindex_; i++)
-    // {
-    //   const char * atomname;
-    //   int tmp_i = 0;
-    //   std::size_t mol_i = i, mol_j = 0;
-    //   while ( static_cast<int>(mol_i) - num_mol_unique_[tmp_i] > 0  )
-    //   {
-    //     mol_i -= num_mol_unique_[tmp_i];
-    //     tmp_i++;
-    //     if (tmp_i == num_mol_unique_.size()) break;
-    //   }
-    //   if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
-    //   int molb = 0;
-    //   /* Loop over molecules  */
-    //   for (int j = 0; j < nindex_; j++)
-    //   {
-    //     if (mol_j == num_mol_unique_[mol_id_[j]]) mol_j = 0;
-
-    //     /* intermolecular interactions are evaluated only among neighbour molecules */
-    //     if (i!=j)
-    //     {
-    //       rvec dx;
-    //       if (pbc != nullptr) pbc_dx(pbc, xcm_[i], xcm_[j], dx);
-    //       else rvec_sub(xcm_[i], xcm_[j], dx);
-    //       double dx2 = iprod(dx, dx);
-    //       if (dx2 > mcut2_) continue;
-    //     }
-    //     /* for molecules of different specie we fill half a matrix */
-    //     if (mol_id_[i] != mol_id_[j] && j < i) continue;
-
-    //     std::size_t a_i = 0;
-    //     GMX_RELEASE_ASSERT(mols_.numBlocks() > 0, "Cannot access index[] from empty mols");
-    //     /* cycle over the atoms of a molecule i */
-    //     for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
-    //     {
-    //       std::size_t a_j = 0;
-    //       mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
-    //       if (atomname[0] == 'H')
-    //       {
-    //         a_i++;
-    //         continue;
-    //       }
-    //       /* cycle over the atoms of a molecule j */
-    //       for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
-    //       {
-    //         mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
-    //         if (atomname[0] == 'H')
-    //         {
-    //           a_j++;
-    //           continue;
-    //         }
-    //         // check for chemical equivalence
-    //         for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
-    //         {
-    //           for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
-    //           {
-    //             // get molecule-wise atom index considering equivalence
-    //             std::size_t eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
-    //             std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
-    //             std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-    //             std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
-    //             std::size_t delta  = eqa_i - eqa_j;
-    //             double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[i]][a_j].size());
-    //             rvec sym_dx;
-    //             if (pbc != nullptr) pbc_dx(pbc, x[geqa_i], x[geqa_j], sym_dx);
-    //             else rvec_sub(x[geqa_i], x[geqa_j], sym_dx);
-    //             double dx2 = iprod(sym_dx, sym_dx);
-    //             if(i==j) 
-    //             {
-    //               if (dx2 < cut_sig_2_)
-    //               {
-    //                 std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-    //                 omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //                 kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
-    //                 omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //               }
-    //             }
-    //             else
-    //             {
-    //               if(mol_id_[i]==mol_id_[j])
-    //               { // inter same molecule specie
-    //                 if (dx2 < cut_sig_2_)
-    //                 {
-    //                   double dist = std::sqrt(dx2);
-    //                   std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-    //                   std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-    //                   omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //                   kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist,  1.0);
-    //                   frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-    //                   omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //                 }
-    //                 if(delta!=0.) {
-    //                   // this is to account for inversion atom/molecule
-    //                   if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-    //                   else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-    //                   dx2 = iprod(sym_dx, sym_dx);
-    //                   if (dx2 < cut_sig_2_)
-    //                   {
-    //                     double dist = std::sqrt(dx2);
-    //                     std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-    //                     std::size_t same_mutex_index = offset_mutex_same(mol_id_[i], a_i, a_j, natmol2_);
-    //                     omp_set_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //                     kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
-    //                     frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-    //                     omp_unset_lock(&frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-    //                   }
-    //                 }
-    //               } 
-    //               else
-    //               { // inter cross molecule species
-    //                 if (dx2 < cut_sig_2_)
-    //                 {
-    //                   double dist = std::sqrt(dx2);
-    //                   kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);//std::max(inv_num_mol_[i], inv_num_mol_[j])/nsym);
-    //                   std::size_t cross_access_index = offset_cross(i, j, mol_i, mol_j, a_i, a_j, natmol2_);
-    //                   frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
-    //                 }
-    //               }
-    //             }
-    //           }
-    //         }
-    //         ++a_j;
-    //       }
-    //       ++a_i;
-    //     }
-    //     ++mol_j;
-    //   }
+      mol_threads_[i] = std::thread(molecule_routine, i, nindex_, pbc, x, std::cref(inv_num_mol_), 
+      cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
+      std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::cref(equivalence_list_), std::ref(frame_same_mat_),
+      std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
+      std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_));
     }
+    for ( auto &thread : mol_threads_ ) thread.join();
     /* calculate the mindist accumulation indices */
-    std::vector<std::thread> threads(num_threads_);
-
     std::size_t num_ops_same = 0;
     for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
     int n_per_thread_same = num_ops_same / num_threads_;
@@ -945,7 +854,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         end_j_same = end_i_same;
         if ( static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1] )
         {
-          end_im_same++; // what aobut htis
+          end_im_same++;
           end_i_same = 0;
           end_j_same = 0;
         }
@@ -991,11 +900,10 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       // }
 
       /* start thread */
-      /* TODO run last run on main thread */
-      threads[tid] = std::thread(
-        mindist_same, start_mti_same, start_im_same, start_i_same, start_j_same,
-        n_loop_operations_total_same, std::cref(density_bins_), std::cref(num_mol_unique_), std::cref(natmol2_), 
-        std::cref(inv_num_mol_), std::cref(frame_same_mat_), std::ref(frame_same_tmutex_), std::ref(interm_same_maxcdf_mol_)
+      threads_[tid] = std::thread(
+        mindist_same, start_mti_same, start_im_same, start_i_same, 
+        start_j_same, n_loop_operations_total_same, std::cref(density_bins_), std::cref(num_mol_unique_),
+        std::cref(natmol2_), std::cref(inv_num_mol_), std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_)
       );
       /* end thread */
 
@@ -1010,18 +918,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       // start_i_cross = end_i_cross;
       // start_j_cross = end_j_cross;
     }
-    for ( auto &thread : threads ) thread.join();
-    /* deposit minimal distance gaussians */
-    // mindist_kernel(
-    //   natmol2_,
-    //   density_bins_,
-    //   num_mol_unique_,
-    //   frame_same_mat_,
-    //   interm_same_maxcdf_mol_,
-    //   cross_index_,
-    //   frame_cross_mat_,
-    //   interm_cross_maxcdf_mol_
-    // );
+    for ( auto &thread : threads_ ) thread.join();
     ++n_x_;
   }
   ++nframe_;
