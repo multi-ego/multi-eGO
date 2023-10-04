@@ -27,7 +27,7 @@ GProtein             3
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
 ; residue   1 MET rtp MET  q  0.0
-     1          N      1    MET      N      1          0    15.0067
+     1         NL      1    MET      N      1          0    15.0067
      2        CH1      1    MET     CA      1          0     13.019
      3        CH2      1    MET     CB      1          0     14.027
      4        CH2      1    MET     CG      1          0     14.027

@@ -3,7 +3,7 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 04-10-2023 00:09
+; Created on the 04-10-2023 14:36
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = rc                  
@@ -2083,7 +2083,7 @@ GProtein			3
 [ pairs ]
  ; ai  aj  func           c6          c12 ;  probability  rc_probability source
     1   4     1 0.000000e+00 3.198191e-07 ;          1.0             1.0    1-4
-    1   9     1 0.000000e+00 3.002258e-07 ;          1.0             1.0    1-4
+    1   9     1 0.000000e+00 4.000000e-06 ;          1.0             1.0    1-4
     3   8     1 0.000000e+00 2.015656e-07 ;          1.0             1.0    1-4
     3   9     1 0.000000e+00 2.389453e-06 ;          1.0             1.0    1-4
     4   7     1 0.000000e+00 4.940490e-07 ;          1.0             1.0    1-4
