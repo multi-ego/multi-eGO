@@ -633,8 +633,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # clean NaN and zeros
     meGO_LJ.dropna(subset=['epsilon'], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
-    if((np.abs(meGO_LJ['rc_cutoff']-meGO_LJ['cutoff'])).max()>10e-6): 
-        print(meGO_LJ.loc[(np.abs(meGO_LJ['rc_cutoff']-meGO_LJ['cutoff']).max()>10e-6)].to_string())
+
+
+    # This is a debug check to avoid data inconsistencies
+    if((np.abs(meGO_LJ['rc_cutoff']-meGO_LJ['cutoff'])).max()>0): 
+        print(meGO_LJ.loc[(np.abs(meGO_LJ['rc_cutoff']-meGO_LJ['cutoff']).max()>0)].to_string())
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
     # This is a debug check to avoid data inconsistencies
     if((np.abs(1.45*meGO_LJ['rep']**(1/12)-meGO_LJ['cutoff'])).max()>10e-6): 
