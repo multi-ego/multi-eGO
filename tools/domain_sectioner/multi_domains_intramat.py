@@ -16,7 +16,7 @@ dim = int(np.sqrt(len(intra_md[0])))
 domain_mask = np.full((dim, dim), False)
 full_blocks = [0, *blocks, dim]
 for i, _ in enumerate([0, *blocks]):
-    print(f"Dividing {intra_md} at atoms {full_blocks[i]} and {full_blocks[i+1]}")
+    print(f"Dividing {intramat} at atoms {full_blocks[i]} and {full_blocks[i+1]}")
     map = np.array([ True if x > full_blocks[i] and x <= full_blocks[i+1] else False for x in range(dim)])
     # map_j = np.array([ True if i >  i_block - 1 else False for i in range(dim)])
     map = map * map[:,np.newaxis]
