@@ -1024,36 +1024,36 @@ void CMData::writeOutput()
   {
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
-      // for (int ii = 0; ii < natmol2_[i]; ii++)
-      // {
-      //   FILE *fp_inter = nullptr;
-      //   FILE *fp_inter_cum = nullptr;
-      //   FILE *fp_intra = nullptr;
-      //   std::string ffh_inter = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-      //   fp_inter = gmx_ffopen(ffh_inter, "w");
-      //   std::string ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-      //   fp_inter_cum = gmx_ffopen(ffh_inter_cum, "w");
-      //   std::string ffh_intra = "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-      //   fp_intra = gmx_ffopen(ffh_intra, "w");
-      //   for (int k = 0; k < interm_same_mat_density_[i][ii][0].size(); k++)
-      //   {
-      //     fprintf(fp_inter, "%lf", density_bins_[k]);
-      //     fprintf(fp_inter_cum, "%lf", density_bins_[k]);
-      //     fprintf(fp_intra, "%lf", density_bins_[k]);
-      //     for (int jj = 0; jj < natmol2_[i]; jj++)
-      //     {
-      //       fprintf(fp_inter, " %lf", interm_same_mat_density_[i][ii][jj][k]);
-      //       fprintf(fp_inter_cum, " %lf", interm_same_maxcdf_mol_[i][ii][jj][k]);
-      //       fprintf(fp_intra, " %lf", intram_mat_density_[i][ii][jj][k]);
-      //     }
-      //     fprintf(fp_inter, "\n");
-      //     fprintf(fp_inter_cum, "\n");
-      //     fprintf(fp_intra, "\n");
-      //   }
-      //   gmx_ffclose(fp_inter);
-      //   gmx_ffclose(fp_inter_cum);
-      //   gmx_ffclose(fp_intra);
-      // }
+      for (int ii = 0; ii < natmol2_[i]; ii++)
+      {
+        FILE *fp_inter = nullptr;
+        FILE *fp_inter_cum = nullptr;
+        FILE *fp_intra = nullptr;
+        std::string ffh_inter = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+        fp_inter = gmx_ffopen(ffh_inter, "w");
+        std::string ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+        fp_inter_cum = gmx_ffopen(ffh_inter_cum, "w");
+        std::string ffh_intra = "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+        fp_intra = gmx_ffopen(ffh_intra, "w");
+        for (int k = 0; k < interm_same_mat_density_[i][ii][0].size(); k++)
+        {
+          fprintf(fp_inter, "%lf", density_bins_[k]);
+          fprintf(fp_inter_cum, "%lf", density_bins_[k]);
+          fprintf(fp_intra, "%lf", density_bins_[k]);
+          for (int jj = 0; jj < natmol2_[i]; jj++)
+          {
+            fprintf(fp_inter, " %lf", interm_same_mat_density_[i][ii][jj][k]);
+            fprintf(fp_inter_cum, " %lf", interm_same_maxcdf_mol_[i][ii][jj][k]);
+            fprintf(fp_intra, " %lf", intram_mat_density_[i][ii][jj][k]);
+          }
+          fprintf(fp_inter, "\n");
+          fprintf(fp_inter_cum, "\n");
+          fprintf(fp_intra, "\n");
+        }
+        gmx_ffclose(fp_inter);
+        gmx_ffclose(fp_inter_cum);
+        gmx_ffclose(fp_intra);
+      }
       for (std::size_t j = i + 1; j < natmol2_.size(); j++)
       {
         for (int ii = 0; ii < natmol2_[i]; ii++)
