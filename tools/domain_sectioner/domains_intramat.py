@@ -45,6 +45,6 @@ elif len(sys.argv)==4:
     intra_rc[5] = np.where(map, intra_rc[5], intra_domain_rc[5])
     intra_rc[6] = np.where(map, intra_rc[6], intra_domain_rc[6])
 
-    np.savetxt("grouped_intramat.ndx",intra_rc.T, delimiter=" ",fmt = ['%4i', '%4i', '%4i', '%4i', '%2.6f', '%.6e', '%2.6' ])
+    np.savetxt("grouped_intramat.ndx",intra_rc.T, delimiter=" ",fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f' ])
     print("Finished job")
 
