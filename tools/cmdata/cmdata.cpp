@@ -383,7 +383,7 @@ static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_
 
 static std::size_t mutex_access( std::size_t i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
 {
-  return a_j * natmol2[i] + a_i;
+  return a_i * natmol2[i] + a_j;
 }
 
 static std::size_t offset_cross( 
@@ -391,7 +391,7 @@ static std::size_t offset_cross(
   std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2
 )
 {
-  return mol_i * (mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_j * natmol2[i] + a_i; 
+  return mol_i * (mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_i * natmol2[j] + a_j; 
 }
 
 void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const TopologyInformation &top)
@@ -401,9 +401,9 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   if (outfile_intra_ == "") outfile_intra_ = std::string("intramat.ndx");
 
   GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
-  if ( num_threads_ > std::thread::hardware_concurrency() || num_threads_ > MAX_NUM_THREADS )
+  if ( num_threads_ > std::thread::hardware_concurrency() )
   {
-    num_threads_ = std::min(static_cast<int>(std::thread::hardware_concurrency()), MAX_NUM_THREADS);
+    num_threads_ = std::thread::hardware_concurrency();
     printf("Maximum thread number surpassed. Scaling num_threads down accordingly\n");
   }
   printf("Running operations on %i threads\n", num_threads_);
@@ -546,7 +546,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
 static void mindist_same(
   std::size_t start_mti_same, std::size_t start_im_same, std::size_t start_i_same, 
   std::size_t start_j_same, long int n_loop_operations_same, const std::vector<double> &density_bins,
-  const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2, const std::vector<double> &inv_num_mol,
+  const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2,
   const std::vector<std::vector<double>> &frame_same_mat,
   std::vector<std::vector<std::mutex>> &frame_same_mutex,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
@@ -608,7 +608,7 @@ static void mindist_cross(
             for (std::size_t j = (first_j_cross) ? start_j_cross : 0; j < natmol2[mt_j]; j++)
             {
               std::size_t offset = offset_cross(mt_i, mt_j, im, jm, i, j, natmol2);
-              std::size_t mutex_j = mutex_access(mt_i, i, j, natmol2);
+              std::size_t mutex_j = mutex_access(mt_j, i, j, natmol2);
               double mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset];
               
               std::unique_lock<std::mutex> lock(frame_cross_mutex[cross_index[mt_i][mt_j]][mutex_j]);
@@ -631,19 +631,45 @@ static void mindist_cross(
 }
 
 static void mindist_kernel(
-  const std::vector<int> &natmol2,
-  const std::vector<double> density_bins,
+  const std::vector<int> &natmol2,          // common parameters
+  const std::vector<double> &density_bins,
   const std::vector<int> &num_mol_unique,
+  std::size_t start_mti_same,               // same parameters
+  std::size_t start_im_same,
+  std::size_t start_i_same,
+  std::size_t start_j_same,
+  long int n_loop_operations_same,
   const std::vector<std::vector<double>> &frame_same_mat,
+  std::vector<std::vector<std::mutex>> &frame_same_mutex, 
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
-  const std::vector<std::vector<int>> &cross_index,
+  std::size_t start_mti_cross,              // cross parameters
+  std::size_t start_mtj_cross,
+  std::size_t start_im_cross,
+  std::size_t start_jm_cross,
+  std::size_t start_i_cross,
+  std::size_t start_j_cross,
+  int n_loop_operations_cross,
+  const std::vector<std::vector<int>> &cross_index, 
   const std::vector<std::vector<double>> &frame_cross_mat,
+  std::vector<std::vector<std::mutex>> &frame_cross_mutex,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
-  // if (true) mindist_same();
+  if ( n_loop_operations_same != 0 )
+  {
+    mindist_same(
+      start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same, density_bins,
+      num_mol_unique, natmol2, frame_same_mat, frame_same_mutex, interm_same_maxcdf_mol
+    );
+  }
 
-  // if (true) mindist_cross();
+  if ( n_loop_operations_cross != 0 )
+  {
+    mindist_cross(
+      start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_cross, 
+      natmol2, cross_index, density_bins, num_mol_unique, frame_cross_mat, frame_cross_mutex, interm_cross_maxcdf_mol
+    );
+  }
 }
 
 static void molecule_routine(
@@ -655,8 +681,7 @@ static void molecule_routine(
   std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_,
   std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_,
-  Semaphore &semaphore_
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_, Semaphore &semaphore_
 )
 {
   const char * atomname;
@@ -772,7 +797,7 @@ static void molecule_routine(
                 {
                   double dist = std::sqrt(dx2);
                   std::size_t cross_access_index = offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_);
-                  std::size_t cross_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
+                  std::size_t cross_mutex_index = mutex_access(mol_id_[j], a_i, a_j, natmol2_);
                   std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
                   kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);//std::max(inv_num_mol_[i], inv_num_mol_[j])/nsym);
                   frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
@@ -808,16 +833,20 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
     }
 
-    /* calculate the center of each molecule */
+    /* start loop for each molecule */
     for (int i = 0; i < nindex_; i++)
     {
+      /* start molecule thread*/
       mol_threads_[i] = std::thread(molecule_routine, i, nindex_, pbc, x, std::cref(inv_num_mol_), 
       cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
       std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::cref(equivalence_list_), std::ref(frame_same_mat_),
       std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
       std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_));
+      /* end molecule thread */
     }
+    /* join molecule threads */
     for ( auto &thread : mol_threads_ ) thread.join();
+
     /* calculate the mindist accumulation indices */
     std::size_t num_ops_same = 0;
     for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
@@ -920,14 +949,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       }
 
       /* start thread */
-      // threads_[tid] = std::thread(
-      //   mindist_same, start_mti_same, start_im_same, start_i_same, 
-      //   start_j_same, n_loop_operations_total_same, std::cref(density_bins_), std::cref(num_mol_unique_),
-      //   std::cref(natmol2_), std::cref(inv_num_mol_), std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_)
-      // );
       threads_[tid] = std::thread(
-        mindist_cross, start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_total_cross, 
-        std::cref(natmol2_), std::cref(cross_index_), std::cref(density_bins_), std::cref(num_mol_unique_), std::cref(frame_cross_mat_), 
+        mindist_kernel, std::cref(natmol2_), std::cref(density_bins_),std::cref(num_mol_unique_), 
+        start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_total_same,
+        std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_),
+        start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross,
+        n_loop_operations_total_cross, std::cref(cross_index_), std::cref(frame_cross_mat_), 
         std::ref(frame_cross_mutex_), std::ref(interm_cross_maxcdf_mol_)
       );
       /* end thread */
