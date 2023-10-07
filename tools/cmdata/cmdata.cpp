@@ -118,6 +118,7 @@ public:
     return counter;
   }
 };
+
 using ftype_intra_ = void(
   int, std::size_t, std::size_t, double, int, const std::vector<int> &, const std::vector<int> &,
   const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, 
@@ -125,8 +126,8 @@ using ftype_intra_ = void(
 );
 using ftype_same_ = void(
   int, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &, const std::vector<int> &,
-  const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &,
-  std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &
+  const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &
 );
 using ftype_cross_ = void(
   int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &,
@@ -134,6 +135,7 @@ using ftype_cross_ = void(
   std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
   std::vector<std::vector<std::vector<std::vector<double>>>> &
 );
+
 class CMData : public TrajectoryAnalysisModule
 {
 public:
@@ -485,18 +487,16 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   semaphore_.set_counter(std::min(num_threads_, nindex_));
 
   // set up mode selection
-  f_intra_mol_ = [](int i, std::size_t a_i, std::size_t a_j, double dx2, int nsym, const std::vector<int> &mol_id_,
-  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
-  const std::vector<double> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
-  std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_){};
-  f_inter_mol_same_ = [](int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
-  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,  const std::vector<double> &inv_num_mol_,
-  std::vector<std::vector<std::mutex>> &frame_same_mutex_, const std::vector<std::vector<double>> &frame_same_mat_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_){};
-  f_inter_mol_cross_ = [](int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
-  const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, 
-  std::vector<std::vector<std::mutex>> &frame_cross_mutex_, const std::vector<std::vector<double>> &frame_cross_mat_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_){};
+  f_intra_mol_ = [](int, std::size_t, std::size_t, double, int, const std::vector<int> &,
+  const std::vector<int> &, const std::vector<double> &, const std::vector<double> &, 
+  std::vector<std::vector<std::mutex>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
+  f_inter_mol_same_ = [](int, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &, const std::vector<int> &,
+  const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &){};
+  f_inter_mol_cross_ = [](int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &,
+  const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &,
+  const std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
+
   printf("Evaluating mode selection:\n");
   std::string tmp_mode;
   std::stringstream modestream{ mode_ };
@@ -950,8 +950,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* calculate the mindist accumulation indices */
     std::size_t num_ops_same = 0;
     for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-    int n_per_thread_same = (same_) ? ( num_ops_same / num_threads_ ) : 0;
-    int n_threads_same_uneven = num_ops_same % num_threads_;
+    int n_per_thread_same = (same_) ? num_ops_same / num_threads_  : 0;
+    int n_threads_same_uneven = (same_) ? num_ops_same % num_threads_ : 0;
     std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
     std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
     int num_ops_cross = 0;
@@ -963,7 +963,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       }
     }
     int n_per_thread_cross = (cross_) ? num_ops_cross / num_threads_ : 0;
-    int n_threads_cross_uneven = num_ops_cross % num_threads_;
+    int n_threads_cross_uneven = (cross_) ? num_ops_cross % num_threads_ : 0;
 
     std::size_t start_mti_cross = 0, start_mtj_cross = 1, start_im_cross = 0, start_jm_cross = 0, start_i_cross = 0, start_j_cross = 0;
     std::size_t end_mti_cross = 1, end_mtj_cross = 2, end_im_cross = 1, end_jm_cross = 1, end_i_cross = 0, end_j_cross = 0;
