@@ -65,7 +65,6 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-// #include <semaphore>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -74,8 +73,6 @@
 #include <numeric>
 #include <sstream>
 #include <fstream>
-
-#define MAX_NUM_THREADS 32
 
 namespace gmx
 {
@@ -121,7 +118,22 @@ public:
     return counter;
   }
 };
-
+using ftype_intra_ = void(
+  int, std::size_t, std::size_t, double, int, const std::vector<int> &, const std::vector<int> &,
+  const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, 
+  std::vector<std::vector<std::vector<std::vector<double>>>> &
+);
+using ftype_same_ = void(
+  int, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &, const std::vector<int> &,
+  const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &,
+  std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &
+);
+using ftype_cross_ = void(
+  int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &,
+  const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<double> &,
+  std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &
+);
 class CMData : public TrajectoryAnalysisModule
 {
 public:
@@ -136,8 +148,6 @@ public:
   void writeOutput() override;
 
 private:
-  // constexpr std::uint64_t MAX_NUM_THREADS = 32;
-
   Selection refsel_;
   bool histo_;
   double cutoff_;
@@ -184,11 +194,16 @@ private:
   std::vector<std::thread> threads_;
   std::vector<std::thread> mol_threads_;
   Semaphore semaphore_;
+
+  // mode selection, booleans and functions
+  std::string mode_;
+  bool intra_ = false, same_ = false, cross_ = false;
+  std::function<ftype_intra_> f_intra_mol_;
+  std::function<ftype_same_> f_inter_mol_same_;
+  std::function<ftype_cross_> f_inter_mol_cross_;
 };
 
-CMData::CMData() : outfile_intra_(""),
-                   outfile_inter_(""),
-                   sym_file_path_("") {}
+CMData::CMData() : sym_file_path_("") {}
 
 void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings *settings)
 {
@@ -206,11 +221,13 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&mol_cutoff_)
                     .defaultValue(6.0)
                     .description("Molecular cutoff in which to consider contacts intermolecularly"));
-  options->addOption(FileNameOption("intra")
+  options->addOption(StringOption("ointra")
                     .store(&outfile_intra_)
+                    .defaultValue("intramat.ndx")
                     .description("Output of the intra-molecular contacts"));
-  options->addOption(FileNameOption("inter")
+  options->addOption(StringOption("ointer")
                     .store(&outfile_inter_)
+                    .defaultValue("intramat.ndx")
                     .description("Output of the intra-molecular contacts"));
   options->addOption(BooleanOption("histo")
                     .store(&histo_)
@@ -236,6 +253,10 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&num_threads_)
                     .defaultValue(1)
                     .description("Number of threads to run task on"));
+  options->addOption(StringOption("mode")
+                    .store(&mode_)
+                    .defaultValue("intra+same+cross")
+                    .description("Select the mode of analysis from intra, same or cross (combine with +)"));
 
   // always require topology
   settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
@@ -255,7 +276,7 @@ static inline void read_symmetry_indices(
     eq_list[i].resize(natmol2_[i]);
     for (int ii = 0; ii < natmol2_[i]; ii++)
     {
-       eq_list[i][ii].push_back(ii);
+      eq_list[i][ii].push_back(ii);
     }
   }
 
@@ -394,12 +415,54 @@ static std::size_t offset_cross(
   return mol_i * (mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_i * natmol2[j] + a_j; 
 }
 
+static void intra_mol_routine( 
+  int i, std::size_t a_i, std::size_t a_j, double dx2, int nsym, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
+  const std::vector<double> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
+  std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_
+)
+{
+  std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
+  std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+  kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+  lock.unlock();
+}
+
+static void inter_mol_same_routine(
+  int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
+  std::vector<std::vector<std::mutex>> &frame_same_mutex_, std::vector<std::vector<double>> &frame_same_mat_,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_
+)
+{
+  double dist = std::sqrt(dx2);
+  std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
+  std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
+  std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
+  kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
+  frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
+  lock.unlock();
+}
+
+static void inter_mol_cross_routine(
+  int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, 
+  std::vector<std::vector<std::mutex>> &frame_cross_mutex_, std::vector<std::vector<double>> &frame_cross_mat_,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_
+)
+{
+  double dist = std::sqrt(dx2);
+  std::size_t cross_access_index = offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_);
+  std::size_t cross_mutex_index = mutex_access(mol_id_[j], a_i, a_j, natmol2_);
+  std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
+  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);
+  frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
+  lock.unlock();
+}
+
 void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const TopologyInformation &top)
 {
   /* Checking inputs */
-  if (outfile_inter_ == "") outfile_inter_ = std::string("intermat.ndx");
-  if (outfile_intra_ == "") outfile_intra_ = std::string("intramat.ndx");
-
   GMX_RELEASE_ASSERT(num_threads_ > 0, "num_threads cannot be less than 1\n");
   if ( num_threads_ > std::thread::hardware_concurrency() )
   {
@@ -417,8 +480,49 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   mols_ = gmx_mtop_molecules(*top.mtop());
   // number of molecules
   nindex_ = mols_.numBlocks();
+
   mol_threads_.resize(nindex_);
   semaphore_.set_counter(std::min(num_threads_, nindex_));
+
+  // set up mode selection
+  f_intra_mol_ = [](int i, std::size_t a_i, std::size_t a_j, double dx2, int nsym, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
+  const std::vector<double> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
+  std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_){};
+  f_inter_mol_same_ = [](int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,  const std::vector<double> &inv_num_mol_,
+  std::vector<std::vector<std::mutex>> &frame_same_mutex_, const std::vector<std::vector<double>> &frame_same_mat_,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_){};
+  f_inter_mol_cross_ = [](int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
+  const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, 
+  std::vector<std::vector<std::mutex>> &frame_cross_mutex_, const std::vector<std::vector<double>> &frame_cross_mat_,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_){};
+  printf("Evaluating mode selection:\n");
+  std::string tmp_mode;
+  std::stringstream modestream{ mode_ };
+  while (std::getline(modestream, tmp_mode, '+'))
+  {
+    printf(" - found %s", tmp_mode.c_str());
+    if ( tmp_mode == std::string("intra") )
+    {
+      intra_ = true;
+      f_intra_mol_ = intra_mol_routine;
+      printf(" :: activating intramat calculations\n");
+    }
+    else if ( tmp_mode == std::string("same") )
+    {
+      same_ = true;
+      f_inter_mol_same_ = inter_mol_same_routine;
+      printf(" :: activating intermat same calculations\n");
+    }
+    else if ( tmp_mode == std::string("cross") )
+    {
+      cross_ = true;
+      f_inter_mol_cross_ = inter_mol_cross_routine;
+      printf(" :: activating intermat cross calculations\n");
+    }
+    else printf(" :: ignoring keyword\n");
+  }
 
   std::vector<int> num_mol;
   num_mol.push_back(1);
@@ -465,24 +569,33 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   printf("number of different molecules %lu\n", natmol2_.size());
   for(std::size_t i=0; i<natmol2_.size();i++) printf("mol %lu num %u size %u\n", i, num_mol[i], natmol2_[i]);
 
-  interm_same_mat_density_.resize(natmol2_.size());
-  interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-  interm_same_maxcdf_mol_.resize(natmol2_.size());
-  interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
-  intram_mat_density_.resize(natmol2_.size());
+  if (same_)
+  {
+    interm_same_mat_density_.resize(natmol2_.size());
+    interm_same_maxcdf_mol_.resize(natmol2_.size());
+  }
+  if (cross_)
+  {
+    interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+    interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
+  }
+  if (intra_) intram_mat_density_.resize(natmol2_.size());
 
   density_bins_.resize(n_bins(cutoff_));
   for (std::size_t i = 0; i < density_bins_.size(); i++)
     density_bins_[i] = cutoff_ / static_cast<double>(density_bins_.size()) * static_cast<double>(i) + cutoff_ / static_cast<double>(density_bins_.size() * 2);
 
   int cross_count = 0;
-  cross_index_.resize(natmol2_.size(), std::vector<int>(natmol2_.size(), 0));
+  if (cross_) cross_index_.resize(natmol2_.size(), std::vector<int>(natmol2_.size(), 0));
   for ( std::size_t i = 0; i < natmol2_.size(); i++ )
   {
-    interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
-    interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
-    intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
-    for ( std::size_t j = i + 1; j < natmol2_.size(); j++ )
+    if (same_)
+    {
+      interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
+      interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
+    }
+    if (intra_) intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(n_bins(cutoff_), 0)));
+    for ( std::size_t j = i + 1; j < natmol2_.size() && cross_; j++ )
     {
       interm_cross_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
       interm_cross_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(n_bins(cutoff_), 0)));
@@ -524,16 +637,16 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
   snew(xcm_, nindex_);
 
-  frame_same_mat_.resize(natmol2_.size());
-  frame_same_mutex_.resize(natmol2_.size());
-  frame_cross_mat_.resize(cross_index_.size());
-  frame_cross_mutex_.resize(cross_index_.size());
+  if (same_) frame_same_mat_.resize(natmol2_.size());
+  if (intra_ | same_) frame_same_mutex_.resize(natmol2_.size());
+  if (cross_) frame_cross_mat_.resize(cross_index_.size());
+  if (cross_) frame_cross_mutex_.resize(cross_index_.size());
   std::size_t sum_cross_mol_sizes = 0;
   for ( std::size_t i = 0; i < natmol2_.size(); i++ )
   {
-    frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
-    frame_same_mutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
-    for ( std::size_t j = i+1; j < natmol2_.size(); j++ )
+    if (same_) frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
+    if (intra_ | same_) frame_same_mutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
+    for ( std::size_t j = i+1; j < natmol2_.size() && cross_; j++ )
     {
       frame_cross_mat_[cross_index_[i][j]].resize(natmol2_[i] * natmol2_[j] * num_mol_unique_[i] * num_mol_unique_[j], 0);
       frame_cross_mutex_[cross_index_[i][j]] = std::vector<std::mutex>(natmol2_[i] * natmol2_[j]);
@@ -681,7 +794,8 @@ static void molecule_routine(
   std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_,
   std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_, Semaphore &semaphore_
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_, Semaphore &semaphore_,
+  const std::function<ftype_intra_> &f_intra_mol_, const std::function<ftype_same_> &f_inter_mol_same_, const std::function<ftype_cross_> &f_inter_mol_cross_
 )
 {
   const char * atomname;
@@ -754,10 +868,7 @@ static void molecule_routine(
             {
               if (dx2 < cut_sig_2_)
               {
-                std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
-                std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-                kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
-                lock.unlock();
+                f_intra_mol_(i, a_i, a_j, dx2, nsym, mol_id_, natmol2_, density_bins_, inv_num_mol_, frame_same_mutex_, intram_mat_density_);
               }
             }
             else
@@ -766,13 +877,9 @@ static void molecule_routine(
               { // inter same molecule specie
                 if (dx2 < cut_sig_2_)
                 {
-                  double dist = std::sqrt(dx2);
-                  std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-                  std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
-                  std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-                  kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist,  1.0);
-                  frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-                  lock.unlock();
+                  f_inter_mol_same_(
+                    i, mol_i, a_i, a_j, dx2, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                  );
                 }
                 if(delta!=0.) {
                   // this is to account for inversion atom/molecule
@@ -781,13 +888,9 @@ static void molecule_routine(
                   dx2 = iprod(sym_dx, sym_dx);
                   if (dx2 < cut_sig_2_)
                   {
-                    double dist = std::sqrt(dx2);
-                    std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-                    std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
-                    std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-                    kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
-                    frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-                    lock.unlock();
+                    f_inter_mol_same_(
+                      i, mol_i, a_i, a_j, dx2, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                    );
                   }
                 }
               } 
@@ -795,13 +898,9 @@ static void molecule_routine(
               { // inter cross molecule species
                 if (dx2 < cut_sig_2_)
                 {
-                  double dist = std::sqrt(dx2);
-                  std::size_t cross_access_index = offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_);
-                  std::size_t cross_mutex_index = mutex_access(mol_id_[j], a_i, a_j, natmol2_);
-                  std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
-                  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);//std::max(inv_num_mol_[i], inv_num_mol_[j])/nsym);
-                  frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
-                  lock.unlock();
+                  f_inter_mol_cross_(
+                    i, j, mol_i, mol_j, a_i, a_j, dx2, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
+                  );
                 }
               }
             }
@@ -841,7 +940,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
       std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::cref(equivalence_list_), std::ref(frame_same_mat_),
       std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
-      std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_));
+      std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
+      std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_));
       /* end molecule thread */
     }
     /* join molecule threads */
@@ -850,7 +950,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
     /* calculate the mindist accumulation indices */
     std::size_t num_ops_same = 0;
     for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-    int n_per_thread_same = num_ops_same / num_threads_;
+    int n_per_thread_same = (same_) ? ( num_ops_same / num_threads_ ) : 0;
     int n_threads_same_uneven = num_ops_same % num_threads_;
     std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
     std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
@@ -862,12 +962,12 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
         num_ops_cross += num_mol_unique_[im] * natmol2_[im] * num_mol_unique_[jm] * natmol2_[jm];
       }
     }
-    int n_per_thread_cross = num_ops_cross / num_threads_;
+    int n_per_thread_cross = (cross_) ? num_ops_cross / num_threads_ : 0;
     int n_threads_cross_uneven = num_ops_cross % num_threads_;
 
     std::size_t start_mti_cross = 0, start_mtj_cross = 1, start_im_cross = 0, start_jm_cross = 0, start_i_cross = 0, start_j_cross = 0;
     std::size_t end_mti_cross = 1, end_mtj_cross = 2, end_im_cross = 1, end_jm_cross = 1, end_i_cross = 0, end_j_cross = 0;
-      
+    
     for ( int tid = 0; tid < num_threads_; tid++ )
     {
       /* calculate same indices */
@@ -898,7 +998,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
 
       /* calculate cross indices */
       int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
-      if ( natmol2_.size() > 1 )
+      if ( natmol2_.size() > 1 && cross_ )
       {
         int n_loop_operations_cross = n_loop_operations_total_cross;
         while ( natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
@@ -950,7 +1050,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
 
       /* start thread */
       threads_[tid] = std::thread(
-        mindist_kernel, std::cref(natmol2_), std::cref(density_bins_),std::cref(num_mol_unique_), 
+        mindist_kernel, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
         start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_total_same,
         std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_),
         start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross,
@@ -978,10 +1078,27 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
   ++nframe_;
 }
 
+static void normalize_histo(
+  std::size_t i, int ii, int jj, double norm, double inv_num_mol_same,
+  std::vector<std::vector<std::vector<std::vector<double>>>> &data
+)
+{
+  std::transform(std::begin(data[i][ii][jj]), std::end(data[i][ii][jj]), std::begin(data[i][ii][jj]),
+                 [norm, inv_num_mol_same]( auto &c ){ return c * norm * inv_num_mol_same; }
+                );
+}
+
 void CMData::finishAnalysis(int /*nframes*/)
 {
   // normalisations
   double norm = 1. / n_x_;
+
+  using ftype_norm = void(std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &);
+  auto f_empty = [](std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
+
+  std::function<ftype_norm> normalize_intra = (intra_) ? normalize_histo : f_empty;
+  std::function<ftype_norm> normalize_inter_same = (same_) ? normalize_histo : f_empty;
+  std::function<ftype_norm> normalize_inter_cross = (cross_) ? normalize_histo : f_empty;
 
   for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
@@ -990,50 +1107,34 @@ void CMData::finishAnalysis(int /*nframes*/)
       for (int jj = ii; jj < natmol2_[i]; jj++)
       {
         double inv_num_mol_same = inv_num_mol_unique_[i];
-        std::transform(interm_same_maxcdf_mol_[i][ii][jj].begin(), 
-                       interm_same_maxcdf_mol_[i][ii][jj].end(), 
-                       interm_same_maxcdf_mol_[i][ii][jj].begin(), 
-                       [norm,inv_num_mol_same](auto &c) { return c * norm * inv_num_mol_same; });
-        std::transform(interm_same_mat_density_[i][ii][jj].begin(), 
-                       interm_same_mat_density_[i][ii][jj].end(), 
-                       interm_same_mat_density_[i][ii][jj].begin(), 
-                       [norm](auto &c) { return c * norm; });
-        std::transform(intram_mat_density_[i][ii][jj].begin(), 
-                       intram_mat_density_[i][ii][jj].end(),
-                       intram_mat_density_[i][ii][jj].begin(),
-                       [norm](auto &c) { return c * norm; });
+        normalize_inter_same(i, ii, jj, norm, inv_num_mol_same, interm_same_maxcdf_mol_);
+        normalize_inter_same(i, ii, jj, norm, 1.0, interm_same_mat_density_);
+        normalize_intra(i, ii, jj, norm, 1.0, intram_mat_density_);
         
         double sum = 0.0;
-        for ( std::size_t k = 0; k < n_bins(cutoff_); k++ )
+        for ( std::size_t k = (same_) ? 0 : n_bins(cutoff_); k < n_bins(cutoff_); k++ )
         {
           sum+= dx_ * interm_same_maxcdf_mol_[i][ii][jj][k];
           if ( sum > 1.0 ) sum=1.0;
           interm_same_maxcdf_mol_[i][ii][jj][k] = sum;
         }
-        interm_same_mat_density_[i][jj][ii] = interm_same_mat_density_[i][ii][jj];
-        interm_same_maxcdf_mol_[i][jj][ii] = interm_same_maxcdf_mol_[i][ii][jj];
-        intram_mat_density_[i][jj][ii] = intram_mat_density_[i][ii][jj];
+        if (same_) interm_same_mat_density_[i][jj][ii] = interm_same_mat_density_[i][ii][jj];
+        if (same_) interm_same_maxcdf_mol_[i][jj][ii] = interm_same_maxcdf_mol_[i][ii][jj];
+        if (intra_) intram_mat_density_[i][jj][ii] = intram_mat_density_[i][ii][jj];
       }
     }
-    for (std::size_t j = i + 1; j < natmol2_.size(); j++)
+    for (std::size_t j = i + 1; j < natmol2_.size() & cross_; j++)
     {
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
         for (int jj = 0; jj < natmol2_[j]; jj++)
         {
           double inv_num_mol_cross = inv_num_mol_unique_[i];
-
-          std::transform(interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
-                         interm_cross_mat_density_[cross_index_[i][j]][ii][jj].end(),
-                         interm_cross_mat_density_[cross_index_[i][j]][ii][jj].begin(),
-                         [norm](auto &c) { return c * norm; });
-          std::transform(interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].begin(),
-                         interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].end(),
-                         interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj].begin(),
-                         [norm,inv_num_mol_cross](auto &c) { return c * norm * inv_num_mol_cross; });
+          normalize_inter_cross(cross_index_[i][j], ii, jj, norm, 1.0, interm_cross_mat_density_);
+          normalize_inter_cross(cross_index_[i][j], ii, jj, norm, inv_num_mol_cross, interm_cross_maxcdf_mol_);
 
           double sum = 0.0;
-          for ( std::size_t k = 0; k < n_bins(cutoff_); k++ )
+          for ( std::size_t k = (cross_) ? 0 : n_bins(cutoff_); k < n_bins(cutoff_); k++ )
           {
             sum += dx_ * interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k];
             if ( sum > 1.0 ) sum = 1.0;
@@ -1045,117 +1146,140 @@ void CMData::finishAnalysis(int /*nframes*/)
   }
 }
 
+static void f_write_intra( 
+  std::size_t i, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density
+)
+{
+  FILE *fp_intra = nullptr;
+
+  std::string ffh_intra = "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  fp_intra = gmx_ffopen(ffh_intra, "w");
+  for (int k = 0; k < density_bins.size(); k++)
+  {
+    fprintf(fp_intra, "%lf", density_bins[k]);
+    for (int jj = 0; jj < natmol2[i]; jj++)
+    {
+      fprintf(fp_intra, " %lf", intram_mat_density[i][ii][jj][k]);
+    }
+    fprintf(fp_intra, "\n");
+  }
+
+  gmx_ffclose(fp_intra);
+}
+
+static void f_write_inter_same(
+  std::size_t i, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
+)
+{
+  FILE *fp_inter = nullptr;
+  FILE *fp_inter_cum = nullptr;
+  std::string ffh_inter = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  fp_inter = gmx_ffopen(ffh_inter, "w");
+  std::string ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  fp_inter_cum = gmx_ffopen(ffh_inter_cum, "w");
+  for (int k = 0; k < density_bins.size(); k++)
+  {
+    fprintf(fp_inter, "%lf", density_bins[k]);
+    fprintf(fp_inter_cum, "%lf", density_bins[k]);
+    for (int jj = 0; jj < natmol2[i]; jj++)
+    {
+      fprintf(fp_inter, " %lf", interm_same_mat_density[i][ii][jj][k]);
+      fprintf(fp_inter_cum, " %lf", interm_same_maxcdf_mol[i][ii][jj][k]);
+    }
+    fprintf(fp_inter, "\n");
+    fprintf(fp_inter_cum, "\n");
+  }
+  gmx_ffclose(fp_inter);
+  gmx_ffclose(fp_inter_cum);
+}
+
+static void f_write_inter_cross(
+  std::size_t i, std::size_t j, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<int>> &cross_index,
+  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+)
+{
+  FILE *fp = nullptr;
+  FILE *fp_cum = nullptr;
+  std::string ffh = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  std::string ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  fp = gmx_ffopen(ffh, "w");
+  fp_cum = gmx_ffopen(ffh_cum, "w");
+  for (int k = 0; k < interm_cross_mat_density[cross_index[i][j]][ii][0].size(); k++)
+  {
+    fprintf(fp, "%lf", density_bins[k]);
+    fprintf(fp_cum, "%lf", density_bins[k]);
+    for (int jj = 0; jj < natmol2[j]; jj++)
+    {
+      fprintf(fp, " %lf", interm_cross_mat_density[cross_index[i][j]][ii][jj][k]);
+      fprintf(fp_cum, " %lf", interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k]);
+    }
+    fprintf(fp, "\n");
+    fprintf(fp_cum, "\n");
+  }
+  gmx_ffclose(fp);
+  gmx_ffclose(fp_cum);
+}
+
 void CMData::writeOutput()
 {
   if (histo_)
   {
+    printf("Writing data... ");
+    std::function<void(
+      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    )> write_intra = [](
+      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    ){};
+
+    std::function<void(
+      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    )> write_inter_same = [](
+      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    ){};
+
+    std::function<void(
+      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<int>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    )> write_inter_cross = [](
+      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+      const std::vector<std::vector<int>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+      const std::vector<std::vector<std::vector<std::vector<double>>>> &
+    ){};
+
+    if (intra_) write_intra = f_write_intra;
+    if (same_) write_inter_same = f_write_inter_same;
+    if (cross_) write_inter_cross = f_write_inter_cross;
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
-        FILE *fp_inter = nullptr;
-        FILE *fp_inter_cum = nullptr;
-        FILE *fp_intra = nullptr;
-        std::string ffh_inter = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-        fp_inter = gmx_ffopen(ffh_inter, "w");
-        std::string ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-        fp_inter_cum = gmx_ffopen(ffh_inter_cum, "w");
-        std::string ffh_intra = "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-        fp_intra = gmx_ffopen(ffh_intra, "w");
-        for (int k = 0; k < interm_same_mat_density_[i][ii][0].size(); k++)
-        {
-          fprintf(fp_inter, "%lf", density_bins_[k]);
-          fprintf(fp_inter_cum, "%lf", density_bins_[k]);
-          fprintf(fp_intra, "%lf", density_bins_[k]);
-          for (int jj = 0; jj < natmol2_[i]; jj++)
-          {
-            fprintf(fp_inter, " %lf", interm_same_mat_density_[i][ii][jj][k]);
-            fprintf(fp_inter_cum, " %lf", interm_same_maxcdf_mol_[i][ii][jj][k]);
-            fprintf(fp_intra, " %lf", intram_mat_density_[i][ii][jj][k]);
-          }
-          fprintf(fp_inter, "\n");
-          fprintf(fp_inter_cum, "\n");
-          fprintf(fp_intra, "\n");
-        }
-        gmx_ffclose(fp_inter);
-        gmx_ffclose(fp_inter_cum);
-        gmx_ffclose(fp_intra);
+        write_intra(i, ii, density_bins_, natmol2_, intram_mat_density_);
+        write_inter_same(i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
       }
       for (std::size_t j = i + 1; j < natmol2_.size(); j++)
       {
         for (int ii = 0; ii < natmol2_[i]; ii++)
         {
-          FILE *fp = nullptr;
-          FILE *fp_cum = nullptr;
-          std::string ffh = "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-          std::string ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
-          fp = gmx_ffopen(ffh, "w");
-          fp_cum = gmx_ffopen(ffh_cum, "w");
-          for (int k = 0; k < interm_cross_mat_density_[cross_index_[i][j]][ii][0].size(); k++)
-          {
-            fprintf(fp, "%lf", density_bins_[k]);
-            fprintf(fp_cum, "%lf", density_bins_[k]);
-            for (int jj = 0; jj < natmol2_[j]; jj++)
-            {
-              fprintf(fp, " %lf", interm_cross_mat_density_[cross_index_[i][j]][ii][jj][k]);
-              fprintf(fp_cum, " %lf", interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k]);
-            }
-            fprintf(fp, "\n");
-            fprintf(fp_cum, "\n");
-          }
-          gmx_ffclose(fp);
-          gmx_ffclose(fp_cum);
+          write_inter_cross(i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
         }
       }
     }
   }
-
-  for (int i = 0; i < natmol2_.size(); i++)
-  {
-    FILE *fp = nullptr;
-    std::string inter_file_name(outfile_inter_);
-    std::size_t found = inter_file_name.find_last_of(".");
-    fp = gmx_ffopen(inter_file_name.insert(found, "_" + std::to_string(i + 1) + "_" + std::to_string(i + 1)), "w");
-    for (int ii = 0; ii < natmol2_[i]; ii++)
-    {
-      for (int jj = 0; jj < natmol2_[i]; jj++)
-      {
-        double dm = calc_mean(interm_same_mat_density_[i][ii][jj], dx_);
-        double prob = calc_prob(interm_same_mat_density_[i][ii][jj], dx_);
-        fprintf(fp, "%4i %4i %4i %4i %9.6lf %9.6lf\n", i + 1, ii + 1, i + 1, jj + 1, dm, prob);
-      }
-    }
-    gmx_ffclose(fp);
-    std::string intra_file_name(outfile_intra_);
-    found = intra_file_name.find_last_of(".");
-    fp = gmx_ffopen(intra_file_name.insert(found, "_" + std::to_string(i + 1) + "_" + std::to_string(i + 1)), "w");
-    for (int ii = 0; ii < natmol2_[i]; ii++)
-    {
-      for (int jj = 0; jj < natmol2_[i]; jj++)
-      {
-        double dm = calc_mean(intram_mat_density_[i][ii][jj], dx_);
-        double prob = calc_prob(intram_mat_density_[i][ii][jj], dx_);
-        fprintf(fp, "%4i %4i %4i %4i %9.6lf %9.6lf\n", i + 1, ii + 1, i + 1, jj + 1, dm, prob);
-      }
-    }
-    gmx_ffclose(fp);
-    for (int j = i + 1; j < natmol2_.size(); j++)
-    {
-      std::string inter_c_file_name(outfile_inter_);
-      found = inter_c_file_name.find_last_of(".");
-      fp = gmx_ffopen(inter_c_file_name.insert(found, "_" + std::to_string(i + 1) + "_" + std::to_string(j + 1)), "w");
-      for (int ii = 0; ii < natmol2_[i]; ii++)
-      {
-        for (int jj = 0; jj < natmol2_[j]; jj++)
-        {
-          double dm = calc_mean(interm_cross_mat_density_[cross_index_[i][j]][ii][jj], dx_);
-          double prob = calc_prob(interm_cross_mat_density_[cross_index_[i][j]][ii][jj], dx_);
-          fprintf(fp, "%4i %4i %4i %4i %9.6lf %9.6lf\n", i + 1, ii + 1, j + 1, jj + 1, dm, prob);
-        }
-      }
-      gmx_ffclose(fp);
-    }
-  }
+  printf("finished\n");
 }
 
 } // namespace
