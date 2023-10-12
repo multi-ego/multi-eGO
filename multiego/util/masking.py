@@ -6,7 +6,7 @@ def create_matrix_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y
 
     mask = np.full((set1.shape[0], set2.shape[0]), False)
     for (type1, type2) in types:
-        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:,np.newaxis])
+        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:,np.newaxis]).T
 
     return mask
 
