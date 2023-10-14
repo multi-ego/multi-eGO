@@ -69,7 +69,7 @@ def initialize_topology(topology):
     ensemble_topology_dataframe['number'] = new_number
     ensemble_topology_dataframe['molecule'] = col_molecule
     ensemble_topology_dataframe['molecule_number'] = col_molecule
-    ensemble_topology_dataframe[['molecule_number', 'molecule_name']] = ensemble_topology_dataframe.molecule.str.split('_', expand=True)
+    ensemble_topology_dataframe[['molecule_number', 'molecule_name']] = ensemble_topology_dataframe.molecule.str.split('_', expand=True, n=1)
     ensemble_topology_dataframe['resnum'] = new_resnum
     ensemble_topology_dataframe['cgnr'] = ensemble_topology_dataframe['resnum']
     ensemble_topology_dataframe['ptype'] = 'A'
@@ -131,7 +131,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     print('\t\t-', f'Initializing {simulation} contact matrix')
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
-        name = molecule_name.split('_')
+        name = molecule_name.split('_', maxsplit=1)
         molecule_names_dictionary[str(name[0])] = name[1]
 
     counter = 1
