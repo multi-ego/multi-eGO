@@ -233,7 +233,7 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .description("Output of the intra-molecular contacts"));
   options->addOption(BooleanOption("histo")
                     .store(&histo_)
-                    .defaultValue(false)
+                    .defaultValue(true)
                     .description("Set to true to output histograms"));
   options->addOption(IntegerOption("nskip")
                     .store(&nskip_)
