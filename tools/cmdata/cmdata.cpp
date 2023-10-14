@@ -120,17 +120,17 @@ public:
 };
 
 using ftype_intra_ = void(
-  int, std::size_t, std::size_t, double, int, const std::vector<int> &, const std::vector<int> &,
+  int, std::size_t, std::size_t, double, double, int, const std::vector<int> &, const std::vector<int> &,
   const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, 
   std::vector<std::vector<std::vector<std::vector<double>>>> &
 );
 using ftype_same_ = void(
-  int, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &, const std::vector<int> &,
+  int, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &, const std::vector<int> &,
   const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
   std::vector<std::vector<std::vector<std::vector<double>>>> &
 );
 using ftype_cross_ = void(
-  int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &,
+  int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &,
   const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<double> &,
   std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
   std::vector<std::vector<std::vector<std::vector<double>>>> &
@@ -169,6 +169,8 @@ private:
   bool list_sym_;
   std::string list_sym_path_;
   std::vector<int> num_mol_unique_;
+  std::vector<double> weights_;
+  std::string weights_path_;
 
   std::vector<int> natmol2_;
   int nindex_;
@@ -259,9 +261,40 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&mode_)
                     .defaultValue("intra+same+cross")
                     .description("Select the mode of analysis from intra, same or cross (combine with +)"));
+  options->addOption(StringOption("weights")
+                    .store(&weights_path_)
+                    .defaultValue("")
+                    .description("Test"));
 
   // always require topology
   settings->setFlag(TrajectoryAnalysisSettings::efRequireTop);
+}
+
+static std::vector<double> read_weights_file( const std::string &path )
+{
+  std::ifstream infile(path);
+  if ( !infile.good() )
+  {
+    std::string errorMessage = "Cannot find the indicated weights file";
+    GMX_THROW(InconsistentInputError(errorMessage.c_str()));
+  }
+  std::vector<double> w;
+
+  std::string line;
+  while ( std::getline(infile, line) )
+  {
+    std::string value;
+    std::istringstream iss(line);
+    if ( line == "" )
+    {
+      printf("Detected empty line. Skipping...\n");
+      continue;
+    }
+    iss >> value;
+    w.push_back(std::stod(value));
+  }
+
+  return w;
 }
 
 static inline void read_symmetry_indices(
@@ -418,7 +451,7 @@ static std::size_t offset_cross(
 }
 
 static void intra_mol_routine( 
-  int i, std::size_t a_i, std::size_t a_j, double dx2, int nsym, const std::vector<int> &mol_id_,
+  int i, std::size_t a_i, std::size_t a_j, double dx2, double weight, int nsym, const std::vector<int> &mol_id_,
   const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
   const std::vector<double> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
   std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_
@@ -426,13 +459,13 @@ static void intra_mol_routine(
 {
   std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
   std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-  kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), inv_num_mol_[i]/nsym);
+  kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), weight*inv_num_mol_[i]/nsym);
   lock.unlock();
 }
 
 static void inter_mol_same_routine(
-  int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
-  const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
+  int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, double dx2, double weight, 
+  const std::vector<int> &mol_id_, const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
   std::vector<std::vector<std::mutex>> &frame_same_mutex_, std::vector<std::vector<double>> &frame_same_mat_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_
 )
@@ -441,23 +474,23 @@ static void inter_mol_same_routine(
   std::size_t same_access_index = offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
   std::size_t same_mutex_index = mutex_access(mol_id_[i], a_i, a_j, natmol2_);
   std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-  kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, 1.0);
+  kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, weight);
   frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
   lock.unlock();
 }
 
 static void inter_mol_cross_routine(
-  int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, double dx2, const std::vector<int> &mol_id_,
-  const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, 
-  std::vector<std::vector<std::mutex>> &frame_cross_mutex_, std::vector<std::vector<double>> &frame_cross_mat_,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_
+  int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, double dx2, double weight,
+  const std::vector<int> &mol_id_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
+  const std::vector<double> &density_bins_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
+  std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_
 )
 {
   double dist = std::sqrt(dx2);
   std::size_t cross_access_index = offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_);
   std::size_t cross_mutex_index = mutex_access(mol_id_[j], a_i, a_j, natmol2_);
   std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
-  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, 1.0);
+  kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, weight);
   frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
   lock.unlock();
 }
@@ -487,13 +520,13 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
   semaphore_.set_counter(std::min(num_threads_, nindex_));
 
   // set up mode selection
-  f_intra_mol_ = [](int, std::size_t, std::size_t, double, int, const std::vector<int> &,
+  f_intra_mol_ = [](int, std::size_t, std::size_t, double, double, int, const std::vector<int> &,
   const std::vector<int> &, const std::vector<double> &, const std::vector<double> &, 
   std::vector<std::vector<std::mutex>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
-  f_inter_mol_same_ = [](int, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &, const std::vector<int> &,
+  f_inter_mol_same_ = [](int, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &, const std::vector<int> &,
   const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &,
   std::vector<std::vector<std::vector<std::vector<double>>>> &){};
-  f_inter_mol_cross_ = [](int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, const std::vector<int> &,
+  f_inter_mol_cross_ = [](int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &,
   const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &,
   const std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
 
@@ -653,6 +686,15 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     }
   }
 
+  if ( weights_path_ != "" )
+  {
+    printf("Weights file provided. Reading weights from %s\n", weights_path_.c_str());
+    weights_ = read_weights_file(weights_path_);
+    printf("Found %li frame weights in file\n", weights_.size());
+    double w_sum = std::accumulate(std::begin(weights_), std::end(weights_), 0.0, std::plus<>());
+    printf("Sum of weights amounts to %lf\n", w_sum);
+  }
+
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
 }
 
@@ -662,7 +704,8 @@ static void mindist_same(
   const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2,
   const std::vector<std::vector<double>> &frame_same_mat,
   std::vector<std::vector<std::mutex>> &frame_same_mutex,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
+  double weight
 )
 {
   bool first_im_same = true, first_i_same = true, first_j_same = true;
@@ -680,7 +723,7 @@ static void mindist_same(
           double mindist = frame_same_mat[mt_i][offset];
 
           std::unique_lock<std::mutex> lock(frame_same_mutex[mt_i][mutex_j]);
-          kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, 1.0);
+          kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, weight);
           interm_same_maxcdf_mol[mt_i][j][i] = interm_same_maxcdf_mol[mt_i][i][j];
           lock.unlock();
 
@@ -702,7 +745,8 @@ static void mindist_cross(
   const std::vector<double> &density_bins, const std::vector<int> &num_mol_unique,
   const std::vector<std::vector<double>> &frame_cross_mat,
   std::vector<std::vector<std::mutex>> &frame_cross_mutex,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol,
+  double weight
 )
 {
   bool first_im_cross = true, first_mtj_cross = true, first_jm_cross = true, first_i_cross = true, first_j_cross = true;
@@ -725,7 +769,7 @@ static void mindist_cross(
               double mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset];
               
               std::unique_lock<std::mutex> lock(frame_cross_mutex[cross_index[mt_i][mt_j]][mutex_j]);
-              kernel_density_estimator(std::begin(interm_cross_maxcdf_mol[cross_index[mt_i][mt_j]][i][j]), density_bins, mindist, 1.0);
+              kernel_density_estimator(std::begin(interm_cross_maxcdf_mol[cross_index[mt_i][mt_j]][i][j]), density_bins, mindist, weight);
               lock.unlock();
 
               ++counter_cross;
@@ -744,7 +788,8 @@ static void mindist_cross(
 }
 
 static void mindist_kernel(
-  const std::vector<int> &natmol2,          // common parameters
+  double weight,                            // common parameters
+  const std::vector<int> &natmol2,
   const std::vector<double> &density_bins,
   const std::vector<int> &num_mol_unique,
   std::size_t start_mti_same,               // same parameters
@@ -772,7 +817,7 @@ static void mindist_kernel(
   {
     mindist_same(
       start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same, density_bins,
-      num_mol_unique, natmol2, frame_same_mat, frame_same_mutex, interm_same_maxcdf_mol
+      num_mol_unique, natmol2, frame_same_mat, frame_same_mutex, interm_same_maxcdf_mol, weight
     );
   }
 
@@ -780,7 +825,7 @@ static void mindist_kernel(
   {
     mindist_cross(
       start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_cross, 
-      natmol2, cross_index, density_bins, num_mol_unique, frame_cross_mat, frame_cross_mutex, interm_cross_maxcdf_mol
+      natmol2, cross_index, density_bins, num_mol_unique, frame_cross_mat, frame_cross_mutex, interm_cross_maxcdf_mol, weight
     );
   }
 }
@@ -795,7 +840,7 @@ static void molecule_routine(
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_,
   std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_, Semaphore &semaphore_,
-  const std::function<ftype_intra_> &f_intra_mol_, const std::function<ftype_same_> &f_inter_mol_same_, const std::function<ftype_cross_> &f_inter_mol_cross_
+  const std::function<ftype_intra_> &f_intra_mol_, const std::function<ftype_same_> &f_inter_mol_same_, const std::function<ftype_cross_> &f_inter_mol_cross_, double weight
 )
 {
   const char * atomname;
@@ -867,8 +912,8 @@ static void molecule_routine(
             if(i==j) 
             {
               if (dx2 < cut_sig_2_)
-              {
-                f_intra_mol_(i, a_i, a_j, dx2, nsym, mol_id_, natmol2_, density_bins_, inv_num_mol_, frame_same_mutex_, intram_mat_density_);
+              { // intra molecule species
+                f_intra_mol_(i, a_i, a_j, dx2, weight, nsym, mol_id_, natmol2_, density_bins_, inv_num_mol_, frame_same_mutex_, intram_mat_density_);
               }
             }
             else
@@ -878,7 +923,7 @@ static void molecule_routine(
                 if (dx2 < cut_sig_2_)
                 {
                   f_inter_mol_same_(
-                    i, mol_i, a_i, a_j, dx2, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                    i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
                   );
                 }
                 if(delta!=0.) {
@@ -889,7 +934,7 @@ static void molecule_routine(
                   if (dx2 < cut_sig_2_)
                   {
                     f_inter_mol_same_(
-                      i, mol_i, a_i, a_j, dx2, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                      i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
                     );
                   }
                 }
@@ -899,7 +944,7 @@ static void molecule_routine(
                 if (dx2 < cut_sig_2_)
                 {
                   f_inter_mol_cross_(
-                    i, j, mol_i, mol_j, a_i, a_j, dx2, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
+                    i, j, mol_i, mol_j, a_i, a_j, dx2, weight, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
                   );
                 }
               }
@@ -919,6 +964,8 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
 {
   if ((nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
   {
+    double weight = 1.0;
+    if ( !weights_.empty() ) weight = weights_[frnr];
     rvec *x = fr.x;
     /* resetting the per frame vector to zero */
     for ( std::size_t i = 0; i < frame_same_mat_.size(); i++ )
@@ -941,7 +988,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
       std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::cref(equivalence_list_), std::ref(frame_same_mat_),
       std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
       std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
-      std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_));
+      std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight);
       /* end molecule thread */
     }
     /* join molecule threads */
@@ -1050,7 +1097,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
 
       /* start thread */
       threads_[tid] = std::thread(
-        mindist_kernel, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
+        mindist_kernel, weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
         start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_total_same,
         std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_),
         start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross,
@@ -1091,7 +1138,7 @@ static void normalize_histo(
 void CMData::finishAnalysis(int /*nframes*/)
 {
   // normalisations
-  double norm = 1. / n_x_;
+  double norm = ( weights_.empty() ) ? 1. / n_x_ : 1.0;
 
   using ftype_norm = void(std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &);
   auto f_empty = [](std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
