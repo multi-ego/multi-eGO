@@ -22,7 +22,7 @@
 
 [ moleculetype ]
 ; Name            nrexcl
-GProtein            3
+GB_1_Protein            3
 
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
@@ -8034,8 +8034,4 @@ PROTEIN G in water
 
 [ molecules ]
 ; Compound        #mols
-GProtein            1
-;SOL                24
-;SOL         3839
-;NA               16
-;CL               12
+GB_1_Protein            1

@@ -22,7 +22,7 @@
 
 [ moleculetype ]
 ; Name            nrexcl
-GProtein             3
+GB_1_Protein             3
 
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
@@ -2826,4 +2826,4 @@ GProtein             3
 
 [ molecules ]
 ; Compound        #mols
-GProtein             1
+GB_1_Protein             1
