@@ -109,7 +109,7 @@ if args.type=="split":
     print("\n Generating intramat for inter-domain rancomd coil")
     print("")
 
-    intramat = args.input
+    intramat = args.md_intra
     
     #read intramat
     intra_md = np.loadtxt(intramat, unpack=True)
@@ -156,8 +156,8 @@ if args.type=="group":
     print("Group intramat_rc with intramat inter-domain_rc")
     print("")
 
-    intra1 = args.input
-    intra2 = args.input2
+    intra1 = args.rc_intra
+    intra2 = args.domain_rc_intra
 
     #read intramats
     intra_rc = np.loadtxt(intra1, unpack=True)
