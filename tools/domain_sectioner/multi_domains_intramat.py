@@ -157,7 +157,7 @@ if args.type=="group":
     print("")
 
     intra1 = args.rc_intra
-    intra2 = args.domain_rc_intra
+    intra2 = args.dom_rc_intra
 
     #read intramats
     intra_rc = np.loadtxt(intra1, unpack=True)
