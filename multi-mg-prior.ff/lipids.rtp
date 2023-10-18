@@ -1,0 +1,227 @@
+[ bondedtypes ]
+; bonds  angles  dihedrals  impropers
+    1       1          1          2 
+
+
+[ POPC ]
+ [ atoms ]
+  CN1   CH3p    0.000    0    
+  CN2   CH3p    0.000    0    
+  CN3   CH3p    0.000    0    
+  NTM     NL    0.000    0    
+   CA    CH2    0.000    0    
+   CB    CH2    0.000    1    
+   OA     OA    0.000    1    
+    P      P    0.000    1    
+   OB     OM    0.000    1    
+   OC     OM    0.000    1    
+   OD     OA    0.000    1    
+   CC    CH2    0.000    2    
+   CD    CH1    0.000    2    
+   OE     OE    0.000    2    
+  C1A      C    0.000    2    
+   OF      O    0.000    2    
+  C1B    CH2    0.000    3    
+  C1C    CH2    0.000    4    
+  C1D    CH2    0.000    5    
+  C1E    CH2    0.000    6    
+  C1F    CH2    0.000    7    
+  C1G    CH2    0.000    8    
+  C1H    CH2    0.000    9    
+  C1I    CR1    0.000   10    
+  C1J    CR1    0.000   11    
+  C1K    CH2    0.000   12    
+  C1L    CH2    0.000   13    
+  C1M    CH2    0.000   14    
+  C1N    CH2    0.000   15    
+  C1O    CH2    0.000   16    
+  C1P    CH2    0.000   17    
+  C1Q    CH2    0.000   18    
+  C1R    CH3    0.000   19    
+   CE    CH2    0.000   20    
+   OG     OE    0.000   20    
+  C2A      C    0.000   20    
+   OH      O    0.000   20    
+  C2B    CH2    0.000   21    
+  C2C    CH2    0.000   22    
+  C2D    CH2    0.000   23    
+  C2E    CH2    0.000   24    
+  C2F    CH2    0.000   25    
+  C2G    CH2    0.000   26    
+  C2H    CH2    0.000   27    
+  C2I    CH2    0.000   28    
+  C2J    CH2    0.000   29    
+  C2K    CH2    0.000   30    
+  C2L    CH2    0.000   31    
+  C2M    CH2    0.000   32    
+  C2N    CH2    0.000   33    
+  C2O    CH2    0.000   34    
+  C2P    CH3    0.000   35    
+ [ bonds ]
+  CN1  NTM   gb_21
+  CN2  NTM   gb_21
+  CN3  NTM   gb_21
+  NTM   CA   gb_21
+   CA   CB   gb_27
+   CB   OA   gb_18
+   OA    P   gb_28
+    P   OB   gb_24
+    P   OC   gb_24
+    P   OD   gb_28
+   OD   CC   gb_18
+   CC   CD   gb_27
+   CD   OE   gb_18
+   CD   CE   gb_27
+   OE  C1A   gb_10
+  C1A   OF   gb_5
+  C1A  C1B   gb_23
+  C1B  C1C   gb_27
+  C1C  C1D   gb_27
+  C1D  C1E   gb_27
+  C1E  C1F   gb_27
+  C1F  C1G   gb_27
+  C1G  C1H   gb_27
+  C1H  C1I   gb_27
+  C1I  C1J   gb_10
+  C1J  C1K   gb_27
+  C1K  C1L   gb_27
+  C1L  C1M   gb_27
+  C1M  C1N   gb_27
+  C1N  C1O   gb_27
+  C1O  C1P   gb_27
+  C1P  C1Q   gb_27
+  C1Q  C1R   gb_27
+   CE   OG   gb_18
+   OG  C2A   gb_10
+  C2A   OH   gb_5
+  C2A  C2B   gb_23
+  C2B  C2C   gb_27
+  C2C  C2D   gb_27
+  C2D  C2E   gb_27
+  C2E  C2F   gb_27
+  C2F  C2G   gb_27
+  C2G  C2H   gb_27
+  C2H  C2I   gb_27
+  C2I  C2J   gb_27
+  C2J  C2K   gb_27
+  C2K  C2L   gb_27
+  C2L  C2M   gb_27
+  C2M  C2N   gb_27
+  C2N  C2O   gb_27
+  C2O  C2P   gb_27
+ [ angles ]
+;  ai    aj    ak   gromos type
+  CN1  NTM  CN2    ga_13
+  CN1  NTM  CN3    ga_13
+  CN1  NTM   CA    ga_13
+  CN2  NTM  CN3    ga_13
+  CN2  NTM   CA    ga_13
+  CN3  NTM   CA    ga_13
+  NTM   CA   CB    ga_15
+   CA   CB   OA    ga_15
+   CB   OA    P    ga_26
+   OA    P   OB    ga_14
+   OA    P   OC    ga_14
+   OA    P   OD    ga_5
+    P   OD   CC    ga_26
+   OB    P   OC    ga_29
+   OB    P   OD    ga_14
+   OC    P   OD    ga_14
+   OD   CC   CD    ga_15
+   CC   CD   OE    ga_13
+   CC   CD   CE    ga_13
+   CD   OE  C1A    ga_22
+   CD   CE   OG    ga_15
+   OE   CD   CE    ga_13
+   OE  C1A   OF    ga_31
+   OE  C1A  C1B    ga_16
+  C1A  C1B  C1C    ga_15
+   OF  C1A  C1B    ga_35
+  C1B  C1C  C1D    ga_15
+  C1C  C1D  C1E    ga_15
+  C1D  C1E  C1F    ga_15
+  C1E  C1F  C1G    ga_15
+  C1F  C1G  C1H    ga_15
+  C1G  C1H  C1I    ga_15
+  C1H  C1I  C1J    ga_27 ; C1H-C1I=C1J
+  C1I  C1J  C1K    ga_27 ; C1I=C1J-C1K
+  C1J  C1K  C1L    ga_15
+  C1K  C1L  C1M    ga_15
+  C1L  C1M  C1N    ga_15
+  C1M  C1N  C1O    ga_15
+  C1N  C1O  C1P    ga_15
+  C1O  C1P  C1Q    ga_15
+  C1P  C1Q  C1R    ga_15
+   CE   OG  C2A    ga_22
+   OG  C2A   OH    ga_31
+   OG  C2A  C2B    ga_16
+  C2A  C2B  C2C    ga_15
+   OH  C2A  C2B    ga_35
+  C2B  C2C  C2D    ga_15
+  C2C  C2D  C2E    ga_15
+  C2D  C2E  C2F    ga_15
+  C2E  C2F  C2G    ga_15
+  C2F  C2G  C2H    ga_15
+  C2G  C2H  C2I    ga_15
+  C2H  C2I  C2J    ga_15
+  C2I  C2J  C2K    ga_15
+  C2J  C2K  C2L    ga_15
+  C2K  C2L  C2M    ga_15
+  C2L  C2M  C2N    ga_15
+  C2M  C2N  C2O    ga_15
+  C2N  C2O  C2P    ga_15
+ [ impropers ]
+;  ai    aj    ak    al   gromos type
+   CD   OE   CE   CC   gi_2 ; asymmetric atom CD
+  C1A   OE   OF  C1B   gi_1bis ; planarity of sn-2 carbonyl
+  C1H  C1I  C1J  C1K   gi_1 ; planarity of the double bond
+  C2A   OG   OH  C2B   gi_1bis ; planarity of sn-1 carbonyl
+ [ dihedrals ]
+;  ai    aj    ak    al   gromos type
+  CN1  NTM   CA   CB    gd_29
+  NTM   CA   CB   OA    gd_4
+  NTM   CA   CB   OA    gd_36
+   CA   CB   OA    P    gd_29
+   CA   CB   OA    P    gd_29bis
+   CB   OA    P   OD    gd_20
+   CB   OA    P   OD    gd_27
+   OA    P   OD   CC    gd_20
+   OA    P   OD   CC    gd_27
+    P   OD   CC   CD    gd_29
+    P   OD   CC   CD    gd_29bis
+   OD   CC   CD   CE    gd_34
+   CC   CD   OE  C1A    gd_29
+   CC   CD   CE   OG    gd_34
+   CD   OE  C1A  C1B    gd_13
+   CD   CE   OG  C2A    gd_29
+   CD   CE   OG  C2A    gd_29bis
+   OE  C1A  C1B  C1C    gd_40
+  C1A  C1B  C1C  C1D    gd_34
+  C1B  C1C  C1D  C1E    gd_34
+  C1C  C1D  C1E  C1F    gd_34
+  C1D  C1E  C1F  C1G    gd_34
+  C1E  C1F  C1G  C1H    gd_34
+  C1F  C1G  C1H  C1I    gd_34
+  C1G  C1H  C1I  C1J    gd_40 ; C1G-C1H-C1I=C1J
+  C1I  C1J  C1K  C1L    gd_40 ; C1I=C1J-C1K-C1L
+  C1J  C1K  C1L  C1M    gd_34
+  C1K  C1L  C1M  C1N    gd_34
+  C1L  C1M  C1N  C1O    gd_34
+  C1M  C1N  C1O  C1P    gd_34
+  C1N  C1O  C1P  C1Q    gd_34
+  C1O  C1P  C1Q  C1R    gd_34
+   CE   OG  C2A  C2B    gd_13
+   OG  C2A  C2B  C2C    gd_40
+  C2A  C2B  C2C  C2D    gd_34
+  C2B  C2C  C2D  C2E    gd_34
+  C2C  C2D  C2E  C2F    gd_34
+  C2D  C2E  C2F  C2G    gd_34
+  C2E  C2F  C2G  C2H    gd_34
+  C2F  C2G  C2H  C2I    gd_34
+  C2G  C2H  C2I  C2J    gd_34
+  C2H  C2I  C2J  C2K    gd_34
+  C2I  C2J  C2K  C2L    gd_34
+  C2J  C2K  C2L  C2M    gd_34
+  C2K  C2L  C2M  C2N    gd_34
+  C2L  C2M  C2N  C2O    gd_34
+  C2M  C2N  C2O  C2P    gd_34
