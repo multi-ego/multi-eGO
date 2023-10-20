@@ -171,6 +171,7 @@ private:
   std::vector<int> num_mol_unique_;
   std::vector<double> weights_;
   std::string weights_path_;
+  double weights_sum_;
 
   std::vector<int> natmol2_;
   int nindex_;
@@ -693,6 +694,7 @@ void CMData::initAnalysis(const TrajectoryAnalysisSettings &settings, const Topo
     printf("Found %li frame weights in file\n", weights_.size());
     double w_sum = std::accumulate(std::begin(weights_), std::end(weights_), 0.0, std::plus<>());
     printf("Sum of weights amounts to %lf\n", w_sum);
+    weights_sum_ = 0.;
   }
 
   printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
@@ -965,7 +967,11 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
   if ((nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
   {
     double weight = 1.0;
-    if ( !weights_.empty() ) weight = weights_[frnr];
+    if ( !weights_.empty() )
+    {
+      weight = weights_[frnr];
+      weights_sum_ += weight;
+    }
     rvec *x = fr.x;
     /* resetting the per frame vector to zero */
     for ( std::size_t i = 0; i < frame_same_mat_.size(); i++ )
@@ -1138,7 +1144,7 @@ static void normalize_histo(
 void CMData::finishAnalysis(int /*nframes*/)
 {
   // normalisations
-  double norm = ( weights_.empty() ) ? 1. / n_x_ : 1.0;
+  double norm = ( weights_.empty() ) ? 1. / n_x_ : 1. / weights_sum_;
 
   using ftype_norm = void(std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &);
   auto f_empty = [](std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &){};
