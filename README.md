@@ -9,10 +9,10 @@ Original version by [Emanuele Scalone](https://github.com/emalacs), Cristina Pai
 Use conda and the enviroment file provided. 
 
 ## Requirements
-Multi-eGO force-fields and tools are meant to be used with GROMACS, currently tested version are 2021 to 2023.
+Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested version are 2021 to 2023.
 
 ## Prepare your first multi-*e*GO system
-The first step to perform a multi-eGO simulation is to generate a GROMACS topology file (.top). 
+The first step to perform a multi-*e*GO simulation is to generate a GROMACS topology file (.top). 
 In a folder copy your PDB file and the multi-ego-basic.ff/ included here, then run 
 > gmx pdb2gmx -f file.pdb -ignh
 
