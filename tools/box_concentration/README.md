@@ -1,4 +1,4 @@
-get_box.py 
+# get_box.py 
 
 This script is a simple implementation of the formula to get the side of a cubic box corresponding to a give molar concentration for a given number of molecules.
 ```
