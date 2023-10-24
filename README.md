@@ -1,9 +1,16 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-Original version by [Emanuele Scalone](https://github.com/emalacs), Cristina Paissoni, and [Carlo Camilloni](https://github.com/carlocamilloni), Computational Structural Biology Lab, Department of Biosciences, University of Milano, Italy.
 
-**Codename: VANESSA (Beta 1)**
+Version: **beta.1**  
+Codename: **Vanessa**  
 
-    Current Developers: Fran Bacic Toplek, Carlo Camilloni, Riccardo Capelli, Emanuele Scalone, Bruno Stegani
+## Current Developers:
+- Fran Bacic Toplek
+- Carlo Camilloni
+- Riccardo Capelli
+- Emanuele Scalone
+- Bruno Stegani
+  
+Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Installation
 Use conda and the enviroment file provided. For mac users employing an M1 CPU, we strongly recommend using environment_macOS_M1.yml.
