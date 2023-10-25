@@ -1,5 +1,3 @@
-#! python
-
 import os
 import pandas as pd
 import numpy as np
@@ -11,10 +9,12 @@ import time
 import sys
 import warnings
 
-import topology
-import resources
-import resources.type_definitions as type_definitions
-import util.masking
+# import subpaths
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
+
+# import multiego.topology
+from multiego.resources import type_definitions
+from multiego.util import masking
 
 d = { type_definitions.gromos_atp.name[i] : type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
 
@@ -430,11 +430,11 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by='ref_ai', inplace=True)
         topology_df['c12'] = topology_df['mego_type'].map(d)
 
-        types = resources.type_definitions.lj14_generator(topology_df)
-        c12_values = generate_c12_values(topology_df, types, resources.type_definitions.atom_type_combinations)
+        types = type_definitions.lj14_generator(topology_df)
+        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
 
         # consider special cases
-        oxygen_mask = util.masking.create_matrix_mask(
+        oxygen_mask = masking.create_matrix_mask(
             topology_df['mego_type'].to_numpy(), topology_df['mego_type'].to_numpy(),
             [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
         )
@@ -624,7 +624,7 @@ def calculate_inter_probabilities(args):
         topology_df_j.sort_values(by='ref_ai', inplace=True)
         topology_df_j['c12'] = topology_df_j['mego_type'].map(d)
 
-        oxygen_mask = util.masking.create_matrix_mask(
+        oxygen_mask = masking.create_matrix_mask(
             topology_df_j['mego_type'].to_numpy(), topology_df_i['mego_type'].to_numpy(),
             [('OM', 'OM'), ('O', 'O'), ('OM', 'O')], symmetrize=True
         )

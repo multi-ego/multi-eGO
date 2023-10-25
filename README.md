@@ -13,7 +13,7 @@ Codename: **Vanessa**
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Installation
-Use conda and the enviroment file provided. For mac users employing an M1 CPU, we strongly recommend using environment_macOS_M1.yml.
+Use conda and the enviroment file provided. For mac users employing an M1 CPU, we strongly recommend using environment_macOS_M2.yml.
 For all other hardwares, we recomment the base environment.yml.
 
 ## Requirements
@@ -81,7 +81,7 @@ Finally, the directory structure should look like:
 ```
 
 ## Setup of a multi-*e*GO production simulation 
-To setup a multi-*e*GO production simulation, we need to run multiego.py again with different parameters:
+To setup a multi-*e*GO production simulation, we need to run multiego.py again. Before running the code, make sure that the topologies of your systems all share the same moleculetype name. If they do not, you can change the name in the topol.top file. If they do not the program will crash.
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train_from md_ensemble
 ```

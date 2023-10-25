@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 
