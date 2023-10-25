@@ -13,7 +13,7 @@ Codename: **Vanessa**
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Installation
-Use ```conda``` and the enviroment file provided. For mac users employing an M1 CPU, we strongly recommend using ```environment_macOS_M2.yml```.
+Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we strongly recommend using ```environment_macOS_M2.yml```.
 For all other hardwares, we recomment the base ```environment.yml```.
 
 ## Requirements
@@ -31,7 +31,7 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
 > When using a system with disulfide bridges, it is as of version VANESSA (Beta 1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
 
 ## Setup of a multi-*e*GO random coil simulation
-Create a directory in which you wish to run the random coil simulation. In this directory, copy the multi-ego-basic.ff/ folder and the contents of tje multi-eGO/inputs reference folder. With your ```reference/``` subfolder and your random coil directory in place, it is time to run ```multiego.py```. First, it is required to create a random coil simulation. To do so, we run
+Create a directory in which you wish to run the random coil simulation. In this directory, copy the ```multi-ego-basic.ff/``` folder and the contents of the multi-eGO/inputs reference folder. With your ```reference/``` subfolder and your random coil directory in place, it is time to run ```multiego.py```. First, it is required to create a random coil simulation. To do so, we run
 ```
 python multiego.py --system $SYSTEM_NAME --egos rc
 ```
@@ -46,12 +46,12 @@ The contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRET
 ```
 
 ## Analysis of a reference simulation
-Assuming that the reference simulation is already run, two steps are necessary to learn the interactions from the reference simulation. First, we need to extract the contact data from the reference simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the gromacs installation with the cmdata tool. After this, we have to compile gromacs. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
+Assuming that the reference simulation is already run, two steps are necessary to learn the interactions from the reference simulation. First, we need to extract the contact data from the reference simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 Using your patched gromacs installation, we can now extract the contact data from the reference simulation. To do so, we run
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym -histo
 ```
-As you can see, we gave an additional input, the aa_sym file. This file is a list of the symmetric atoms in the system. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
+As you can see, we gave an additional input, the ```aa_sym``` file. This file is a list of the symmetric atoms in the system. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
 > [!WARNING]
 > When using a deprotonated carboxy-terminus, it is necessary to add the carboxy-terminus to the ```aa_sym``` file. 
 
@@ -85,7 +85,7 @@ To setup a multi-*e*GO production simulation, we need to run ```multiego.py``` a
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train_from md_ensemble
 ```
-We set our free parameter &#949; to 0.3 kJ/mol and we train the model from the md_ensemble. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The mdps are the same except for the last step which is now ```ff_aa.mdp```.
+We set the energy scale &#949; to 0.3 kJ/mol and we train the model from the ```md_ensemble```. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The mdps are the same except for the last step which is now ```ff_aa.mdp```.
 
 Happy simulating :)
 
