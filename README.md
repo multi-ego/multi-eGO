@@ -3,6 +3,7 @@
 Version: **beta.1**  
 Codename: **Vanessa**  
 
+
 ## Current Developers:
 - Fran Bacic Toplek
 - Carlo Camilloni
@@ -12,6 +13,12 @@ Codename: **Vanessa**
   
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
+## Table of Contents
+- [Installation](#installation)
+- [Requirements](#requirements)
+- [Usage](#usage)
+- [Cite us](#cite-us)
+
 ## Installation
 Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we recommend using ```environment_macOS_M2.yml```.
 For all other hardware, we recommend using ```environment.yml```.
@@ -20,8 +27,17 @@ For all other hardware, we recommend using ```environment.yml```.
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
 
 ## Usage
+- [Prepare your first multi-eGO system](#prepare-your-first-multi-ego-system)
+- [Setup of a multi-*e*GO random coil simulation](#setup-of-a-multi-ego-random-coil-simulation)
+- [Analysis of a simulation: intramat.ndx](#analysis-of-a-simulation-intramatndx)
+- [Setup of a multi-eGO production simulation](#setup-of-a-multi-ego-production-simulation)
+
 ![Image](img/mego_workflow_black.png)
+
 ### Prepare your first multi-*e*GO system
+
+[Back to Usage](#usage)
+
 The first step to perform a multi-*e*GO simulation is to generate a GROMACS topology file (.top). 
 In a folder copy your PDB file and the ```multi-ego-basic.ff/``` included here, then run 
 ```
@@ -33,6 +49,9 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
 > When using a system with disulfide bridges, it is as of version Vanessa (beta.1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
 
 ### Setup of a multi-*e*GO random coil simulation
+
+[Back to Usage](#usage)
+
 Create a directory in which you wish to run the random coil simulation. In this directory, copy the ```multi-ego-basic.ff/``` folder and the .gro file generated in the previous step. To generate a random coil force field and associated topology run:
 ```
 python multiego.py --system $SYSTEM_NAME --egos rc
@@ -48,6 +67,9 @@ The contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRET
 ```
 
 ### Analysis of a simulation: intramat.ndx
+
+[Back to Usage](#usage)
+
 Assuming that the simulation (random-coil or all-atom) is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 Using your patched GROMACS installation, we can now extract the contact data from the reference simulation. To do so, we run
 ```
@@ -83,6 +105,9 @@ Finally, the directory structure should look like:
 ```
 
 ### Setup of a multi-*e*GO production simulation 
+
+[Back to Usage](#usage)
+
 To setup a multi-*e*GO production simulation, we need to run ```multiego.py``` again. Before running the code, make sure that the topologies of your systems all share the same moleculetype name. If they do not, you can change the name in the ```topol.top``` file. If they do not the program will crash.
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train_from md_ensemble
