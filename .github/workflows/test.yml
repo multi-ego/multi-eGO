@@ -35,4 +35,4 @@ jobs:
     - name: Run tests
       # run: .venv/bin/pytest
       run: |
-        $CONDA/bin/python run_tests.py
+        $CONDA/bin/python test/run_tests.py
