@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--dom_rc_intra', type=str, help='inter domain random coil intramat')
     parser.add_argument('--target_top', type=str)
     parser.add_argument('--mego_top', type=str)
-    parser.add_argument('--dom_res', nargs='+', type=int, default=[], help='list of residue indeces associated to the starting residues of new domains. Example: 15,44,..')
+    parser.add_argument('--dom_res', nargs='+', type=int, default=[], help='list of residue indeces associated to the starting residues of new domains. Example: 15 44 ...')
     parser.add_argument('--out', type=str, default="./", help='path for ouput')
 
     args = parser.parse_args()
