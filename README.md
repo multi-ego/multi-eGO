@@ -17,7 +17,7 @@ Use ```conda``` and the enviroment file provided. For mac users employing an M2 
 For all other hardwares, we recomment the base ```environment.yml```.
 
 ## Requirements
-Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested version are 2021 to 2023.
+Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
 
 ## Prepare your first multi-*e*GO system
 The first step to perform a multi-*e*GO simulation is to generate a GROMACS topology file (.top). 
@@ -28,10 +28,10 @@ gmx pdb2gmx -f file.pdb -ignh
 and select the multi-ego-basic force-field. From this you should get a (.gro) file for your structure and a (.top) topology file. In the ```multi-eGO/inputs``` folder add a folder for your system and a ```reference/``` subfolder. Copy your GROMACS topology in this ```reference/``` subfolder so that the final structure looks like ```multi-eGO/inputs/$SYSTEM_NAME/reference```
 
 > [!NOTE]
-> When using a system with disulfide bridges, it is as of version VANESSA (Beta 1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
+> When using a system with disulfide bridges, it is as of version Vanessa (beta.1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
 
 ## Setup of a multi-*e*GO random coil simulation
-Create a directory in which you wish to run the random coil simulation. In this directory, copy the ```multi-ego-basic.ff/``` folder and the contents of the multi-eGO/inputs reference folder. With your ```reference/``` subfolder and your random coil directory in place, it is time to run ```multiego.py```. First, it is required to create a random coil simulation. To do so, we run
+Create a directory in which you wish to run the random coil simulation. In this directory, copy the ```multi-ego-basic.ff/``` folder and the .gro file generated in the previous step. To generate a random coil force field and associated topology run:
 ```
 python multiego.py --system $SYSTEM_NAME --egos rc
 ```
@@ -47,7 +47,7 @@ The contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRET
 
 ## Analysis of a reference simulation
 Assuming that the reference simulation is already run, two steps are necessary to learn the interactions from the reference simulation. First, we need to extract the contact data from the reference simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
-Using your patched gromacs installation, we can now extract the contact data from the reference simulation. To do so, we run
+Using your patched GROMACS installation, we can now extract the contact data from the reference simulation. To do so, we run
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym -histo
 ```
@@ -55,7 +55,7 @@ As you can see, we gave an additional input, the ```aa_sym``` file. This file is
 > [!WARNING]
 > When using a deprotonated carboxy-terminus, it is necessary to add the carboxy-terminus to the ```aa_sym``` file. 
 
-The output will be a collection of histograms in the form of .dat files. These files then need to be converted to intra- and intermat files. To do so, we use ```multiego/compare_contact_histo.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
+The output will be a collection of histograms in the form of .dat files. These files then need to be converted to intra- and intermat files. To do so, we use ```tools/make_mat/make_mat.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
 ```
 python tools/make_mat/make_mat.py --histo $MD_DIRECTORY/histo --target_top $MD_DIRECTORY/topol.top --mego_top inputs/$SYSTEM_NAME/reference/topol.top --cutoff 0.75 --out inputs/$SYSTEM_NAME/md_ensemble # --proc 4 ## for multiprocessing
 ```
