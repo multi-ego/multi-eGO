@@ -19,7 +19,9 @@ For all other hardware, we recommend using ```environment.yml```.
 ## Requirements
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
 
-## Prepare your first multi-*e*GO system
+## Usage
+![Image](img/mego_workflow_black.png)
+### Prepare your first multi-*e*GO system
 The first step to perform a multi-*e*GO simulation is to generate a GROMACS topology file (.top). 
 In a folder copy your PDB file and the ```multi-ego-basic.ff/``` included here, then run 
 ```
@@ -30,7 +32,7 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
 > [!NOTE]
 > When using a system with disulfide bridges, it is as of version Vanessa (beta.1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
 
-## Setup of a multi-*e*GO random coil simulation
+### Setup of a multi-*e*GO random coil simulation
 Create a directory in which you wish to run the random coil simulation. In this directory, copy the ```multi-ego-basic.ff/``` folder and the .gro file generated in the previous step. To generate a random coil force field and associated topology run:
 ```
 python multiego.py --system $SYSTEM_NAME --egos rc
@@ -45,8 +47,8 @@ The contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRET
     4. ff_rc.mdp
 ```
 
-## Analysis of a reference simulation
-Assuming that the reference simulation is already run, two steps are necessary to learn the interactions from the reference simulation. First, we need to extract the contact data from the reference simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
+### Analysis of a simulation: intramat.ndx
+Assuming that the simulation (random-coil or all-atom) is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we have to install the ```cmdata``` tool found in ```multi-eGO/tools/cmdata/```. The tools is has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. To do so, we can use the ```patch_gromacs.sh``` script by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 Using your patched GROMACS installation, we can now extract the contact data from the reference simulation. To do so, we run
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym -histo
@@ -73,14 +75,14 @@ Finally, the directory structure should look like:
                ├── reference
                │      ├── topol.top
                │      ├── intramat_1_1.ndx
-               │      └── multi-eGO_basic_ff
+               │      └── multi-eGO_basic.ff
                └── md_ensemble
                       ├── topol.top
                       ├── intramat_1_1.ndx
-                      └── all-atom_ff
+                      └── all-atom.ff
 ```
 
-## Setup of a multi-*e*GO production simulation 
+### Setup of a multi-*e*GO production simulation 
 To setup a multi-*e*GO production simulation, we need to run ```multiego.py``` again. Before running the code, make sure that the topologies of your systems all share the same moleculetype name. If they do not, you can change the name in the ```topol.top``` file. If they do not the program will crash.
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train_from md_ensemble
