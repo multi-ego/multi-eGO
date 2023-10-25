@@ -4,7 +4,7 @@ import shutil
 import os
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
-MEGO_ROOT = os.path.dirname(os.path.abspath('../multiego.py'))
+MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
 
 def read_infile(path):
     '''
