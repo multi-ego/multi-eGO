@@ -193,7 +193,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
             exclusions = pairs[['ai', 'aj']].copy()
 
             molecule_footer.append(molecule)
-            molecule_header = f'''[ moleculetype ]
+            molecule_header = f'''\n[ moleculetype ]
 ; Name\tnrexcl
 {molecule}\t\t\t3
 
