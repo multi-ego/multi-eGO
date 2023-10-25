@@ -1,7 +1,7 @@
-import multiego.resources.type_definitions
-import multiego.io
-import multiego.topology
-import multiego.util.masking
+from .resources import type_definitions
+from . import io
+from . import topology
+from .util import masking
 
 import glob
 import pandas as pd
@@ -30,9 +30,9 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
         Updated molecule_type_dict with the added new system name
     '''
     first_aminoacid = molecule_topology.residues[0].name
-    if first_aminoacid in multiego.resources.type_definitions.aminoacids_list:
+    if first_aminoacid in type_definitions.aminoacids_list:
         molecule_type_dict[molecule_name] = 'protein'
-    elif first_aminoacid in multiego.resources.type_definitions.nucleic_acid_list:
+    elif first_aminoacid in type_definitions.nucleic_acid_list:
         molecule_type_dict[molecule_name] = 'nucleic_acid'
     else:
         molecule_type_dict[molecule_name] = 'other'
@@ -73,7 +73,7 @@ def initialize_topology(topology):
     ensemble_topology_dataframe['resnum'] = new_resnum
     ensemble_topology_dataframe['cgnr'] = ensemble_topology_dataframe['resnum']
     ensemble_topology_dataframe['ptype'] = 'A'
-    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({'name': multiego.resources.type_definitions.from_ff_to_multiego})
+    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({'name': type_definitions.from_ff_to_multiego})
     ensemble_topology_dataframe['sb_type'] = ensemble_topology_dataframe['name'] + '_' + ensemble_topology_dataframe['molecule_name'] + '_' + ensemble_topology_dataframe['resnum'].astype(str)
     ensemble_topology_dataframe.rename(columns={'epsilon': 'c12'}, inplace=True)
 
@@ -207,7 +207,7 @@ def init_meGO_ensemble(args):
             name = path.replace('inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
-            reference_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, 'reference', args)
+            reference_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, 'reference', args)
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix('rc_')
 
     ensemble = {}
@@ -253,7 +253,7 @@ def init_meGO_ensemble(args):
             name = path.replace('inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
-            train_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
+            train_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
             ref_name = reference_path+'_'+path.split('/')[-1]
             ref_name = ref_name.replace('inputs/', '')
             ref_name = ref_name.replace('/', '_')
@@ -298,7 +298,7 @@ def init_meGO_ensemble(args):
             name = path.replace('inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
-            check_contact_matrices[name] = initialize_molecular_contacts(multiego.io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
+            check_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
             ref_name = reference_path+'_'+path.split('/')[-1]
             ref_name = ref_name.replace('inputs/', '')
             ref_name = ref_name.replace('/', '_')
@@ -341,15 +341,15 @@ def generate_bonded_interactions(meGO_ensemble):
 
     for molecule, topol in meGO_ensemble['topology'].molecules.items():      
         meGO_ensemble['meGO_bonded_interactions'][molecule] = {
-            'bonds' : multiego.topology.get_bonds(topol[0].bonds),
-            'angles' : multiego.topology.get_angles(topol[0].angles),
-            'dihedrals' : multiego.topology.get_dihedrals(topol[0].dihedrals),
-            'impropers' : multiego.topology.get_impropers(topol[0].impropers),
-            'pairs' : multiego.topology.get_pairs(topol[0].adjusts)
+            'bonds' : topology.get_bonds(topol[0].bonds),
+            'angles' : topology.get_angles(topol[0].angles),
+            'dihedrals' : topology.get_dihedrals(topol[0].dihedrals),
+            'impropers' : topology.get_impropers(topol[0].impropers),
+            'pairs' : topology.get_pairs(topol[0].adjusts)
         }
         # The following bonds are used in the parametrization of LJ 1-4
-        meGO_ensemble['bond_pairs'][molecule] = multiego.topology.get_bond_pairs(topol[0].bonds)
-        meGO_ensemble['user_pairs'][molecule] = multiego.topology.get_pairs(topol[0].adjusts)
+        meGO_ensemble['bond_pairs'][molecule] = topology.get_bond_pairs(topol[0].bonds)
+        meGO_ensemble['user_pairs'][molecule] = topology.get_pairs(topol[0].adjusts)
 
     return meGO_ensemble
 
@@ -370,7 +370,7 @@ def generate_14_data(meGO_ensemble):
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
-        exclusion_bonds, tmp_p14 = multiego.topology.get_14_interaction_list(reduced_topology, bond_pair)
+        exclusion_bonds, tmp_p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
         # split->convert->remerge:
         tmp_ex = pd.DataFrame(columns = ['ai', 'aj', 'exclusion_bonds'])
         tmp_ex['exclusion_bonds'] = exclusion_bonds
@@ -387,7 +387,7 @@ def generate_14_data(meGO_ensemble):
 
         pairs = pd.DataFrame()
         if meGO_ensemble['molecule_type_dict'][molecule] == 'protein':
-            pairs = multiego.topology.protein_LJ14(reduced_topology)
+            pairs = topology.protein_LJ14(reduced_topology)
             pairs['ai'] = pairs['ai'].map(type_atnum_dict)
             pairs['aj'] = pairs['aj'].map(type_atnum_dict)
             pairs['rep'] = pairs['c12']
@@ -433,8 +433,8 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     # update for special cases
     train_dataset['type_ai'] = train_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
     train_dataset['type_aj'] = train_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
-    type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
-    oxygen_mask = multiego.util.masking.create_linearized_mask(
+    type_to_c12 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    oxygen_mask = masking.create_linearized_mask(
         train_dataset['type_ai'].to_numpy(), train_dataset['type_aj'].to_numpy(),
         [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
     )
@@ -469,8 +469,8 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         # update for special cases
         check_dataset['type_ai'] = check_dataset['ai'].map(meGO_ensemble['sbtype_type_dict'])
         check_dataset['type_aj'] = check_dataset['aj'].map(meGO_ensemble['sbtype_type_dict'])
-        type_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
-        oxygen_mask = multiego.util.masking.create_linearized_mask(
+        type_to_c12 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+        oxygen_mask = masking.create_linearized_mask(
             check_dataset['type_ai'].to_numpy(), check_dataset['type_aj'].to_numpy(),
             [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
         )
@@ -491,7 +491,7 @@ def generate_basic_LJ(meGO_ensemble):
     basic_LJ = pd.DataFrame(columns=columns)
     
     topol_df = meGO_ensemble['topology_dataframe']
-    name_to_c12 = { key: val for key, val in zip(multiego.resources.type_definitions.gromos_atp.name, multiego.resources.type_definitions.gromos_atp.c12)}
+    name_to_c12 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
     # for (name, ref_name) in meGO_ensemble['reference_matrices']:
     if meGO_ensemble['reference_matrices'] == {}:
         basic_LJ = pd.DataFrame(columns=columns)
@@ -503,7 +503,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = topol_df['type']
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
+        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
@@ -537,7 +537,7 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
-        oxygen_mask = multiego.util.masking.create_array_mask(ai_name, aj_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
+        oxygen_mask = masking.create_array_mask(ai_name, aj_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         temp_basic_LJ['c12'] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:,np.newaxis]).flatten()
         temp_basic_LJ['rep'] = temp_basic_LJ['c12']
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
@@ -854,7 +854,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
-        exclusion_bonds, p14 = multiego.topology.get_14_interaction_list(reduced_topology, bond_pair) 
+        exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair) 
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
             # pairs from greta does not have duplicates because these have been cleaned before
@@ -874,7 +874,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs = pairs[~mask]
             
             # account for special oxygens
-            oxygen_mask = multiego.util.masking.create_linearized_mask(
+            oxygen_mask = masking.create_linearized_mask(
                 pairs['c12_ai'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
                 pairs['c12_aj'].map(meGO_ensemble['sbtype_type_dict']).to_numpy(),
                 [('O', 'O'), ('OM', 'OM'), ('O', 'OM')], symmetrize=True
