@@ -25,6 +25,8 @@ if __name__ == '__main__':
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
     args = parser.parse_args()
 
+    args.root_dir = os.path.dirname(os.path.abspath(__file__))
+
     # checking the options provided in the commandline
     if args.egos != 'rc' and args.train_from is None:
         print('--egos=production require the definition of simulation folders containing the simulations to learn contacts from using --train_from flag')
@@ -45,12 +47,12 @@ if __name__ == '__main__':
         print('--fraction should be between 0.1 and 0.3')
         sys.exit()
 
-    if not os.path.exists('outputs'): os.mkdir('outputs')
+    if not os.path.exists(f'{args.root_dir}/outputs'): os.mkdir(f'{args.root_dir}/outputs')
     output_dir = io.create_output_directories(args)
 
     print('- Checking for input files and folders')
     md_ensembles_list = ['reference']+args.train_from+args.check_with
-    io.check_files_existence(args.egos, args.system, md_ensembles_list)
+    io.check_files_existence(args.egos, args.system, args.root_dir, md_ensembles_list)
 
     # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
     print('- Initializing Multi-eGO ensemble')

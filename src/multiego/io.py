@@ -276,17 +276,17 @@ def create_output_directories(parameters):
     if parameters.egos == 'rc':
         name = f'{parameters.system}_{parameters.egos}'
     else: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
-    output_folder = f'outputs/{name}'
+    output_folder = f'{parameters.root_dir}/outputs/{name}'
     
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
-    if os.path.isfile(f'{output_folder}/ffnonbonded.itp'): os.remove(f'{output_folder}/ffnonbonded.itp')
-    if os.path.isfile(f'{output_folder}/topol_GRETA.top'):
-        os.remove(f'{output_folder}/topol_GRETA.top')
+    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp'): os.remove(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp')
+    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top'):
+        os.remove(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top')
 
     return output_folder
 
-def check_files_existence(egos, system, md_ensembles):
+def check_files_existence(egos, system, root_dir, md_ensembles):
     '''
     Checks if relevant multi-eGO input files exist.
 
@@ -305,7 +305,7 @@ def check_files_existence(egos, system, md_ensembles):
         If any of the files or directories does not exist 
     '''
     for ensemble in md_ensembles:
-        ensemble = f'inputs/{system}/{ensemble}'
+        ensemble = f'{root_dir}/inputs/{system}/{ensemble}'
         if not os.path.exists(ensemble):
             raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
         else:

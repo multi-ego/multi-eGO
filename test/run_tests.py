@@ -3,6 +3,9 @@ import subprocess
 import shutil
 import os
 
+TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
+MEGO_ROOT = os.path.dirname(os.path.abspath('../multiego.py'))
+
 def read_infile(path):
     '''
     Reads a test-case input file and parses the system name the multi-eGO
@@ -83,10 +86,10 @@ def prep_system_data(name, egos):
     '''
     if egos == 'rc': out_egos = egos
     else: out_egos = f'production_e{egos[0]}_{egos[1]}'
-    topol_ref = read_outfile(f'test/test_outputs/{name}_{out_egos}/topol_GRETA.top')
-    topol_test = read_outfile(f'outputs/{name}_{out_egos}/topol_GRETA.top')
-    ffnonbonded_ref = read_outfile(f'test/test_outputs/{name}_{out_egos}/ffnonbonded.itp')
-    ffnonbonded_test = read_outfile(f'outputs/{name}_{out_egos}/ffnonbonded.itp')
+    topol_ref = read_outfile(f'{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top')
+    topol_test = read_outfile(f'{MEGO_ROOT}/outputs/{name}_{out_egos}/topol_GRETA.top')
+    ffnonbonded_ref = read_outfile(f'{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp')
+    ffnonbonded_test = read_outfile(f'{MEGO_ROOT}/outputs/{name}_{out_egos}/ffnonbonded.itp')
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
 
 
@@ -146,22 +149,22 @@ def create_test_cases(test_case):
 class TestOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(self):
-        test_commands, test_systems = read_infile('test/test_cases.txt')
-        input_directories = [ f'inputs/{system}' for system in test_systems ]
-        input_gprotein = 'inputs/gpref'
-        input_abeta = 'inputs/abetaref'
-        input_ttr = 'inputs/ttrref'
+        test_commands, test_systems = read_infile(f'{TEST_ROOT}/test_cases.txt')
+        input_directories = [ f'{MEGO_ROOT}/inputs/{system}' for system in test_systems ]
+        input_gprotein = f'{MEGO_ROOT}/inputs/gpref'
+        input_abeta = f'{MEGO_ROOT}/inputs/abetaref'
+        input_ttr = f'{MEGO_ROOT}/inputs/ttrref'
         for system in test_systems:
-            inputs_path = f'inputs/{system}'
+            inputs_path = f'{MEGO_ROOT}/inputs/{system}'
             if os.path.exists(inputs_path): shutil.rmtree(inputs_path)
-            shutil.copytree(f'test/test_inputs/{system}', inputs_path)
+            shutil.copytree(f'{TEST_ROOT}/test_inputs/{system}', inputs_path)
 
-        error_codes = [ subprocess.call(["python", "multiego.py", *command]) for command in test_commands ]
+        error_codes = [ subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands ]
         for e in error_codes: assert e == 0, "Test setup exited with non-zero error code"
 
 
 if __name__ == '__main__':
-    test_commands, test_systems = read_infile('test/test_cases.txt')
+    test_commands, test_systems = read_infile(f'{TEST_ROOT}/test_cases.txt')
     for command in test_commands:
             function_name, new_method = create_test_cases(command)
             setattr(TestOutputs, function_name, new_method)
