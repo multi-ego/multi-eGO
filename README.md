@@ -13,8 +13,8 @@ Codename: **Vanessa**
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Installation
-Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we strongly recommend using ```environment_macOS_M2.yml```.
-For all other hardwares, we recomment the base ```environment.yml```.
+Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we recommend using ```environment_macOS_M2.yml```.
+For all other hardware, we recommend using ```environment.yml```.
 
 ## Requirements
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
