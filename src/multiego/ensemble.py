@@ -185,7 +185,7 @@ def init_meGO_ensemble(args):
     TODO
     '''
     # we initialize the reference topology
-    reference_path = f'inputs/{args.system}/reference'
+    reference_path = f'{args.root_dir}/inputs/{args.system}/reference'
     ensemble_type = reference_path.split('/')[-1]
     print('\t-', f'Initializing {ensemble_type} ensemble topology')
     topology_path = f'{reference_path}/topol.top'
@@ -204,7 +204,7 @@ def init_meGO_ensemble(args):
         if matrix_paths == []: 
             raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
         for path in matrix_paths:
-            name = path.replace('inputs/', '')
+            name = path.replace(f'{args.root_dir}/inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
             reference_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, 'reference', args)
@@ -234,7 +234,7 @@ def init_meGO_ensemble(args):
     train_topology_dataframe = pd.DataFrame()
     for simulation in args.train_from: 
         print('\t-', f'Initializing {simulation} ensemble topology')
-        simulation_path = f'inputs/{args.system}/{simulation}'
+        simulation_path = f'{args.root_dir}/inputs/{args.system}/{simulation}'
         topology_path = f'{simulation_path}/topol.top'
         if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
         print('\t-', f'Reading {topology_path}')
@@ -250,12 +250,12 @@ def init_meGO_ensemble(args):
         if matrix_paths == []: 
             raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
         for path in matrix_paths:
-            name = path.replace('inputs/', '')
+            name = path.replace(f'{args.root_dir}/inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
             train_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
             ref_name = reference_path+'_'+path.split('/')[-1]
-            ref_name = ref_name.replace('inputs/', '')
+            ref_name = ref_name.replace(f'{args.root_dir}/inputs/', '')
             ref_name = ref_name.replace('/', '_')
             ref_name = ref_name.replace('.ndx', '')
             ensemble['train_matrix_tuples'].append((name, ref_name))
@@ -277,7 +277,7 @@ def init_meGO_ensemble(args):
     check_topology_dataframe = pd.DataFrame()
     for simulation in args.check_with: 
         print('\t-', f'Initializing {simulation} ensemble topology')
-        simulation_path = f'inputs/{args.system}/{simulation}'
+        simulation_path = f'{args.root_dir}/inputs/{args.system}/{simulation}'
         topology_path = f'{simulation_path}/topol.top'
         if not os.path.isfile(topology_path): raise FileNotFoundError(f"{topology_path} not found.")
         print('\t-', f'Reading {topology_path}')
@@ -295,12 +295,13 @@ def init_meGO_ensemble(args):
         if matrix_paths == []: 
             raise FileNotFoundError('.ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx')
         for path in matrix_paths:
-            name = path.replace('inputs/', '')
+            name = path.replace(f'{args.root_dir}/inputs/', '')
             name = name.replace('/', '_')
             name = name.replace('.ndx', '')
             check_contact_matrices[name] = initialize_molecular_contacts(io.read_molecular_contacts(path), path, molecules_idx_sbtype_dictionary, simulation, args)
             ref_name = reference_path+'_'+path.split('/')[-1]
-            ref_name = ref_name.replace('inputs/', '')
+            print(ref_name, name)
+            ref_name = ref_name.replace(f'{args.root_dir}/inputs/', '')
             ref_name = ref_name.replace('/', '_')
             ref_name = ref_name.replace('.ndx', '')
             ensemble['check_matrix_tuples'].append((name, ref_name))
@@ -415,7 +416,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     for (name, ref_name) in meGO_ensemble['train_matrix_tuples']:
         #sysname_train_from_intramat_1_1 <-> sysname_reference_intramat_1_1
         if not ref_name in meGO_ensemble['reference_matrices'].keys():
-            raise RuntimeError('say something')
+            raise RuntimeError(f'Encountered error while trying to find {ref_name} in reference matrices {meGO_ensemble["reference_matrices"].keys()}')
 
         temp_merged = pd.merge(meGO_ensemble['train_matrices'][name], meGO_ensemble['reference_matrices'][ref_name], left_index=True, right_index=True, how='outer')
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort = False, ignore_index = True)
