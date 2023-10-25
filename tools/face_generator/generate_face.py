@@ -1,3 +1,5 @@
+import random
+
 aforismi=[
     '“Imparerai a tue spese che nel lungo tragitto della vita incontrerai tante maschere e pochi volti.”',
     "“Mi si fissò invece il pensiero ch'io non ero per gli altri quel che finora, dentro di me, m'ero figurato d'essere.”",
