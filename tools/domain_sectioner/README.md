@@ -1,4 +1,4 @@
-# domain_sectioner.py
+# multi_domain_intramats.py
 
 ## Workflow:
 
