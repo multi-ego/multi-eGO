@@ -1,4 +1,6 @@
-##Workflow:
+# multi_domain_intramats.py
+
+## Workflow:
 
 1) Use multi_domain_intramats.py with "--type split" on the md intramat. This will generate an intramat (split_intramat.ndx) divided in blocks (0 for inter-domain contact) to be used for the inter-domain random coil
 2) Use the rc intramat and the split_intramat.ndx to generate a mego ff with the intra-domain interaction on and the inter-domain interaction off. This will be the simulation of the inter-domain random coil.
@@ -7,7 +9,7 @@
 5) Use the new rc_intramat and the full md intramat for multi-eGO to generate a new ff for multi-domain proteins
 
 
-##Scrits:
+## Scrits:
 
 type split:
 

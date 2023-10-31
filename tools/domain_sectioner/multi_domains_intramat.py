@@ -45,7 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--dom_rc_intra', type=str, help='inter domain random coil intramat')
     parser.add_argument('--target_top', type=str)
     parser.add_argument('--mego_top', type=str)
-    parser.add_argument('--dom_res', nargs='+', type=int, default=[], help='list of residue indeces associated to the starting residues of new domains. Example: 15,44,..')
+    parser.add_argument('--dom_res', nargs='+', type=int, default=[], help='list of residue indeces associated to the starting residues of new domains. Example: 15 44 ...')
     parser.add_argument('--out', type=str, default="./", help='path for ouput')
 
     args = parser.parse_args()
@@ -109,7 +109,7 @@ if args.type=="split":
     print("\n Generating intramat for inter-domain rancomd coil")
     print("")
 
-    intramat = args.input
+    intramat = args.md_intra
     
     #read intramat
     intra_md = np.loadtxt(intramat, unpack=True)
@@ -156,8 +156,8 @@ if args.type=="group":
     print("Group intramat_rc with intramat inter-domain_rc")
     print("")
 
-    intra1 = args.input
-    intra2 = args.input2
+    intra1 = args.rc_intra
+    intra2 = args.dom_rc_intra
 
     #read intramats
     intra_rc = np.loadtxt(intra1, unpack=True)
