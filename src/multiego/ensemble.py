@@ -509,14 +509,19 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
+        nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NR'), ('NR', 'NR'), ('NR', 'NZ'), ('N', 'NT'), ('NT', 'NT'), ('NT', 'NR'), ('NT', 'NZ')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
         basic_LJ.c12 = 0.0
         basic_LJ.same_chain = True 
-        basic_LJ['c12'] = 11.4 * np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ['c12'] = np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
         basic_LJ['rep'] = basic_LJ['c12']
-        basic_LJ = basic_LJ[oxygen_mask]
+        oxygen_LJ = basic_LJ[oxygen_mask]
+        oxygen_LJ['c12'] *= 11.4;
+        nitrogen_LJ = basic_LJ[nitrogen_mask]
+        basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ])
+        basic_LJ['rep'] = basic_LJ['c12']
         basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
         basic_LJ = basic_LJ.drop_duplicates(subset=['index_ai', 'index_aj', 'same_chain'], keep='first')
         basic_LJ = basic_LJ.drop(['index_ai', 'index_aj'], axis=1)
