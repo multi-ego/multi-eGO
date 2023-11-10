@@ -91,7 +91,7 @@ private:
   std::uint64_t counter;
 
 public:
-  Semaphore( std::uint64_t counter = 0 ) : counter(counter), cv(std::condition_variable()), mut(std::mutex()) {}
+  Semaphore( std::uint64_t counter = 0 ) : mut(std::mutex()), cv(std::condition_variable()), counter(counter) {}
   void acquire()
   {
     std::unique_lock<std::mutex> lock(mut);
@@ -111,11 +111,6 @@ public:
   void set_counter( std::uint64_t c )
   {
     counter = c;
-  }
-
-  std::uint64_t get_counter() const
-  {
-    return counter;
   }
 };
 
@@ -394,43 +389,9 @@ static inline void kernel_density_estimator(std::vector<double>::iterator x, con
   }
 }
 
-static inline double calc_mean(const std::vector<double> &v, const double dx)
-{
-  double dm = 0.;
-  double norm = 0.;
-  for (auto it = v.begin(); it != v.end(); ++it)
-  {
-    unsigned i = std::distance(v.begin(), it);
-    if (v[i] > 0.)
-    {
-      double d = (dx * static_cast<double>(i) + 0.5 * dx);
-      dm += v[i] * d;
-      norm += v[i];
-    }
-  }
-  if (norm == 0.) norm = 1.;
-  return dm / norm;
-}
-
-static inline double calc_prob(const std::vector<double> &v, const double dx)
-{
-  double prob = 0.;
-  for (auto it = v.begin(); it != v.end(); ++it)
-  {
-    unsigned i = std::distance(v.begin(), it);
-    if (v[i] > 0.) prob += v[i] * dx;
-  }
-  return prob;
-}
-
 static inline int n_bins(const double cut, const double factor = 4.0)
 {
   return cut / (0.01 / factor);
-}
-
-static std::size_t offset_same( std::size_t i, int mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
-{
-  return static_cast<std::size_t>(mol_i) * (natmol2[i] * natmol2[i]) + a_i * natmol2[i] + a_j;
 }
 
 static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
@@ -1176,7 +1137,7 @@ void CMData::finishAnalysis(int /*nframes*/)
         if (intra_) intram_mat_density_[i][jj][ii] = intram_mat_density_[i][ii][jj];
       }
     }
-    for (std::size_t j = i + 1; j < natmol2_.size() & cross_; j++)
+    for (std::size_t j = i + 1; j < natmol2_.size() && cross_; j++)
     {
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
