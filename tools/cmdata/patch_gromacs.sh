@@ -7,5 +7,6 @@ GROMACS_ROOT_DIR=$1
 
 diff -aur ${GROMACS_ROOT_DIR}/src/gromacs/trajectoryanalysis/modules.cpp modules.cpp > patch.diff
 cp cmdata.cpp cmdata.h ${GROMACS_ROOT_DIR}/src/gromacs/trajectoryanalysis/modules/
+touch ${GROMACS_ROOT_DIR}/src/gromacs/trajectoryanalysis/* 
 
 patch -d/ -p0 < patch.diff
