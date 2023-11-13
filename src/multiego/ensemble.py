@@ -513,9 +513,10 @@ def generate_basic_LJ(meGO_ensemble):
         c6_list = ai_name.map(name_to_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
-        nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('C', 'C'), ('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NR'), ('NR', 'NR'), ('NR', 'NZ'), ('N', 'NT'), ('NT', 'NT'), ('NT', 'NR'), ('NT', 'NZ'), ('N', 'NE'), ('NE', 'NE'), ('NE', 'NZ'), ('NE', 'NR'), ('NE', 'NT')], symmetrize=True)
-        hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O')], symmetrize=True)
-        #hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O'), ('N', 'C'), ('N', 'CH1'), ('N', 'OM'), ('NZ', 'O'), ('NT', 'O'), ('NZ', 'OM'), ('NT', 'OM')], symmetrize=True)
+        ca_mask = masking.create_array_mask(ai_name, ai_name, [('CH1', 'CH1')], symmetrize=True)
+        nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('S', 'S'), ('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NE'), ('NE', 'NE'), ('NE', 'NZ')], symmetrize=True)
+        hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O'), ('N', 'OM'), ('N', 'CH'), ('NL', 'O'), ('NL', 'OM'), ('NL', 'CH'), ('NZ', 'O'), ('NZ', 'OM'), ('NZ', 'CH'), ('NE', 'O'), ('NE', 'OM'), ('NE', 'CH')], symmetrize=True)
+        hydrophobic_mask = masking.create_array_mask(ai_name, ai_name, [('CH3', 'CH3'), ('CH2', 'CH3'), ('CH2r', 'CH3'), ('CH', 'CH'), ('CH', 'CH2'), ('CH', 'CH3'), ('CH', 'CH2r')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
@@ -526,12 +527,19 @@ def generate_basic_LJ(meGO_ensemble):
         oxygen_LJ = basic_LJ[oxygen_mask]
         oxygen_LJ['c12'] *= 11.4
         oxygen_LJ['c6'] *= 0. 
+        ca_LJ = basic_LJ[ca_mask]
+        ca_LJ['c6'] = 0. 
         nitrogen_LJ = basic_LJ[nitrogen_mask]
         nitrogen_LJ['c6'] = 0. 
+        hydrophobic_LJ = basic_LJ[hydrophobic_mask]
+        hydrophobic_LJ['c12'] = 0.15*hydrophobic_LJ['rep']
+        hydrophobic_LJ['c6'] = 0.15*hydrophobic_LJ['att']
         hbond_LJ = basic_LJ[hbond_mask]
-        hbond_LJ['c12'] = 2.*hbond_LJ['rep']
-        hbond_LJ['c6'] = 2.*hbond_LJ['att']
-        basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ, hbond_LJ])
+        hbond_LJ['c12'] = 0.15*hbond_LJ['rep']
+        hbond_LJ['c6'] = 0.15*hbond_LJ['att']
+        basic_LJ = pd.concat([oxygen_LJ, ca_LJ, nitrogen_LJ, hbond_LJ, hydrophobic_LJ])
+        #basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, nitrogen_LJ])
+        #basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ, hbond_LJ])
         #basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ])
         basic_LJ['rep'] = basic_LJ['c12']
         basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
