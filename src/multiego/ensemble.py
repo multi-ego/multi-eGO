@@ -514,7 +514,8 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
         nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('C', 'C'), ('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NR'), ('NR', 'NR'), ('NR', 'NZ'), ('N', 'NT'), ('NT', 'NT'), ('NT', 'NR'), ('NT', 'NZ'), ('N', 'NE'), ('NE', 'NE'), ('NE', 'NZ'), ('NE', 'NR'), ('NE', 'NT')], symmetrize=True)
-        hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O'), ('N', 'C'), ('N', 'CH1'), ('N', 'OM'), ('NZ', 'O'), ('NT', 'O'), ('NZ', 'OM'), ('NT', 'OM')], symmetrize=True)
+        hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O')], symmetrize=True)
+        #hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O'), ('N', 'C'), ('N', 'CH1'), ('N', 'OM'), ('NZ', 'O'), ('NT', 'O'), ('NZ', 'OM'), ('NT', 'OM')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
