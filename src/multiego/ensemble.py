@@ -492,11 +492,13 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
 def generate_basic_LJ(meGO_ensemble):
     columns=['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
                         'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
-                        'number_ai', 'number_aj', 'cutoff']
+                        'number_ai', 'number_aj', 'cutoff', 'rep', 'att']
     basic_LJ = pd.DataFrame(columns=columns)
     
     topol_df = meGO_ensemble['topology_dataframe']
+    name_to_bare_c12 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.bare_c12)}
     name_to_c12 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    name_to_c6 = { key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c6)}
     # for (name, ref_name) in meGO_ensemble['reference_matrices']:
     if meGO_ensemble['reference_matrices'] == {}:
         basic_LJ = pd.DataFrame(columns=columns)
@@ -506,21 +508,30 @@ def generate_basic_LJ(meGO_ensemble):
         basic_LJ['aj'] = [ y for _ in meGO_ensemble['sbtype_number_dict'].keys() for y in meGO_ensemble['sbtype_number_dict'].keys() ]
         
         ai_name = topol_df['type']
+        bare_c12_list = ai_name.map(name_to_bare_c12).to_numpy()
         c12_list = ai_name.map(name_to_c12).to_numpy()
+        c6_list = ai_name.map(name_to_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [('O', 'OM'), ('O', 'O'), ('OM', 'OM')], symmetrize=True)
-        nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NR'), ('NR', 'NR'), ('NR', 'NZ'), ('N', 'NT'), ('NT', 'NT'), ('NT', 'NR'), ('NT', 'NZ')], symmetrize=True)
+        nitrogen_mask = masking.create_array_mask(ai_name, ai_name, [('C', 'C'), ('N', 'NZ'), ('N', 'N'), ('NZ', 'NZ'), ('N', 'NR'), ('NR', 'NR'), ('NR', 'NZ'), ('N', 'NT'), ('NT', 'NT'), ('NT', 'NR'), ('NT', 'NZ'), ('N', 'NE'), ('NE', 'NE'), ('NE', 'NZ'), ('NE', 'NR'), ('NE', 'NT')], symmetrize=True)
+        hbond_mask = masking.create_array_mask(ai_name, ai_name, [('N', 'O'), ('N', 'C'), ('N', 'CH1'), ('N', 'OM'), ('NZ', 'O'), ('NT', 'O'), ('NZ', 'OM'), ('NT', 'OM')], symmetrize=True)
         basic_LJ.type = 1
         basic_LJ['source'] = 'basic'
         basic_LJ.c6 = 0.0
-        basic_LJ.c12 = 0.0
+        basic_LJ.c12 = np.sqrt(bare_c12_list * bare_c12_list[:,np.newaxis]).flatten()
+        basic_LJ.rep = np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
+        basic_LJ.att = np.sqrt(c6_list * c6_list[:,np.newaxis]).flatten()
         basic_LJ.same_chain = True 
-        basic_LJ['c12'] = np.sqrt(c12_list * c12_list[:,np.newaxis]).flatten()
-        basic_LJ['rep'] = basic_LJ['c12']
         oxygen_LJ = basic_LJ[oxygen_mask]
-        oxygen_LJ['c12'] *= 11.4;
+        oxygen_LJ['c12'] *= 11.4
+        oxygen_LJ['c6'] *= 0. 
         nitrogen_LJ = basic_LJ[nitrogen_mask]
-        basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ])
+        nitrogen_LJ['c6'] = 0. 
+        hbond_LJ = basic_LJ[hbond_mask]
+        hbond_LJ['c12'] = 2.*hbond_LJ['rep']
+        hbond_LJ['c6'] = 2.*hbond_LJ['att']
+        basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ, hbond_LJ])
+        #basic_LJ = pd.concat([oxygen_LJ, nitrogen_LJ])
         basic_LJ['rep'] = basic_LJ['c12']
         basic_LJ['index_ai'], basic_LJ['index_aj'] = basic_LJ[['index_ai', 'index_aj']].min(axis=1), basic_LJ[['index_ai', 'index_aj']].max(axis=1)
         basic_LJ = basic_LJ.drop_duplicates(subset=['index_ai', 'index_aj', 'same_chain'], keep='first')
