@@ -91,7 +91,7 @@ private:
   std::uint64_t counter;
 
 public:
-  Semaphore( std::uint64_t counter = 0 ) : counter(counter), cv(std::condition_variable()), mut(std::mutex()) {}
+  Semaphore( std::uint64_t counter = 0 ) : mut(std::mutex()), cv(std::condition_variable()), counter(counter) {}
   void acquire()
   {
     std::unique_lock<std::mutex> lock(mut);
@@ -111,11 +111,6 @@ public:
   void set_counter( std::uint64_t c )
   {
     counter = c;
-  }
-
-  std::uint64_t get_counter() const
-  {
-    return counter;
   }
 };
 
@@ -151,7 +146,6 @@ public:
 
 private:
   Selection refsel_;
-  bool histo_;
   double cutoff_;
   double mol_cutoff_;
   int n_x_;
@@ -234,10 +228,6 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&outfile_inter_)
                     .defaultValue("intramat.ndx")
                     .description("Output of the intra-molecular contacts"));
-  options->addOption(BooleanOption("histo")
-                    .store(&histo_)
-                    .defaultValue(true)
-                    .description("Set to true to output histograms"));
   options->addOption(IntegerOption("nskip")
                     .store(&nskip_)
                     .defaultValue(0)
@@ -394,43 +384,9 @@ static inline void kernel_density_estimator(std::vector<double>::iterator x, con
   }
 }
 
-static inline double calc_mean(const std::vector<double> &v, const double dx)
-{
-  double dm = 0.;
-  double norm = 0.;
-  for (auto it = v.begin(); it != v.end(); ++it)
-  {
-    unsigned i = std::distance(v.begin(), it);
-    if (v[i] > 0.)
-    {
-      double d = (dx * static_cast<double>(i) + 0.5 * dx);
-      dm += v[i] * d;
-      norm += v[i];
-    }
-  }
-  if (norm == 0.) norm = 1.;
-  return dm / norm;
-}
-
-static inline double calc_prob(const std::vector<double> &v, const double dx)
-{
-  double prob = 0.;
-  for (auto it = v.begin(); it != v.end(); ++it)
-  {
-    unsigned i = std::distance(v.begin(), it);
-    if (v[i] > 0.) prob += v[i] * dx;
-  }
-  return prob;
-}
-
 static inline int n_bins(const double cut, const double factor = 4.0)
 {
   return cut / (0.01 / factor);
-}
-
-static std::size_t offset_same( std::size_t i, int mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
-{
-  return static_cast<std::size_t>(mol_i) * (natmol2[i] * natmol2[i]) + a_i * natmol2[i] + a_j;
 }
 
 static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2 )
@@ -1176,7 +1132,7 @@ void CMData::finishAnalysis(int /*nframes*/)
         if (intra_) intram_mat_density_[i][jj][ii] = intram_mat_density_[i][ii][jj];
       }
     }
-    for (std::size_t j = i + 1; j < natmol2_.size() & cross_; j++)
+    for (std::size_t j = i + 1; j < natmol2_.size() && cross_; j++)
     {
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
@@ -1280,55 +1236,52 @@ static void f_write_inter_cross(
 
 void CMData::writeOutput()
 {
-  if (histo_)
+  printf("Writing data... ");
+  std::function<void(
+    std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  )> write_intra = [](
+    std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  ){};
+
+  std::function<void(
+    std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  )> write_inter_same = [](
+    std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  ){};
+
+  std::function<void(
+    std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<int>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  )> write_inter_cross = [](
+    std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
+    const std::vector<std::vector<int>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &,
+    const std::vector<std::vector<std::vector<std::vector<double>>>> &
+  ){};
+
+  if (intra_) write_intra = f_write_intra;
+  if (same_) write_inter_same = f_write_inter_same;
+  if (cross_) write_inter_cross = f_write_inter_cross;
+  for (std::size_t i = 0; i < natmol2_.size(); i++)
   {
-    printf("Writing data... ");
-    std::function<void(
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_intra = [](
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
-    std::function<void(
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_inter_same = [](
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
-    std::function<void(
-      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<int>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_inter_cross = [](
-      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<int>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
-    if (intra_) write_intra = f_write_intra;
-    if (same_) write_inter_same = f_write_inter_same;
-    if (cross_) write_inter_cross = f_write_inter_cross;
-    for (std::size_t i = 0; i < natmol2_.size(); i++)
+    for (int ii = 0; ii < natmol2_[i]; ii++)
+    {
+      write_intra(i, ii, density_bins_, natmol2_, intram_mat_density_);
+      write_inter_same(i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
+    }
+    for (std::size_t j = i + 1; j < natmol2_.size(); j++)
     {
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
-        write_intra(i, ii, density_bins_, natmol2_, intram_mat_density_);
-        write_inter_same(i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
-      }
-      for (std::size_t j = i + 1; j < natmol2_.size(); j++)
-      {
-        for (int ii = 0; ii < natmol2_[i]; ii++)
-        {
-          write_inter_cross(i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
-        }
+        write_inter_cross(i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
       }
     }
   }
