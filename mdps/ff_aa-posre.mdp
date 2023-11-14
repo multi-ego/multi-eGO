@@ -107,7 +107,7 @@ print-nose-hoover-chain-variables = no
 ; Groups to couple separately
 tc-grps                  = system
 ; Time constant (ps) and reference temperature (K)
-tau_t                    = 1.0 ; 50.0
+tau_t                    = 25; can be modified to improve diffusion 
 ref_t                    = _TEMP_ 
 ; pressure coupling     
 Pcoupl                   = no
