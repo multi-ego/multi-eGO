@@ -21,7 +21,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
     #parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
-    parser.add_argument('--epsilon_min', type=float, default=0.05, help='The minimum meaningfull epsilon value.')
+    parser.add_argument('--epsilon_min', type=float, default=0.07, help='The minimum meaningfull epsilon value.')
 
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
     args = parser.parse_args()
