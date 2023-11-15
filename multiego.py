@@ -48,6 +48,14 @@ if __name__ == '__main__':
     #    print('--fraction should be between 0.1 and 0.3')
     #    sys.exit()
 
+    if args.epsilon <= args.epsilon_min:
+        print('--epsilon must be greater than --epsilon_min')
+        sys.exit()
+
+    if args.inter_epsilon <= args.epsilon_min:
+        print('--inter_epsilon must be greater than --epsilon_min')
+        sys.exit()
+
     if not os.path.exists(f'{args.root_dir}/outputs'): os.mkdir(f'{args.root_dir}/outputs')
     output_dir = io.create_output_directories(args)
 
