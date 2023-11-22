@@ -63,7 +63,7 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
             lj_potential.drop(columns= ['molecule_name_ai', 'molecule_name_aj'], inplace=True)
             file.write(dataframe_to_write(lj_potential))
 
-def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir):
+def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix):
     '''
     Takes care of the final print-out and the file writing of topology and ffnonbonded
 
@@ -81,6 +81,7 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         Path to the output directory 
     '''
     print('- Writing Multi-eGO model')
+    output_dir = f'{output_dir}'
     write_topology(meGO_ensemble['topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
     write_nonbonded(meGO_ensemble['topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
 
@@ -276,7 +277,10 @@ def create_output_directories(parameters):
     '''
     if parameters.egos == 'rc':
         name = f'{parameters.system}_{parameters.egos}'
-    else: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+        if parameters.out: name = f'{parameters.system}_{parameters.egos}_{parameters.out}'
+    else: 
+        name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+        if parameters.out: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}'
     output_folder = f'{parameters.root_dir}/outputs/{name}'
     
     if not os.path.exists(output_folder):
