@@ -173,9 +173,11 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         contact_matrix['md_threshold'] = np.zeros(len(p_sort))+md_threshold
         contact_matrix['rc_threshold'] = np.zeros(len(p_sort))
         ## TODO extend it to inter-domain cases
-        contact_matrix.loc[(contact_matrix['same_chain']==True), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & (contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & ~(contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_domain_epsilon)))
         contact_matrix.loc[(contact_matrix['same_chain']==False), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_epsilon)))
-        contact_matrix.loc[(contact_matrix['same_chain']==True), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.epsilon)
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & (contact_matrix['intra_domain']), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.epsilon)
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & ~(contact_matrix['intra_domain']), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.inter_domain_epsilon)
         contact_matrix.loc[(contact_matrix['same_chain']==False), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.inter_epsilon)
 
     return contact_matrix
