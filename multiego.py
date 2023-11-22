@@ -24,6 +24,8 @@ if __name__ == '__main__':
     parser.add_argument('--epsilon_min', type=float, default=0.07, help='The minimum meaningfull epsilon value.')
 
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
+    parser.add_argument('--inter_domain_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per interdomain contacts.')
+    parser.add_argument('--out', type=str, default='', help='Suffix for the output directory name.')
     args = parser.parse_args()
 
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -48,11 +50,15 @@ if __name__ == '__main__':
     #    print('--fraction should be between 0.1 and 0.3')
     #    sys.exit()
 
-    if args.epsilon <= args.epsilon_min:
+    if args.egos != 'rc' and args.epsilon <= args.epsilon_min:
         print('--epsilon must be greater than --epsilon_min')
         sys.exit()
+    
+    if args.egos != 'rc' and args.inter_domain_epsilon <= args.epsilon_min:
+        print('--inter_domain_epsilon must be greater than --epsilon_min')
+        sys.exit()
 
-    if args.inter_epsilon <= args.epsilon_min:
+    if args.egos != 'rc' and args.inter_epsilon <= args.epsilon_min:
         print('--inter_epsilon must be greater than --epsilon_min')
         sys.exit()
 
@@ -80,4 +86,4 @@ if __name__ == '__main__':
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
     
-    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir)
+    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
