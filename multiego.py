@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='TODO!')
     parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to system input folder.')
     parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGO.\n rc: creates a force-field for random coil simulations.\n production: creates a force-field combining random coil simulations and training simulations.')
-    parser.add_argument('--epsilon', type=float, choices=[float_range.FloatRange(0.0, 1.0)], help='Maximum interaction energy per contact.')
+    parser.add_argument('--epsilon', type=float, choices=[float_range.FloatRange(0.0, 1000.0)], help='Maximum interaction energy per contact.')
     parser.add_argument('--no_header', action='store_true', help='Removes headers from output_files when set')
     # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
     args, remaining = parser.parse_known_args()
@@ -20,7 +20,8 @@ if __name__ == '__main__':
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     
     parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
-    parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
+    #parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
+    parser.add_argument('--epsilon_min', type=float, default=0.07, help='The minimum meaningfull epsilon value.')
 
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
     args = parser.parse_args()
@@ -43,8 +44,16 @@ if __name__ == '__main__':
     if args.p_to_learn<0.9:
         print('WARNING: --p_to_learn should be high enough')
 
-    if args.fraction<0.1 or args.fraction>0.3:
-        print('--fraction should be between 0.1 and 0.3')
+    #if args.fraction<0.1 or args.fraction>0.3:
+    #    print('--fraction should be between 0.1 and 0.3')
+    #    sys.exit()
+
+    if args.epsilon <= args.epsilon_min:
+        print('--epsilon must be greater than --epsilon_min')
+        sys.exit()
+
+    if args.inter_epsilon <= args.epsilon_min:
+        print('--inter_epsilon must be greater than --epsilon_min')
         sys.exit()
 
     if not os.path.exists(f'{args.root_dir}/outputs'): os.mkdir(f'{args.root_dir}/outputs')

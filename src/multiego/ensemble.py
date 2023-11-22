@@ -165,17 +165,18 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             md_threshold = 1
             rc_threshold = 1
         else:
+            #find md threshold 
             p_sort_normalized = np.cumsum( p_sort ) / norm
-            #find md/rc threshold 
-            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
-            rc_threshold = md_threshold**(1./(1.-args.fraction))
-        print('\t\t-', f'Set md_threshold = {md_threshold}')
-        print('\t\t-', f'Set rc_threshold = {rc_threshold}')
+            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ]
  
         #add the columns for rc, md threshold
         contact_matrix['md_threshold'] = np.zeros(len(p_sort))+md_threshold
-        contact_matrix['rc_threshold'] = np.zeros(len(p_sort))+rc_threshold
-        contact_matrix['limit_rc'] = 1./contact_matrix['rc_threshold']**args.fraction
+        contact_matrix['rc_threshold'] = np.zeros(len(p_sort))
+        ## TODO extend it to inter-domain cases
+        contact_matrix.loc[(contact_matrix['same_chain']==True), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==False), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==True), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.epsilon)
+        contact_matrix.loc[(contact_matrix['same_chain']==False), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.inter_epsilon)
 
     return contact_matrix
 
