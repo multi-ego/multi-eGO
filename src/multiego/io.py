@@ -20,7 +20,8 @@ def read_molecular_contacts(path):
 
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
-    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff']
+    if contact_matrix.shape[1] == 7: contact_matrix.insert(7, 7, 1)
+    contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff', 'intra_domain']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
     contact_matrix['molecule_number_aj'] = contact_matrix['molecule_number_aj'].astype(str)
@@ -62,7 +63,7 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
             lj_potential.drop(columns= ['molecule_name_ai', 'molecule_name_aj'], inplace=True)
             file.write(dataframe_to_write(lj_potential))
 
-def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir):
+def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix):
     '''
     Takes care of the final print-out and the file writing of topology and ffnonbonded
 
@@ -80,6 +81,7 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         Path to the output directory 
     '''
     print('- Writing Multi-eGO model')
+    output_dir = f'{output_dir}'
     write_topology(meGO_ensemble['topology_dataframe'], meGO_ensemble['molecule_type_dict'], meGO_ensemble['meGO_bonded_interactions'], meGO_LJ_14, parameters, output_dir)
     write_nonbonded(meGO_ensemble['topology_dataframe'], meGO_LJ_potential, parameters, output_dir)
 
@@ -275,7 +277,10 @@ def create_output_directories(parameters):
     '''
     if parameters.egos == 'rc':
         name = f'{parameters.system}_{parameters.egos}'
-    else: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+        if parameters.out: name = f'{parameters.system}_{parameters.egos}_{parameters.out}'
+    else: 
+        name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
+        if parameters.out: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}'
     output_folder = f'{parameters.root_dir}/outputs/{name}'
     
     if not os.path.exists(output_folder):
