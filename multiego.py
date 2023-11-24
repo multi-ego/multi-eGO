@@ -20,7 +20,6 @@ if __name__ == '__main__':
     parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
     
     parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
-    #parser.add_argument('--fraction', type=float, default=0.2, help='Minimum fraction of the maximum interaction energy per contact.')
     parser.add_argument('--epsilon_min', type=float, default=0.07, help='The minimum meaningfull epsilon value.')
 
     parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
@@ -45,10 +44,6 @@ if __name__ == '__main__':
 
     if args.p_to_learn<0.9:
         print('WARNING: --p_to_learn should be high enough')
-
-    #if args.fraction<0.1 or args.fraction>0.3:
-    #    print('--fraction should be between 0.1 and 0.3')
-    #    sys.exit()
 
     if args.egos != 'rc' and args.epsilon <= args.epsilon_min:
         print('--epsilon must be greater than --epsilon_min')
