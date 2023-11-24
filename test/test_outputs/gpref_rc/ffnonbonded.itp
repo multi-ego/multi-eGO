@@ -3,7 +3,7 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 25-10-2023 16:33
+; Created on the 24-11-2023 10:11
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = rc                  
@@ -11,9 +11,11 @@
 ;	- train_from      =                     
 ;	- check_with      =                     
 ;	- p_to_learn      = 0.9995              
-;	- fraction        = 0.2                 
+;	- epsilon_min     = 0.07                
 ;	- inter_epsilon   =                     
-;	- root_dir        = /home/franbt/multi-eGO
+;	- inter_domain_epsilon =                     
+;	- out             =                     
+;	- root_dir        = /Users/carlo/Codes/multi-eGO
 
 [ atomtypes ]
           ; sb_type  atomic_number    mass  charge ptype           c6          c12
