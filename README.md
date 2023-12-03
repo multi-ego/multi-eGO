@@ -21,7 +21,8 @@ Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [C
 
 ## Installation
 Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we recommend using ```environment_macOS_M2.yml```.
-For all other hardware, we recommend using ```environment.yml```.
+For all other hardware, we recommend using ```environment.yml```. It is also possible to use ``pip install -r requirements.txt`` using
+Python 3.9 or later.
 
 ## Requirements
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.

@@ -143,11 +143,14 @@ if args.type=="split":
 
     intra_md[4] = np.where(domain_mask_linear, intra_md[4], 0.)
     intra_md[5] = np.where(domain_mask_linear, intra_md[5], 0.)
+    # add an eigth column with the domain_mask
+    if intra_md.shape[0] == 7: intra_md = np.concatenate((intra_md, domain_mask_linear[np.newaxis,:]), axis=0)
+    else: intra_md[7] = domain_mask_linear
 
     if '/' in intramat:
         intramat = intramat.split('/')[-1]
 
-    np.savetxt(f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}',intra_md.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f' ])
+    np.savetxt(f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}',intra_md.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
     print(f"Finished splitting")
 
 
@@ -199,11 +202,13 @@ if args.type=="group":
     intra_rc[4] = np.where(domain_mask_linear, intra_rc[4], intra_domain_rc[4])
     intra_rc[5] = np.where(domain_mask_linear, intra_rc[5], intra_domain_rc[5])
     intra_rc[6] = np.where(domain_mask_linear, intra_rc[6], intra_domain_rc[6])
+    if intra_rc.shape[0] == 7: intra_rc = np.concatenate((intra_rc, domain_mask_linear[np.newaxis,:]), axis=0)
+    else: intra_rc[7] = domain_mask_linear
 
     if '/' in intra1:
         intra1 = intra1.split('/')[-1]
 
-    np.savetxt(f'{args.out}group_{"-".join(np.array(args.dom_res, dtype=str))}_{intra1}',intra_rc.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f' ])
+    np.savetxt(f'{args.out}group_{"-".join(np.array(args.dom_res, dtype=str))}_{intra1}',intra_rc.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
     print(f"Finished group")
 
     

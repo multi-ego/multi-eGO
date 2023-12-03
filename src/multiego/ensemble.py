@@ -148,7 +148,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     contact_matrix = contact_matrix[~contact_matrix['ai'].astype(str).str.startswith('H')]
     contact_matrix = contact_matrix[~contact_matrix['aj'].astype(str).str.startswith('H')]
 
-    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'cutoff']]
+    contact_matrix = contact_matrix[['molecule_name_ai', 'ai', 'molecule_name_aj', 'aj', 'distance', 'probability', 'cutoff', 'intra_domain']]
     if name[0] == 'intramat': contact_matrix['same_chain'] = True
     elif name[0] == 'intermat': contact_matrix['same_chain'] = False
     else: raise Exception('There might be an error in the contact matrix naming. It must be intermat_X_X or intramat_X_X')
@@ -168,17 +168,20 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             md_threshold = 1
             rc_threshold = 1
         else:
+            #find md threshold 
             p_sort_normalized = np.cumsum( p_sort ) / norm
-            #find md/rc threshold 
-            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ] 
-            rc_threshold = md_threshold**(1./(1.-args.fraction))
-        print('\t\t-', f'Set md_threshold = {md_threshold}')
-        print('\t\t-', f'Set rc_threshold = {rc_threshold}')
+            md_threshold = p_sort[ np.min( np.where( p_sort_normalized > args.p_to_learn )[0]) ]
  
         #add the columns for rc, md threshold
         contact_matrix['md_threshold'] = np.zeros(len(p_sort))+md_threshold
-        contact_matrix['rc_threshold'] = np.zeros(len(p_sort))+rc_threshold
-        contact_matrix['limit_rc'] = 1./contact_matrix['rc_threshold']**args.fraction
+        contact_matrix['rc_threshold'] = np.zeros(len(p_sort))
+        ## TODO extend it to inter-domain cases
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & (contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & ~(contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_domain_epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==False), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_epsilon)))
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & (contact_matrix['intra_domain']), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.epsilon)
+        contact_matrix.loc[(contact_matrix['same_chain']==True) & ~(contact_matrix['intra_domain']), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.inter_domain_epsilon)
+        contact_matrix.loc[(contact_matrix['same_chain']==False), 'limit_rc'] = 1./contact_matrix['rc_threshold']**(args.epsilon_min/args.inter_epsilon)
 
     return contact_matrix
 
@@ -629,7 +632,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
+    meGO_LJ.loc[(meGO_LJ['intra_domain']==True)&(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
+    meGO_LJ.loc[(meGO_LJ['intra_domain']==False)&(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True), 'epsilon'] = -(parameters.inter_domain_epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
     # Attractive intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']>meGO_LJ['limit_rc']*np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*(np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold'])))
 
@@ -637,7 +641,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # General repulsive term
     # These are with negative sign to store them as epsilon values 
     # Intramolecular
-    meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    meGO_LJ.loc[(meGO_LJ['intra_domain']==True)&(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
+    meGO_LJ.loc[(meGO_LJ['intra_domain']==False)&(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==True)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.inter_domain_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
     # Intermolecular
     meGO_LJ.loc[(meGO_LJ['probability']<np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))&(meGO_LJ['same_chain']==False)&(meGO_LJ['rep']>0), 'epsilon'] = -(parameters.inter_epsilon/np.log(meGO_LJ['rc_threshold']))*meGO_LJ['distance']**12*np.log(meGO_LJ['probability']/np.maximum(meGO_LJ['rc_probability'],meGO_LJ['rc_threshold']))-(meGO_LJ['rep']*(meGO_LJ['distance']/meGO_LJ['rc_distance'])**12)
     # mid case for Pmd>Prc but not enough to be attractive 
