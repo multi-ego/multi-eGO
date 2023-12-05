@@ -354,6 +354,11 @@ def generate_bonded_interactions(meGO_ensemble):
         # The following bonds are used in the parametrization of LJ 1-4
         meGO_ensemble['bond_pairs'][molecule] = topology.get_bond_pairs(topol[0].bonds)
         meGO_ensemble['user_pairs'][molecule] = topology.get_pairs(topol[0].adjusts)
+        for test in meGO_ensemble['user_pairs'][molecule].type:
+            if(test == None):
+                print("\nERROR: you have 1-4 pairs defined in your topology without the associated C6/C12 values")
+                print("       user provided 1-4 pairs need to define also the C6/C12\n")
+                exit()
 
     return meGO_ensemble
 
