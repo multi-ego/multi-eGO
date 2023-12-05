@@ -405,8 +405,13 @@ def generate_14_data(meGO_ensemble):
             for test in meGO_ensemble['user_pairs'][molecule].type:
                 nonprotein_c12.append(float(test.epsilon)*4.184)
             pairs['c12'] = nonprotein_c12
+            pairs['c6'] = 0. 
+            pairs['func'] = 1 
             pairs['rep'] = pairs['c12']
             pairs['same_chain'] = True
+            pairs['source'] = '1-4'
+            pairs['probability'] = 1.0
+            pairs['rc_probability'] = 1.0
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
