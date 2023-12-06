@@ -50,7 +50,7 @@ def run_intra_(arguments):
     ) = arguments
     process = multiprocessing.current_process()
     columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
-    df = pd.DataFrame(columns=columns)
+    df = pd.DataFrame()
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
@@ -66,9 +66,9 @@ def run_intra_(arguments):
 
             results_df["mi"] = mi
             results_df["mj"] = mj
-            results_df["c12dist"] = 0
-            results_df["p"] = 0
-            results_df["cutoff"] = 0
+            results_df["c12dist"] = 0.0
+            results_df["p"] = 0.0
+            results_df["cutoff"] = 0.0
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
@@ -87,10 +87,9 @@ def run_intra_(arguments):
                 lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()),
                 axis=0,
             ).values
-
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
-            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i]
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
 
         df = pd.concat([df, results_df])
         df = df.sort_values(by=["p", "c12dist"], ascending=True)
@@ -129,7 +128,7 @@ def run_inter_(arguments):
     ) = arguments
     process = multiprocessing.current_process()
     columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
-    df = pd.DataFrame(columns=columns)
+    df = pd.DataFrame()
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
@@ -145,9 +144,9 @@ def run_inter_(arguments):
 
             results_df["mi"] = mi
             results_df["mj"] = mj
-            results_df["c12dist"] = 0
-            results_df["p"] = 0
-            results_df["cutoff"] = 0
+            results_df["c12dist"] = 0.0
+            results_df["p"] = 0.0
+            results_df["cutoff"] = 0.0
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
@@ -177,7 +176,7 @@ def run_inter_(arguments):
 
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
-            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i]
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
 
         df = pd.concat([df, results_df])
 
@@ -485,7 +484,6 @@ def calculate_intra_probabilities(args):
 
         types = type_definitions.lj14_generator(topology_df)
         c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
-        print(c12_values)
 
         # consider special cases
         oxygen_mask = masking.create_matrix_mask(
