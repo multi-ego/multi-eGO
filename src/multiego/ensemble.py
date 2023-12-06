@@ -4,10 +4,10 @@ from . import topology
 from .util import masking
 
 import glob
+import numpy as np
 import pandas as pd
 import parmed
 import os
-import numpy as np
 import warnings
 
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
@@ -29,7 +29,9 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     molecule_type_dict : dict
         Updated molecule_type_dict with the added new system name
     '''
+
     first_aminoacid = molecule_topology.residues[0].name
+
     if first_aminoacid in type_definitions.aminoacids_list:
         molecule_type_dict[molecule_name] = 'protein'
     elif first_aminoacid in type_definitions.nucleic_acid_list:
@@ -42,28 +44,45 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
 
 def initialize_topology(topology):
     '''
+    Initializes a topology DataFrame using provided molecule information.
+
+    Args:
+    - topology (object): An object containing information about the molecules.
+
+    Returns:
+    - ensemble_topology_dataframe (DataFrame): DataFrame containing ensemble topology information.
+    - ensemble_molecules_idx_sbtype_dictionary (dict): Dictionary mapping molecule indexes to their respective subtypes.
+    - sbtype_c12_dict (dict): Dictionary mapping subtype to their c12 values.
+    - sbtype_name_dict (dict): Dictionary mapping subtype to their names.
+    - sbtype_moltype_dict (dict): Dictionary mapping subtype to their molecule types.
+    - molecule_type_dict (dict): Dictionary mapping molecule names to their types.
+
+    This function initializes a topology DataFrame by extracting information about molecules and their atoms.
+    It creates a DataFrame containing details about atoms, molecules, their types, and assigns specific values based on the provided information.
+    The function also generates dictionaries mapping different atom subtypes to their respective characteristics and molecule types.
+
+    Note:
+    - The 'topology' object is expected to contain molecule information.
+    - The returned DataFrame and dictionaries provide comprehensive details about the molecular structure and characteristics.
     '''
-    # In a single topology different type of molecules can be present (e.g. protein, ligand).
-    # For each molecule the different atomtypes are saved.
+
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict, temp_number_c6_dict = pd.DataFrame(), [], [], [], {}, {}, {}
 
     molecule_type_dict = {}
-    first_index = topology.atoms[0].idx+1
-    # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
+    first_index = topology.atoms[0].idx + 1
+
     for atom in topology.atoms:
-        temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
-        temp_number_c6_dict[str(atom.idx+1)] = atom.sigma*0.1
+        temp_number_c12_dict[str(atom.idx + 1)] = atom.epsilon * 4.184
+        temp_number_c6_dict[str(atom.idx + 1)] = atom.sigma * 0.1
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
-        molecule_type_dict = assign_molecule_type(
-            molecule_type_dict, molecule_name, molecule_topology[0])
+        molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
-        ensemble_topology_dataframe = pd.concat(
-            [ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
-            new_number.append(str(atom.idx+1))
+            new_number.append(str(atom.idx + 1))
             col_molecule.append(f'{molecule_number}_{molecule_name}')
             new_resnum.append(str(atom.residue.number))
 
@@ -79,9 +98,9 @@ def initialize_topology(topology):
     ensemble_topology_dataframe.rename(columns={'epsilon': 'c12'}, inplace=True)
 
     ensemble_topology_dataframe['charge'] = 0.
-    ensemble_topology_dataframe['c6'] = [ str(i+first_index) for i in range(len(ensemble_topology_dataframe['number']))]
+    ensemble_topology_dataframe['c6'] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe['number']))]
     ensemble_topology_dataframe['c6'] = ensemble_topology_dataframe['c6'].map(temp_number_c6_dict)
-    ensemble_topology_dataframe['c12'] = [ str(i+first_index) for i in range(len(ensemble_topology_dataframe['number']))]
+    ensemble_topology_dataframe['c12'] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe['number']))]
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
 
@@ -89,48 +108,41 @@ def initialize_topology(topology):
         temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
         number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
+
     sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
     sbtype_c6_dict = ensemble_topology_dataframe[['sb_type', 'c6']].set_index('sb_type')['c6'].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[['sb_type', 'name']].set_index('sb_type')['name'].to_dict()
     sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()
 
-    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_c6_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
+    return (
+        ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary,
+        sbtype_c12_dict, sbtype_c6_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
+    )
 
 
 def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_sbtype_dictionary, simulation, args):
     '''
-    This function is called "initialize_molecular_contacts" and it takes three arguments:
-     1) contact_matrices: a dictionary of contact matrices, where the keys are the file names (intramat_1_1.ndx) and the values are the contents of the files in the form of a pandas dataframe.
-     2) ensemble_molecules_idx_sbtype_dictionary: a dictionary that associates the atom number with the structure-based type (sbtype) for each molecule in the ensemble.
-     3) simulation: a string that represents the source of the simulation (e.g. "reference" or "native_MD").
-
-    The function does the following:
-     - Initializes an empty pandas dataframe called "ensemble_contact_matrix" that will be used to store the processed contact matrices.
-     - Initializes an empty dictionary called "molecule_names_dictionary" that will be used to associate a molecule number with its name.
-     - Loops through the keys of the ensemble_molecules_idx_sbtype_dictionary, and split the key by '_' and store the first element of the split as the type of contact matrix (e.g. "intra" or "inter"), second and third as the number of molecule.
-     - Loops through the contact_matrices dictionary, and for each matrix:
-        - Rename the column 'molecule_name_ai' and 'molecule_name_aj' by adding the name of the molecule to the 'molecule_number_ai' and 'molecule_number_aj' columns respectively.
-        - Map the 'ai' and 'aj' columns, containing the atom number, to the corresponding sbtype from the ensemble_molecules_idx_sbtype_dictionary by using the name of the molecule.
-        - If the file name starts with 'intramat' set the 'same_chain' column as True, if it starts with 'intermat' set it as False, otherwise print an error message and exit the script
-        - Remove all the lines containing H atoms as the final model only contains heavy-atoms.
-        - Concatenate all the dataframes contained in the simulation folder
+    This function initializes a contact matrix for a given simulation.
 
     Parameters
     ----------
     contact_matrix : pd.DataFrame
-        Contains the contact informations read from intra-/intermat
-    path:
-
-    ensemble_molecules_inx_sbtype_dictionary : dict
+        Contains contact information read from intra-/intermat
+    path : str
+        Path to the simulation folder
+    ensemble_molecules_idx_sbtype_dictionary : dict
         Associates atom indices to atoms named according to multi-eGO conventions
     simulation : str
         The simulation classified equivalent to the input folder
+    args : argparse.Namespace
+        Parsed arguments
 
     Returns
     -------
     contact_matrix : pd.DataFrame
         A contact matrix containing contact data for each of the different simulations
     '''
+
     print('\t\t-', f'Initializing {simulation} contact matrix')
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -175,7 +187,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         #add the columns for rc, md threshold
         contact_matrix['md_threshold'] = np.zeros(len(p_sort))+md_threshold
         contact_matrix['rc_threshold'] = np.zeros(len(p_sort))
-        ## TODO extend it to inter-domain cases
         contact_matrix.loc[(contact_matrix['same_chain']==True) & (contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.epsilon)))
         contact_matrix.loc[(contact_matrix['same_chain']==True) & ~(contact_matrix['intra_domain']), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_domain_epsilon)))
         contact_matrix.loc[(contact_matrix['same_chain']==False), 'rc_threshold'] = md_threshold**(1./(1.-(args.epsilon_min/args.inter_epsilon)))
@@ -188,8 +199,26 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
 
 def init_meGO_ensemble(args):
     '''
-    TODO
+    Initializes meGO.
+
+    Args:
+    - args (object): Object containing arguments for initializing the ensemble.
+
+    Returns:
+    - ensemble (dict): A dictionary containing the initialized ensemble with various molecular attributes and contact matrices.
+
+    This function sets up meGO by initializing the reference topology and processing train and check contact matrices based on the provided arguments. It reads topology files, loads molecular information, and sets up dictionaries and data frames to organize molecular data and contact matrices.
+
+    The function initializes the reference topology and extracts essential molecular details such as topological data frames, subtype dictionaries, c12 values, names, molecule types, and contact matrices for the reference ensemble. It then processes train and check contact matrices, aligning them with the reference ensemble to detect any differences in atom types.
+
+    If atom type differences are found between ensembles, the function prints a warning message and exits, indicating the need to add missing atom types to the conversion dictionary for proper contact merging.
+
+    Note:
+    - This function assumes the availability of various directories, files, and modules (e.g., 'parmed', 'io').
+    - The 'args' object should contain necessary arguments for setting up the ensemble.
+    - The returned 'ensemble' dictionary encapsulates crucial details of the initialized ensemble for further analysis or processing.
     '''
+
     # we initialize the reference topology
     reference_path = f'{args.root_dir}/inputs/{args.system}/reference'
     ensemble_type = reference_path.split('/')[-1]
@@ -359,10 +388,29 @@ def generate_bonded_interactions(meGO_ensemble):
         meGO_ensemble['bond_pairs'][molecule] = topology.get_bond_pairs(topol[0].bonds)
         meGO_ensemble['user_pairs'][molecule] = topology.get_pairs(topol[0].adjusts)
 
+
     return meGO_ensemble
 
 
 def generate_14_data(meGO_ensemble):
+    '''
+    Generates data for 1-4 interactions within a molecular ensemble.
+
+    Args:
+    - meGO_ensemble (dict): A dictionary containing information about the molecular ensemble.
+
+    Returns:
+    - pairs14 (DataFrame): DataFrame containing information about 1-4 interactions.
+    - exclusion_bonds14 (DataFrame): DataFrame containing exclusion bonded interactions.
+
+    This function generates data for 1-4 interactions within a molecular ensemble. It iterates through each molecule in the ensemble, processes the topology, and computes exclusion bonded interactions and specific 1-4 interactions.
+
+    The function creates DataFrames 'pairs14' and 'exclusion_bonds14' containing information about 1-4 interactions and exclusion bonded interactions, respectively. It extracts details such as atom numbers, subtypes, residue numbers, names, types, residue names, molecule types, and interaction characteristics.
+
+    Note:
+    - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
+    - The returned DataFrames provide comprehensive information about 1-4 interactions and exclusion bonded interactions within the ensemble for further analysis or processing.
+    '''
     # First of all we generate the random-coil 1-4 interactions:
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
@@ -407,10 +455,19 @@ def generate_14_data(meGO_ensemble):
             pairs['aj'] = pairs['aj'].map(type_atnum_dict)
             nonprotein_c12 = []
             for test in meGO_ensemble['user_pairs'][molecule].type:
+                if(test == None):
+                    print("\nERROR: you have 1-4 pairs defined in your reference topology without the associated C6/C12 values")
+                    print("       user provided 1-4 pairs need to define also the C6/C12\n")
+                    exit()
                 nonprotein_c12.append(float(test.epsilon)*4.184)
             pairs['c12'] = nonprotein_c12
+            pairs['c6'] = 0. 
+            pairs['func'] = 1 
             pairs['rep'] = pairs['c12']
             pairs['same_chain'] = True
+            pairs['source'] = '1-4'
+            pairs['probability'] = 1.0
+            pairs['rc_probability'] = 1.0
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
@@ -418,6 +475,27 @@ def generate_14_data(meGO_ensemble):
 
 
 def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
+    '''
+    Initializes LJ (Lennard-Jones) datasets for train and check matrices within a molecular ensemble.
+
+    Args:
+    - meGO_ensemble (dict): A dictionary containing information about the molecular ensemble.
+    - pairs14 (DataFrame): DataFrame containing information about 1-4 interactions.
+    - exclusion_bonds14 (DataFrame): DataFrame containing exclusion bonded interactions.
+
+    Returns:
+    - train_dataset (DataFrame): DataFrame containing LJ datasets for the train matrices.
+    - check_dataset (DataFrame): DataFrame containing LJ datasets for the check matrices.
+
+    This function initializes LJ datasets for train and check matrices within a molecular ensemble. It processes the train and check matrices by merging them with reference matrices, assigning 1-4 interactions, setting default c12 values, and updating specialized cases.
+
+    The function generates DataFrames 'train_dataset' and 'check_dataset' containing LJ datasets for the train and check matrices, respectively. It performs various operations, such as flagging 1-4 interactions, setting correct default c12 values, and updating values for special cases based on atom types and interactions.
+
+    Note:
+    - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
+    - The 'pairs14' DataFrame contains information about 1-4 interactions, and 'exclusion_bonds14' DataFrame contains exclusion bonded interactions.
+    - The returned DataFrames provide comprehensive LJ datasets for further analysis or processing within the ensemble.
+    '''
     # we cycle over train matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
     for (name, ref_name) in meGO_ensemble['train_matrix_tuples']:
@@ -493,6 +571,22 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
 
 
 def generate_basic_LJ(meGO_ensemble):
+    '''
+    Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
+
+    Args:
+    - meGO_ensemble (dict): A dictionary containing information about the molecular ensemble.
+
+    Returns:
+    - basic_LJ (DataFrame): DataFrame containing basic LJ interactions.
+
+    This function generates a DataFrame 'basic_LJ' containing basic LJ interactions within a molecular ensemble. It calculates LJ interactions based on atom types, molecules, and reference matrices present in the ensemble.
+
+    Note:
+    - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
+    - The returned DataFrame 'basic_LJ' includes columns defining LJ interaction properties such as atom indices, types, c6, c12, sigma, epsilon, probability, rc_probability, molecule names, source, and thresholds.
+    - The generated DataFrame provides basic LJ interactions for further analysis or processing within the ensemble.
+    '''
     columns=['ai', 'aj', 'type', 'c6', 'c12', 'sigma', 'epsilon', 'probability', 'rc_probability', 
                         'molecule_name_ai',  'molecule_name_aj', 'same_chain', 'source', 'md_threshold', 'rc_threshold', 
                         'number_ai', 'number_aj', 'cutoff', 'rep', 'att']
@@ -590,28 +684,29 @@ def generate_basic_LJ(meGO_ensemble):
     
     return basic_LJ
 
+
 def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     '''
-    This function reads the probabilities obtained using gmx_clustsize from the ensembles defined in the command line.
-    The random coil probabilities are used to reweight the explicit water ones.
-    Intra and inter molecular contacts are splitted as different rules are applied during the reweighting.
-    For each atom contact the sigma and epsilon are obtained.
+    Generates LJ (Lennard-Jones) interactions and associated atomic contacts within a molecular ensemble.
 
     Parameters
     ----------
     meGO_ensemble : dict
-        Contains the relevant meGO data such as interactions and statistics
+        Contains relevant meGO data such as interactions and statistics within the molecular ensemble.
+    train_dataset : pd.DataFrame
+        DataFrame containing training dataset information for LJ interactions.
+    check_dataset : pd.DataFrame
+        DataFrame containing check dataset information for LJ interactions.
     parameters : dict
-        Contains the command-line parsed parameters
+        Contains parameters parsed from the command-line.
 
     Returns
     -------
     meGO_atomic_contacts_merged : pd.DataFrame
-        Contains the non-bonded atomic contacts associated to LJ parameters and statistics
+        Contains non-bonded atomic contacts associated with LJ parameters and statistics.
     meGO_LJ_14 : pd.DataFrame
-        Contains the 1-4 (paris-exclusions) atomic contacts associated to LJ parameters and statistics
+        Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     '''
-
     # This keep only significat attractive/repulsive interactions
     meGO_LJ = train_dataset.loc[(train_dataset['probability']>train_dataset['md_threshold'])|((train_dataset['probability']<=train_dataset['md_threshold'])&(train_dataset['probability']>0.)&(train_dataset['probability']<np.maximum(train_dataset['rc_probability'],train_dataset['rc_threshold'])))].copy()
     meGO_LJ = meGO_LJ.loc[(meGO_LJ['1-4']!='1_2_3')&(meGO_LJ['1-4']!='0')]
@@ -826,6 +921,28 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
 
 def check_LJ(test, parameters):
+    '''
+    Computes the energy associated with Lennard-Jones (LJ) interactions based on specific conditions.
+
+    Parameters
+    ----------
+    test : pd.DataFrame
+        DataFrame containing information about LJ interactions to be checked.
+    parameters : dict
+        Dictionary containing specific parameters used for checking LJ interactions.
+
+    Returns
+    -------
+    float
+        Energy associated with the LJ interactions based on the conditions met.
+
+    Notes
+    -----
+    This function evaluates different criteria within the test dataset to calculate the energy associated
+    with LJ interactions. It considers cases where LJ parameters exist both in the check dataset (test) 
+    and the default parameters obtained from the training dataset. Energy calculations are made based 
+    on different criteria and returned as the computed energy.
+    '''
     energy = 1.
     if len(test) == 1:
         # this is the case where we have a contact from check and default c12s from train

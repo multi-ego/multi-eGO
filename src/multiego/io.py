@@ -29,6 +29,7 @@ def read_molecular_contacts(path):
 
     return contact_matrix
 
+
 def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
     '''
     Writes the non-bonded parameter file ffnonbonded.itp.
@@ -62,6 +63,7 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
             lj_potential.insert(5, ';', ';')
             lj_potential.drop(columns= ['molecule_name_ai', 'molecule_name_aj'], inplace=True)
             file.write(dataframe_to_write(lj_potential))
+
 
 def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix):
     '''
@@ -106,6 +108,7 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
     print(
         f'\nAnd it can be found in the following folder:\n{output_dir}')
     print('\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n')
+
 
 def dataframe_to_write(df):
     '''
@@ -152,6 +155,7 @@ def make_header(parameters):
 
     return header
 
+
 def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_dict, lj_14, parameters, output_folder):
     '''
     Writes the topology output content into GRETA_topol.top
@@ -182,17 +186,14 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
 
         if write_header: file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
-            # TODO here I defined an empty exclusion. In the case we are not reading a protein topology, the exclusion part is not read and needed to be added in someway.
-            # Hence, an empty exclusion gives error. Here I define an empty variable so it does not gets stuck
             exclusions = pd.DataFrame(columns=['ai', 'aj'])
-            # TODO here only proteins have custom pairs and exclusions. Nucleic acids and others will use the one in topol.top used as reference
-            # if molecule_type_dict[molecule] == 'protein':
             pairs = lj_14[molecule]
-            pairs.insert(5, ';', ';')
-            pairs['c6'] = pairs["c6"].map(lambda x: '{:.6e}'.format(x))
-            pairs['c12'] = pairs["c12"].map(lambda x: '{:.6e}'.format(x))
-            bonded_interactions_dict[molecule]['pairs'] = pairs
-            exclusions = pairs[['ai', 'aj']].copy()
+            if not pairs.empty: 
+                pairs.insert(5, ';', ';')
+                pairs['c6'] = pairs["c6"].map(lambda x: '{:.6e}'.format(x))
+                pairs['c12'] = pairs["c12"].map(lambda x: '{:.6e}'.format(x))
+                bonded_interactions_dict[molecule]['pairs'] = pairs
+                exclusions = pairs[['ai', 'aj']].copy()
 
             molecule_footer.append(molecule)
             molecule_header = f'''\n[ moleculetype ]
@@ -217,9 +218,6 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
                         file.write(f'[ {bonded_type} ]\n')
                     file.write(dataframe_to_write(interactions))
                     file.write('\n\n')
-            # Here are written pairs and exclusions
-            # file.write(f'[ pairs ]\n')
-            # file.write(dataframe_to_write(pairs))
             file.write(f'[ exclusions ]\n')
             file.write(dataframe_to_write(exclusions))
 
@@ -241,6 +239,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
         for molecule in molecule_footer:
             file.write(f'{molecule}\t\t\t1\n')
 
+
 def get_name(parameters):
     '''
     Creates the output directory name.
@@ -260,6 +259,7 @@ def get_name(parameters):
     else:
         name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
     return name
+
 
 def create_output_directories(parameters):
     '''
@@ -290,6 +290,7 @@ def create_output_directories(parameters):
         os.remove(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top')
 
     return output_folder
+
 
 def check_files_existence(egos, system, root_dir, md_ensembles):
     '''

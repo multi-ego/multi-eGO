@@ -2,6 +2,16 @@ import pandas as pd
 import numpy as np
 
 def get_bonds(topology):
+    """
+    Generate bond information DataFrame from the provided topology.
+
+    Args:
+    topology: List of bonds in the molecular topology.
+
+    Returns:
+    bonds_dataframe: DataFrame containing bond-related information such as atom indices, bond function,
+                     equilibrium bond length (req), and force constant (k).
+    """
     bonds_dataframe = pd.DataFrame({
         'ai': [bonds.atom1.idx + 1 for bonds in topology],
         'aj': [bonds.atom2.idx + 1 for bonds in topology],
@@ -17,6 +27,15 @@ def get_bonds(topology):
 
 
 def get_bond_pairs(topology):
+    """
+    Generate bond pairs as a list of tuples from the provided topology.
+
+    Args:
+    topology: List of bonds in the molecular topology.
+
+    Returns:
+    bond_tuple: List of tuples containing pairs of atom indices representing the bonds.
+    """
     ai, aj = [], []
     for bonds in topology:
         ai.append(bonds.atom1.idx + 1)
@@ -40,6 +59,16 @@ def get_angles(topology):
 
 
 def get_dihedrals(topology):
+    """
+    Extracts dihedral angles information from a molecular topology.
+
+    Args:
+    - topology (list): List of dihedral atoms information.
+
+    Returns:
+    - dihedrals_dataframe (pandas.DataFrame): DataFrame containing dihedral angles data, including atom indices,
+      function type, phase, phi_k, and periodicity.
+    """
     dihedrals_dataframe = pd.DataFrame({
         'ai' : [dihedral.atom1.idx + 1 for dihedral in topology],
         'aj' : [dihedral.atom2.idx + 1 for dihedral in topology],
@@ -55,6 +84,16 @@ def get_dihedrals(topology):
 
 
 def get_impropers(topology):
+    """
+    Extracts improper torsions information from a molecular topology.
+
+    Args:
+    - topology (list): List of improper torsion atoms information.
+
+    Returns:
+    - impropers_dataframe (pandas.DataFrame): DataFrame containing improper torsion data, including atom indices,
+      function type, psi_eq, and psi_k.
+    """
     impropers_dataframe = pd.DataFrame({
         'ai' : [improper.atom1.idx + 1 for improper in topology],
         'aj' : [improper.atom2.idx + 1 for improper in topology],
@@ -69,6 +108,15 @@ def get_impropers(topology):
 
 
 def get_pairs(topology):
+    """
+    Extracts pair information from a molecular topology.
+
+    Args:
+    - topology (list): List of pair atoms information.
+
+    Returns:
+    - pairs_dataframe (pandas.DataFrame): DataFrame containing pair data, including atom indices, function type, and pair type.
+    """
     pairs_dataframe = pd.DataFrame({
         'ai' : [pair.atom1.idx + 1 for pair in topology],
         'aj' : [pair.atom2.idx + 1 for pair in topology],
@@ -76,6 +124,7 @@ def get_pairs(topology):
         'type' : [pair.type for pair in topology],
     })
     return pairs_dataframe
+
 
 def get_14_interaction_list(reduced_topology, bond_pair):
     """
@@ -136,6 +185,7 @@ def get_14_interaction_list(reduced_topology, bond_pair):
 
     return exclusion_bonds, p14
 
+
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefactor = None, constant = None):
     '''
     Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with
@@ -189,7 +239,17 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6 = 0.0, shift = 0, prefact
 
     return pairs_14
 
+
 def protein_LJ14(reduced_topology):
+    """
+    Generates Lennard-Jones 14 (LJ14) pairs specific to protein structure.
+
+    Args:
+    - reduced_topology (pd.DataFrame): DataFrame containing reduced topology information.
+
+    Returns:
+    - pairs (pd.DataFrame): DataFrame with LJ14 pairs for protein interactions.
+    """
     # Here we make a dictionary of the atoms used for local geometry
     first_backbone_nitrogen = reduced_topology.loc[(reduced_topology['name'] == 'N')&(reduced_topology['type'] == 'NL')]
     backbone_nitrogen = reduced_topology.loc[(reduced_topology['name'] == 'N')&(reduced_topology['type'] != 'NL')]
