@@ -1,5 +1,6 @@
 import pandas as pd
 
+# Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
     {'name': ['O', 'OA', 'N', 'C', 'CH1', 
             'CH2', 'CH3', 'CH2r', 'NT', 'S',
@@ -17,6 +18,7 @@ gromos_atp = pd.DataFrame(
      }
 )
 
+# Dictionary mapping atom types from a force field to multiego representation
 from_ff_to_multiego = {
     'OC1' : 'O1',
     'OC2' : 'O2',
@@ -76,7 +78,17 @@ from_ff_to_multiego = {
     'C316':'C2P',
 }
 
+
 def lj14_generator(df):
+    """
+    Generates types dictionary based on the provided DataFrame.
+
+    Args:
+    - df (pd.DataFrame): DataFrame containing atom types and parameters.
+
+    Returns:
+    - types_dict (dict): Dictionary containing different atom type combinations.
+    """
     types_dict = {}
     types_dict['first_backbone_nitrogen'] = ((df['name'] == 'N')&(df['type'] == 'NL')).to_numpy()
     types_dict['backbone_nitrogen'] = ((df['name'] == 'N')&(df['type'] != 'NL')).to_numpy()
@@ -88,7 +100,10 @@ def lj14_generator(df):
 
     return types_dict
 
+
+# List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
+    # Tuple of atom type combinations for LJ14 pairs
     ('backbone_carbonyl', 'sidechain_cb', 0.275, None, 1),
     ('backbone_oxygen', 'sidechain_cb', 0.1, None, 0),
     ('ct_oxygen', 'sidechain_cb', 0.1, None, 0),
@@ -101,8 +116,8 @@ atom_type_combinations = [
     ('sidechain_cgs', 'first_backbone_nitrogen', 0.087, None, 0),
 ]
 
+# List of amino acids and nucleic acids
 # TODO add capped termini
-aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS','ACE']
-
+aminoacids_list = ['VAL', 'ILE', 'LEU', 'GLU', 'GLN', 'ASP', 'ASN', 'HIS', 'TRP', 'PHE', 'TYR', 'ARG', 'LYS', 'SER', 'THR', 'MET', 'ALA', 'GLY', 'PRO', 'CYS', 'ACE', 'NME']
 # TODO to check
 nucleic_acid_list = ['A', 'C', 'G', 'T']

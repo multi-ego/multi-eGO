@@ -6,28 +6,117 @@ from src.multiego import ensemble
 from src.multiego import io
 from src.multiego.util import float_range
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='TODO!')
-    parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to system input folder.')
-    parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGO.\n rc: creates a force-field for random coil simulations.\n production: creates a force-field combining random coil simulations and training simulations.')
-    parser.add_argument('--epsilon', type=float, choices=[float_range.FloatRange(0.0, 1000.0)], help='Maximum interaction energy per contact.')
-    parser.add_argument('--no_header', action='store_true', help='Removes headers from output_files when set')
-    # This is to use epsilon as default for inter molecular epsilon and ligand epsilon
+def main():
+    """
+    Main function that processes command-line arguments and generates a multi-eGO model.
+
+    Parses command-line arguments and generates a multi-eGO model by invoking various functions
+    related to ensemble generation, LJ parameter computation, and writing the output.
+
+    Command-line Arguments:
+    --system: Name of the system corresponding to the system input folder.
+    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
+            'production' for creating a force-field combining random coil simulations and training simulations.
+    --epsilon: Maximum interaction energy per contact.
+    --no_header: Removes headers from output_files when set.
+    --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
+    --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
+    --p_to_learn: Amount of the simulation to learn.
+    --epsilon_min: The minimum meaningful epsilon value.
+    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
+    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
+    --out: Suffix for the output directory name.
+    """
+    parser = argparse.ArgumentParser(description='Generate a multi-eGO model based on provided parameters.')
+    # Required arguments
+    required_args = parser.add_argument_group('Required arguments')
+    required_args.add_argument(
+        '--system',
+        type=str,
+        required=True,
+        help='Name of the system corresponding to system input folder.'
+    )
+    required_args.add_argument(
+        '--egos',
+        choices=['rc', 'production'],
+        required=True,
+        help='''\
+            rc: creates a force-field for random coil simulations.
+            production: creates a force-field combining random coil simulations and training simulations.
+        '''
+   )
+
+    # Optional arguments
+    optional_args = parser.add_argument_group('Optional arguments')
+    optional_args.add_argument(
+        '--epsilon',
+        type=float,
+        choices=[float_range.FloatRange(0.0, 1000.0)],
+        help='Maximum interaction energy per contact.'
+    )
+    optional_args.add_argument(
+        '--no_header',
+        action='store_true',
+        help='Removes headers from the output files when set'
+    )
+    optional_args.add_argument(
+        '--train_from',
+        nargs='+',
+        type=str,
+        default=[],
+        help='''\
+            A list of the training simulations to be included in multi-eGO, 
+            corresponding to the subfolders to process and where the contacts are learned.
+        '''
+    )
+    optional_args.add_argument(
+        '--check_with',
+        nargs='+',
+        type=str,
+        default=[],
+        help='''\
+            A list of the simulations corresponding to the subfolders used to check 
+            whether the contacts learned are compatible with those provided in here.
+        '''
+    )
+    optional_args.add_argument(
+        '--p_to_learn',
+        type=float,
+        default=0.9995,
+        help='Fraction of training simulations to learn.'
+    )
+    optional_args.add_argument(
+        '--epsilon_min',
+        type=float,
+        default=0.07,
+        help='The minimum meaningful epsilon value.'
+    )
+    optional_args.add_argument(
+        '--inter_epsilon',
+        type=float,
+        help='Maximum interaction energy per intermolecular contacts.'
+    )
+    optional_args.add_argument(
+        '--inter_domain_epsilon',
+        type=float,
+        help='Maximum interaction energy per interdomain contacts.'
+    )
+    optional_args.add_argument(
+        '--out',
+        type=str,
+        default='',
+        help='Suffix for the output directory name.'
+    )
+
     args, remaining = parser.parse_known_args()
-
-    # Default arguments
-    parser.add_argument('--train_from', nargs='+', type=str, default=[], help='A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned')
-    parser.add_argument('--check_with', nargs='+', type=str, default=[], help='Those are contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided in here')
-    
-    parser.add_argument('--p_to_learn', type=float, default=0.9995, help='Amount of the simulation to learn.')
-    parser.add_argument('--epsilon_min', type=float, default=0.07, help='The minimum meaningfull epsilon value.')
-
-    parser.add_argument('--inter_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per intermolecular contacts.')
-    parser.add_argument('--inter_domain_epsilon', type=float, default=args.epsilon, help='Maximum interaction energy per interdomain contacts.')
-    parser.add_argument('--out', type=str, default='', help='Suffix for the output directory name.')
-    args = parser.parse_args()
-
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Set inter_epsilon default to epsilon if epsilon is provided
+    if args.epsilon is not None and args.inter_epsilon is None:
+        setattr(args, 'inter_epsilon', args.epsilon)
+    # Set inter_domain_epsilon default to epsilon if epsilon is provided
+    if args.epsilon is not None and args.inter_domain_epsilon is None:
+        setattr(args, 'inter_domain_epsilon', args.epsilon)
 
     # checking the options provided in the commandline
     if args.egos != 'rc' and args.train_from is None:
@@ -82,3 +171,8 @@ if __name__ == '__main__':
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
     
     io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
+
+
+
+if __name__ == '__main__':
+    main()
