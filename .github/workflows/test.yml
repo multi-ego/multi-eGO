@@ -49,6 +49,31 @@ jobs:
       run: |
         python test/run_tests.py
 
+  build-macos-conda:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v3
+      with:
+        path: ~/.ccache
+        key: ccache-reset-${{ github.sha }}
+        restore-keys: ccache-reset-
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Add conda to system path
+      run: |
+        # $CONDA is an environment variable pointing to the root of the miniconda directory
+        echo $CONDA/bin >> $GITHUB_PATH
+    - name: Install dependencies with conda
+      run: |
+        conda env update --file conda/environment.yml --name base
+    - name: Run tests
+      run: |
+        $CONDA/bin/python test/run_tests.py
+
   build-macos-pip:
     runs-on: macos-latest
     steps:
