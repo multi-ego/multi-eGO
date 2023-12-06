@@ -6,6 +6,7 @@ import os
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
 
+
 def read_infile(path):
     '''
     Reads a test-case input file and parses the system name the multi-eGO
@@ -15,7 +16,7 @@ def read_infile(path):
     ----------
     path : str
         The path to the test-case text file
-    
+
     Returns
     -------
     input_list : list of list
@@ -48,7 +49,7 @@ def read_outfile(path):
     Returns
     -------
     out_string : str
-        The file contents 
+        The file contents
     '''
     out_string = ""
     with open(path, 'r') as f:
@@ -72,7 +73,7 @@ def prep_system_data(name, egos):
          - a string in the case of random coil
          - a list in case of production
         When egos is a list the list contains the two epsilon values for intra and inter.
-    
+
     Returns
     -------
     topol_ref : str
@@ -84,8 +85,10 @@ def prep_system_data(name, egos):
     ffnonbonded_test : str
         The contents of the newly created ffnonbonded which needs to match ffnonbonded_ref
     '''
-    if egos == 'rc': out_egos = egos
-    else: out_egos = f'production_e{egos[0]}_{egos[1]}'
+    if egos == 'rc':
+        out_egos = egos
+    else:
+        out_egos = f'production_e{egos[0]}_{egos[1]}'
     topol_ref = read_outfile(f'{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top')
     topol_test = read_outfile(f'{MEGO_ROOT}/outputs/{name}_{out_egos}/topol_GRETA.top')
     ffnonbonded_ref = read_outfile(f'{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp')
@@ -142,7 +145,6 @@ def create_test_cases(test_case):
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
-
     return function_name, function_template
 
 
@@ -150,23 +152,20 @@ class TestOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         test_commands, test_systems = read_infile(f'{TEST_ROOT}/test_cases.txt')
-        input_directories = [ f'{MEGO_ROOT}/inputs/{system}' for system in test_systems ]
-        input_gprotein = f'{MEGO_ROOT}/inputs/gpref'
-        input_abeta = f'{MEGO_ROOT}/inputs/abetaref'
-        input_ttr = f'{MEGO_ROOT}/inputs/ttrref'
         for system in test_systems:
             inputs_path = f'{MEGO_ROOT}/inputs/{system}'
-            if os.path.exists(inputs_path): shutil.rmtree(inputs_path)
+            if os.path.exists(inputs_path):
+                shutil.rmtree(inputs_path)
             shutil.copytree(f'{TEST_ROOT}/test_inputs/{system}', inputs_path)
 
-        error_codes = [ subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands ]
+        error_codes = [subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands]
         for e in error_codes: assert e == 0, "Test setup exited with non-zero error code"
 
 
 if __name__ == '__main__':
     test_commands, test_systems = read_infile(f'{TEST_ROOT}/test_cases.txt')
     for command in test_commands:
-            function_name, new_method = create_test_cases(command)
-            setattr(TestOutputs, function_name, new_method)
+        function_name, new_method = create_test_cases(command)
+        setattr(TestOutputs, function_name, new_method)
 
     unittest.main()

@@ -1,9 +1,10 @@
-import numpy as np 
+import numpy as np
 import sys
 import argparse
 import os
 import parmed as pmd
 import warnings
+
 
 def find_atom(top, res_num):
     atom_idx = 0
@@ -33,7 +34,7 @@ def read_topologies(mego_top, target_top):
 
     n_mol=len(list(topology_mego.molecules.keys()))
     mol_names=list(topology_mego.molecules.keys())
-    mol_list=np.arange(1,n_mol+1,1)
+    mol_list=np.arange(1, n_mol+1, 1)
 
     return topology_mego, topology_ref, n_mol, mol_names, mol_list
 
@@ -78,7 +79,7 @@ if __name__ == '__main__':
             if args.out[-1]!="/":
                 args.out=args.out + "/"
 
-#read topology
+# read topology
 
 topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
@@ -86,19 +87,19 @@ molecule_name = molecules_name[0]
 
 if molecule_name not in list(topology_ref.molecules.keys()):
     print(f'''
-        ERROR: 
-        Molecule "{molecule_name}" found in mego topology is not found in {args.target_top}. 
+        ERROR:
+        Molecule "{molecule_name}" found in mego topology is not found in {args.target_top}.
         Molecules in {args.target_top} are: {list(topology_ref.molecules.keys())}
         Either you used the wrong topology or you need to use the same name in mego and ref topologies for the system''')
     exit()
 
 top_prot = topology_ref.molecules[molecule_name][0]
 
-if N_species > 1: 
+if N_species > 1:
     print('maximum 1 molecule specie')
     exit()
 
-#define atom_num and res_num
+# define atom_num and res_num
 n_atoms = len(top_prot.atoms)
 n_res   = len(top_prot.residues)
 
@@ -110,21 +111,21 @@ if args.type=="split":
     print("")
 
     intramat = args.md_intra
-    
-    #read intramat
+
+    # read intramat
     intra_md = np.loadtxt(intramat, unpack=True)
     dim = int(np.sqrt(len(intra_md[0])))
 
-    #define domain mask
+    # define domain mask
     domain_mask = np.full((dim, dim), False)
 
-    #consistency check
+    # consistency check
     if(dim!=n_atoms):
         print(f'ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})')
         exit()
-    
+
     res_idx = args.dom_res
-    #find atom indeces associated to starting domain residues
+    # find atom indeces associated to starting domain residues
     atom_idxs = []
     for ri in res_idx:
         atom_idxs.append(find_atom(topology_ref, ri))
@@ -135,7 +136,7 @@ if args.type=="split":
     for i, _ in enumerate([0, *atom_idxs]):
 
         print(f"Dividing {intramat} at residues {full_blocks_res[i]} - {full_blocks_res[i+1]} and atoms {full_blocks[i] + 1} - {full_blocks[i+1]}")
-        map = np.array([ True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])  
+        map = np.array([True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])
         map = map * map[:,np.newaxis]
         domain_mask = np.logical_or(domain_mask, map)
 
@@ -144,46 +145,48 @@ if args.type=="split":
     intra_md[4] = np.where(domain_mask_linear, intra_md[4], 0.)
     intra_md[5] = np.where(domain_mask_linear, intra_md[5], 0.)
     # add an eigth column with the domain_mask
-    if intra_md.shape[0] == 7: intra_md = np.concatenate((intra_md, domain_mask_linear[np.newaxis,:]), axis=0)
-    else: intra_md[7] = domain_mask_linear
+    if intra_md.shape[0] == 7:
+        intra_md = np.concatenate((intra_md, domain_mask_linear[np.newaxis,:]), axis=0)
+    else:
+        intra_md[7] = domain_mask_linear
 
     if '/' in intramat:
         intramat = intramat.split('/')[-1]
 
-    np.savetxt(f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}',intra_md.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
+    np.savetxt(f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}',intra_md.T, delimiter=" ", fmt=['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
     print(f"Finished splitting")
 
 
 if args.type=="group":
-    
+
     print("Group intramat_rc with intramat inter-domain_rc")
     print("")
 
     intra1 = args.rc_intra
     intra2 = args.dom_rc_intra
 
-    #read intramats
+    # read intramats
     intra_rc = np.loadtxt(intra1, unpack=True)
     intra_domain_rc = np.loadtxt(intra2, unpack=True)
 
-    #first consistency check
+    # first consistency check
     if intra_rc.shape!=intra_domain_rc.shape:
         print("intramats of input 1 and 2 must have the same dimensions (they should be of the same system!)")
         exit()
 
     dim = int(np.sqrt(len(intra_rc[0])))
 
-    #define domain mask
+    # define domain mask
     domain_mask = np.full((dim, dim), False)
 
-    #second consistency check
+    # second consistency check
     if(dim!=n_atoms):
         print(f'ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})')
         exit()
-        
+
     res_idx = args.dom_res
-    
-    #find atom indeces associated to starting domain residues
+
+    # find atom indeces associated to starting domain residues
     atom_idxs = []
     for ri in res_idx:
         atom_idxs.append(find_atom(topology_ref, ri))
@@ -194,21 +197,22 @@ if args.type=="group":
 
         print(f"Group {intra1} and {intra2} at residues {full_blocks_res[i]} - {full_blocks_res[i+1]} and atoms {full_blocks[i] + 1} - {full_blocks[i+1]} ")
 
-        map = np.array([ True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])
-        map = map * map[:,np.newaxis]
+        map = np.array([True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])
+        map = map * map[:, np.newaxis]
         domain_mask = np.logical_or(domain_mask, map)
 
     domain_mask_linear = domain_mask.reshape(dim**2)
     intra_rc[4] = np.where(domain_mask_linear, intra_rc[4], intra_domain_rc[4])
     intra_rc[5] = np.where(domain_mask_linear, intra_rc[5], intra_domain_rc[5])
     intra_rc[6] = np.where(domain_mask_linear, intra_rc[6], intra_domain_rc[6])
-    if intra_rc.shape[0] == 7: intra_rc = np.concatenate((intra_rc, domain_mask_linear[np.newaxis,:]), axis=0)
-    else: intra_rc[7] = domain_mask_linear
+    if intra_rc.shape[0] == 7:
+        intra_rc = np.concatenate((intra_rc, domain_mask_linear[np.newaxis, :]), axis=0)
+    else:
+        intra_rc[7] = domain_mask_linear
 
     if '/' in intra1:
         intra1 = intra1.split('/')[-1]
 
-    np.savetxt(f'{args.out}group_{"-".join(np.array(args.dom_res, dtype=str))}_{intra1}',intra_rc.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
+    np.savetxt(f'{args.out}group_{"-".join(np.array(args.dom_res, dtype=str))}_{intra1}',intra_rc.T, delimiter=" ", fmt=['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
     print(f"Finished group")
 
-    

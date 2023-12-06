@@ -3,6 +3,7 @@ import time
 import glob
 import os
 
+
 def read_molecular_contacts(path):
     '''
     Reads intra-/intermat files to determine molecular contact statistics.
@@ -20,7 +21,8 @@ def read_molecular_contacts(path):
 
     print('\t-', f"Reading {path}")
     contact_matrix = pd.read_csv(path, header=None, sep='\s+')
-    if contact_matrix.shape[1] == 7: contact_matrix.insert(7, 7, 1)
+    if contact_matrix.shape[1] == 7:
+        contact_matrix.insert(7, 7, 1)
     contact_matrix.columns = ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff', 'intra_domain']
     contact_matrix['molecule_number_ai'] = contact_matrix['molecule_number_ai'].astype(str)
     contact_matrix['ai'] = contact_matrix['ai'].astype(str)
@@ -47,21 +49,21 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     '''
     write_header = not parameters.no_header
     header = make_header(vars(parameters))
-    # pd.set_option('display.colheader_justify', 'right')
     with open(f'{output_folder}/ffnonbonded.itp', 'w') as file:
-        if write_header: file.write(header)
+        if write_header:
+            file.write(header)
         file.write('[ atomtypes ]\n')
         atomtypes = topology_dataframe[['sb_type', 'atomic_number', 'mass', 'charge', 'ptype', 'c6', 'c12']].copy()
         atomtypes['c6'] = atomtypes['c6'].map(lambda x: '{:.6e}'.format(x))
         atomtypes['c12'] = atomtypes['c12'].map(lambda x: '{:.6e}'.format(x))
         file.write(dataframe_to_write(atomtypes))
-    
+
         if not lj_potential.empty:
             file.write("\n\n[ nonbond_params ]\n")
             lj_potential['c6'] = lj_potential['c6'].map(lambda x: '{:.6e}'.format(x))
             lj_potential['c12'] = lj_potential['c12'].map(lambda x: '{:.6e}'.format(x))
             lj_potential.insert(5, ';', ';')
-            lj_potential.drop(columns= ['molecule_name_ai', 'molecule_name_aj'], inplace=True)
+            lj_potential.drop(columns=['molecule_name_ai', 'molecule_name_aj'], inplace=True)
             file.write(dataframe_to_write(lj_potential))
 
 
@@ -80,7 +82,7 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
     parameters : dict
         A dictionaty of the command-line parsed parameters
     output_dir : str
-        Path to the output directory 
+        Path to the output directory
     '''
     print('- Writing Multi-eGO model')
     output_dir = f'{output_dir}'
@@ -121,15 +123,16 @@ def dataframe_to_write(df):
 
     Returns
     -------
-    The stringified dataframe  
+    The stringified dataframe
     '''
     if df.empty:
         # TODO insert and improve the following warning
         print('A topology parameter is empty. Check the reference topology.')
         return '; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology.'
     else:
-        df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace= True)
+        df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace=True)
         return df.to_string(index=False)
+
 
 def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
@@ -143,7 +146,8 @@ def make_header(parameters):
 ; With the following parameters:
 '''
     for parameter, value in parameters.items():
-        if parameter == 'no_header': continue
+        if parameter == 'no_header':
+            continue
         if type(value) is list:
             header += ';\t- {:<15} = {:<20}\n'.format(parameter, ", ".join(value))
         elif not value:
@@ -184,11 +188,12 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
 #include "multi-ego-basic.ff/forcefield.itp"
 '''
 
-        if write_header: file.write(header)
+        if write_header:
+            file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
             exclusions = pd.DataFrame(columns=['ai', 'aj'])
             pairs = lj_14[molecule]
-            if not pairs.empty: 
+            if not pairs.empty:
                 pairs.insert(5, ';', ';')
                 pairs['c6'] = pairs["c6"].map(lambda x: '{:.6e}'.format(x))
                 pairs['c12'] = pairs["c12"].map(lambda x: '{:.6e}'.format(x))
@@ -204,8 +209,7 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
 
             file.write(molecule_header)
             file.write('[ atoms ]\n')
-            atom_selection_dataframe = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][[
-            'number', 'sb_type', 'resnum', 'resname', 'name', 'cgnr']].copy()
+            atom_selection_dataframe = topology_dataframe.loc[topology_dataframe['molecule_name'] == molecule][['number', 'sb_type', 'resnum', 'resname', 'name', 'cgnr']].copy()
             file.write(f'{dataframe_to_write(atom_selection_dataframe)}\n\n')
             # Here are written bonds, angles, dihedrals and impropers
             for bonded_type, interactions in bonded_interactions.items():
@@ -213,12 +217,12 @@ def write_topology(topology_dataframe, molecule_type_dict, bonded_interactions_d
                     continue
                 else:
                     if bonded_type == 'impropers':
-                        file.write(f'[ dihedrals ]\n')
+                        file.write('[ dihedrals ]\n')
                     else:
                         file.write(f'[ {bonded_type} ]\n')
                     file.write(dataframe_to_write(interactions))
                     file.write('\n\n')
-            file.write(f'[ exclusions ]\n')
+            file.write('[ exclusions ]\n')
             file.write(dataframe_to_write(exclusions))
 
         footer = f'''
@@ -269,7 +273,7 @@ def create_output_directories(parameters):
     ----------
     parameters : dict
         Contains the command-line parsed parameters
-    
+
     Returns
     -------
     output_folder : str
@@ -277,15 +281,18 @@ def create_output_directories(parameters):
     '''
     if parameters.egos == 'rc':
         name = f'{parameters.system}_{parameters.egos}'
-        if parameters.out: name = f'{parameters.system}_{parameters.egos}_{parameters.out}'
-    else: 
+        if parameters.out:
+            name = f'{parameters.system}_{parameters.egos}_{parameters.out}'
+    else:
         name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
-        if parameters.out: name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}'
+        if parameters.out:
+            name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}'
     output_folder = f'{parameters.root_dir}/outputs/{name}'
-    
+
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
-    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp'): os.remove(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp')
+    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp'):
+        os.remove(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp')
     if os.path.isfile(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top'):
         os.remove(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top')
 
@@ -304,11 +311,11 @@ def check_files_existence(egos, system, root_dir, md_ensembles):
         The system passed by terminal with the --system flag
     md_ensembles : list or list-like
         A list of ensembles to learn interactions from
-    
+
     Raises
     ------
     FileNotFoundError
-        If any of the files or directories does not exist 
+        If any of the files or directories does not exist
     '''
     for ensemble in md_ensembles:
         ensemble = f'{root_dir}/inputs/{system}/{ensemble}'
@@ -319,5 +326,5 @@ def check_files_existence(egos, system, root_dir, md_ensembles):
             if not top_files:
                 raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f'{ensemble}/*.ndx')
-            if not ndx_files and not egos =="rc":
+            if not ndx_files and not egos == "rc":
                 raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
