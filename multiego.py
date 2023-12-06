@@ -19,14 +19,14 @@ def main():
     --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
             'production' for creating a force-field combining random coil simulations and training simulations.
     --epsilon: Maximum interaction energy per contact.
-    --no_header: Removes headers from output_files when set.
     --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
     --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
-    --p_to_learn: Amount of the simulation to learn.
-    --epsilon_min: The minimum meaningful epsilon value.
+    --out: Suffix for the output directory name.
     --inter_epsilon: Maximum interaction energy per intermolecular contacts.
     --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
-    --out: Suffix for the output directory name.
+    --p_to_learn: Amount of the simulation to learn.
+    --epsilon_min: The minimum meaningful epsilon value.
+    --no_header: Removes headers from output_files when set.
     """
     parser = argparse.ArgumentParser(
         description="Generate a multi-eGO model based on provided parameters."
@@ -58,11 +58,6 @@ def main():
         help="Maximum interaction energy per contact.",
     )
     optional_args.add_argument(
-        "--no_header",
-        action="store_true",
-        help="Removes headers from the output files when set",
-    )
-    optional_args.add_argument(
         "--train_from",
         nargs="+",
         type=str,
@@ -83,16 +78,7 @@ def main():
         """,
     )
     optional_args.add_argument(
-        "--p_to_learn",
-        type=float,
-        default=0.9995,
-        help="Fraction of training simulations to learn.",
-    )
-    optional_args.add_argument(
-        "--epsilon_min",
-        type=float,
-        default=0.07,
-        help="The minimum meaningful epsilon value.",
+        "--out", type=str, default="", help="Suffix for the output directory name."
     )
     optional_args.add_argument(
         "--inter_epsilon",
@@ -105,7 +91,21 @@ def main():
         help="Maximum interaction energy per interdomain contacts.",
     )
     optional_args.add_argument(
-        "--out", type=str, default="", help="Suffix for the output directory name."
+        "--p_to_learn",
+        type=float,
+        default=0.9995,
+        help="Fraction of training simulations to learn.",
+    )
+    optional_args.add_argument(
+        "--epsilon_min",
+        type=float,
+        default=0.07,
+        help="The minimum meaningful epsilon value.",
+    )
+    optional_args.add_argument(
+        "--no_header",
+        action="store_true",
+        help="Removes headers from the output files when set",
     )
 
     args, remaining = parser.parse_known_args()
