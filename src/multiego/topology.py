@@ -166,7 +166,7 @@ def get_14_interaction_list(reduced_topology, bond_pair):
                 elif (tt[1] == first) & (tt[0] != atom):
                     second = tt[0]
                     ex.append(tt[0])
-                else: 
+                else:
                     continue
                 for ttt in bond_pair:
                     if (ttt[0] == second) & (ttt[1] != first):

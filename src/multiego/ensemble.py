@@ -368,7 +368,7 @@ def generate_bonded_interactions(meGO_ensemble):
     ----------
     meGO_ensemble : dict
         The meGO_ensemble object containing all the relevant system information
- 
+
     Returns
     -------
     meGO_ensemble : dict
@@ -967,14 +967,14 @@ def check_LJ(test, parameters):
             eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]['epsilon']
             if dist_check < dist_train and eps < 0:
                 energy = (dist_check/dist_train)**12
- 
+
     return energy
 
 
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
     '''
     This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
-    
+
     Parameters
     ----------
     meGO_ensemlbe : dict

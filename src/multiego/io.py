@@ -283,7 +283,7 @@ def create_output_directories(parameters):
         name = f'{parameters.system}_{parameters.egos}'
         if parameters.out:
             name = f'{parameters.system}_{parameters.egos}_{parameters.out}'
-    else: 
+    else:
         name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}'
         if parameters.out:
             name = f'{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}'
