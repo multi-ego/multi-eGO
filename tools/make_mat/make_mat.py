@@ -419,7 +419,7 @@ def generate_c12_values(df, types, combinations):
         combined_map = combined_map | combined_map.T
         c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
-    c12_map = np.where(c12_map is None, all_c12, c12_map)
+    c12_map = np.where(c12_map==None, all_c12, c12_map)
 
     return c12_map
 
