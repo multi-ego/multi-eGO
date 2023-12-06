@@ -1,19 +1,20 @@
+import os
+import sys
+# import subpaths
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
+
 from multiego.resources import type_definitions
 from multiego.util import masking
 
-import os
-import pandas as pd
-import numpy as np
-import parmed as pmd
-import multiprocessing
 import argparse
 import itertools
+import multiprocessing
+import numpy as np
+import pandas as pd
+import parmed as pmd
 import time
-import sys
 import warnings
 
-# import subpaths
-sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 
 d = {
