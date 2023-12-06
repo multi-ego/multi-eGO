@@ -6,7 +6,27 @@ from src.multiego import ensemble
 from src.multiego import io
 from src.multiego.util import float_range
 
-if __name__ == '__main__':
+def main():
+    """
+    Main function that processes command-line arguments and generates a multi-eGO model.
+
+    Parses command-line arguments and generates a multi-eGO model by invoking various functions
+    related to ensemble generation, LJ parameter computation, and writing the output.
+
+    Command-line Arguments:
+    --system: Name of the system corresponding to the system input folder.
+    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
+            'production' for creating a force-field combining random coil simulations and training simulations.
+    --epsilon: Maximum interaction energy per contact.
+    --no_header: Removes headers from output_files when set.
+    --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
+    --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
+    --p_to_learn: Amount of the simulation to learn.
+    --epsilon_min: The minimum meaningful epsilon value.
+    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
+    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
+    --out: Suffix for the output directory name.
+    """
     parser = argparse.ArgumentParser(description='TODO!')
     parser.add_argument('--system', type=str, required=True, help='Name of the system corresponding to system input folder.')
     parser.add_argument('--egos', choices=['rc', 'production'], required=True, help='Type of EGO.\n rc: creates a force-field for random coil simulations.\n production: creates a force-field combining random coil simulations and training simulations.')
@@ -82,3 +102,8 @@ if __name__ == '__main__':
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
     
     io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
+
+
+
+if __name__ == '__main__':
+    main()
