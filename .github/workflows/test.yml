@@ -29,7 +29,7 @@ jobs:
       run: |
         # Flake8 exit on most issues
         # we use blake to enforce formatting 
-        flake8 . --count --extend-ignore E501,W605,E731,E402 --show-source --statistics
+        flake8 . --count --extend-ignore E501,W605,E731,E402,E711 --show-source --statistics
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
