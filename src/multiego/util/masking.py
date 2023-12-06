@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def create_matrix_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y: x == y, outer_op=lambda x, y: x * y):
     """
     Creates a boolean matrix mask based on comparison operations between two sets.

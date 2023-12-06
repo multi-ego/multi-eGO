@@ -23,7 +23,7 @@ def get_bonds(topology):
     # Conversion from KCal/mol/A^2 to KJ/mol/nm^2 and from Amber to Gromos
     bonds_dataframe['req'] = bonds_dataframe['req']/10.
     bonds_dataframe['k'] = bonds_dataframe['k']*4.184*100*2
-    bonds_dataframe['k'] = bonds_dataframe['k'].map(lambda x:'{:.6e}'.format(x))
+    bonds_dataframe['k'] = bonds_dataframe['k'].map(lambda x: '{:.6e}'.format(x))
     return bonds_dataframe
 
 

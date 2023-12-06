@@ -1,3 +1,6 @@
+from multiego.resources import type_definitions
+from multiego.util import masking
+
 import os
 import pandas as pd
 import numpy as np
@@ -12,11 +15,8 @@ import warnings
 # import subpaths
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
-# import multiego.topology
-from multiego.resources import type_definitions
-from multiego.util import masking
 
-d = { type_definitions.gromos_atp.name[i] : type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
+d = {type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i] for i in range(len(type_definitions.gromos_atp.name))}
 
 
 def run_intra_(arguments):
@@ -77,7 +77,7 @@ def run_intra_(arguments):
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
 
         df = pd.concat([df, results_df])
-        df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
+        df = df.sort_values(by=['p', 'c12dist'], ascending=True)
 
     df.fillna(0)
     out_path = f'mat_{process.pid}_t{time.time()}.part'
@@ -153,7 +153,7 @@ def run_inter_(arguments):
 
         df = pd.concat([df, results_df])
 
-        df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
+        df = df.sort_values(by=['p', 'c12dist'], ascending=True)
 
     df.fillna(0)
     out_path = f'mat_{process.pid}_t{time.time()}.part'
@@ -182,7 +182,7 @@ def read_topologies(mego_top, target_top):
 
     n_mol=len(list(topology_mego.molecules.keys()))
     mol_names=list(topology_mego.molecules.keys())
-    mol_list=np.arange(1,n_mol+1,1)
+    mol_list=np.arange(1, n_mol+1, 1)
 
     return topology_mego, topology_ref, n_mol, mol_names, mol_list
 

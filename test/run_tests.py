@@ -169,4 +169,3 @@ if __name__ == '__main__':
         setattr(TestOutputs, function_name, new_method)
 
     unittest.main()
-

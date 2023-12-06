@@ -291,7 +291,8 @@ def create_output_directories(parameters):
 
     if not os.path.exists(output_folder):
         os.mkdir(output_folder)
-    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp'): os.remove(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp')
+    if os.path.isfile(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp'):
+        os.remove(f'{parameters.root_dir}/{output_folder}/ffnonbonded.itp')
     if os.path.isfile(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top'):
         os.remove(f'{parameters.root_dir}/{output_folder}/topol_GRETA.top')
 
