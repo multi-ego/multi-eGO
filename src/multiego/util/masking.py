@@ -20,11 +20,12 @@ def create_matrix_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y
     - `outer_op` should be a function that combines comparisons between `set1` and `set2`.
     """
     # symmetrize type selection
-    if symmetrize: types = list(set(types + [(t[1], t[0]) for t in types]))
+    if symmetrize:
+        types = list(set(types + [(t[1], t[0]) for t in types]))
 
     mask = np.full((set1.shape[0], set2.shape[0]), False)
     for (type1, type2) in types:
-        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:,np.newaxis]).T
+        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:, np.newaxis]).T
 
     return mask
 
@@ -70,7 +71,8 @@ def create_linearized_mask(set1, set2, types, symmetrize=False, inner_op=lambda 
     Note:
     - This function does not provide a flattened mask array but operates on a 1D array.
     """
-    if symmetrize: types = list(set(types + [(t[1], t[0]) for t in types]))
+    if symmetrize:
+        types = list(set(types + [(t[1], t[0]) for t in types]))
 
     mask = np.full(set1.shape[0], False)
     for (type1, type2) in types:

@@ -31,7 +31,7 @@ def run_intra_(arguments):
     Returns
     -------
     out_path : str
-        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data 
+        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data
     '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
@@ -42,7 +42,7 @@ def run_intra_(arguments):
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
-        
+
         if True:
             all_ai = [ ai for _ in range(1, original_size_j+1) ]
             range_list = [ str(x) for x in range(1, original_size_j+1) ]
@@ -55,7 +55,7 @@ def run_intra_(arguments):
             results_df['c12dist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
-            
+
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
@@ -74,7 +74,7 @@ def run_intra_(arguments):
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
-    
+
         df = pd.concat([df, results_df])
         df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
 
@@ -97,7 +97,7 @@ def run_inter_(arguments):
     Returns
     -------
     out_path : str
-        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data 
+        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data
     '''
     (args, protein_ref_indices_i, protein_ref_indices_j, original_size_j, c12_cutoff, mi, mj, frac_target_list) = arguments
     process = multiprocessing.current_process()
@@ -108,7 +108,7 @@ def run_inter_(arguments):
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split('.')[-2].split('_')[-1]
-        
+
         if True:
             all_ai = [ ai for _ in range(1, original_size_j+1) ]
             range_list = [ str(x) for x in range(1, original_size_j+1) ]
@@ -121,7 +121,7 @@ def run_inter_(arguments):
             results_df['c12dist'] = 0
             results_df['p'] = 0
             results_df['cutoff'] = 0
-            
+
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
@@ -148,7 +148,7 @@ def run_inter_(arguments):
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'c12dist'] = c12dist
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'p'] = p
             results_df.loc[results_df['aj'].isin(protein_ref_indices_j), 'cutoff'] = c12_cutoff[cut_i]
-    
+
         df = pd.concat([df, results_df])
 
         df = df.sort_values(by = ['p', 'c12dist'], ascending=True)
@@ -191,7 +191,7 @@ def map_if_exists(atom_name):
     ----------
     atom_name : str
         The atom name with which to attempt the mapping
-    
+
     Return
     ------
     atom_name : str
@@ -289,7 +289,7 @@ def zero_callback(values, weights):
     values : np.array
         The array of the histograms x values
     weights : np.array
-        The array with the respective weights  
+        The array with the respective weights
     '''
     return None, None, np.sum(weights), values, weights
 
@@ -320,7 +320,7 @@ def c12_avg(values, weights, callback=allfunction):
     r = np.where(w > 0.)
     v = v[r[0][0]:v.size]
     w = w[r[0][0]:w.size]
-    
+
     #exp_aver = (1./0.1)/np.log(np.sum(w*np.exp(1./v/0.1))/norm)
     res = np.maximum(cutoff/4.5, 0.1)
     exp_aver = (1./res)/np.log(np.sum(w*np.exp(1./v/res))/norm)
@@ -338,10 +338,10 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
         The cutoff of the histogram calculations. Parsed from the command-line in the standard programm.
     max_adaptive_cutoff : float
         The maximum adaptive cutoff calculated from the LJ c12 parameters.
-    '''    
+    '''
     print(f"""
     #############################
-    
+
     -------------------
     WARNING
     -------------------
@@ -352,7 +352,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
 
     Be careful!. This could create errors.
     If this is not wanted, please recalculate the histograms setting the cutoff to at least cutoff={max_adaptive_cutoff}
-    
+
     #############################
     """)
 
@@ -360,7 +360,7 @@ def generate_c12_values(df, types, combinations):
     '''
     TODO
     ----
-    Change symmetric to be a variable 
+    Change symmetric to be a variable
     '''
     all_c12 = np.sqrt(df['c12'].to_numpy() * df['c12'].to_numpy()[:,np.newaxis])
     c12_map = np.full(all_c12.shape, None)
@@ -386,7 +386,7 @@ def calculate_intra_probabilities(args):
      - calculating the cutoffs
      - and caclulating the probabilities
     The operation is finalized by writing out a csv with the name pattern intramat<_name>_{mol_i}_{mol_j}.ndx
-    
+
     Parameters
     ----------
     args : dict
@@ -395,7 +395,7 @@ def calculate_intra_probabilities(args):
     topology_mego, topology_ref, N_molecules, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
     print(f"""
-    Topology contains {N_molecules} molecules species. Namely {molecules_name}. 
+    Topology contains {N_molecules} molecules species. Namely {molecules_name}.
     Calculating intramat for all species
     """)
     for i in range(N_molecules):
@@ -443,7 +443,7 @@ def calculate_intra_probabilities(args):
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(
             oxygen_mask, 11.4 * c12_values, c12_values
         ), 1./12.)
-        
+
         if np.any(c12_cutoff>args.cutoff): warning_cutoff_histo(args.cutoff, np.max(c12_cutoff) )
         #c12_cutoff = c12_cutoff*0+0.75
 
@@ -468,10 +468,10 @@ def calculate_intra_probabilities(args):
         [ os.remove(name) for name in results ]
 
         df = df.astype({
-             'mi': 'int32', 
-             'mj': 'int32', 
-             'ai': 'int32', 
-             'aj': 'int32', 
+             'mi': 'int32',
+             'mj': 'int32',
+             'ai': 'int32',
+             'aj': 'int32',
             })
 
         df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
@@ -487,10 +487,10 @@ def calculate_intra_probabilities(args):
 
         df.index = range(len(df.index))
         out_name = args.out_name+'_' if args.out_name else ''
-        
+
         output_file=f'{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx'
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
-        
+
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_inter_probabilities(args):
@@ -501,7 +501,7 @@ def calculate_inter_probabilities(args):
      - calculating the cutoffs
      - and caclulating the probabilities
     The operation is finalized by writing out a csv with the name pattern intermat<_name>_{mol_i}_{mol_j}.ndx
-    
+
     Parameters
     ----------
     args : dict
@@ -509,11 +509,11 @@ def calculate_inter_probabilities(args):
     '''
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
     pairs=list(itertools.combinations_with_replacement(mol_list,2))
-    
+
     chain_list=[]
     chains = [x for x in topology_mego.molecules]
 
-    for i in chains: 
+    for i in chains:
         chain_list.append((i, len(topology_mego.molecules[i][0].atoms), len(topology_mego.split()[list(topology_mego.molecules.keys()).index(i)][1])))
 
     #number of molecules per species
@@ -523,7 +523,7 @@ def calculate_inter_probabilities(args):
     N_mols=np.array(N_mols)
 
     print(f"""
-    Topology contains {N_species} molecules species. Namely {molecules_name}. 
+    Topology contains {N_species} molecules species. Namely {molecules_name}.
     Calculating intermat for all species\n\n
     """)
     for pair in pairs:
@@ -532,10 +532,10 @@ def calculate_inter_probabilities(args):
 
         topology_df_i = pd.DataFrame()
         topology_df_j = pd.DataFrame()
- 
+
         mol_i=pair[0]
-        mol_j=pair[1]        
-        
+        mol_j=pair[1]
+
         print(f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}")
         prefix = f"inter_mol_{mol_i}_{mol_j}"
         # prefix_cum = f'inter_mol_c_{mol_i}_{mol_j}'
@@ -584,7 +584,7 @@ def calculate_inter_probabilities(args):
                 df.index = range(len(df.index))
                 out_name = args.out_name+'_' if args.out_name else ''
                 output_file=f'{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx'
-        
+
                 df.to_csv(output_file, index=False, sep=' ', header=False)
                 continue
 
@@ -660,15 +660,15 @@ def calculate_inter_probabilities(args):
             os.remove(name)
 
         df = df.astype({
-             'mi': 'int32', 
-             'mj': 'int32', 
-             'ai': 'int32', 
+             'mi': 'int32',
+             'mj': 'int32',
+             'ai': 'int32',
              'aj': 'int32'
             })
 
         df = df.sort_values(by = ['mi', 'mj', 'ai', 'aj'])
         df.drop_duplicates(subset=['mi', 'ai', 'mj', 'aj'], inplace=True)
-        
+
         df['mi'] = df['mi'].map('{:}'.format)
         df['mj'] = df['mj'].map('{:}'.format)
         df['ai'] = df['ai'].map('{:}'.format)
@@ -680,7 +680,7 @@ def calculate_inter_probabilities(args):
         df.index = range(len(df.index))
         out_name = args.out_name+'_' if args.out_name else ''
         output_file=f'{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx'
-        
+
         df.to_csv(output_file, index=False, sep=' ', header=False)
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -715,7 +715,7 @@ if __name__ == '__main__':
     parser.add_argument('--proc', default=1, type=int, help='Sets the number of processes to perform the calculation')
     parser.add_argument('--cutoff', required=True, type=float, help='To be set to the max cutoff used for the accumulation of the histograms')
     args = parser.parse_args()
-    
+
     #check if output file exists
     if not os.path.exists(args.out):
         print(f"The path '{args.out}' does not exist.")

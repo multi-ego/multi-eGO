@@ -797,7 +797,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         meGO_check_contacts['epsilon'] = -meGO_check_contacts['rep']
         meGO_LJ = pd.concat([meGO_LJ, meGO_check_contacts], axis=0, sort=False, ignore_index=True)
         meGO_LJ.drop_duplicates(inplace=True, ignore_index=True)
-        # this calculates the increase in energy (if any) to form the "check" contact 
+        # this calculates the increase in energy (if any) to form the "check" contact
         energy_at_check_dist = meGO_LJ.groupby(by=['ai', 'aj', 'same_chain'])[['sigma', 'distance', 'rc_distance', 'epsilon', 'source', 'same_chain', '1-4']].apply(check_LJ, parameters)
         meGO_LJ = pd.merge(meGO_LJ, energy_at_check_dist.rename('energy_at_check_dist'), how="inner", on=["ai", "aj", "same_chain"])
         # now we should keep only those check_with contacts that are unique and whose energy_at_check_dist is large
@@ -998,7 +998,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
-        exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair) 
+        exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
             # pairs from greta does not have duplicates because these have been cleaned before
@@ -1014,7 +1014,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs['check'].isin(p14)&(pairs['same_chain'])), 'remove'] = 'No'
             mask = pairs.remove == 'Yes'
             pairs = pairs[~mask]
- 
+
             pairs['func'] = 1
             # Intermolecular interactions are excluded
             pairs.loc[(~pairs['same_chain']), 'c6'] = 0.
@@ -1026,7 +1026,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.dropna(inplace=True)
             pairs['ai'] = pairs['ai'].astype(int)
             pairs['aj'] = pairs['aj'].astype(int)
-    
+
             # Here we want to sort so that ai is smaller than aj
             inv_pairs = pairs[['aj', 'ai', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']].copy()
             inv_pairs.columns = ['ai', 'aj', 'func', 'c6', 'c12', 'probability', 'rc_probability', 'source']

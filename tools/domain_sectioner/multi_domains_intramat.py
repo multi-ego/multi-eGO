@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 import sys
 import argparse
 import os
@@ -86,15 +86,15 @@ molecule_name = molecules_name[0]
 
 if molecule_name not in list(topology_ref.molecules.keys()):
     print(f'''
-        ERROR: 
-        Molecule "{molecule_name}" found in mego topology is not found in {args.target_top}. 
+        ERROR:
+        Molecule "{molecule_name}" found in mego topology is not found in {args.target_top}.
         Molecules in {args.target_top} are: {list(topology_ref.molecules.keys())}
         Either you used the wrong topology or you need to use the same name in mego and ref topologies for the system''')
     exit()
 
 top_prot = topology_ref.molecules[molecule_name][0]
 
-if N_species > 1: 
+if N_species > 1:
     print('maximum 1 molecule specie')
     exit()
 
@@ -110,7 +110,7 @@ if args.type=="split":
     print("")
 
     intramat = args.md_intra
-    
+
     #read intramat
     intra_md = np.loadtxt(intramat, unpack=True)
     dim = int(np.sqrt(len(intra_md[0])))
@@ -122,7 +122,7 @@ if args.type=="split":
     if(dim!=n_atoms):
         print(f'ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})')
         exit()
-    
+
     res_idx = args.dom_res
     #find atom indeces associated to starting domain residues
     atom_idxs = []
@@ -135,7 +135,7 @@ if args.type=="split":
     for i, _ in enumerate([0, *atom_idxs]):
 
         print(f"Dividing {intramat} at residues {full_blocks_res[i]} - {full_blocks_res[i+1]} and atoms {full_blocks[i] + 1} - {full_blocks[i+1]}")
-        map = np.array([ True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])  
+        map = np.array([ True if x >= full_blocks[i] and x < full_blocks[i+1] else False for x in range(dim)])
         map = map * map[:,np.newaxis]
         domain_mask = np.logical_or(domain_mask, map)
 
@@ -155,7 +155,7 @@ if args.type=="split":
 
 
 if args.type=="group":
-    
+
     print("Group intramat_rc with intramat inter-domain_rc")
     print("")
 
@@ -180,9 +180,9 @@ if args.type=="group":
     if(dim!=n_atoms):
         print(f'ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})')
         exit()
-        
+
     res_idx = args.dom_res
-    
+
     #find atom indeces associated to starting domain residues
     atom_idxs = []
     for ri in res_idx:
@@ -211,4 +211,4 @@ if args.type=="group":
     np.savetxt(f'{args.out}group_{"-".join(np.array(args.dom_res, dtype=str))}_{intra1}',intra_rc.T, delimiter=" ", fmt = ['%i', '%i', '%i', '%i', '%2.6f', '%.6e', '%2.6f', '%1i'])
     print(f"Finished group")
 
-    
+
