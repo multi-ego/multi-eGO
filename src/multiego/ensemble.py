@@ -29,7 +29,9 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     molecule_type_dict : dict
         Updated molecule_type_dict with the added new system name
     '''
+
     first_aminoacid = molecule_topology.residues[0].name
+
     if first_aminoacid in type_definitions.aminoacids_list:
         molecule_type_dict[molecule_name] = 'protein'
     elif first_aminoacid in type_definitions.nucleic_acid_list:
@@ -55,32 +57,31 @@ def initialize_topology(topology):
     - sbtype_moltype_dict (dict): Dictionary mapping subtype to their molecule types.
     - molecule_type_dict (dict): Dictionary mapping molecule names to their types.
 
-    This function initializes a topology DataFrame by extracting information about molecules and their atoms. It creates a DataFrame containing details about atoms, molecules, their types, and assigns specific values based on the provided information. The function also generates dictionaries mapping different atom subtypes to their respective characteristics and molecule types.
+    This function initializes a topology DataFrame by extracting information about molecules and their atoms.
+    It creates a DataFrame containing details about atoms, molecules, their types, and assigns specific values based on the provided information.
+    The function also generates dictionaries mapping different atom subtypes to their respective characteristics and molecule types.
 
     Note:
     - The 'topology' object is expected to contain molecule information.
     - The returned DataFrame and dictionaries provide comprehensive details about the molecular structure and characteristics.
     '''
-    # In a single topology different type of molecules can be present (e.g. protein, ligand).
-    # For each molecule the different atomtypes are saved.
+
     columns_to_drop = ['nb_idx', 'solvent_radius', 'screen', 'occupancy', 'bfactor',
                        'altloc', 'join', 'irotat', 'rmin', 'rmin_14', 'epsilon_14', 'tree']
     ensemble_topology_dataframe, new_number, col_molecule, new_resnum, ensemble_molecules_idx_sbtype_dictionary, temp_number_c12_dict = pd.DataFrame(), [], [], [], {}, {}
 
     molecule_type_dict = {}
-    first_index = topology.atoms[0].idx+1
-    # I needed to add this for loop as by creating the topology dataframe by looping over molecules, the c12 information is lost
+    first_index = topology.atoms[0].idx + 1
+
     for atom in topology.atoms:
-        temp_number_c12_dict[str(atom.idx+1)] = atom.epsilon*4.184
+        temp_number_c12_dict[str(atom.idx + 1)] = atom.epsilon * 4.184
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
-        molecule_type_dict = assign_molecule_type(
-            molecule_type_dict, molecule_name, molecule_topology[0])
+        molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
         ensemble_molecules_idx_sbtype_dictionary[f'{str(molecule_number)}_{molecule_name}'] = {}
-        ensemble_topology_dataframe = pd.concat(
-            [ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
         for atom in molecule_topology[0].atoms:
-            new_number.append(str(atom.idx+1))
+            new_number.append(str(atom.idx + 1))
             col_molecule.append(f'{molecule_number}_{molecule_name}')
             new_resnum.append(str(atom.residue.number))
 
@@ -97,7 +98,7 @@ def initialize_topology(topology):
 
     ensemble_topology_dataframe['charge'] = 0.
     ensemble_topology_dataframe['c6'] = 0.
-    ensemble_topology_dataframe['c12'] = [ str(i+first_index) for i in range(len(ensemble_topology_dataframe['number']))]
+    ensemble_topology_dataframe['c12'] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe['number']))]
     ensemble_topology_dataframe['c12'] = ensemble_topology_dataframe['c12'].map(temp_number_c12_dict)
     ensemble_topology_dataframe['molecule_type'] = ensemble_topology_dataframe['molecule_name'].map(molecule_type_dict)
 
@@ -105,47 +106,40 @@ def initialize_topology(topology):
         temp_topology_dataframe = ensemble_topology_dataframe.loc[ensemble_topology_dataframe['molecule'] == molecule]
         number_sbtype_dict = temp_topology_dataframe[['number', 'sb_type']].set_index('number')['sb_type'].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
+
     sbtype_c12_dict = ensemble_topology_dataframe[['sb_type', 'c12']].set_index('sb_type')['c12'].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[['sb_type', 'name']].set_index('sb_type')['name'].to_dict()
     sbtype_moltype_dict = ensemble_topology_dataframe[['sb_type', 'molecule_type']].set_index('sb_type')['molecule_type'].to_dict()
 
-    return ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary, sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
+    return (
+        ensemble_topology_dataframe, ensemble_molecules_idx_sbtype_dictionary,
+        sbtype_c12_dict, sbtype_name_dict, sbtype_moltype_dict, molecule_type_dict
+    )
 
 
 def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_sbtype_dictionary, simulation, args):
     '''
-    This function is called "initialize_molecular_contacts" and it takes three arguments:
-     1) contact_matrices: a dictionary of contact matrices, where the keys are the file names (intramat_1_1.ndx) and the values are the contents of the files in the form of a pandas dataframe.
-     2) ensemble_molecules_idx_sbtype_dictionary: a dictionary that associates the atom number with the structure-based type (sbtype) for each molecule in the ensemble.
-     3) simulation: a string that represents the source of the simulation (e.g. "reference" or "native_MD").
-
-    The function does the following:
-     - Initializes an empty pandas dataframe called "ensemble_contact_matrix" that will be used to store the processed contact matrices.
-     - Initializes an empty dictionary called "molecule_names_dictionary" that will be used to associate a molecule number with its name.
-     - Loops through the keys of the ensemble_molecules_idx_sbtype_dictionary, and split the key by '_' and store the first element of the split as the type of contact matrix (e.g. "intra" or "inter"), second and third as the number of molecule.
-     - Loops through the contact_matrices dictionary, and for each matrix:
-        - Rename the column 'molecule_name_ai' and 'molecule_name_aj' by adding the name of the molecule to the 'molecule_number_ai' and 'molecule_number_aj' columns respectively.
-        - Map the 'ai' and 'aj' columns, containing the atom number, to the corresponding sbtype from the ensemble_molecules_idx_sbtype_dictionary by using the name of the molecule.
-        - If the file name starts with 'intramat' set the 'same_chain' column as True, if it starts with 'intermat' set it as False, otherwise print an error message and exit the script
-        - Remove all the lines containing H atoms as the final model only contains heavy-atoms.
-        - Concatenate all the dataframes contained in the simulation folder
+    This function initializes a contact matrix for a given simulation.
 
     Parameters
     ----------
     contact_matrix : pd.DataFrame
-        Contains the contact informations read from intra-/intermat
-    path:
-
-    ensemble_molecules_inx_sbtype_dictionary : dict
+        Contains contact information read from intra-/intermat
+    path : str
+        Path to the simulation folder
+    ensemble_molecules_idx_sbtype_dictionary : dict
         Associates atom indices to atoms named according to multi-eGO conventions
     simulation : str
         The simulation classified equivalent to the input folder
+    args : argparse.Namespace
+        Parsed arguments
 
     Returns
     -------
     contact_matrix : pd.DataFrame
         A contact matrix containing contact data for each of the different simulations
     '''
+
     print('\t\t-', f'Initializing {simulation} contact matrix')
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -202,7 +196,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
 
 def init_meGO_ensemble(args):
     '''
-    Initializes meGOs.
+    Initializes meGO.
 
     Args:
     - args (object): Object containing arguments for initializing the ensemble.
@@ -210,7 +204,7 @@ def init_meGO_ensemble(args):
     Returns:
     - ensemble (dict): A dictionary containing the initialized ensemble with various molecular attributes and contact matrices.
 
-    This function sets up a multi-scale ensemble for Molecular eGOs (meGOs) by initializing the reference topology and processing train and check contact matrices based on the provided arguments. It reads topology files, loads molecular information, and sets up dictionaries and data frames to organize molecular data and contact matrices.
+    This function sets up meGO by initializing the reference topology and processing train and check contact matrices based on the provided arguments. It reads topology files, loads molecular information, and sets up dictionaries and data frames to organize molecular data and contact matrices.
 
     The function initializes the reference topology and extracts essential molecular details such as topological data frames, subtype dictionaries, c12 values, names, molecule types, and contact matrices for the reference ensemble. It then processes train and check contact matrices, aligning them with the reference ensemble to detect any differences in atom types.
 
@@ -221,6 +215,7 @@ def init_meGO_ensemble(args):
     - The 'args' object should contain necessary arguments for setting up the ensemble.
     - The returned 'ensemble' dictionary encapsulates crucial details of the initialized ensemble for further analysis or processing.
     '''
+
     # we initialize the reference topology
     reference_path = f'{args.root_dir}/inputs/{args.system}/reference'
     ensemble_type = reference_path.split('/')[-1]
