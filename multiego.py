@@ -6,6 +6,7 @@ from src.multiego import ensemble
 from src.multiego import io
 from src.multiego.util import float_range
 
+
 def main():
     """
     Main function that processes command-line arguments and generates a multi-eGO model.
@@ -44,7 +45,7 @@ def main():
             rc: creates a force-field for random coil simulations.
             production: creates a force-field combining random coil simulations and training simulations.
         '''
-   )
+    )
 
     # Optional arguments
     optional_args = parser.add_argument_group('Optional arguments')
@@ -65,7 +66,7 @@ def main():
         type=str,
         default=[],
         help='''\
-            A list of the training simulations to be included in multi-eGO, 
+            A list of the training simulations to be included in multi-eGO,
             corresponding to the subfolders to process and where the contacts are learned.
         '''
     )
@@ -75,7 +76,7 @@ def main():
         type=str,
         default=[],
         help='''\
-            A list of the simulations corresponding to the subfolders used to check 
+            A list of the simulations corresponding to the subfolders used to check
             whether the contacts learned are compatible with those provided in here.
         '''
     )
@@ -131,13 +132,13 @@ def main():
         print('--epsilon is required when using --egos=production')
         sys.exit()
 
-    if args.p_to_learn<0.9:
+    if args.p_to_learn < 0.9:
         print('WARNING: --p_to_learn should be high enough')
 
     if args.egos != 'rc' and args.epsilon <= args.epsilon_min:
         print('--epsilon must be greater than --epsilon_min')
         sys.exit()
-    
+
     if args.egos != 'rc' and args.inter_domain_epsilon <= args.epsilon_min:
         print('--inter_domain_epsilon must be greater than --epsilon_min')
         sys.exit()
@@ -146,7 +147,9 @@ def main():
         print('--inter_epsilon must be greater than --epsilon_min')
         sys.exit()
 
-    if not os.path.exists(f'{args.root_dir}/outputs'): os.mkdir(f'{args.root_dir}/outputs')
+    if not os.path.exists(f'{args.root_dir}/outputs'):
+        os.mkdir(f'{args.root_dir}/outputs')
+
     output_dir = io.create_output_directories(args)
 
     print('- Checking for input files and folders')
@@ -165,13 +168,12 @@ def main():
         meGO_LJ_14 = pairs14
         meGO_LJ_14['epsilon'] = -meGO_LJ_14['c12']
     else:
-       train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14) 
-       meGO_LJ, meGO_LJ_14  = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
+        train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14)
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
-    
-    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
 
+    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
 
 
 if __name__ == '__main__':

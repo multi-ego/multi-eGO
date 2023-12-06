@@ -15,7 +15,8 @@ aforismi=[
     "“Notiamo facilmente i difetti altrui e non ci accorgiamo dei nostri.”",
     "“Ogni cosa finché dura porta con sé la pena della sua forma, la pena d'esser così e di non poter essere più altrimenti.”",
 ]
-    
+
+
 def print_goodbye():
     print('-----------------------------===========+===+++++++++++++********#########################')
     print('-----------------------------=========++++**##########**********##########################')
