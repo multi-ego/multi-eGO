@@ -49,7 +49,6 @@ def run_intra_(arguments):
         frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
-    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
     df = pd.DataFrame()
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
@@ -127,7 +126,6 @@ def run_inter_(arguments):
         frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
-    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
     df = pd.DataFrame()
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
