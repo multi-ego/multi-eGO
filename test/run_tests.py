@@ -89,16 +89,10 @@ def prep_system_data(name, egos):
         out_egos = egos
     else:
         out_egos = f"production_e{egos[0]}_{egos[1]}"
-    topol_ref = read_outfile(
-        f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top"
-    )
+    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top")
     topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}_{out_egos}/topol_GRETA.top")
-    ffnonbonded_ref = read_outfile(
-        f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp"
-    )
-    ffnonbonded_test = read_outfile(
-        f"{MEGO_ROOT}/outputs/{name}_{out_egos}/ffnonbonded.itp"
-    )
+    ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp")
+    ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}_{out_egos}/ffnonbonded.itp")
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
 
 
@@ -137,11 +131,7 @@ def create_test_cases(test_case):
         if "--inter_epsilon" not in test_case:
             inter_epsilon = intra_epsilon
         else:
-            inter_epsilon_index = (
-                egos_index
-                if "--inter_epsilon" not in test_case
-                else test_case.index("--inter_epsilon") + 1
-            )
+            inter_epsilon_index = egos_index if "--inter_epsilon" not in test_case else test_case.index("--inter_epsilon") + 1
             inter_epsilon = test_case[inter_epsilon_index]
 
     function_name = f"test_{system_name}_{name_suffix}"
@@ -151,13 +141,9 @@ def create_test_cases(test_case):
         name = system_name
         egos = system_egos
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(
-            name=name, egos=egos
-        )
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, egos=egos)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
-        self.assertEqual(
-            ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal"
-        )
+        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
     return function_name, function_template
 
@@ -172,10 +158,7 @@ class TestOutputs(unittest.TestCase):
                 shutil.rmtree(inputs_path)
             shutil.copytree(f"{TEST_ROOT}/test_inputs/{system}", inputs_path)
 
-        error_codes = [
-            subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command])
-            for command in test_commands
-        ]
+        error_codes = [subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands]
         for e in error_codes:
             assert e == 0, "Test setup exited with non-zero error code"
 

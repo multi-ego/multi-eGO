@@ -199,9 +199,7 @@ def get_14_interaction_list(reduced_topology, bond_pair):
     return exclusion_bonds, p14
 
 
-def create_pairs_14_dataframe(
-    atomtype1, atomtype2, c6=0.0, shift=0, prefactor=None, constant=None
-):
+def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=None, constant=None):
     """
     Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with
     specific shifts in the residue index can be fed to the function to obtain a new set of 1-4 interaction pairs.
@@ -234,9 +232,7 @@ def create_pairs_14_dataframe(
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
 
     for index, line_atomtype1 in atomtype1.iterrows():
-        line_atomtype2 = atomtype2.loc[
-            (atomtype2["resnum"] == line_atomtype1["resnum"] + shift)
-        ].squeeze(axis=None)
+        line_atomtype2 = atomtype2.loc[(atomtype2["resnum"] == line_atomtype1["resnum"] + shift)].squeeze(axis=None)
         if not line_atomtype2.empty:
             pairs_14_ai.append(line_atomtype1["number"])
             pairs_14_aj.append(line_atomtype2["number"])
@@ -244,9 +240,7 @@ def create_pairs_14_dataframe(
             if constant is not None:
                 pairs_14_c12.append(constant)
             if prefactor is not None:
-                pairs_14_c12.append(
-                    prefactor * np.sqrt(line_atomtype1["c12"] * line_atomtype2["c12"])
-                )
+                pairs_14_c12.append(prefactor * np.sqrt(line_atomtype1["c12"] * line_atomtype2["c12"]))
 
     pairs_14 = pd.DataFrame(
         columns=[
@@ -283,17 +277,11 @@ def protein_LJ14(reduced_topology):
     - pairs (pd.DataFrame): DataFrame with LJ14 pairs for protein interactions.
     """
     # Here we make a dictionary of the atoms used for local geometry
-    first_backbone_nitrogen = reduced_topology.loc[
-        (reduced_topology["name"] == "N") & (reduced_topology["type"] == "NL")
-    ]
-    backbone_nitrogen = reduced_topology.loc[
-        (reduced_topology["name"] == "N") & (reduced_topology["type"] != "NL")
-    ]
+    first_backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] == "NL")]
+    backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] != "NL")]
     backbone_carbonyl = reduced_topology.loc[reduced_topology["name"] == "C"]
     backbone_oxygen = reduced_topology.loc[reduced_topology["name"] == "O"]
-    ct_oxygen = reduced_topology.loc[
-        (reduced_topology["name"] == "O1") | (reduced_topology["name"] == "O2")
-    ]
+    ct_oxygen = reduced_topology.loc[(reduced_topology["name"] == "O1") | (reduced_topology["name"] == "O2")]
     sidechain_cb = reduced_topology.loc[reduced_topology["name"] == "CB"]
     sidechain_cgs = reduced_topology.loc[
         (reduced_topology["name"] == "CG")
@@ -324,9 +312,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(
-                atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1
-            ),
+            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1),
         ],
         axis=0,
         sort=False,
@@ -336,9 +322,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(
-                atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1
-            ),
+            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1),
         ],
         axis=0,
         sort=False,
@@ -408,9 +392,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(
-                atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078
-            ),
+            create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, prefactor=0.078),
         ],
         axis=0,
         sort=False,
@@ -420,9 +402,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(
-                atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087
-            ),
+            create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, prefactor=0.087),
         ],
         axis=0,
         sort=False,
@@ -443,9 +423,7 @@ def protein_LJ14(reduced_topology):
     )
 
     # make it symmetric
-    inv_LJ = pairs[
-        ["aj", "ai", "func", "c6", "c12", "probability", "rc_probability", "source"]
-    ].copy()
+    inv_LJ = pairs[["aj", "ai", "func", "c6", "c12", "probability", "rc_probability", "source"]].copy()
     inv_LJ.columns = [
         "ai",
         "aj",

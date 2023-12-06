@@ -2,12 +2,8 @@ import argparse
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TODO!")
-    parser.add_argument(
-        "--n_mol", type=int, required=True, help="Number of molecules to simulate."
-    )
-    parser.add_argument(
-        "--conc", type=float, required=True, help="Concentration in Molar"
-    )
+    parser.add_argument("--n_mol", type=int, required=True, help="Number of molecules to simulate.")
+    parser.add_argument("--conc", type=float, required=True, help="Concentration in Molar")
 
     args = parser.parse_args()
 

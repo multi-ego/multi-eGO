@@ -121,12 +121,8 @@ def lj14_generator(df):
     - types_dict (dict): Dictionary containing different atom type combinations.
     """
     types_dict = {}
-    types_dict["first_backbone_nitrogen"] = (
-        (df["name"] == "N") & (df["type"] == "NL")
-    ).to_numpy()
-    types_dict["backbone_nitrogen"] = (
-        (df["name"] == "N") & (df["type"] != "NL")
-    ).to_numpy()
+    types_dict["first_backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] == "NL")).to_numpy()
+    types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
     types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
     types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
     types_dict["ct_oxygen"] = ((df["name"] == "O1") | (df["name"] == "O2")).to_numpy()

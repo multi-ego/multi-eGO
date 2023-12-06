@@ -117,9 +117,7 @@ def map_c12_mask(types, mask, standard_c12_dict, special_c12_dict):
     - numpy.ndarray: A combined array of c12 values based on the mask and dictionaries.
     """
     translator = lambda types, c12s_dict: np.vectorize(c12s_dict.__getitem__)(types)
-    standard_c12 = np.where(
-        np.logical_not(mask), translator(types, standard_c12_dict), 0.0
-    )
+    standard_c12 = np.where(np.logical_not(mask), translator(types, standard_c12_dict), 0.0)
     special_c12 = np.where(mask, translator(types, special_c12_dict), 0.0)
 
     all_c12 = standard_c12 + special_c12

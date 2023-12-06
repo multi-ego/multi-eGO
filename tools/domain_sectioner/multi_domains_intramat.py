@@ -47,13 +47,9 @@ if __name__ == "__main__":
         required=True,
         help="Type of operation.\n split: splits the md intramat into blocks associated to the domains.\n group: group the rc and the inter domain rc into blocks associated to the domains.",
     )
-    parser.add_argument(
-        "--md_intra", type=str, required=False, help="intramat to work on"
-    )
+    parser.add_argument("--md_intra", type=str, required=False, help="intramat to work on")
     parser.add_argument("--rc_intra", type=str, help="random coil intramat")
-    parser.add_argument(
-        "--dom_rc_intra", type=str, help="inter domain random coil intramat"
-    )
+    parser.add_argument("--dom_rc_intra", type=str, help="inter domain random coil intramat")
     parser.add_argument("--target_top", type=str)
     parser.add_argument("--mego_top", type=str)
     parser.add_argument(
@@ -72,9 +68,7 @@ if __name__ == "__main__":
         print("--type=choose either split or group. ")
         sys.exit()
 
-    if args.type == "split" and (
-        args.md_intra is None or args.target_top is None or args.mego_top is None
-    ):
+    if args.type == "split" and (args.md_intra is None or args.target_top is None or args.mego_top is None):
         print(
             "--type=split requires 3 inputs: --md_intra PATH_TO_intramat_md --target_top PATH_to_target_topology --mego_top PATH_to_mego_topology"
         )
@@ -84,9 +78,7 @@ if __name__ == "__main__":
         print("--type=choose either split or group. ")
         sys.exit()
 
-    if args.type == "group" and (
-        args.rc_intra is None or args.dom_rc_intra is None or args.target_top is None
-    ):
+    if args.type == "group" and (args.rc_intra is None or args.dom_rc_intra is None or args.target_top is None):
         print(
             "--type=group requires 3 inputs: --rc_intra PATH_TO_intramat_rc --dom_rc_intra PATH_TO_intramat_inter_domain_rc --target_top PATH_to_target_topology"
         )
@@ -105,9 +97,7 @@ if __name__ == "__main__":
 
 # read topology
 
-topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(
-    args.mego_top, args.target_top
-)
+topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
 molecule_name = molecules_name[0]
 
@@ -148,9 +138,7 @@ if args.type == "split":
 
     # consistency check
     if dim != n_atoms:
-        print(
-            f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
-        )
+        print(f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})")
         exit()
 
     res_idx = args.dom_res
@@ -166,12 +154,7 @@ if args.type == "split":
         print(
             f"Dividing {intramat} at residues {full_blocks_res[i]} - {full_blocks_res[i+1]} and atoms {full_blocks[i] + 1} - {full_blocks[i+1]}"
         )
-        map = np.array(
-            [
-                True if x >= full_blocks[i] and x < full_blocks[i + 1] else False
-                for x in range(dim)
-            ]
-        )
+        map = np.array([True if x >= full_blocks[i] and x < full_blocks[i + 1] else False for x in range(dim)])
         map = map * map[:, np.newaxis]
         domain_mask = np.logical_or(domain_mask, map)
 
@@ -210,9 +193,7 @@ if args.type == "group":
 
     # first consistency check
     if intra_rc.shape != intra_domain_rc.shape:
-        print(
-            "intramats of input 1 and 2 must have the same dimensions (they should be of the same system!)"
-        )
+        print("intramats of input 1 and 2 must have the same dimensions (they should be of the same system!)")
         exit()
 
     dim = int(np.sqrt(len(intra_rc[0])))
@@ -222,9 +203,7 @@ if args.type == "group":
 
     # second consistency check
     if dim != n_atoms:
-        print(
-            f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
-        )
+        print(f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})")
         exit()
 
     res_idx = args.dom_res
@@ -241,12 +220,7 @@ if args.type == "group":
             f"Group {intra1} and {intra2} at residues {full_blocks_res[i]} - {full_blocks_res[i+1]} and atoms {full_blocks[i] + 1} - {full_blocks[i+1]} "
         )
 
-        map = np.array(
-            [
-                True if x >= full_blocks[i] and x < full_blocks[i + 1] else False
-                for x in range(dim)
-            ]
-        )
+        map = np.array([True if x >= full_blocks[i] and x < full_blocks[i + 1] else False for x in range(dim)])
         map = map * map[:, np.newaxis]
         domain_mask = np.logical_or(domain_mask, map)
 

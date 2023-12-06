@@ -1,5 +1,6 @@
 import os
 import sys
+
 # import subpaths
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
@@ -14,7 +15,6 @@ import pandas as pd
 import parmed as pmd
 import time
 import warnings
-
 
 
 d = {
@@ -75,32 +75,22 @@ def run_intra_(arguments):
 
             # column mapping
             ref_f = f"{args.histo}/{ref_f}"
-            ref_df = pd.read_csv(
-                ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j]
-            )
+            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
             ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
             ref_df.columns = ref_df_columns
             ref_df.set_index("distance", inplace=True)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            c12dist = ref_df.apply(
-                lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0
-            ).values
+            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = ref_df.apply(
-                lambda x: calculate_probability(
-                    ref_df.index.to_numpy(), weights=x.to_numpy()
-                ),
+                lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()),
                 axis=0,
             ).values
 
-            results_df.loc[
-                results_df["aj"].isin(protein_ref_indices_j), "c12dist"
-            ] = c12dist
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
-            results_df.loc[
-                results_df["aj"].isin(protein_ref_indices_j), "cutoff"
-            ] = c12_cutoff[cut_i]
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i]
 
         df = pd.concat([df, results_df])
         df = df.sort_values(by=["p", "c12dist"], ascending=True)
@@ -164,9 +154,7 @@ def run_inter_(arguments):
 
             # column mapping
             ref_f = f"{args.histo}/{ref_f}"
-            ref_df = pd.read_csv(
-                ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j]
-            )
+            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
             ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
             ref_df.columns = ref_df_columns
             ref_df.set_index("distance", inplace=True)
@@ -174,32 +162,22 @@ def run_inter_(arguments):
 
             # repeat for cumulative
             c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
-            c_ref_df = pd.read_csv(
-                c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j]
-            )
+            c_ref_df = pd.read_csv(c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
             c_ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
             c_ref_df.columns = c_ref_df_columns
             c_ref_df.set_index("distance", inplace=True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            c12dist = ref_df.apply(
-                lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0
-            ).values
+            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             p = c_ref_df.apply(
-                lambda x: get_cumulative_probability(
-                    c_ref_df.index.to_numpy(), weights=x.to_numpy()
-                ),
+                lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
                 axis=0,
             ).values
 
-            results_df.loc[
-                results_df["aj"].isin(protein_ref_indices_j), "c12dist"
-            ] = c12dist
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
-            results_df.loc[
-                results_df["aj"].isin(protein_ref_indices_j), "cutoff"
-            ] = c12_cutoff[cut_i]
+            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i]
 
         df = pd.concat([df, results_df])
 
@@ -380,8 +358,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]: v.size]
-    w = w[r[0][0]: w.size]
+    v = v[r[0][0] : v.size]
+    w = w[r[0][0] : w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -432,16 +410,12 @@ def generate_c12_values(df, types, combinations):
     for combination in combinations:
         (name_1, name_2, factor, constant, shift) = combination
         if factor is not None and constant is not None or factor == constant:
-            raise RuntimeError(
-                "constant and error should be defined and mutualy exclusive"
-            )
+            raise RuntimeError("constant and error should be defined and mutualy exclusive")
         if factor:
             operation = lambda x: factor * x
         if constant:
             operation = lambda _: constant
-        combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (
-            resnums + shift == resnums[:, np.newaxis]
-        )
+        combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
         combined_map = combined_map | combined_map.T
         c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
@@ -478,27 +452,17 @@ def calculate_intra_probabilities(args):
     """
     )
     for i in range(N_molecules):
-        print(
-            f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}"
-        )
+        print(f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}")
         df = pd.DataFrame()
         topology_df = pd.DataFrame()
 
         prefix = f"intra_mol_{mol_list[i]}_{mol_list[i]}"
         target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
-        protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][
-            0
-        ]
+        protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][0]
         protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[i]][0]
         original_size = len(protein_ref.atoms)
-        protein_ref_indices = np.array(
-            [
-                i + 1
-                for i in range(len(protein_ref.atoms))
-                if protein_ref[i].element_name != "H"
-            ]
-        )
+        protein_ref_indices = np.array([i + 1 for i in range(len(protein_ref.atoms)) if protein_ref[i].element_name != "H"])
         protein_ref = [a for a in protein_ref.atoms if a.element_name != "H"]
 
         sorter = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref]
@@ -509,20 +473,10 @@ def calculate_intra_probabilities(args):
         topology_df["resname"] = [a.residue.name for a in protein_ref]
         topology_df["resnum"] = [a.residue.idx for a in protein_ref]
         topology_df["sorter"] = sorter
-        topology_df["ref_ri"] = (
-            topology_df["sorter"]
-            .str.replace("[a-zA-Z]+[0-9]*", "", regex=True)
-            .astype(int)
-        )
+        topology_df["ref_ri"] = topology_df["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
         topology_df.sort_values(by="sorter", inplace=True)
-        topology_df["mego_type"] = [
-            a[0].type
-            for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])
-        ]
-        topology_df["mego_name"] = [
-            a[0].name
-            for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])
-        ]
+        topology_df["mego_type"] = [a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
+        topology_df["mego_name"] = [a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["name"] = topology_df["mego_name"]
         topology_df["type"] = topology_df["mego_type"]
         # need to sort back otherwise c12_cutoff are all wrong
@@ -530,9 +484,8 @@ def calculate_intra_probabilities(args):
         topology_df["c12"] = topology_df["mego_type"].map(d)
 
         types = type_definitions.lj14_generator(topology_df)
-        c12_values = generate_c12_values(
-            topology_df, types, type_definitions.atom_type_combinations
-        )
+        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
+        print(c12_values)
 
         # consider special cases
         oxygen_mask = masking.create_matrix_mask(
@@ -543,9 +496,7 @@ def calculate_intra_probabilities(args):
         )
 
         # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(
-            np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0
-        )
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
@@ -628,9 +579,7 @@ def calculate_inter_probabilities(args):
     args : dict
         The command-line parsed parameters
     """
-    topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(
-        args.mego_top, args.target_top
-    )
+    topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
     pairs = list(itertools.combinations_with_replacement(mol_list, 2))
 
     chain_list = []
@@ -641,11 +590,7 @@ def calculate_inter_probabilities(args):
             (
                 i,
                 len(topology_mego.molecules[i][0].atoms),
-                len(
-                    topology_mego.split()[
-                        list(topology_mego.molecules.keys()).index(i)
-                    ][1]
-                ),
+                len(topology_mego.split()[list(topology_mego.molecules.keys()).index(i)][1]),
             )
         )
 
@@ -685,19 +630,11 @@ def calculate_inter_probabilities(args):
         #     c = c.replace('inter_mol_c_','')
         #     assert n == c, f'inter_mol {n} and inter_mol_d {c} are not the same'
 
-        protein_mego_i = topology_mego.molecules[
-            list(topology_mego.molecules.keys())[mol_i - 1]
-        ][0]
-        protein_mego_j = topology_mego.molecules[
-            list(topology_mego.molecules.keys())[mol_j - 1]
-        ][0]
+        protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
+        protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
 
-        protein_ref_i = topology_ref.molecules[
-            list(topology_ref.molecules.keys())[mol_i - 1]
-        ][0]
-        protein_ref_j = topology_ref.molecules[
-            list(topology_ref.molecules.keys())[mol_j - 1]
-        ][0]
+        protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
+        protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
         original_size_i = len(protein_ref_i.atoms)
         original_size_j = len(protein_ref_j.atoms)
@@ -715,12 +652,8 @@ def calculate_inter_probabilities(args):
                 indeces_ai = np.array(list(matrix_index)).T[0]
                 indeces_aj = np.array(list(matrix_index)).T[1]
                 df = pd.DataFrame(columns=columns)
-                df["mi"] = [
-                    mol_i for x in range(1, original_size_i * original_size_j + 1)
-                ]
-                df["mj"] = [
-                    mol_j for x in range(1, original_size_i * original_size_j + 1)
-                ]
+                df["mi"] = [mol_i for x in range(1, original_size_i * original_size_j + 1)]
+                df["mj"] = [mol_j for x in range(1, original_size_i * original_size_j + 1)]
                 df["ai"] = indeces_ai
                 df["aj"] = indeces_aj
                 df["c12dist"] = 0.0
@@ -742,51 +675,29 @@ def calculate_inter_probabilities(args):
                 continue
 
         protein_ref_indices_i = np.array(
-            [
-                i + 1
-                for i in range(len(protein_ref_i.atoms))
-                if protein_ref_i[i].element_name != "H"
-            ]
+            [i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"]
         )
         protein_ref_indices_j = np.array(
-            [
-                i + 1
-                for i in range(len(protein_ref_j.atoms))
-                if protein_ref_j[i].element_name != "H"
-            ]
+            [i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"]
         )
 
         protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
         protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
 
-        sorter_i = [
-            str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i
-        ]
+        sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
         sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
 
-        sorter_j = [
-            str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j
-        ]
+        sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
         sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
 
         # preparing topology of molecule i
         topology_df_i["ref_ai"] = protein_ref_indices_i
         topology_df_i["ref_type"] = [a.name for a in protein_ref_i]
         topology_df_i["sorter"] = sorter_i
-        topology_df_i["ref_ri"] = (
-            topology_df_i["sorter"]
-            .str.replace("[a-zA-Z]+[0-9]*", "", regex=True)
-            .astype(int)
-        )
+        topology_df_i["ref_ri"] = topology_df_i["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
         topology_df_i.sort_values(by="sorter", inplace=True)
-        topology_df_i["mego_type"] = [
-            a[0].type
-            for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])
-        ]
-        topology_df_i["mego_name"] = [
-            a[0].name
-            for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])
-        ]
+        topology_df_i["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
+        topology_df_i["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_i.sort_values(by="ref_ai", inplace=True)
         topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
@@ -795,20 +706,10 @@ def calculate_inter_probabilities(args):
         topology_df_j["ref_ai"] = protein_ref_indices_j
         topology_df_j["ref_type"] = [a.name for a in protein_ref_j]
         topology_df_j["sorter"] = sorter_j
-        topology_df_j["ref_ri"] = (
-            topology_df_j["sorter"]
-            .str.replace("[a-zA-Z]+[0-9]*", "", regex=True)
-            .astype(int)
-        )
+        topology_df_j["ref_ri"] = topology_df_j["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
         topology_df_j.sort_values(by="sorter", inplace=True)
-        topology_df_j["mego_type"] = [
-            a[0].type
-            for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])
-        ]
-        topology_df_j["mego_name"] = [
-            a[0].name
-            for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])
-        ]
+        topology_df_j["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
+        topology_df_j["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_j.sort_values(by="ref_ai", inplace=True)
         topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
@@ -824,18 +725,11 @@ def calculate_inter_probabilities(args):
         c12_cutoff = CUTOFF_FACTOR * np.where(
             oxygen_mask,
             np.power(
-                11.4
-                * np.sqrt(
-                    topology_df_j["c12"].values
-                    * topology_df_i["c12"].values[:, np.newaxis]
-                ),
+                11.4 * np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
             ),
             np.power(
-                np.sqrt(
-                    topology_df_j["c12"].values
-                    * topology_df_i["c12"].values[:, np.newaxis]
-                ),
+                np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
             ),
         )

@@ -28,9 +28,7 @@ def main():
     --epsilon_min: The minimum meaningful epsilon value.
     --no_header: Removes headers from output_files when set.
     """
-    parser = argparse.ArgumentParser(
-        description="Generate a multi-eGO model based on provided parameters."
-    )
+    parser = argparse.ArgumentParser(description="Generate a multi-eGO model based on provided parameters.")
     # Required arguments
     required_args = parser.add_argument_group("Required arguments")
     required_args.add_argument(
@@ -77,9 +75,7 @@ def main():
             whether the contacts learned are compatible with those provided in here.
         """,
     )
-    optional_args.add_argument(
-        "--out", type=str, default="", help="Suffix for the output directory name."
-    )
+    optional_args.add_argument("--out", type=str, default="", help="Suffix for the output directory name.")
     optional_args.add_argument(
         "--inter_epsilon",
         type=float,
@@ -171,12 +167,8 @@ def main():
         meGO_LJ_14 = pairs14
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
     else:
-        train_dataset, check_dataset = ensemble.init_LJ_datasets(
-            meGO_ensemble, pairs14, exclusion_bonds14
-        )
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(
-            meGO_ensemble, train_dataset, check_dataset, args
-        )
+        train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14)
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 

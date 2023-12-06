@@ -33,13 +33,9 @@ def read_molecular_contacts(path):
         "cutoff",
         "intra_domain",
     ]
-    contact_matrix["molecule_number_ai"] = contact_matrix["molecule_number_ai"].astype(
-        str
-    )
+    contact_matrix["molecule_number_ai"] = contact_matrix["molecule_number_ai"].astype(str)
     contact_matrix["ai"] = contact_matrix["ai"].astype(str)
-    contact_matrix["molecule_number_aj"] = contact_matrix["molecule_number_aj"].astype(
-        str
-    )
+    contact_matrix["molecule_number_aj"] = contact_matrix["molecule_number_aj"].astype(str)
     contact_matrix["aj"] = contact_matrix["aj"].astype(str)
 
     return contact_matrix
@@ -66,9 +62,7 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
         if write_header:
             file.write(header)
         file.write("[ atomtypes ]\n")
-        atomtypes = topology_dataframe[
-            ["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]
-        ].copy()
+        atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
         atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
         atomtypes["c12"] = atomtypes["c12"].map(lambda x: "{:.6e}".format(x))
         file.write(dataframe_to_write(atomtypes))
@@ -78,15 +72,11 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
             lj_potential["c6"] = lj_potential["c6"].map(lambda x: "{:.6e}".format(x))
             lj_potential["c12"] = lj_potential["c12"].map(lambda x: "{:.6e}".format(x))
             lj_potential.insert(5, ";", ";")
-            lj_potential.drop(
-                columns=["molecule_name_ai", "molecule_name_aj"], inplace=True
-            )
+            lj_potential.drop(columns=["molecule_name_ai", "molecule_name_aj"], inplace=True)
             file.write(dataframe_to_write(lj_potential))
 
 
-def write_model(
-    meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix
-):
+def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix):
     """
     Takes care of the final print-out and the file writing of topology and ffnonbonded
 
@@ -113,9 +103,7 @@ def write_model(
         parameters,
         output_dir,
     )
-    write_nonbonded(
-        meGO_ensemble["topology_dataframe"], meGO_LJ_potential, parameters, output_dir
-    )
+    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_potential, parameters, output_dir)
 
     print("\n- The model is baked with the following parameters:\n")
     for argument, value in vars(parameters).items():
@@ -138,9 +126,7 @@ def write_model(
         """
         )
     print(f"\nAnd it can be found in the following folder:\n{output_dir}")
-    print(
-        "\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n"
-    )
+    print("\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n")
 
 
 def dataframe_to_write(df):
@@ -247,9 +233,9 @@ def write_topology(
 
             file.write(molecule_header)
             file.write("[ atoms ]\n")
-            atom_selection_dataframe = topology_dataframe.loc[
-                topology_dataframe["molecule_name"] == molecule
-            ][["number", "sb_type", "resnum", "resname", "name", "cgnr"]].copy()
+            atom_selection_dataframe = topology_dataframe.loc[topology_dataframe["molecule_name"] == molecule][
+                ["number", "sb_type", "resnum", "resname", "name", "cgnr"]
+            ].copy()
             file.write(f"{dataframe_to_write(atom_selection_dataframe)}\n\n")
             # Here are written bonds, angles, dihedrals and impropers
             for bonded_type, interactions in bonded_interactions.items():
