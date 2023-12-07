@@ -120,8 +120,8 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         - Attractive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.])}
         - Repulsive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']<0.])}
         - The average epsilon is {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
-        - The min/max epsilon are {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}, {meGO_LJ_potential['epsilon'].max():{5}.{3}}
-        - The maximum sigma is {meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}
+        - Epsilon range is [min:max] [{meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['epsilon'].max():{5}.{3}}]
+        - Sigma range is [min:max] [{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}]
         - Suggested rlist and cut-off at {1.1*2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} and {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
         """
         )
