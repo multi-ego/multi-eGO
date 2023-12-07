@@ -1,6 +1,5 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-[![Version](https://img.shields.io/badge/version-beta1-blue)](https://github.com/multi-ego/multi-eGO/releases)
-![Generic badge](https://img.shields.io/badge/Codename-Vanessa-<COLOR>.svg)
+[![Version](https://img.shields.io/badge/Version-beta.1-blue)](https://github.com/multi-ego/multi-eGO/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI](https://github.com/plumed/plumed2/workflows/CI/badge.svg?branch=master)](https://github.com/plumed/plumed2/actions)
@@ -55,7 +54,7 @@ gmx pdb2gmx -f file.pdb -ignh
 and select the multi-ego-basic force-field. From this you should get a (.gro) file for your structure and a (.top) topology file. In the ```multi-eGO/inputs``` folder add a folder for your system and a ```reference/``` subfolder. Copy your GROMACS topology in this ```reference/``` subfolder so that the final structure looks like ```multi-eGO/inputs/$SYSTEM_NAME/reference```
 
 > [!NOTE]
-> When using a system with disulfide bridges, it is as of version Vanessa (beta.1) necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
+> When using a system with disulfide bridges, it is as of version `beta.1` necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
 
 ### Setup of a multi-*e*GO random coil simulation
 
