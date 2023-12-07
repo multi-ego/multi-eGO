@@ -1,7 +1,14 @@
 import numpy as np
 
 
-def create_matrix_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y: x == y, outer_op=lambda x, y: x * y):
+def create_matrix_mask(
+    set1,
+    set2,
+    types,
+    symmetrize=False,
+    inner_op=lambda x, y: x == y,
+    outer_op=lambda x, y: x * y,
+):
     """
     Creates a boolean matrix mask based on comparison operations between two sets.
 
@@ -25,13 +32,20 @@ def create_matrix_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y
         types = list(set(types + [(t[1], t[0]) for t in types]))
 
     mask = np.full((set1.shape[0], set2.shape[0]), False)
-    for (type1, type2) in types:
+    for type1, type2 in types:
         mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:, np.newaxis]).T
 
     return mask
 
 
-def create_array_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y: x == y, outer_op=lambda x, y: x * y):
+def create_array_mask(
+    set1,
+    set2,
+    types,
+    symmetrize=False,
+    inner_op=lambda x, y: x == y,
+    outer_op=lambda x, y: x * y,
+):
     """
     Creates a linearized boolean array mask from a matrix mask based on comparison operations between two sets.
 
@@ -54,7 +68,14 @@ def create_array_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y:
     return mask.flatten()
 
 
-def create_linearized_mask(set1, set2, types, symmetrize=False, inner_op=lambda x, y: x == y, outer_op=lambda x, y: x * y):
+def create_linearized_mask(
+    set1,
+    set2,
+    types,
+    symmetrize=False,
+    inner_op=lambda x, y: x == y,
+    outer_op=lambda x, y: x * y,
+):
     """
     Creates a linearized boolean mask based on comparison operations between two sets.
 
@@ -76,7 +97,7 @@ def create_linearized_mask(set1, set2, types, symmetrize=False, inner_op=lambda 
         types = list(set(types + [(t[1], t[0]) for t in types]))
 
     mask = np.full(set1.shape[0], False)
-    for (type1, type2) in types:
+    for type1, type2 in types:
         mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2))
 
     return mask

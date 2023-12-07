@@ -1,8 +1,9 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-
-Version: **beta.1**  
-Codename: **Vanessa**  
-
+[![Version](https://img.shields.io/badge/Version-beta1-blue)](https://github.com/multi-ego/multi-eGO/releases)
+![Generic badge](https://img.shields.io/badge/Codename-Vanessa-<COLOR>.svg)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![CI](https://github.com/plumed/plumed2/workflows/CI/badge.svg?branch=master)](https://github.com/plumed/plumed2/actions)
 
 ## Current Developers:
 - Fran Bacic Toplek
@@ -14,18 +15,25 @@ Codename: **Vanessa**
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Table of Contents
-- [Installation](#installation)
 - [Requirements](#requirements)
+- [Installation](#installation)
 - [Usage](#usage)
 - [Cite us](#cite-us)
 
-## Installation
-Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we recommend using ```environment_macOS_M2.yml```.
-For all other hardware, we recommend using ```environment.yml```. It is also possible to use ``pip install -r requirements.txt`` using
-Python 3.9 or later.
-
 ## Requirements
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
+You need to know how to compile GROMACS from source because some multi-eGO tools needs GROMACS recompilation.
+
+## Installation
+Use ```conda``` and the enviroment file provided as:
+ ```
+conda env create -f conda/environment.yml
+conda activate meGO
+```
+It is also possible to use ```pip install -r requirements.txt```.
+
+To install the `cmdata` gromacs tools: [ADD HOW TO]
+
 
 ## Usage
 - [Prepare your first multi-eGO system](#prepare-your-first-multi-ego-system)
