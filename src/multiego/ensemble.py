@@ -165,7 +165,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         A contact matrix containing contact data for each of the different simulations
     """
 
-    print("\t\t-", f"Initializing {simulation} contact matrix")
     molecule_names_dictionary = {}
     for molecule_name in ensemble_molecules_idx_sbtype_dictionary.keys():
         name = molecule_name.split("_", maxsplit=1)
@@ -269,11 +268,16 @@ def init_meGO_ensemble(args):
     Returns:
     - ensemble (dict): A dictionary containing the initialized ensemble with various molecular attributes and contact matrices.
 
-    This function sets up meGO by initializing the reference topology and processing train and check contact matrices based on the provided arguments. It reads topology files, loads molecular information, and sets up dictionaries and data frames to organize molecular data and contact matrices.
+    This function sets up meGO by initializing the reference topology and processing train and check contact matrices based
+    on the provided arguments. It reads topology files, loads molecular information, and sets up dictionaries and data frames
+    to organize molecular data and contact matrices.
 
-    The function initializes the reference topology and extracts essential molecular details such as topological data frames, subtype dictionaries, c12 values, names, molecule types, and contact matrices for the reference ensemble. It then processes train and check contact matrices, aligning them with the reference ensemble to detect any differences in atom types.
+    The function initializes the reference topology and extracts essential molecular details such as topological data frames,
+    subtype dictionaries, c12 values, names, molecule types, and contact matrices for the reference ensemble. It then processes
+    train and check contact matrices, aligning them with the reference ensemble to detect any differences in atom types.
 
-    If atom type differences are found between ensembles, the function prints a warning message and exits, indicating the need to add missing atom types to the conversion dictionary for proper contact merging.
+    If atom type differences are found between ensembles, the function prints a warning message and exits, indicating
+    the need to add missing atom types to the conversion dictionary for proper contact merging.
 
     Note:
     - This function assumes the availability of various directories, files, and modules (e.g., 'parmed', 'io').
@@ -362,7 +366,6 @@ def init_meGO_ensemble(args):
             warnings.simplefilter("ignore")
             topology = parmed.load_file(topology_path)
 
-        print("\t-", f"{simulation} topology contains: {topology.molecules}")
         (
             temp_topology_dataframe,
             molecules_idx_sbtype_dictionary,
@@ -532,13 +535,19 @@ def generate_14_data(meGO_ensemble):
     - pairs14 (DataFrame): DataFrame containing information about 1-4 interactions.
     - exclusion_bonds14 (DataFrame): DataFrame containing exclusion bonded interactions.
 
-    This function generates data for 1-4 interactions within a molecular ensemble. It iterates through each molecule in the ensemble, processes the topology, and computes exclusion bonded interactions and specific 1-4 interactions.
+    This function generates data for 1-4 interactions within a molecular ensemble.
+    It iterates through each molecule in the ensemble, processes the topology, and computes
+    exclusion bonded interactions and specific 1-4 interactions.
 
-    The function creates DataFrames 'pairs14' and 'exclusion_bonds14' containing information about 1-4 interactions and exclusion bonded interactions, respectively. It extracts details such as atom numbers, subtypes, residue numbers, names, types, residue names, molecule types, and interaction characteristics.
+    The function creates DataFrames 'pairs14' and 'exclusion_bonds14' containing information
+    about 1-4 interactions and exclusion bonded interactions, respectively.
+    It extracts details such as atom numbers, subtypes, residue numbers, names, types, residue names,
+    molecule types, and interaction characteristics.
 
     Note:
     - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
-    - The returned DataFrames provide comprehensive information about 1-4 interactions and exclusion bonded interactions within the ensemble for further analysis or processing.
+    - The returned DataFrames provide comprehensive information about 1-4 interactions and exclusion bonded
+      interactions within the ensemble for further analysis or processing.
     """
     # First of all we generate the random-coil 1-4 interactions:
     pairs14 = pd.DataFrame()
@@ -631,16 +640,23 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     - train_dataset (DataFrame): DataFrame containing LJ datasets for the train matrices.
     - check_dataset (DataFrame): DataFrame containing LJ datasets for the check matrices.
 
-    This function initializes LJ datasets for train and check matrices within a molecular ensemble. It processes the train and check matrices by merging them with reference matrices, assigning 1-4 interactions, setting default c12 values, and updating specialized cases.
+    This function initializes LJ datasets for train and check matrices within a molecular ensemble.
+    It processes the train and check matrices by merging them with reference matrices, assigning
+    1-4 interactions, setting default c12 values, and updating specialized cases.
 
-    The function generates DataFrames 'train_dataset' and 'check_dataset' containing LJ datasets for the train and check matrices, respectively. It performs various operations, such as flagging 1-4 interactions, setting correct default c12 values, and updating values for special cases based on atom types and interactions.
+    The function generates DataFrames 'train_dataset' and 'check_dataset' containing LJ datasets
+    for the train and check matrices, respectively. It performs various operations, such as flagging
+    1-4 interactions, setting correct default c12 values, and updating values for special cases based
+    on atom types and interactions.
 
     Note:
     - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
-    - The 'pairs14' DataFrame contains information about 1-4 interactions, and 'exclusion_bonds14' DataFrame contains exclusion bonded interactions.
+    - The 'pairs14' DataFrame contains information about 1-4 interactions, and 'exclusion_bonds14' DataFrame
+      contains exclusion bonded interactions.
     - The returned DataFrames provide comprehensive LJ datasets for further analysis or processing within the ensemble.
     """
-    # we cycle over train matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
+    # we cycle over train matrices to pair them with reference matrices and
+    # then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
     for name, ref_name in meGO_ensemble["train_matrix_tuples"]:
         # sysname_train_from_intramat_1_1 <-> sysname_reference_intramat_1_1
@@ -701,7 +717,8 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
 
-    # we cycle over check matrices to pair them with reference matrices and then we add 1-4 assignments and defaults c12s and concatenate everything
+    # we cycle over check matrices to pair them with reference matrices
+    # and then we add 1-4 assignments and defaults c12s and concatenate everything
     check_dataset = pd.DataFrame()
     for name, ref_name in meGO_ensemble["check_matrix_tuples"]:
         # sysname_check_from_intramat_1_1 <-> sysname_reference_intramat_1_1
@@ -730,7 +747,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
             "1-4",
         ] = "0"
         check_dataset["1-4"] = check_dataset["1-4"].fillna("1>4")
-        # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
+        # This is to set the correct default C12 values taking into account specialised 1-4 values
         check_dataset = pd.merge(
             check_dataset,
             pairs14[["ai", "aj", "same_chain", "rep"]],
@@ -774,11 +791,13 @@ def generate_basic_LJ(meGO_ensemble):
     Returns:
     - basic_LJ (DataFrame): DataFrame containing basic LJ interactions.
 
-    This function generates a DataFrame 'basic_LJ' containing basic LJ interactions within a molecular ensemble. It calculates LJ interactions based on atom types, molecules, and reference matrices present in the ensemble.
+    This function generates a DataFrame 'basic_LJ' containing basic LJ interactions within a molecular ensemble.
+    It calculates LJ interactions based on atom types, molecules, and reference matrices present in the ensemble.
 
     Note:
     - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
-    - The returned DataFrame 'basic_LJ' includes columns defining LJ interaction properties such as atom indices, types, c6, c12, sigma, epsilon, probability, rc_probability, molecule names, source, and thresholds.
+    - The returned DataFrame 'basic_LJ' includes columns defining LJ interaction properties such as atom indices,
+      types, c6, c12, sigma, epsilon, probability, rc_probability, molecule names, source, and thresholds.
     - The generated DataFrame provides basic LJ interactions for further analysis or processing within the ensemble.
     """
     columns = [

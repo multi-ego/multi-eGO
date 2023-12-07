@@ -5,6 +5,7 @@ import os
 from src.multiego import ensemble
 from src.multiego import io
 from src.multiego.util import float_range
+from tools.face_generator import generate_face
 
 
 def main():
@@ -149,6 +150,7 @@ def main():
     if not os.path.exists(f"{args.root_dir}/outputs"):
         os.mkdir(f"{args.root_dir}/outputs")
 
+    generate_face.print_wellcome()
     output_dir = io.create_output_directories(args)
 
     print("- Checking for input files and folders")
@@ -173,6 +175,8 @@ def main():
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
     io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
+
+    generate_face.print_goodbye()
 
 
 if __name__ == "__main__":

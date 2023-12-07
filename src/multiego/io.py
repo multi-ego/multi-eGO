@@ -16,7 +16,8 @@ def read_molecular_contacts(path):
     Returns
     -------
     contact_matrix : pd.DataFrame
-        The content of the intra-/intermat file returned as a dataframe with columns ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff']
+        The content of the intra-/intermat file returned as a dataframe with columns
+        ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff']
     """
 
     print("\t-", f"Reading {path}")
@@ -119,14 +120,16 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         - LJ parameterization completed with a total of {len(meGO_LJ_potential)} contacts.
         - Attractive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.])}
         - Repulsive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']<0.])}
-        - The average epsilon is {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}}
-        - Epsilon range is [min:max] [{meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['epsilon'].max():{5}.{3}}]
-        - Sigma range is [min:max] [{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}]
-        - Suggested rlist and cut-off at {1.1*2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} and {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
+        - The average epsilon is: {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}} kJ/mol
+        - Epsilon range is: [{meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['epsilon'].max():{5}.{3}}] kJ/mol
+        - Sigma range is: [{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}] nm
+
+        RELEVANT MDP PARAMETERS:
+        - Suggested rlist value: {1.1*2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
+        - Suggested cut-off value: {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
         """
         )
-    print(f"\nAnd it can be found in the following folder:\n{output_dir}")
-    print("\nNessuno è più basito, nessuno è più sorpreso. Ognuno di voi ha capito tutto.\nCarlo is happy!\t\^o^/\n")
+    print(f"\n- And it can be found in the following folder:\n{output_dir}")
 
 
 def dataframe_to_write(df):
@@ -155,10 +158,11 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f"""
-; Multi-eGO force field version alpha2
+; Multi-eGO force field version beta.1
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022)
+; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
+; Bacic Toplek, F., Scalone, E. et al. ChemRxiv (2023) 10.26434/chemrxiv-2023-67255-v2
 ; Created on the {now}
 ; With the following parameters:
 """
