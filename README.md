@@ -2,7 +2,8 @@
 
 Version: **beta.1**  
 Codename: **Vanessa**  
-
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![CI](https://github.com/plumed/plumed2/workflows/CI/badge.svg?branch=master)](https://github.com/plumed/plumed2/actions)
 
 ## Current Developers:
 - Fran Bacic Toplek
