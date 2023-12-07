@@ -14,18 +14,25 @@ Codename: **Vanessa**
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
 
 ## Table of Contents
-- [Installation](#installation)
 - [Requirements](#requirements)
+- [Installation](#installation)
 - [Usage](#usage)
 - [Cite us](#cite-us)
 
-## Installation
-Use ```conda``` and the enviroment file provided. For mac users employing an M2 CPU, we recommend using ```environment_macOS_M2.yml```.
-For all other hardware, we recommend using ```environment.yml```. It is also possible to use ``pip install -r requirements.txt`` using
-Python 3.9 or later.
-
 ## Requirements
 Multi-*e*GO force-fields and tools are meant to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
+You need to know how to compile GROMACS from source because some multi-eGO tools needs GROMACS recompilation.
+
+## Installation
+Use ```conda``` and the enviroment file provided as:
+ ```
+conda env create -f conda/environment.yml
+conda activate meGO
+```
+It is also possible to use ```pip install -r requirements.txt```.
+
+To install the `cmdata` gromacs tools: [ADD HOW TO]
+
 
 ## Usage
 - [Prepare your first multi-eGO system](#prepare-your-first-multi-ego-system)
