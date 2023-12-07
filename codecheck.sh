@@ -15,11 +15,11 @@ python test/run_tests.py >& /dev/null
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
   echo $flak
-elif [ $? -eq 0 ]; then
+else
+  echo "Regtests passed"
   if [ -z "$flak" ]; then
     echo "Ready to push"
   else
-    echo "Regtest passed"
     echo $flak
   fi
 fi
