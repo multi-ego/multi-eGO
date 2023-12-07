@@ -1,7 +1,7 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-
-Version: **beta.1**  
-Codename: **Vanessa**  
+[![Version](https://img.shields.io/badge/version-beta1-blue)](https://github.com/multi-ego/multi-eGO/releases)
+![Generic badge](https://img.shields.io/badge/Codename-Vanessa-<COLOR>.svg)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![CI](https://github.com/plumed/plumed2/workflows/CI/badge.svg?branch=master)](https://github.com/plumed/plumed2/actions)
 
