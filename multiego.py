@@ -4,7 +4,6 @@ import os
 
 from src.multiego import ensemble
 from src.multiego import io
-from src.multiego.util import float_range
 from tools.face_generator import generate_face
 
 
@@ -30,7 +29,24 @@ def main():
     --epsilon_min: The minimum meaningful epsilon value.
     --no_header: Removes headers from output when set.
     """
-    parser = argparse.ArgumentParser(description="Generate a multi-eGO model based on provided parameters.")
+    parser = argparse.ArgumentParser(
+        prog="multiego.py",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""\
+  Generates a multi-eGO model based on one or more training simulations
+  and their corresponding reference simulations.
+  In most cases one single parameter is requiered, --epsilon, that sets
+  the maximum interaction energy for a contact pair.
+""",
+        epilog="""\
+  example usage:
+  1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
+     > python multiego.py --system GB1 --egos rc
+  2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
+     interaction energy is set to 0.3 kJ/mol
+     > python multiego.py --system GB1 --egos production --train_from md_monomer --epsilon 0.3
+""",
+    )
     # Required arguments
     required_args = parser.add_argument_group("Required arguments")
     required_args.add_argument(
@@ -54,8 +70,7 @@ def main():
     optional_args.add_argument(
         "--epsilon",
         type=float,
-        choices=[float_range.FloatRange(0.0, 1000.0)],
-        help="Maximum interaction energy per contact.",
+        help="Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
         "--reference_from",
@@ -90,12 +105,12 @@ def main():
     optional_args.add_argument(
         "--inter_epsilon",
         type=float,
-        help="Maximum interaction energy per intermolecular contacts.",
+        help="Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
         "--inter_domain_epsilon",
         type=float,
-        help="Maximum interaction energy per interdomain contacts.",
+        help="Maximum interaction energy per interdomain contacts. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
         "--p_to_learn",
@@ -127,34 +142,42 @@ def main():
 
     # checking the options provided in the commandline
     if args.egos != "rc" and args.train_from is None:
-        print(
-            "--egos=production require the definition of simulation folders containing the simulations to learn contacts from using --train_from flag"
-        )
-        sys.exit()
-
-    if args.egos == "production" and not args.train_from:
-        print(
-            "--egos=production requires the definition of the intramolecular and intermolecular ensembles by using --train_from"
-        )
+        print("--egos=production requires the list of folders containing the training simulations using the --train_from flag")
         sys.exit()
 
     if args.epsilon is None and args.egos != "rc":
-        print("--epsilon is required when using --egos=production")
+        print("--epsilon is required when using --egos=production. The typical range is between 0.2 and 0.4 kJ/mol")
         sys.exit()
 
     if args.p_to_learn < 0.9:
-        print("WARNING: --p_to_learn should be high enough")
+        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+
+    if args.egos != "rc" and args.epsilon_min <= 0.0:
+        print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
+        sys.exit()
 
     if args.egos != "rc" and args.epsilon <= args.epsilon_min:
-        print("--epsilon must be greater than --epsilon_min")
+        print("--epsilon (" + str(args.epsilon) + ") must be greater than --epsilon_min (" + str(args.epsilon_min) + ")")
         sys.exit()
 
     if args.egos != "rc" and args.inter_domain_epsilon <= args.epsilon_min:
-        print("--inter_domain_epsilon must be greater than --epsilon_min")
+        print(
+            "--inter_domain_epsilon ("
+            + str(args.inter_domain_epsilon)
+            + ") must be greater than --epsilon_min ("
+            + str(args.epsilon_min)
+            + ")"
+        )
         sys.exit()
 
     if args.egos != "rc" and args.inter_epsilon <= args.epsilon_min:
-        print("--inter_epsilon must be greater than --epsilon_min")
+        print(
+            "--inter_epsilon ("
+            + str(args.inter_epsilon)
+            + ") must be greater than --epsilon_min ("
+            + str(args.epsilon_min)
+            + ")"
+        )
         sys.exit()
 
     if not os.path.exists(f"{args.root_dir}/outputs"):
@@ -163,10 +186,8 @@ def main():
     if not args.no_header:
         generate_face.print_wellcome()
 
-    output_dir = io.create_output_directories(args)
-
     print("- Checking for input files and folders")
-    md_ensembles_list = ["reference"] + args.train_from + args.check_with
+    md_ensembles_list = [args.reference_from] + args.train_from + args.check_with
     io.check_files_existence(args.egos, args.system, args.root_dir, md_ensembles_list)
 
     # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
@@ -186,6 +207,7 @@ def main():
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
+    output_dir = io.create_output_directories(args)
     io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
 
     generate_face.print_goodbye()
