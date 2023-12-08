@@ -211,7 +211,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
-    if simulation != "reference":
+    if simulation != args.reference_from:
         # calculate adaptive rc/md threshold
         # sort probabilities, and calculate the normalized cumulative distribution
         p_sort = np.sort(contact_matrix["probability"].to_numpy())[::-1]
@@ -281,7 +281,7 @@ def init_meGO_ensemble(args):
     """
 
     # we initialize the reference topology
-    reference_path = f"{args.root_dir}/inputs/{args.system}/reference"
+    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference_from}"
     ensemble_type = reference_path.split("/")[-1]
     print("\t-", f"Initializing {ensemble_type} ensemble topology")
     topology_path = f"{reference_path}/topol.top"
@@ -317,7 +317,7 @@ def init_meGO_ensemble(args):
                 io.read_molecular_contacts(path),
                 path,
                 molecules_idx_sbtype_dictionary,
-                "reference",
+                args.reference_from,
                 args,
             )
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
