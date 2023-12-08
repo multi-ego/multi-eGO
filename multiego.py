@@ -33,18 +33,38 @@ def main():
         prog="multiego.py",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="""\
-  Generates a multi-eGO model based on one or more training simulations
-  and their corresponding reference simulations.
-  In most cases one single parameter is requiered, --epsilon, that sets
-  the maximum interaction energy for a contact pair.
+Generates a multi-eGO model based on one or more training simulations
+and their corresponding reference simulations. In most cases one single
+parameter is required, --epsilon, that sets the maximum interaction energy
+for a contact pair.
 """,
         epilog="""\
   example usage:
+
   1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
      > python multiego.py --system GB1 --egos rc
+     in this case multiego expect the following input structure:
+     └── input
+         └── GB1
+             └── reference
+                 ├── topol.top
+                 └── multi-eGO_basic.ff
+
   2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
      interaction energy is set to 0.3 kJ/mol
      > python multiego.py --system GB1 --egos production --train_from md_monomer --epsilon 0.3
+     in this case multiego expect the following input structure:
+     └── input
+         └── GB1
+             ├── reference
+             │   ├── topol.top
+             │   ├── intramat_1_1.ndx
+             │   └── multi-eGO_basic.ff
+             └── md_monomer
+                 ├── topol.top
+                 ├── intramat_1_1.ndx
+                 └── all-atom.ff
+
 """,
     )
     # Required arguments
