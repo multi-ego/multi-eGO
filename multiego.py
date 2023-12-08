@@ -20,6 +20,7 @@ def main():
     --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
             'production' for creating a force-field combining random coil simulations and training simulations.
     --epsilon: Maximum interaction energy per contact.
+    --reference_from: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
     --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
     --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
     --out: Suffix for the output directory name.
@@ -27,7 +28,7 @@ def main():
     --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
     --p_to_learn: Amount of the simulation to learn.
     --epsilon_min: The minimum meaningful epsilon value.
-    --no_header: Removes headers from output_files when set.
+    --no_header: Removes headers from output when set.
     """
     parser = argparse.ArgumentParser(description="Generate a multi-eGO model based on provided parameters.")
     # Required arguments
@@ -55,6 +56,15 @@ def main():
         type=float,
         choices=[float_range.FloatRange(0.0, 1000.0)],
         help="Maximum interaction energy per contact.",
+    )
+    optional_args.add_argument(
+        "--reference_from",
+        type=str,
+        default="reference",
+        help="""\
+            The folder including all the reference information needed to setup multi-eGO,
+            corresponding to the subfolder to process.
+        """,
     )
     optional_args.add_argument(
         "--train_from",
@@ -150,7 +160,9 @@ def main():
     if not os.path.exists(f"{args.root_dir}/outputs"):
         os.mkdir(f"{args.root_dir}/outputs")
 
-    generate_face.print_wellcome()
+    if not args.no_header:
+        generate_face.print_wellcome()
+
     output_dir = io.create_output_directories(args)
 
     print("- Checking for input files and folders")
