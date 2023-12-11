@@ -69,27 +69,21 @@ def symmetrize_ffnonbonded(ffnb, pairs):
     ffnb['rj'] = [ int(x[2]) for x in ffnb['aj'].str.split('_') ]
 
     for i, pair in enumerate(pairs):
-        print(f'Processing pair {pair} {i+1}/{len(pairs)}')
-        # take each interaction
         ffnb_sym_i = ffnb.loc[(ffnb['ri'] == pair[0]) | (ffnb['rj'] == pair[0])]
         ffnb_sym_j = ffnb.loc[(ffnb['ri'] == pair[1]) | (ffnb['rj'] == pair[1])]
-        # remove interactions with epsilon less than 0
         ffnb_sym_i = ffnb_sym_i.loc[ffnb_sym_i['epsilon'] > 0]
         ffnb_sym_j = ffnb_sym_j.loc[ffnb_sym_j['epsilon'] > 0]
 
         ffnb_sym_i_only = ffnb_sym_i.loc[(~ffnb_sym_i['ri'].isin(ffnb_sym_j['ri'])) & (~ffnb_sym_i['rj'].isin(ffnb_sym_j['rj']))]
         ffnb_sym_j_only = ffnb_sym_j.loc[(~ffnb_sym_j['ri'].isin(ffnb_sym_i['ri'])) & (~ffnb_sym_j['rj'].isin(ffnb_sym_i['rj']))]
-        # substitute in ai and aj the string values which are equal to pair[0] to pair[1 and viceversa
         ffnb_sym_i_only.loc[:, 'ai'] = ffnb_sym_i_only['ai'].str.replace(f'_{pair[0]}', f'_{pair[1]}')
         ffnb_sym_i_only.loc[:, 'aj'] = ffnb_sym_i_only['aj'].str.replace(f'_{pair[0]}', f'_{pair[1]}')
         ffnb_sym_j_only.loc[:, 'ai'] = ffnb_sym_j_only['ai'].str.replace(f'_{pair[1]}', f'_{pair[0]}')
         ffnb_sym_j_only.loc[:, 'aj'] = ffnb_sym_j_only['aj'].str.replace(f'_{pair[1]}', f'_{pair[0]}')
-        # swap also number_ai and number_aj
         ffnb_sym_i_only.loc[:, 'number_ai'], ffnb_sym_i_only.loc[:, 'number_aj'] = ffnb_sym_i_only['number_aj'], ffnb_sym_i_only['number_ai']
         ffnb_sym_j_only.loc[:, 'number_ai'], ffnb_sym_j_only.loc[:, 'number_aj'] = ffnb_sym_j_only['number_aj'], ffnb_sym_j_only['number_ai']
 
         ffnb_sym = pd.concat([ffnb_sym, ffnb_sym_i_only, ffnb_sym_j_only], ignore_index=True)
-        # remove ffnb_sym_i_only and ffnb_sym_j_only from ffnb_sym
         ##############################
         # WARNING not tested yet     #
         ##############################`
@@ -132,13 +126,11 @@ def check_att_presence(ffnb_header, ffnb_data):
     header_lines = ffnb_header.split('\n')
     ffnb_lines = ffnb_data.split('\n')
 
-    # find where [ atomtypes ] starts
     for i, line in enumerate(header_lines):
         if line.startswith('[ atomtypes ]'):
             atomtypes_start = i
             break
 
-    # find the first empty line after [ atomtypes ]
     for i, line in enumerate(header_lines[atomtypes_start:]):
         if line == '':
             atomtypes_end = i
@@ -158,17 +150,13 @@ def check_att_presence(ffnb_header, ffnb_data):
     sum_j = np.sum(~np.isin(pairs_j, sbtypes))
 
     if sum_i > 0:
-        # print the error and the pairs that are not present in [ atomtypes ]
-        print(f'Error: some atomtypes in the first column of [ nonbond_params ] are not present in [ atomtypes ]')
-        print('Check the --sections argument')
-        print(pairs_i[~np.isin(pairs_i, sbtypes)].tolist())
-        exit(1)
+        raise ValueError(f'''Error: some atomtypes in the first column of [ nonbond_params ] are not present in [ atomtypes ]
+                         Check the --sections argument
+                         Wrong pairs ::\n{pairs_i[~np.isin(pairs_i, sbtypes)].tolist()}''')
     if sum_j > 0:
-        # print the error and the pairs that are not present in [ atomtypes ]
-        print(f'Error: some atomtypes in the second column of [ nonbond_params ] are not present in [ atomtypes ]')
-        print('Check the --sections argument')
-        print(pairs_j[~np.isin(pairs_j, sbtypes)].tolist())
-        exit(1)
+        raise ValueError(f'''Error: some atomtypes in the second column of [ nonbond_params ] are not present in [ atomtypes ]
+                         Check the --sections argument
+                         Wrong pairs ::\n{pairs_j[~np.isin(pairs_j, sbtypes)].tolist()}''')
 
     return True
 
