@@ -36,7 +36,7 @@ To install the `cmdata` gromacs tools: use the ```patch_gromacs.sh``` script fou
 
 ## Usage
 - [Prepare your first multi-eGO system](#prepare-your-first-multi-ego-system)
-- [Analysis of a simulation](#analysis-of-a-simulation-intramatndx)
+- [Analysis of a training simulation](#analysis-of-a-simulation-intramatndx)
 - [Setup of a multi-*e*GO random coil simulation](#setup-of-a-multi-ego-random-coil-simulation)
 - [Setup of a multi-eGO production simulation](#setup-of-a-multi-ego-production-simulation)
 
