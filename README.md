@@ -118,7 +118,7 @@ Finally, the directory structure should look like:
 
 To setup a multi-*e*GO production simulation, we need to run ```multiego.py``` again. Before running the code, make sure that the topologies of your systems all share the same moleculetype name. If they do not, you can change the name in the ```topol.top``` file. If they do not the program will crash.
 ```
-python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train_from md_ensemble
+python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train md_ensemble
 ```
 We set the energy scale &#949; to 0.3 kJ/mol and we train the model from the ```md_ensemble```. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The mdps are the same except for the last step which is now ```ff_aa.mdp```.
 
