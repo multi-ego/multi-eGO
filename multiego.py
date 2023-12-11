@@ -19,9 +19,9 @@ def main():
     --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
             'production' for creating a force-field combining random coil simulations and training simulations.
     --epsilon: Maximum interaction energy per contact.
-    --reference_from: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
-    --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
-    --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
+    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
+    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
+    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
     --out: Suffix for the output directory name.
     --inter_epsilon: Maximum interaction energy per intermolecular contacts.
     --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
@@ -52,7 +52,7 @@ for a contact pair.
 
   2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
      interaction energy is set to 0.3 kJ/mol
-     > python multiego.py --system GB1 --egos production --train_from md_monomer --epsilon 0.3
+     > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
      in this case multiego expect the following input structure:
      └── input
          └── GB1
@@ -93,7 +93,7 @@ for a contact pair.
         help="Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
-        "--reference_from",
+        "--reference",
         type=str,
         default="reference",
         help="""\
@@ -102,7 +102,7 @@ for a contact pair.
         """,
     )
     optional_args.add_argument(
-        "--train_from",
+        "--train",
         nargs="+",
         type=str,
         default=[],
@@ -112,7 +112,7 @@ for a contact pair.
         """,
     )
     optional_args.add_argument(
-        "--check_with",
+        "--check",
         nargs="+",
         type=str,
         default=[],
