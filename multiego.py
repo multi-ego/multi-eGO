@@ -161,8 +161,8 @@ for a contact pair.
         setattr(args, "inter_domain_epsilon", args.epsilon)
 
     # checking the options provided in the commandline
-    if args.egos != "rc" and args.train_from is None:
-        print("--egos=production requires the list of folders containing the training simulations using the --train_from flag")
+    if args.egos != "rc" and args.train is None:
+        print("--egos=production requires the list of folders containing the training simulations using the --train flag")
         sys.exit()
 
     if args.epsilon is None and args.egos != "rc":
@@ -207,7 +207,7 @@ for a contact pair.
         generate_face.print_wellcome()
 
     print("- Checking for input files and folders")
-    md_ensembles_list = [args.reference_from] + args.train_from + args.check_with
+    md_ensembles_list = [args.reference] + args.train + args.check
     io.check_files_existence(args.egos, args.system, args.root_dir, md_ensembles_list)
 
     # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
