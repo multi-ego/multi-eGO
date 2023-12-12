@@ -200,11 +200,13 @@ for a contact pair.
         )
         sys.exit()
 
-    if not os.path.exists(f"{args.root_dir}/outputs"):
-        os.mkdir(f"{args.root_dir}/outputs")
+    if remaining:
+        print("Unknown arguments provided: " + str(remaining))
+        parser.print_usage()
+        sys.exit()
 
     if not args.no_header:
-        generate_face.print_wellcome()
+        generate_face.print_welcome()
 
     print("- Checking for input files and folders")
     md_ensembles_list = [args.reference] + args.train + args.check
@@ -227,8 +229,8 @@ for a contact pair.
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
-    output_dir = io.create_output_directories(args)
-    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
+    print("- Writing Multi-eGO model")
+    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args)
 
     generate_face.print_goodbye()
 

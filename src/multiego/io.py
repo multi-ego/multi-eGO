@@ -42,7 +42,7 @@ def read_molecular_contacts(path):
     return contact_matrix
 
 
-def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder):
+def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
     """
     Writes the non-bonded parameter file ffnonbonded.itp.
 
@@ -50,7 +50,7 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
     ----------
     topology_dataframe : pd.DataFrame
         The topology of the system as a dataframe
-    lj_potential : pd.DataFrame
+    meGO_LJ : pd.DataFrame
         The LJ c6 and c12 values which make up the nonbonded potential
     parameters : dict
         Contains the input parameters set from the terminal
@@ -68,16 +68,16 @@ def write_nonbonded(topology_dataframe, lj_potential, parameters, output_folder)
         atomtypes["c12"] = atomtypes["c12"].map(lambda x: "{:.6e}".format(x))
         file.write(dataframe_to_write(atomtypes))
 
-        if not lj_potential.empty:
+        if not meGO_LJ.empty:
             file.write("\n\n[ nonbond_params ]\n")
-            lj_potential["c6"] = lj_potential["c6"].map(lambda x: "{:.6e}".format(x))
-            lj_potential["c12"] = lj_potential["c12"].map(lambda x: "{:.6e}".format(x))
-            lj_potential.insert(5, ";", ";")
-            lj_potential.drop(columns=["molecule_name_ai", "molecule_name_aj"], inplace=True)
-            file.write(dataframe_to_write(lj_potential))
+            meGO_LJ["c6"] = meGO_LJ["c6"].map(lambda x: "{:.6e}".format(x))
+            meGO_LJ["c12"] = meGO_LJ["c12"].map(lambda x: "{:.6e}".format(x))
+            meGO_LJ.insert(5, ";", ";")
+            meGO_LJ.drop(columns=["molecule_name_ai", "molecule_name_aj"], inplace=True)
+            file.write(dataframe_to_write(meGO_LJ))
 
 
-def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output_dir, suffix):
+def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     """
     Takes care of the final print-out and the file writing of topology and ffnonbonded
 
@@ -85,17 +85,14 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
     ----------
     meGO_ensemble : dict
         The meGO_ensemble object which contains all the system information
-    meGO_LJ_potential : pd.DataFrame
+    meGO_LJ : pd.DataFrame
         Contains the c6 and c12 LJ parameters of the nonbonded potential
     meGO_LJ_14 : pd.DataFrame
         Contains the c6 and c12 LJ parameters of the pairs and exclusions
     parameters : dict
         A dictionaty of the command-line parsed parameters
-    output_dir : str
-        Path to the output directory
     """
-    print("- Writing Multi-eGO model")
-    output_dir = f"{output_dir}"
+    output_dir = create_output_directories(parameters)
     write_topology(
         meGO_ensemble["topology_dataframe"],
         meGO_ensemble["molecule_type_dict"],
@@ -104,7 +101,7 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
         parameters,
         output_dir,
     )
-    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_potential, parameters, output_dir)
+    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
 
     print("\n- The model is baked with the following parameters:\n")
     for argument, value in vars(parameters).items():
@@ -114,19 +111,20 @@ def write_model(meGO_ensemble, meGO_LJ_potential, meGO_LJ_14, parameters, output
             print("\t- {:<20} = {:<20}".format(argument, str(value)))
         else:
             print("\t- {:<20} = {:<20}".format(argument, value))
+
     if parameters.egos != "rc":
         print(
             f"""
-        - LJ parameterization completed with a total of {len(meGO_LJ_potential)} contacts.
-        - Attractive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.])}
-        - Repulsive: {len(meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']<0.])}
-        - The average epsilon is: {meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].mean():{5}.{3}} kJ/mol
-        - Epsilon range is: [{meGO_LJ_potential['epsilon'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['epsilon'].max():{5}.{3}}] kJ/mol
-        - Sigma range is: [{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].min():{5}.{3}}:{meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{5}.{3}}] nm
+        - LJ parameterization completed with a total of {len(meGO_LJ)} contacts.
+        - Attractive: {len(meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.])}
+        - Repulsive: {len(meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']<0.])}
+        - The average epsilon is: {meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.].mean():{5}.{3}} kJ/mol
+        - Epsilon range is: [{meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.].min():{5}.{3}}:{meGO_LJ['epsilon'].max():{5}.{3}}] kJ/mol
+        - Sigma range is: [{meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].min():{5}.{3}}:{meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{5}.{3}}] nm
 
         RELEVANT MDP PARAMETERS:
-        - Suggested rlist value: {1.1*2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
-        - Suggested cut-off value: {2.5*meGO_LJ_potential['sigma'].loc[meGO_LJ_potential['epsilon']>0.].max():{4}.{3}} nm
+        - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{4}.{3}} nm
+        - Suggested cut-off value: {2.5*meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{4}.{3}} nm
         """
         )
     print(f"\n- And it can be found in the following folder:\n{output_dir}")
@@ -185,7 +183,7 @@ def write_topology(
     topology_dataframe,
     molecule_type_dict,
     bonded_interactions_dict,
-    lj_14,
+    meGO_LJ_14,
     parameters,
     output_folder,
 ):
@@ -200,7 +198,7 @@ def write_topology(
         not used yet
     bonded_interactions_dict : dict
         Contains the bonded interactions
-    lj_14 : pd.DataFrame
+    meGO_LJ_14 : pd.DataFrame
         Contains the c6 and c12 LJ parameters of the pairs and exclusions interactions
     parameters : dict
         Contains the command-line parsed parameters
@@ -220,7 +218,7 @@ def write_topology(
             file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
             exclusions = pd.DataFrame(columns=["ai", "aj"])
-            pairs = lj_14[molecule]
+            pairs = meGO_LJ_14[molecule]
             if not pairs.empty:
                 pairs.insert(5, ";", ";")
                 pairs["c6"] = pairs["c6"].map(lambda x: "{:.6e}".format(x))
@@ -309,6 +307,9 @@ def create_output_directories(parameters):
     output_folder : str
         The path to the output directory
     """
+    if not os.path.exists(f"{parameters.root_dir}/outputs"):
+        os.mkdir(f"{parameters.root_dir}/outputs")
+
     if parameters.egos == "rc":
         name = f"{parameters.system}_{parameters.egos}"
         if parameters.out:
