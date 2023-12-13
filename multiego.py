@@ -7,27 +7,15 @@ from src.multiego import io
 from tools.face_generator import generate_face
 
 
-def main():
+def meGO_parsing():
     """
-    Main function that processes command-line arguments and generates a multi-eGO model.
+    Parses command-line arguments for the multi-eGO model generation.
 
-    Parses command-line arguments and generates a multi-eGO model by invoking various functions
-    related to ensemble generation, LJ parameter computation, and writing the output.
+    Returns:
+    argparse.Namespace: An object containing parsed arguments.
 
-    Command-line Arguments:
-    --system: Name of the system corresponding to the system input folder.
-    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
-            'production' for creating a force-field combining random coil simulations and training simulations.
-    --epsilon: Maximum interaction energy per contact.
-    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
-    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
-    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
-    --out: Suffix for the output directory name.
-    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
-    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
-    --p_to_learn: Amount of the simulation to learn.
-    --epsilon_min: The minimum meaningful epsilon value.
-    --no_header: Removes headers from output when set.
+    This function sets up an argument parser using the argparse library to handle command-line arguments
+    required for generating a multi-eGO model based on training simulations and reference simulations.
     """
     parser = argparse.ArgumentParser(
         prog="multiego.py",
@@ -205,19 +193,52 @@ for a contact pair.
         parser.print_usage()
         sys.exit()
 
-    if not args.no_header:
-        generate_face.print_welcome()
+    return args
 
-    print("- Checking for input files and folders")
-    md_ensembles_list = [args.reference] + args.train + args.check
-    io.check_files_existence(args.egos, args.system, args.root_dir, md_ensembles_list)
 
-    # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
-    print("- Initializing Multi-eGO ensemble")
+def init_meGO_ensembles(args):
+    """
+    Initializes a multi-eGO ensemble based on the provided arguments.
+
+    Args:
+    args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+    meGO_ensemble: Initialized multi-eGO ensemble.
+
+    This function initializes a multi-eGO ensemble by utilizing the provided arguments.
+    It uses these arguments to create and configure the initial ensemble,
+    generating bonded interactions within the ensemble.
+    The resulting meGO_ensemble is returned for further processing.
+    """
     meGO_ensemble = ensemble.init_meGO_ensemble(args)
     meGO_ensemble = ensemble.generate_bonded_interactions(meGO_ensemble)
 
-    print("- Generating the model")
+    return meGO_ensemble
+
+
+def get_meGO_LJ(meGO_ensemble, args):
+    """
+    Generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble and arguments.
+
+    Args:
+    meGO_ensemble: Initialized multi-eGO ensemble.
+    args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+    tuple: A tuple containing two dataframes - meGO_LJ and meGO_LJ_14.
+
+    This function generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble
+    and command-line arguments.
+
+    If the argument 'egos' is 'rc' (random coil), it generates basic LJ parameters for the ensemble.
+    If 'egos' is 'production' or any other mode, it initializes LJ datasets, trains LJ parameters,
+    and creates LJ pairs for 1-4 interactions.
+
+    The resulting LJ parameters for 1-4 interactions are manipulated to get epsilon values,
+    and a topology for exclusion pairs is created within the multi-eGO ensemble.
+    The function returns two dataframes - meGO_LJ (LJ parameters) and meGO_LJ_14 (LJ parameters for 1-4 interactions).
+    """
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
     if args.egos == "rc":
         meGO_LJ = ensemble.generate_basic_LJ(meGO_ensemble)
@@ -229,8 +250,48 @@ for a contact pair.
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
+    return meGO_LJ, meGO_LJ_14
+
+
+def main():
+    """
+    Main function that processes command-line arguments and generates a multi-eGO model.
+
+    Parses command-line arguments and generates a multi-eGO model by invoking various functions
+    related to ensemble generation, LJ parameter computation, and writing the output.
+
+    Command-line Arguments:
+    --system: Name of the system corresponding to the system input folder.
+    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
+            'production' for creating a force-field combining random coil simulations and training simulations.
+    --epsilon: Maximum interaction energy per contact.
+    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
+    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
+    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
+    --out: Suffix for the output directory name.
+    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
+    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
+    --p_to_learn: Amount of the simulation to learn.
+    --epsilon_min: The minimum meaningful epsilon value.
+    --no_header: Removes headers from output when set.
+    """
+
+    args = meGO_parsing()
+
+    if not args.no_header:
+        generate_face.print_welcome()
+
+    print("- Checking for input files and folders")
+    io.check_files_existence(args)
+
+    print("- Initializing Multi-eGO model")
+    meGO_ensembles = init_meGO_ensembles(args)
+
+    print("- Generating Multi-eGO model")
+    meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)
+
     print("- Writing Multi-eGO model")
-    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args)
+    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
 
     generate_face.print_goodbye()
 
