@@ -330,7 +330,7 @@ def create_output_directories(parameters):
     return output_folder
 
 
-def check_files_existence(egos, system, root_dir, md_ensembles):
+def check_files_existence(args):
     """
     Checks if relevant multi-eGO input files exist.
 
@@ -348,8 +348,10 @@ def check_files_existence(egos, system, root_dir, md_ensembles):
     FileNotFoundError
         If any of the files or directories does not exist
     """
+    md_ensembles = [args.reference] + args.train + args.check
+
     for ensemble in md_ensembles:
-        ensemble = f"{root_dir}/inputs/{system}/{ensemble}"
+        ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
         if not os.path.exists(ensemble):
             raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
         else:
@@ -357,5 +359,5 @@ def check_files_existence(egos, system, root_dir, md_ensembles):
             if not top_files:
                 raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f"{ensemble}/*.ndx")
-            if not ndx_files and not egos == "rc":
+            if not ndx_files and not args.egos == "rc":
                 raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
