@@ -4,32 +4,57 @@ import os
 
 from src.multiego import ensemble
 from src.multiego import io
-from src.multiego.util import float_range
 from tools.face_generator import generate_face
 
 
-def main():
+def meGO_parsing():
     """
-    Main function that processes command-line arguments and generates a multi-eGO model.
+    Parses command-line arguments for the multi-eGO model generation.
 
-    Parses command-line arguments and generates a multi-eGO model by invoking various functions
-    related to ensemble generation, LJ parameter computation, and writing the output.
+    Returns:
+    argparse.Namespace: An object containing parsed arguments.
 
-    Command-line Arguments:
-    --system: Name of the system corresponding to the system input folder.
-    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
-            'production' for creating a force-field combining random coil simulations and training simulations.
-    --epsilon: Maximum interaction energy per contact.
-    --train_from: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
-    --check_with: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
-    --out: Suffix for the output directory name.
-    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
-    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
-    --p_to_learn: Amount of the simulation to learn.
-    --epsilon_min: The minimum meaningful epsilon value.
-    --no_header: Removes headers from output_files when set.
+    This function sets up an argument parser using the argparse library to handle command-line arguments
+    required for generating a multi-eGO model based on training simulations and reference simulations.
     """
-    parser = argparse.ArgumentParser(description="Generate a multi-eGO model based on provided parameters.")
+    parser = argparse.ArgumentParser(
+        prog="multiego.py",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""\
+Generates a multi-eGO model based on one or more training simulations
+and their corresponding reference simulations. In most cases one single
+parameter is required, --epsilon, that sets the maximum interaction energy
+for a contact pair.
+""",
+        epilog="""\
+  example usage:
+
+  1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
+     > python multiego.py --system GB1 --egos rc
+     in this case multiego expect the following input structure:
+     └── input
+         └── GB1
+             └── reference
+                 ├── topol.top
+                 └── multi-eGO_basic.ff
+
+  2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
+     interaction energy is set to 0.3 kJ/mol
+     > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
+     in this case multiego expect the following input structure:
+     └── input
+         └── GB1
+             ├── reference
+             │   ├── topol.top
+             │   ├── intramat_1_1.ndx
+             │   └── multi-eGO_basic.ff
+             └── md_monomer
+                 ├── topol.top
+                 ├── intramat_1_1.ndx
+                 └── all-atom.ff
+
+""",
+    )
     # Required arguments
     required_args = parser.add_argument_group("Required arguments")
     required_args.add_argument(
@@ -53,11 +78,19 @@ def main():
     optional_args.add_argument(
         "--epsilon",
         type=float,
-        choices=[float_range.FloatRange(0.0, 1000.0)],
-        help="Maximum interaction energy per contact.",
+        help="Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
-        "--train_from",
+        "--reference",
+        type=str,
+        default="reference",
+        help="""\
+            The folder including all the reference information needed to setup multi-eGO,
+            corresponding to the subfolder to process.
+        """,
+    )
+    optional_args.add_argument(
+        "--train",
         nargs="+",
         type=str,
         default=[],
@@ -67,7 +100,7 @@ def main():
         """,
     )
     optional_args.add_argument(
-        "--check_with",
+        "--check",
         nargs="+",
         type=str,
         default=[],
@@ -80,12 +113,12 @@ def main():
     optional_args.add_argument(
         "--inter_epsilon",
         type=float,
-        help="Maximum interaction energy per intermolecular contacts.",
+        help="Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
         "--inter_domain_epsilon",
         type=float,
-        help="Maximum interaction energy per interdomain contacts.",
+        help="Maximum interaction energy per interdomain contacts. The typical range is 0.2-0.4 kJ/mol",
     )
     optional_args.add_argument(
         "--p_to_learn",
@@ -116,53 +149,96 @@ def main():
         setattr(args, "inter_domain_epsilon", args.epsilon)
 
     # checking the options provided in the commandline
-    if args.egos != "rc" and args.train_from is None:
-        print(
-            "--egos=production require the definition of simulation folders containing the simulations to learn contacts from using --train_from flag"
-        )
-        sys.exit()
-
-    if args.egos == "production" and not args.train_from:
-        print(
-            "--egos=production requires the definition of the intramolecular and intermolecular ensembles by using --train_from"
-        )
+    if args.egos != "rc" and args.train is None:
+        print("--egos=production requires the list of folders containing the training simulations using the --train flag")
         sys.exit()
 
     if args.epsilon is None and args.egos != "rc":
-        print("--epsilon is required when using --egos=production")
+        print("--epsilon is required when using --egos=production. The typical range is between 0.2 and 0.4 kJ/mol")
         sys.exit()
 
     if args.p_to_learn < 0.9:
-        print("WARNING: --p_to_learn should be high enough")
+        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+
+    if args.egos != "rc" and args.epsilon_min <= 0.0:
+        print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
+        sys.exit()
 
     if args.egos != "rc" and args.epsilon <= args.epsilon_min:
-        print("--epsilon must be greater than --epsilon_min")
+        print("--epsilon (" + str(args.epsilon) + ") must be greater than --epsilon_min (" + str(args.epsilon_min) + ")")
         sys.exit()
 
     if args.egos != "rc" and args.inter_domain_epsilon <= args.epsilon_min:
-        print("--inter_domain_epsilon must be greater than --epsilon_min")
+        print(
+            "--inter_domain_epsilon ("
+            + str(args.inter_domain_epsilon)
+            + ") must be greater than --epsilon_min ("
+            + str(args.epsilon_min)
+            + ")"
+        )
         sys.exit()
 
     if args.egos != "rc" and args.inter_epsilon <= args.epsilon_min:
-        print("--inter_epsilon must be greater than --epsilon_min")
+        print(
+            "--inter_epsilon ("
+            + str(args.inter_epsilon)
+            + ") must be greater than --epsilon_min ("
+            + str(args.epsilon_min)
+            + ")"
+        )
         sys.exit()
 
-    if not os.path.exists(f"{args.root_dir}/outputs"):
-        os.mkdir(f"{args.root_dir}/outputs")
+    if remaining:
+        print("Unknown arguments provided: " + str(remaining))
+        parser.print_usage()
+        sys.exit()
 
-    generate_face.print_wellcome()
-    output_dir = io.create_output_directories(args)
+    return args
 
-    print("- Checking for input files and folders")
-    md_ensembles_list = ["reference"] + args.train_from + args.check_with
-    io.check_files_existence(args.egos, args.system, args.root_dir, md_ensembles_list)
 
-    # Initializing Multi-eGO ensemble, which will gather all the multiego.ensemble contact etc.
-    print("- Initializing Multi-eGO ensemble")
+def init_meGO_ensembles(args):
+    """
+    Initializes a multi-eGO ensemble based on the provided arguments.
+
+    Args:
+    args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+    meGO_ensemble: Initialized multi-eGO ensemble.
+
+    This function initializes a multi-eGO ensemble by utilizing the provided arguments.
+    It uses these arguments to create and configure the initial ensemble,
+    generating bonded interactions within the ensemble.
+    The resulting meGO_ensemble is returned for further processing.
+    """
     meGO_ensemble = ensemble.init_meGO_ensemble(args)
     meGO_ensemble = ensemble.generate_bonded_interactions(meGO_ensemble)
 
-    print("- Generating the model")
+    return meGO_ensemble
+
+
+def get_meGO_LJ(meGO_ensemble, args):
+    """
+    Generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble and arguments.
+
+    Args:
+    meGO_ensemble: Initialized multi-eGO ensemble.
+    args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns:
+    tuple: A tuple containing two dataframes - meGO_LJ and meGO_LJ_14.
+
+    This function generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble
+    and command-line arguments.
+
+    If the argument 'egos' is 'rc' (random coil), it generates basic LJ parameters for the ensemble.
+    If 'egos' is 'production' or any other mode, it initializes LJ datasets, trains LJ parameters,
+    and creates LJ pairs for 1-4 interactions.
+
+    The resulting LJ parameters for 1-4 interactions are manipulated to get epsilon values,
+    and a topology for exclusion pairs is created within the multi-eGO ensemble.
+    The function returns two dataframes - meGO_LJ (LJ parameters) and meGO_LJ_14 (LJ parameters for 1-4 interactions).
+    """
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
     if args.egos == "rc":
         meGO_LJ = ensemble.generate_basic_LJ(meGO_ensemble)
@@ -174,7 +250,48 @@ def main():
 
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
 
-    io.write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, args, output_dir, args.out)
+    return meGO_LJ, meGO_LJ_14
+
+
+def main():
+    """
+    Main function that processes command-line arguments and generates a multi-eGO model.
+
+    Parses command-line arguments and generates a multi-eGO model by invoking various functions
+    related to ensemble generation, LJ parameter computation, and writing the output.
+
+    Command-line Arguments:
+    --system: Name of the system corresponding to the system input folder.
+    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
+            'production' for creating a force-field combining random coil simulations and training simulations.
+    --epsilon: Maximum interaction energy per contact.
+    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
+    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
+    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
+    --out: Suffix for the output directory name.
+    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
+    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
+    --p_to_learn: Amount of the simulation to learn.
+    --epsilon_min: The minimum meaningful epsilon value.
+    --no_header: Removes headers from output when set.
+    """
+
+    args = meGO_parsing()
+
+    if not args.no_header:
+        generate_face.print_welcome()
+
+    print("- Checking for input files and folders")
+    io.check_files_existence(args)
+
+    print("- Initializing Multi-eGO model")
+    meGO_ensembles = init_meGO_ensembles(args)
+
+    print("- Generating Multi-eGO model")
+    meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)
+
+    print("- Writing Multi-eGO model")
+    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
 
     generate_face.print_goodbye()
 

@@ -19,8 +19,8 @@ while read case; do
 done < ${TEST_CASES}
 # python multiego.py < "$(cat ${ROOT}/${TEST_CASES} | xargs -0 -l -d \\n echo
 # python multiego.py --system=gpref --egos rc > /dev/null
-# python multiego.py --system=gpref --egos production --epsilon 0.35 --train_from md_ensemble > /dev/null
-# python multiego.py --system=abetaref --egos production --epsilon 0.35 --train_from native_MD > /dev/null
-# python multiego.py --system=ttrref --egos production --epsilon 0.225 --train_from native_MD fibril_MD --check_with fibril_check --inter_epsilon 0.3 > /dev/null
+# python multiego.py --system=gpref --egos production --epsilon 0.35 --train md_ensemble > /dev/null
+# python multiego.py --system=abetaref --egos production --epsilon 0.35 --train native_MD > /dev/null
+# python multiego.py --system=ttrref --egos production --epsilon 0.225 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.3 > /dev/null
 
 echo "Finished generating test outputs!"

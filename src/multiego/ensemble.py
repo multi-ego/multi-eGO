@@ -216,7 +216,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
-    if simulation != "reference":
+    if simulation != args.reference:
         # calculate adaptive rc/md threshold
         # sort probabilities, and calculate the normalized cumulative distribution
         p_sort = np.sort(contact_matrix["probability"].to_numpy())[::-1]
@@ -286,7 +286,7 @@ def init_meGO_ensemble(args):
     """
 
     # we initialize the reference topology
-    reference_path = f"{args.root_dir}/inputs/{args.system}/reference"
+    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference}"
     ensemble_type = reference_path.split("/")[-1]
     print("\t-", f"Initializing {ensemble_type} ensemble topology")
     topology_path = f"{reference_path}/topol.top"
@@ -323,7 +323,7 @@ def init_meGO_ensemble(args):
                 io.read_molecular_contacts(path),
                 path,
                 molecules_idx_sbtype_dictionary,
-                "reference",
+                args.reference,
                 args,
             )
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
@@ -353,7 +353,7 @@ def init_meGO_ensemble(args):
     # now we process the train contact matrices
     train_contact_matrices = {}
     train_topology_dataframe = pd.DataFrame()
-    for simulation in args.train_from:
+    for simulation in args.train:
         print("\t-", f"Initializing {simulation} ensemble topology")
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         topology_path = f"{simulation_path}/topol.top"
@@ -419,7 +419,7 @@ def init_meGO_ensemble(args):
     # now we process the check contact matrices
     check_contact_matrices = {}
     check_topology_dataframe = pd.DataFrame()
-    for simulation in args.check_with:
+    for simulation in args.check:
         print("\t-", f"Initializing {simulation} ensemble topology")
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         topology_path = f"{simulation_path}/topol.top"
@@ -659,7 +659,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     # then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
     for name, ref_name in meGO_ensemble["train_matrix_tuples"]:
-        # sysname_train_from_intramat_1_1 <-> sysname_reference_intramat_1_1
+        # sysname_train_intramat_1_1 <-> sysname_reference_intramat_1_1
         if ref_name not in meGO_ensemble["reference_matrices"].keys():
             raise RuntimeError(
                 f'Encountered error while trying to find {ref_name} in reference matrices {meGO_ensemble["reference_matrices"].keys()}'
@@ -1254,7 +1254,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             how="inner",
             on=["ai", "aj", "same_chain"],
         )
-        # now we should keep only those check_with contacts that are unique and whose energy_at_check_dist is large
+        # now we should keep only those check contacts that are unique and whose energy_at_check_dist is large
         meGO_LJ.sort_values(
             by=["ai", "aj", "same_chain", "learned"],
             ascending=[True, True, True, False],
@@ -1530,32 +1530,32 @@ def check_LJ(test, parameters):
     energy = 1.0
     if len(test) == 1:
         # this is the case where we have a contact from check and default c12s from train
-        if (len(test.loc[test.source.isin(parameters.check_with)])) == 1:
+        if (len(test.loc[test.source.isin(parameters.check)])) == 1:
             # default c12
-            eps = -test.loc[(test.source.isin(parameters.check_with))].iloc[0]["epsilon"]
+            eps = -test.loc[(test.source.isin(parameters.check))].iloc[0]["epsilon"]
             # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]["distance"]
-            rc_dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]["rc_distance"]
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            rc_dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["rc_distance"]
             if dist_check < rc_dist_check:
                 energy = ((dist_check) ** 12) / eps
     else:
         # this is the special case for 1-4 interactions
-        if (test.loc[test.source.isin(parameters.check_with)]).iloc[0]["1-4"] == "1_4":
+        if (test.loc[test.source.isin(parameters.check)]).iloc[0]["1-4"] == "1_4":
             # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]["distance"]
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
             # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]["distance"]
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
             if dist_check < dist_train:
                 energy = (dist_check / dist_train) ** 12
 
         # this is the case where we can a contact defined in both check and train
         else:
             # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check_with))].iloc[0]["sigma"]
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
             # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]["sigma"]
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
             # epsilon from train
-            eps = test.loc[~(test.source.isin(parameters.check_with))].iloc[0]["epsilon"]
+            eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
             if dist_check < dist_train and eps < 0:
                 energy = (dist_check / dist_train) ** 12
 
