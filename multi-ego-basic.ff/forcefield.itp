@@ -6,4 +6,5 @@
 
 #include "ffnonbonded.itp"
 #include "ffbonded.itp"
+#include "popc.itp"
 
