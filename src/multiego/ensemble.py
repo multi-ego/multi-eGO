@@ -696,7 +696,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     oxygen_mask = masking.create_linearized_mask(
         train_dataset["type_ai"].to_numpy(),
         train_dataset["type_aj"].to_numpy(),
-        [("O", "O"), ("OM", "OM"), ("O", "OM")],
+        [("O", "O"), ("OM", "OM"), ("O", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")],
         symmetrize=True,
     )
     pairwise_c12 = np.where(
@@ -757,7 +757,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         oxygen_mask = masking.create_linearized_mask(
             check_dataset["type_ai"].to_numpy(),
             check_dataset["type_aj"].to_numpy(),
-            [("O", "O"), ("OM", "OM"), ("O", "OM")],
+            [("O", "O"), ("OM", "OM"), ("O", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")],
             symmetrize=True,
         )
         pairwise_c12 = np.where(
@@ -839,7 +839,9 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = topol_df["type"]
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
+        oxygen_mask = masking.create_array_mask(
+            ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")], symmetrize=True
+        )
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
         basic_LJ["same_chain"] = True
@@ -874,7 +876,9 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
+        oxygen_mask = masking.create_array_mask(
+            ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")], symmetrize=True
+        )
         temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
         temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
