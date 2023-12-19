@@ -955,7 +955,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
-    print(meGO_LJ.to_string())
     meGO_LJ.loc[
         (meGO_LJ["intra_domain"])
         & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
