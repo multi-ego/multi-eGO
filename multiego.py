@@ -149,7 +149,7 @@ for a contact pair.
         setattr(args, "inter_domain_epsilon", args.epsilon)
 
     # checking the options provided in the commandline
-    if args.egos != "rc" and args.train is None:
+    if args.egos != "rc" and not args.train:
         print("--egos=production requires the list of folders containing the training simulations using the --train flag")
         sys.exit()
 
