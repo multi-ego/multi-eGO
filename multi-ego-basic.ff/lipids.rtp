@@ -180,12 +180,16 @@ N C12 C11 O12 gd_4
 N C12 C11 O12 gd_36      
 C12 C11 O12 P gd_29      
 C12 C11 O12 P gd_29bis 
+C11 O12 P O13 gd_0
+O13 P O11 C1 gd_1
+O22 O12 P O14 gd_1
 C11 O12 P O11 gd_20      
 C11 O12 P O11 gd_27      
 O12 P O11 C1 gd_20      
 O12 P O11 C1 gd_27      
 P O11 C1 C2 gd_29      
 P O11 C1 C2 gd_29bis 
+O14 P O11 C1 gd_0
 O11 C1 C2 C3 gd_34      
 C1 C2 O21 C21 gd_29      
 C1 C2 C3 O31 gd_34      
@@ -193,6 +197,7 @@ C2 O21 C21 C22 gd_13
 C2 C3 O31 C31 gd_29      
 C2 C3 O31 C31 gd_29bis 
 O21 C21 C22 C23 gd_40      
+O22 C21 C22 C23 gd_2
 C21 C22 C23 C24 gd_34      
 C22 C23 C24 C25 gd_34      
 C23 C24 C25 C26 gd_34      
@@ -210,6 +215,8 @@ C215 C216 C217 C218 gd_34
 C3 O31 C31 C32 gd_13      
 O31 C31 C32 C33 gd_40      
 C31 C32 C33 C34 gd_34      
+O32 C31 C32 C33 gd_3
+O32 C31 C32 C33 gd_3bis
 C32 C33 C34 C35 gd_34      
 C33 C34 C35 C36 gd_34      
 C34 C35 C36 C37 gd_34      
