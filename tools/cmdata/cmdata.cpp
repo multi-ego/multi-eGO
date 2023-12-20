@@ -314,7 +314,7 @@ static inline void read_symmetry_indices(
   }
   
   int molb = 0;
-  std::string residue_entry, atom_entry_i, atom_entry_j;
+  std::string residue_entry, atom_entry_i, atom_entry_j, left;
   std::string line;
   // WARNING
   // this scales really bad... we should do the opposity and check for each atom pair in the same aminoacid if it has an equivalent atom
@@ -328,6 +328,7 @@ static inline void read_symmetry_indices(
       printf("Skipping line\n%s\n due to syntax non-conformity\n", line.c_str());
       continue;
     }
+    if((iss >> left)) printf("Found a problem while reading the symmestry file: %s\n This element is ignored.\n Multiple equivament atoms should be set listing the relevant combinations\n", left.c_str());
 
     const char *atom_name_i, *atom_name_j, *residue_name_i, *residue_name_j;
     int a_i, a_j, resn_i, resn_j;
