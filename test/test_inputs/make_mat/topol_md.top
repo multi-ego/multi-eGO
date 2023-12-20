@@ -1,5 +1,5 @@
 ; Include forcefield parameters
-#include "charmm27.ff/forcefield.itp"
+#include "charmm22st.ff/forcefield.itp"
 
 ; Include chain topologies
 #include "topol_Protein_chain_A.itp"
