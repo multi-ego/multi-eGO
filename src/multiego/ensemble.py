@@ -1067,7 +1067,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # This is a debug check to avoid data inconsistencies
     if (np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"])).max() > 0:
-        print(meGO_LJ.loc[(np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"]).max() > 0)].to_string())
+        print(meGO_LJ.loc[(np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"]) > 0)].to_string())
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:

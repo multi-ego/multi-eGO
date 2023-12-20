@@ -38,6 +38,7 @@ def read_molecular_contacts(path):
     contact_matrix["ai"] = contact_matrix["ai"].astype(str)
     contact_matrix["molecule_number_aj"] = contact_matrix["molecule_number_aj"].astype(str)
     contact_matrix["aj"] = contact_matrix["aj"].astype(str)
+    contact_matrix["intra_domain"] = contact_matrix["intra_domain"].astype(bool)
 
     return contact_matrix
 

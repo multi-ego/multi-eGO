@@ -448,6 +448,7 @@ def calculate_intra_probabilities(args):
     Calculating intramat for all species
     """
     )
+    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
     for i in range(N_molecules):
         print(f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}")
         df = pd.DataFrame()
@@ -558,7 +559,7 @@ def calculate_intra_probabilities(args):
         output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx"
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
 
-        df.to_csv(output_file, index=False, sep=" ", header=False)
+        df.to_csv(output_file, index=False, sep=" ", header=False, columns=columns)
 
 
 def calculate_inter_probabilities(args):
@@ -602,6 +603,7 @@ def calculate_inter_probabilities(args):
     Calculating intermat for all species\n\n
     """
     )
+    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
     for pair in pairs:
         df = pd.DataFrame()
 
@@ -640,7 +642,6 @@ def calculate_inter_probabilities(args):
                 print(
                     f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}"
                 )
-                columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
                 matrix_index = pd.MultiIndex.from_product(
                     [range(1, original_size_i + 1), range(1, original_size_j + 1)],
                     names=["ai", "aj"],
@@ -667,7 +668,7 @@ def calculate_inter_probabilities(args):
                 out_name = args.out_name + "_" if args.out_name else ""
                 output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx"
 
-                df.to_csv(output_file, index=False, sep=" ", header=False)
+                df.to_csv(output_file, index=False, sep=" ", header=False, columns=columns)
                 continue
 
         protein_ref_indices_i = np.array(
@@ -782,7 +783,7 @@ def calculate_inter_probabilities(args):
         out_name = args.out_name + "_" if args.out_name else ""
         output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx"
 
-        df.to_csv(output_file, index=False, sep=" ", header=False)
+        df.to_csv(output_file, index=False, sep=" ", columns=columns, header=False)
 
 
 def calculate_probability(values, weights, callback=allfunction):
