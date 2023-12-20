@@ -33,6 +33,7 @@ jobs:
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
+        ./run_make_mat.sh
 
   build-linux-pip:
     runs-on: ubuntu-latest
@@ -48,6 +49,7 @@ jobs:
     - name: Run tests
       run: |
         python test/run_tests.py
+        ./run_make_mat.sh
 
   build-macos-conda:
     runs-on: macos-latest
@@ -73,6 +75,7 @@ jobs:
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
+        ./run_make_mat.sh
 
   build-macos-pip:
     runs-on: macos-latest
@@ -88,3 +91,4 @@ jobs:
     - name: Run tests
       run: |
         python test/run_tests.py
+        ./run_make_mat.sh

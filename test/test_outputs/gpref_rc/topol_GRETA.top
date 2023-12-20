@@ -1,20 +1,22 @@
 
-; Multi-eGO force field version alpha2
+; Multi-eGO force field version beta.1
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022)
-; Created on the 24-11-2023 10:11
+; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
+; Bacic Toplek, F., Scalone, E. et al. ChemRxiv (2023) 10.26434/chemrxiv-2023-67255-v2
+; Created on the 20-12-2023 22:52
 ; With the following parameters:
 ;	- system          = gpref               
 ;	- egos            = rc                  
 ;	- epsilon         =                     
-;	- train_from      =                     
-;	- check_with      =                     
-;	- p_to_learn      = 0.9995              
-;	- epsilon_min     = 0.07                
+;	- reference       = reference           
+;	- train           =                     
+;	- check           =                     
+;	- out             =                     
 ;	- inter_epsilon   =                     
 ;	- inter_domain_epsilon =                     
-;	- out             =                     
+;	- p_to_learn      = 0.9995              
+;	- epsilon_min     = 0.07                
 ;	- root_dir        = /Users/carlo/Codes/multi-eGO
 
 
