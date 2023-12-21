@@ -1,6 +1,13 @@
 name: 'Multi-eGO test'
 
-on: [ push, pull_request ]
+on:
+  push:
+    paths-ignore:
+      - 'tools/cmdata/**'
+  pull_request:
+    paths-ignore:
+      - 'tools/cmdata/**'
+
 
 jobs:
   build-linux-conda:

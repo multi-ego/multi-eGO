@@ -1,0 +1,38 @@
+name: cmdata 
+
+on:
+  push:
+    paths:
+      - 'tools/cmdata/**'
+  pull_request:
+    paths:
+      - 'tools/cmdata/**'
+
+jobs:
+  build-linux-gromacs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install generic packages
+      run: |
+        sudo apt-get update -qq
+    - name: Build gromacs 
+      run: |
+        git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
+        bash tools/cmdata/patch_gromacs.sh gromacs/
+        cd gromacs; mkdir build; cd build
+        cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMXAPI=OFF -DGMX_IMD=OFF
+        make -j2 
+        sudo make install
+        source /usr/local/gromacs/bin/GMXRC
+    - name: Run cmdata test 
+      run: |
+        pwd
+        cd test; bash run_cmdata.sh; cd ..
+        
+
