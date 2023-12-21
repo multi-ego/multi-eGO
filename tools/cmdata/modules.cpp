@@ -42,12 +42,11 @@
 
 #include "modules.h"
 
-#include "gromacs/commandline/cmdlinemodulemanager.h"
-#include "gromacs/trajectoryanalysis/cmdlinerunner.h"
-
 #include "modules/angle.h"
 #include "modules/convert_trj.h"
+#include "modules/cmdata.h"
 #include "modules/distance.h"
+#include "modules/dssp.h"
 #include "modules/extract_cluster.h"
 #include "modules/freevolume.h"
 #include "modules/msd.h"
@@ -56,7 +55,9 @@
 #include "modules/sasa.h"
 #include "modules/select.h"
 #include "modules/trajectory.h"
-#include "modules/cmdata.h"
+
+#include "gromacs/commandline/cmdlinemodulemanager.h"
+#include "gromacs/trajectoryanalysis/cmdlinerunner.h"
 
 namespace gmx
 {
@@ -94,6 +95,7 @@ void registerTrajectoryAnalysisModules(CommandLineModuleManager* manager)
     registerModule<AngleInfo>(manager, group);
     registerModule<ConvertTrjInfo>(manager, group);
     registerModule<DistanceInfo>(manager, group);
+    registerModule<DsspInfo>(manager, group);
     registerModule<ExtractClusterInfo>(manager, group);
     registerModule<FreeVolumeInfo>(manager, group);
     registerModule<MsdInfo>(manager, group);
