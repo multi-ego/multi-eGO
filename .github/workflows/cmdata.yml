@@ -30,10 +30,9 @@ jobs:
         make -j2 
         sudo make install
         source /usr/local/gromacs/bin/GMXRC
-        which gmx
     - name: Run cmdata test 
       run: |
-        cd ../../
+        pwd
         cd test; bash run_cmdata.sh; cd ..
         
 
