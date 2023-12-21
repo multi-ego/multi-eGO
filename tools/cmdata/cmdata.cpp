@@ -353,6 +353,7 @@ static inline void read_symmetry_indices(
   }
 }
 
+// kde
 static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
