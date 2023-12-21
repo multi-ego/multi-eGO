@@ -207,7 +207,7 @@ CMData::CMData() : sym_file_path_("") {}
 void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings *settings)
 {
   static const char *const desc[] = {
-      "[THISMODULE] calculates the intra- and intermat properties for multi-eGO",
+      "[THISMODULE] calculates histogram for interatomic distances for multi-eGO",
   };
 
   settings->setHelpText(desc);
