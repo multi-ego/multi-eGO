@@ -154,8 +154,6 @@ private:
   rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
-  std::string outfile_inter_;
-  std::string outfile_intra_;
   std::vector<double> inv_num_mol_;
   std::vector<double> inv_num_mol_unique_;
   std::string sym_file_path_;
@@ -220,14 +218,6 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&mol_cutoff_)
                     .defaultValue(6.0)
                     .description("Molecular cutoff in which to consider contacts intermolecularly"));
-  options->addOption(StringOption("ointra")
-                    .store(&outfile_intra_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
-  options->addOption(StringOption("ointer")
-                    .store(&outfile_inter_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
   options->addOption(IntegerOption("nskip")
                     .store(&nskip_)
                     .defaultValue(0)
