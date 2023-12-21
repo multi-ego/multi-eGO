@@ -154,8 +154,6 @@ private:
   rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
-  std::string outfile_inter_;
-  std::string outfile_intra_;
   std::vector<double> inv_num_mol_;
   std::vector<double> inv_num_mol_unique_;
   std::string sym_file_path_;
@@ -207,7 +205,7 @@ CMData::CMData() : sym_file_path_("") {}
 void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings *settings)
 {
   static const char *const desc[] = {
-      "[THISMODULE] calculates the intra- and intermat properties for multi-eGO",
+      "[THISMODULE] calculates histogram for interatomic distances for multi-eGO",
   };
 
   settings->setHelpText(desc);
@@ -220,14 +218,6 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&mol_cutoff_)
                     .defaultValue(6.0)
                     .description("Molecular cutoff in which to consider contacts intermolecularly"));
-  options->addOption(StringOption("ointra")
-                    .store(&outfile_intra_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
-  options->addOption(StringOption("ointer")
-                    .store(&outfile_inter_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
   options->addOption(IntegerOption("nskip")
                     .store(&nskip_)
                     .defaultValue(0)
@@ -314,7 +304,7 @@ static inline void read_symmetry_indices(
   }
   
   int molb = 0;
-  std::string residue_entry, atom_entry_i, atom_entry_j;
+  std::string residue_entry, atom_entry_i, atom_entry_j, left;
   std::string line;
   // WARNING
   // this scales really bad... we should do the opposity and check for each atom pair in the same aminoacid if it has an equivalent atom
@@ -328,6 +318,7 @@ static inline void read_symmetry_indices(
       printf("Skipping line\n%s\n due to syntax non-conformity\n", line.c_str());
       continue;
     }
+    if((iss >> left)) printf("Found a problem while reading the symmestry file: %s\n This element is ignored.\n Multiple equivament atoms should be set listing the relevant combinations\n", left.c_str());
 
     const char *atom_name_i, *atom_name_j, *residue_name_i, *residue_name_j;
     int a_i, a_j, resn_i, resn_j;
@@ -362,6 +353,7 @@ static inline void read_symmetry_indices(
   }
 }
 
+// kde
 static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
@@ -852,6 +844,24 @@ static void molecule_routine(
           continue;
         }
         // check for chemical equivalence
+        double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[j]][a_j].size());
+        if(i==j&&a_i!=a_j)
+        {
+          // this is to account for the correct normalisation in the case in which
+          // an intramolecular interaction is between two atoms that are also equivalent
+          for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
+          {
+            for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
+            {
+              // get molecule-wise atom index considering equivalence
+              std::size_t eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
+              std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
+              std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
+              std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
+              if(geqa_i==geqa_j) nsym=nsym-1.0;
+            }
+          }
+        }
         for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
         {
           for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
@@ -862,7 +872,13 @@ static void molecule_routine(
             std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
             std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
             std::size_t delta  = eqa_i - eqa_j;
-            double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[i]][a_j].size());
+            if(i==j&&a_i==a_j) {
+              // this is the special case of intra-self that should not be symmetrized
+              // the distance of an atom with itself cannot be greater than 0.
+              geqa_i=ii;
+              geqa_j=jj;
+            }
+            if(i==j&&a_i!=a_j&&geqa_i==geqa_j) continue;
             rvec sym_dx;
             if (pbc != nullptr) pbc_dx(pbc, x[geqa_i], x[geqa_j], sym_dx);
             else rvec_sub(x[geqa_i], x[geqa_j], sym_dx);
@@ -1291,7 +1307,7 @@ void CMData::writeOutput()
 } // namespace
 
 const char CMDataInfo::name[] = "cmdata";
-const char CMDataInfo::shortDescription[] = "Calculate contact data";
+const char CMDataInfo::shortDescription[] = "Calculate interatomic distance distributions";
 
 TrajectoryAnalysisModulePointer CMDataInfo::create()
 {

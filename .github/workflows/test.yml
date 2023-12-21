@@ -1,6 +1,13 @@
 name: 'Multi-eGO test'
 
-on: [ push, pull_request ]
+on:
+  push:
+    paths-ignore:
+      - 'tools/cmdata/**'
+  pull_request:
+    paths-ignore:
+      - 'tools/cmdata/**'
+
 
 jobs:
   build-linux-conda:
@@ -33,6 +40,7 @@ jobs:
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
+        cd test; bash run_make_mat.sh; cd ..
 
   build-linux-pip:
     runs-on: ubuntu-latest
@@ -48,6 +56,7 @@ jobs:
     - name: Run tests
       run: |
         python test/run_tests.py
+        cd test; bash run_make_mat.sh; cd ..
 
   build-macos-conda:
     runs-on: macos-latest
@@ -73,6 +82,7 @@ jobs:
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
+        cd test; bash run_make_mat.sh; cd ..
 
   build-macos-pip:
     runs-on: macos-latest
@@ -88,3 +98,4 @@ jobs:
     - name: Run tests
       run: |
         python test/run_tests.py
+        cd test; bash run_make_mat.sh; cd ..

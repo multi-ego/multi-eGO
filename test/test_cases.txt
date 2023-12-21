@@ -1,4 +1,4 @@
 --system gpref --egos rc
---system gpref --egos production --epsilon 0.35 --train md_ensemble
---system abetaref --egos production --epsilon 0.35 --train native_MD
---system ttrref --egos production --epsilon 0.225 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.3
+--system gpref --egos production --epsilon 0.235 --train md_ensemble
+--system abetaref --egos production --epsilon 0.33 --train native_MD --reference ref
+--system ttrref --egos production --epsilon 0.33 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.275

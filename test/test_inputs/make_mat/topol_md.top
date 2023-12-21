@@ -1,0 +1,13 @@
+; Include forcefield parameters
+#include "charmm22st.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Protein_chain_A.itp"
+
+[ system ]
+; Name
+ATOMIC-RESOLUTION STRUCTURE OF A DOUBLET CROSS-BETA AMYLOID FIBRIL in water
+
+[ molecules ]
+; Compound        #mols
+TTR    84

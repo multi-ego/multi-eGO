@@ -39,7 +39,7 @@ def read_infile(path):
 
 def read_outfile(path):
     """
-    Reads mutli-eGO putputfiles ignoring the comments
+    Reads multi-eGO output files ignoring the comments
 
     Parameters
     ----------
