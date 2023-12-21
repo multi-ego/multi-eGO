@@ -26,11 +26,14 @@ jobs:
         git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
         bash tools/cmdata/patch_gromacs.sh gromacs/
         cd gromacs; mkdir build; cd build
-        cmake .. -DGMX_BUILD_OWN_FFTW=ON
-        make  
+        cmake .. -DGMX_FFT_LIBRARY=fftpack
+        make -j 
         sudo make install
-        echo 'source /usr/local/gromacs/bin/GMXRC' >> $HOME/.bashrc
-        source $HOME/.bashrc
+        source /usr/local/gromacs/bin/GMXRC
         which gmx
+    - name: Run cmdata test 
+      run: |
+        cd ../../
+        cd test; bash run_cmdata.sh; cd ..
         
 
