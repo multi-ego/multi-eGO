@@ -1306,7 +1306,7 @@ void CMData::writeOutput()
 } // namespace
 
 const char CMDataInfo::name[] = "cmdata";
-const char CMDataInfo::shortDescription[] = "Calculate contact data";
+const char CMDataInfo::shortDescription[] = "Calculate interatomic distance distributions";
 
 TrajectoryAnalysisModulePointer CMDataInfo::create()
 {
