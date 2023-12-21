@@ -1,0 +1,42 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Bacic Toplek"
+  given-names: "Fran"
+- family-names: "Scalone"
+  given-names: "Emanuele"
+- family-names: "Stegani"
+  given-names: "Bruno"
+- family-names: "Paissoni"
+  given-names: "Cristina"
+- family-names: "Capelli"
+  given-names: "Riccardo"
+- family-names: "Camilloni"
+  given-names: "Carlo"
+title: "Multi-eGO"
+version: beta.1
+date-released: 2023-10-24
+url: "https://github.com/multi-ego/multi-ego"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Bacic Toplek"
+    given-names: "Fran"
+  - family-names: "Scalone"
+    given-names: "Emanuele"
+  - family-names: "Stegani"
+    given-names: "Bruno"
+  - family-names: "Paissoni"
+    given-names: "Cristina"
+  - family-names: "Capelli"
+    given-names: "Riccardo"
+  - family-names: "Camilloni"
+    given-names: "Carlo"
+  doi: "10.1021/acs.jctc.3c01182"
+  journal: "J. Chem. Theory Comput."
+  start:  # First page number
+  end:  # Last page number
+  title: "Multi-eGO: model improvements towards the study of complex self-assembly processes"
+  issue:
+  volume:
+  year:
