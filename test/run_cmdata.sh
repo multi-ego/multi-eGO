@@ -1,3 +1,4 @@
+set -e
 set -o pipefail
 mkdir test_inputs/cmdata/histo
 cd test_inputs/cmdata/histo
