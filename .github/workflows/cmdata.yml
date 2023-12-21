@@ -1,0 +1,28 @@
+name: cmdata 
+
+on:
+  push:
+    paths:
+      - tools/cmdata/
+
+jobs:
+  build-linux-gromacs:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v3
+      with:
+        path: ~/.ccache
+        key: ccache-reset-${{ github.sha }}
+        restore-keys: ccache-reset-
+    - name: Install requirements
+      run: |
+        git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
+        cd gromacs; mkdir build; mkdir exe; cd build
+        cmake .. -DPREFIX=../exe/
+        make install -j4
+        source ../exe/bin/GMXRC
+        which gmx
+        
+
