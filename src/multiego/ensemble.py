@@ -184,6 +184,11 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_aj"][0]]
     )
 
+    len_ai = len(ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_ai"][0]])
+    len_aj = len(ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_aj"][0]])
+    if len_ai * len_aj != len(contact_matrix):
+        raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
+
     contact_matrix = contact_matrix[~contact_matrix["ai"].astype(str).str.startswith("H")]
     contact_matrix = contact_matrix[~contact_matrix["aj"].astype(str).str.startswith("H")]
 
