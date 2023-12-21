@@ -3,7 +3,10 @@ name: cmdata
 on:
   push:
     paths:
-      - tools/cmdata/
+      - 'tools/cmdata/**'
+  pull_request:
+    paths:
+      - 'tools/cmdata/**'
 
 jobs:
   build-linux-gromacs:
