@@ -1,5 +1,9 @@
 name: cmdata 
 
+env:
+  CC: gcc
+  CXX: g++
+
 on:
   push:
     paths:
@@ -22,6 +26,7 @@ jobs:
     - name: Install requirements
       run: |
         git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
+        bash tools/cmdata/patch_gromacs.sh gromacs/
         cd gromacs; mkdir build; mkdir exe; cd build
         cmake .. -DPREFIX=../exe/
         make install -j4
