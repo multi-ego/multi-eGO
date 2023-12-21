@@ -29,10 +29,9 @@ jobs:
         cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMXAPI=OFF -DGMX_IMD=OFF
         make -j2 
         sudo make install
-        source /usr/local/gromacs/bin/GMXRC
     - name: Run cmdata test 
       run: |
-        pwd
+        source /usr/local/gromacs/bin/GMXRC
         cd test; bash run_cmdata.sh; cd ..
         
 
