@@ -855,6 +855,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(
             ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")], symmetrize=True
+        )
         ca_mask = masking.create_array_mask(ai_name, ai_name, [("CH1", "CH1")], symmetrize=True)
         nitrogen_mask = masking.create_array_mask(
             ai_name,
