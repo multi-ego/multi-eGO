@@ -9,7 +9,9 @@ TEST_CASES="test_cases.txt"
 cp -r test_inputs/* ${MEGO_ROOT}/inputs
 
 echo "Deleting current test_outputs"
-rm -rf test_outputs/*
+rm -rf test_outputs/gpref*
+rm -rf test_outputs/abetaref*
+rm -rf test_outputs/ttrref*
 
 echo "Generating data for examples from ${TEST_CASES}..."
 # while read case; do echo $case ; done < ${ROOT}/${TEST_CASES}
@@ -17,10 +19,5 @@ while read case; do
     out_dir=$(python ../multiego.py $case | grep ${MEGO_ROOT}/outputs/)
     mv $out_dir test_outputs
 done < ${TEST_CASES}
-# python multiego.py < "$(cat ${ROOT}/${TEST_CASES} | xargs -0 -l -d \\n echo
-# python multiego.py --system=gpref --egos rc > /dev/null
-# python multiego.py --system=gpref --egos production --epsilon 0.35 --train md_ensemble > /dev/null
-# python multiego.py --system=abetaref --egos production --epsilon 0.35 --train native_MD > /dev/null
-# python multiego.py --system=ttrref --egos production --epsilon 0.225 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.3 > /dev/null
 
 echo "Finished generating test outputs!"
