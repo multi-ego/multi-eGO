@@ -27,7 +27,7 @@ jobs:
         bash tools/cmdata/patch_gromacs.sh gromacs/
         cd gromacs; mkdir build; cd build
         cmake .. -DGMX_FFT_LIBRARY=fftpack
-        make -j 
+        make 
         sudo make install
         source /usr/local/gromacs/bin/GMXRC
         which gmx
