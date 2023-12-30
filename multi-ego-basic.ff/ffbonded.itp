@@ -277,7 +277,8 @@
 ; N-CHn-CHn-OA (lipid)	1.4
 
 
-#define gd_4    180.000       5.86          1
+;#define gd_4    180.000      5.67          1
+#define gd_4    180.000      10.00          1
 ; N-CHn-CHn-OA (lipid)	1.4
 ;
 #define gd_10   180.000       5.86          2
@@ -343,7 +344,8 @@
 #define gd_34     0.000       5.92          3
 ; -CHn,SI-CHn-	1.4
 ;
-#define gd_36     0.000       8.62          3
+;#define gd_36     0.000       8.62          3
+#define gd_36     0.000       6.00          3
 ; N-CHn-CHn-OA (lipid)	2.1
 ;
 #define gd_38     0.000        0.0          4

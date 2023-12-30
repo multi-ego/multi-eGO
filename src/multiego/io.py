@@ -104,31 +104,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     )
     write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
 
-    print("\n- The model is baked with the following parameters:\n")
-    for argument, value in vars(parameters).items():
-        if type(value) is list:
-            print("\t- {:<20} = {:<20}".format(argument, ", ".join(value)))
-        elif type(value) is not str:
-            print("\t- {:<20} = {:<20}".format(argument, str(value)))
-        else:
-            print("\t- {:<20} = {:<20}".format(argument, value))
-
-    if parameters.egos != "rc":
-        print(
-            f"""
-        - LJ parameterization completed with a total of {len(meGO_LJ)} contacts.
-        - Attractive: {len(meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.])}
-        - Repulsive: {len(meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']<0.])}
-        - The average epsilon is: {meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.].mean():{5}.{3}} kJ/mol
-        - Epsilon range is: [{meGO_LJ['epsilon'].loc[meGO_LJ['epsilon']>0.].min():{5}.{3}}:{meGO_LJ['epsilon'].max():{5}.{3}}] kJ/mol
-        - Sigma range is: [{meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].min():{5}.{3}}:{meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{5}.{3}}] nm
-
-        RELEVANT MDP PARAMETERS:
-        - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{4}.{3}} nm
-        - Suggested cut-off value: {2.5*meGO_LJ['sigma'].loc[meGO_LJ['epsilon']>0.].max():{4}.{3}} nm
-        """
-        )
-    print(f"\n- And it can be found in the following folder:\n{output_dir}")
+    print(f"{output_dir}")
 
 
 def dataframe_to_write(df):
