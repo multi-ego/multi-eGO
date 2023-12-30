@@ -331,7 +331,7 @@
 #define gd_29     0.000       3.77          3
 ; -C,CHn,SI-	0.9
 ;
-#define gd_29bis  0.000       1.00          2
+#define gd_29bis  0.000       4.50          2
 ; -C,CHn,SI-	0.9
 ;
 #define gd_30     0.000       3.90          3
