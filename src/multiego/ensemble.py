@@ -1077,7 +1077,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
-        #exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[
@@ -1296,7 +1296,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
-        #exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+        exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
 
     # now is a good time to acquire statistics on the parameters
