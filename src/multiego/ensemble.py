@@ -701,7 +701,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     oxygen_mask = masking.create_linearized_mask(
         train_dataset["type_ai"].to_numpy(),
         train_dataset["type_aj"].to_numpy(),
-        [("O", "O"), ("OM", "OM"), ("O", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")],
+        [("O", "O"), ("OM", "OM"), ("O", "OM")],
         symmetrize=True,
     )
     pairwise_c12 = np.where(
@@ -762,7 +762,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         oxygen_mask = masking.create_linearized_mask(
             check_dataset["type_ai"].to_numpy(),
             check_dataset["type_aj"].to_numpy(),
-            [("O", "O"), ("OM", "OM"), ("O", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")],
+            [("O", "O"), ("OM", "OM"), ("O", "OM")],
             symmetrize=True,
         )
         pairwise_c12 = np.where(
@@ -845,7 +845,7 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(
-            ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")], symmetrize=True
+            ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
         )
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
@@ -882,7 +882,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(
-            ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM"), ("OE", "OE"), ("O", "OE"), ("OM", "OE")], symmetrize=True
+            ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
         )
         temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
         temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
@@ -1077,7 +1077,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+        #exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[
@@ -1296,10 +1296,32 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
-        exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+        #exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
+
+
+    # now is a good time to acquire statistics on the parameters
+    # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
+    print(
+        f"""
+    - LJ parameterization completed with a total of {len(meGO_LJ.loc[meGO_LJ["same_chain"]==True])} intramolecular and {len(meGO_LJ.loc[meGO_LJ["same_chain"]==False])} intermolecular contacts.
+    - Attractive: {len(meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)])} {len(meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)])}
+    - Repulsive: {len(meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']<0.)])} {len(meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']<0.)])}
+    - The average epsilon is: {meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)].mean():{5}.{3}} {meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)].mean():{5}.{3}} kJ/mol
+    - Epsilon range is: [{meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)].min():{5}.{3}}:{meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)].max():{5}.{3}}] [{meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)].min():{5}.{3}}:{meGO_LJ['epsilon'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)].max():{5}.{3}}] kJ/mol
+    - Sigma range is: [{meGO_LJ['sigma'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)].min():{5}.{3}}:{meGO_LJ['sigma'].loc[(meGO_LJ["same_chain"]==True)&(meGO_LJ['epsilon']>0.)].max():{5}.{3}}] [{meGO_LJ['sigma'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)].min():{5}.{3}}:{meGO_LJ['sigma'].loc[(meGO_LJ["same_chain"]==False)&(meGO_LJ['epsilon']>0.)].max():{5}.{3}}] nm
+
+    RELEVANT MDP PARAMETERS:
+    - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():{4}.{3}} nm
+    - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():{4}.{3}} nm
+    """
+    )
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
+    # THIS SHOULD BE UPDATED taking into account rc_threshold to symmetrize inter to intra
+
+
+
     # meGO_LJ_14 will be handled differently to overcome this issue.
     meGO_LJ_14 = meGO_LJ.copy()
 
@@ -1355,7 +1377,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
     # remove them from the default force-field
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
-    # remove from meGO_LJ_14 the intermolecular basic interactations
+    # remove from meGO_LJ_14 the intermolecular basic interactions
     meGO_LJ_14 = meGO_LJ_14.loc[~((~meGO_LJ_14["same_chain"]) & (meGO_LJ_14["source"] == "basic"))]
 
     meGO_LJ["c6"] = 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6)

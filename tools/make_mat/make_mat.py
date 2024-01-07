@@ -336,8 +336,6 @@ def get_cumulative_probability(values, weights, callback=allfunction):
 
 def c12_avg(values, weights, callback=allfunction):
     """
-    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
-
     Parameters
     ----------
     values : np.array
@@ -488,7 +486,7 @@ def calculate_intra_probabilities(args):
         oxygen_mask = masking.create_matrix_mask(
             topology_df["mego_type"].to_numpy(),
             topology_df["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O"), ("OE", "OE"), ("OM", "OE"), ("O", "OE")],
+            [("OM", "OM"), ("O", "O"), ("OM", "O")],
             symmetrize=True,
         )
 
@@ -714,7 +712,7 @@ def calculate_inter_probabilities(args):
         oxygen_mask = masking.create_matrix_mask(
             topology_df_j["mego_type"].to_numpy(),
             topology_df_i["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O"), ("OE", "OE"), ("OM", "OE"), ("O", "OE")],
+            [("OM", "OM"), ("O", "O"), ("OM", "O")],
             symmetrize=True,
         )
 
