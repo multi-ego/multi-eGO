@@ -133,6 +133,12 @@ for a contact pair.
         help="The minimum meaningful epsilon value.",
     )
     optional_args.add_argument(
+        "--force_split",
+        default=False,
+        action="store_true",
+        help="Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
+    )
+    optional_args.add_argument(
         "--no_header",
         action="store_true",
         help="Removes headers from the output files when set",
