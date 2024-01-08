@@ -1373,6 +1373,13 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # remove from meGO_LJ_14 the intermolecular basic interactions
     meGO_LJ_14 = meGO_LJ_14.loc[~((~meGO_LJ_14["same_chain"]) & (meGO_LJ_14["source"] == "basic"))]
 
+    if parameters.force_split:
+        split_ii = meGO_LJ.loc[(meGO_LJ["same_chain"])]
+        # move the intramolecular interaction in the topology
+        meGO_LJ_14 = pd.concat([meGO_LJ_14, split_ii], axis=0, sort=False, ignore_index=True)
+        # remove them from the default force-field
+        meGO_LJ = meGO_LJ.loc[(~meGO_LJ["same_chain"])]
+
     meGO_LJ["c6"] = 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6)
     meGO_LJ["c12"] = abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c6"] = 0.0
