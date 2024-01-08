@@ -844,9 +844,7 @@ def generate_basic_LJ(meGO_ensemble):
         ai_name = topol_df["type"]
         c12_list = ai_name.map(name_to_c12).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(
-            ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
-        )
+        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
         basic_LJ["same_chain"] = True
@@ -881,9 +879,7 @@ def generate_basic_LJ(meGO_ensemble):
         c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
         ai_name = atom_set_i.to_numpy(dtype=str)
         aj_name = atom_set_j.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(
-            ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
-        )
+        oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
         temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
         temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
@@ -1298,7 +1294,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
         exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
-
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
     print(
@@ -1319,8 +1314,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     # All contacts should be applied intermolecularly, but intermolecular specific contacts are not used intramolecularly.
     # THIS SHOULD BE UPDATED taking into account rc_threshold to symmetrize inter to intra
-
-
 
     # meGO_LJ_14 will be handled differently to overcome this issue.
     meGO_LJ_14 = meGO_LJ.copy()
