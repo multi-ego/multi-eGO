@@ -34,9 +34,9 @@ preferred-citation:
     given-names: "Carlo"
   doi: "10.1021/acs.jctc.3c01182"
   journal: "J. Chem. Theory Comput."
-  start:  # First page number
-  end:  # Last page number
+  start: 459 
+  end: 468
   title: "Multi-eGO: model improvements towards the study of complex self-assembly processes"
   issue:
-  volume:
-  year:
+  volume: 20
+  year: 2024
