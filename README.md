@@ -69,16 +69,16 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
 
 [Back to Usage](#usage)
 
-Assuming that a training simulation is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we use the ```cmdata``` tool . The tools has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. 
+Assuming that a training simulation is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we use the ```cmdata``` tool. The tool needs to be installed by recompiling GROMACS, cf. [Installation](#Installation). 
 
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym
 ```
-As you can see, we gave an additional input, the ```aa_sym``` file. This file is a list of the symmetric atoms in the system. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
+As you can see, we gave an additional input, the ```aa_sym``` file. This file is a list of the equivalent atoms in the system, it is not compulsory and can be used to enforce symmetries in the interactions. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
 > [!WARNING]
 > When using a deprotonated carboxy-terminus, it is necessary to add the carboxy-terminus to the ```aa_sym``` file. 
 
-The output will be a collection of histograms in the form of .dat files. These files then need to be converted to intra- and intermat files. To do so, we use ```tools/make_mat/make_mat.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
+The output will be a collection of histograms in the form of .dat text files. These files then need to be processesed to obtain contact distances and probabilities. To do so, we use ```tools/make_mat/make_mat.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
 ```
 python tools/make_mat/make_mat.py --histo $MD_DIRECTORY/histo --target_top $MD_DIRECTORY/topol.top --mego_top inputs/$SYSTEM_NAME/reference/topol.top --cutoff 0.75 --out inputs/$SYSTEM_NAME/md_ensemble # --proc 4 ## for multiprocessing
 ```
