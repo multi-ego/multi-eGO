@@ -150,6 +150,6 @@ We set the energy scale &#949; to 0.3 kJ/mol and we train the model from the ```
 Happy simulating :)
 
 ## Cite us
-1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) Proc Natl Acad Sci USA 119, e2203181119 (2022) preprint available: [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2)
-2. Bacic Toplek, F., Scalone, E., et al. (2024) [Multi-eGO: model improvements towards the study of complex self-assembly processes.](https://doi.org/10.1021/acs.jctc.3c01182) J. Chem. Theory Comput. 20, 459-468 preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2023-67255)
+1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) Proc Natl Acad Sci USA 119, e2203181119 (2022); preprint available: [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2)
+2. Bacic Toplek, F., Scalone, E., et al. [Multi-eGO: model improvements towards the study of complex self-assembly processes.](https://doi.org/10.1021/acs.jctc.3c01182) J. Chem. Theory Comput. 20, 459-468 (2024); preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2023-67255)
 
