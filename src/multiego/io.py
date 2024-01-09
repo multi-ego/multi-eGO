@@ -137,7 +137,7 @@ def make_header(parameters):
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. ChemRxiv (2023) 10.26434/chemrxiv-2023-67255-v2
+; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
 ; Created on the {now}
 ; With the following parameters:
 """
