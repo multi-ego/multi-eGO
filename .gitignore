@@ -139,3 +139,4 @@ analysis/*
 *.ff
 !multi-rc-prior.ff/
 !multi-mg-prior.ff/
+!multi-ego-ready.ff/
