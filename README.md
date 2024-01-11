@@ -33,7 +33,7 @@ conda activate meGO
 ```
 It is also possible to use ```pip install -r requirements.txt```.
 
-To install the `cmdata` gromacs tools: use the ```patch_gromacs.sh``` script found in ```multi-eGO/tools/cmdata/``` by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
+To install the `cmdata` gromacs tool: use the ```patch_gromacs.sh``` script found in ```multi-eGO/tools/cmdata/``` by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 
 
 ## Usage
