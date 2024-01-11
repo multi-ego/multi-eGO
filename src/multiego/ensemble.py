@@ -1419,6 +1419,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "number_aj",
         ]
     ]
+    #Needed to properly handle the sorting by inversion for eterogeneous species 
+    meGO_LJ["molecule_name_ai_for_check"] = meGO_LJ["molecule_name_ai"]
+    
     # Here we want to sort so that ai is smaller than aj
     inv_meGO = meGO_LJ[
         [
@@ -1441,6 +1444,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "source",
             "number_aj",
             "number_ai",
+            "molecule_name_ai_for_check",
         ]
     ].copy()
     inv_meGO.columns = [
@@ -1463,11 +1467,15 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         "source",
         "number_ai",
         "number_aj",
+        "molecule_name_ai_for_check",
     ]
     meGO_LJ = pd.concat([meGO_LJ, inv_meGO], axis=0, sort=False, ignore_index=True)
-    meGO_LJ = meGO_LJ[meGO_LJ["number_ai"] <= meGO_LJ["number_aj"]]
+    meGO_LJ = meGO_LJ[((meGO_LJ["number_ai"] <= meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"]==meGO_LJ["molecule_name_aj"]))
+                      | ((meGO_LJ["number_ai"] < meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"]!=meGO_LJ["molecule_name_aj"]))
+                      | ((meGO_LJ["number_ai"] == meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"]!=meGO_LJ["molecule_name_aj"]) & (meGO_LJ["molecule_name_ai"]==meGO_LJ["molecule_name_ai_for_check"]))]
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
+    meGO_LJ = meGO_LJ.drop(columns=["molecule_name_ai_for_check"])
 
     return meGO_LJ, meGO_LJ_14
 
