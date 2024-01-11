@@ -353,8 +353,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]: v.size]
-    w = w[r[0][0]: w.size]
+    v = v[r[0][0]:v.size]
+    w = w[r[0][0]:w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -710,8 +710,8 @@ def calculate_inter_probabilities(args):
         topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
 
         oxygen_mask = masking.create_matrix_mask(
-            topology_df_j["mego_type"].to_numpy(),
             topology_df_i["mego_type"].to_numpy(),
+            topology_df_j["mego_type"].to_numpy(),
             [("OM", "OM"), ("O", "O"), ("OM", "O")],
             symmetrize=True,
         )
