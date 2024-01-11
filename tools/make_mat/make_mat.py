@@ -353,8 +353,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]: v.size]
-    w = w[r[0][0]: w.size]
+    v = v[r[0][0]:v.size]
+    w = w[r[0][0]:w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -636,7 +636,7 @@ def calculate_inter_probabilities(args):
         original_size_j = len(protein_ref_j.atoms)
 
         if mol_i == mol_j:
-            if N_mols[mol_i - 1] == 1:
+            if N_mols[mol_i - 1] == 0:
                 print(
                     f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}"
                 )

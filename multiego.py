@@ -5,6 +5,7 @@ import os
 from src.multiego import ensemble
 from src.multiego import io
 from tools.face_generator import generate_face
+from src.multiego.resources.type_definitions import parse_json
 
 
 def meGO_parsing():
@@ -139,6 +140,11 @@ for a contact pair.
         help="Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
     )
     optional_args.add_argument(
+        "--custom_dict",
+        type=str,
+        help="Custom dictionary for special molecules",
+    )
+    optional_args.add_argument(
         "--no_header",
         action="store_true",
         help="Removes headers from the output files when set",
@@ -193,6 +199,11 @@ for a contact pair.
             + ")"
         )
         sys.exit()
+
+    if args.custom_dict:
+        custom_dict = parse_json(args.custom_dict)
+        if custom_dict == None:
+            print("WARNING: Custom dictionary was parsed, but the dictionary is empty")
 
     if remaining:
         print("Unknown arguments provided: " + str(remaining))

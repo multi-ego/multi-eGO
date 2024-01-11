@@ -1,4 +1,6 @@
 import pandas as pd
+import json
+import sys
 
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
@@ -55,18 +57,6 @@ from_ff_to_multiego = {
     "OC2": "O2",
     "OT1": "O1",
     "OT2": "O2",
-    "C21":"C1A",
-    "C3":"CE", 
-    "C24":"C1D", 
-    "C2":"CD", 
-    "C12":"CA", 
-    "C14":"CN2", 
-    "C22":"C1B", 
-    "O11":"OD", 
-    "C13":"CN1", 
-    "C23":"C1C", 
-    "C15":"CN3", 
-    "C25":"C1E",
 }
 
 
@@ -142,3 +132,18 @@ aminoacids_list = [
 ]
 # TODO to check
 nucleic_acid_list = ["A", "C", "G", "T"]
+
+
+def parse_json(file_path):
+    if file_path:
+        try:
+            with open(file_path, "r") as file:
+                custom_dict = json.load(file)
+                if not isinstance(custom_dict, dict):
+                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
+                return custom_dict
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error in reading the custom dictionary: {e}")
+            sys.exit()
+    else:
+        return {}
