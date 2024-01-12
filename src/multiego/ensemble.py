@@ -43,7 +43,7 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     return molecule_type_dict
 
 
-def initialize_topology(topology):
+def initialize_topology(topology, custom_dict):
     """
     Initializes a topology DataFrame using provided molecule information.
 
@@ -102,7 +102,12 @@ def initialize_topology(topology):
     ensemble_topology_dataframe["resnum"] = new_resnum
     ensemble_topology_dataframe["cgnr"] = ensemble_topology_dataframe["resnum"]
     ensemble_topology_dataframe["ptype"] = "A"
-    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({"name": type_definitions.from_ff_to_multiego})
+
+    # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules (if none is present the extended dictionary is equivalent to the standard one)
+    from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego
+    from_ff_to_multiego_extended.update(custom_dict)
+
+    ensemble_topology_dataframe = ensemble_topology_dataframe.replace({"name": from_ff_to_multiego_extended})
     ensemble_topology_dataframe["sb_type"] = (
         ensemble_topology_dataframe["name"]
         + "_"
@@ -299,6 +304,9 @@ def init_meGO_ensemble(args):
     if not os.path.isfile(topology_path):
         raise FileNotFoundError(f"{topology_path} not found.")
 
+    # reading the custom dictionary for trainging to multi-eGO translation of atom names
+    custom_dict = type_definitions.parse_json(args.custom_dict)
+
     print("\t-", f"Reading {topology_path}")
     # ignore the dihedral type overriding in parmed
     with warnings.catch_warnings():
@@ -313,7 +321,7 @@ def init_meGO_ensemble(args):
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
-    ) = initialize_topology(reference_topology)
+    ) = initialize_topology(reference_topology, custom_dict)
 
     reference_contact_matrices = {}
     if args.egos != "rc":
@@ -379,7 +387,7 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology)
+        ) = initialize_topology(topology, custom_dict)
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -445,7 +453,7 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology)
+        ) = initialize_topology(topology, custom_dict)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -1484,6 +1492,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "number_aj",
         ]
     ]
+    # Needed to properly handle the sorting by inversion for eterogeneous species
+    meGO_LJ["molecule_name_ai_for_check"] = meGO_LJ["molecule_name_ai"]
+
     # Here we want to sort so that ai is smaller than aj
     inv_meGO = meGO_LJ[
         [
@@ -1506,6 +1517,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "source",
             "number_aj",
             "number_ai",
+            "molecule_name_ai_for_check",
         ]
     ].copy()
     inv_meGO.columns = [
@@ -1528,11 +1540,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         "source",
         "number_ai",
         "number_aj",
+        "molecule_name_ai_for_check",
     ]
     meGO_LJ = pd.concat([meGO_LJ, inv_meGO], axis=0, sort=False, ignore_index=True)
-    meGO_LJ = meGO_LJ[meGO_LJ["number_ai"] <= meGO_LJ["number_aj"]]
+    meGO_LJ = meGO_LJ[
+        ((meGO_LJ["number_ai"] <= meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"]))
+        | ((meGO_LJ["number_ai"] < meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"] != meGO_LJ["molecule_name_aj"]))
+        | (
+            (meGO_LJ["number_ai"] == meGO_LJ["number_aj"])
+            & (meGO_LJ["molecule_name_ai"] != meGO_LJ["molecule_name_aj"])
+            & (meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_ai_for_check"])
+        )
+    ]
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
+    meGO_LJ = meGO_LJ.drop(columns=["molecule_name_ai_for_check"])
 
     return meGO_LJ, meGO_LJ_14
 

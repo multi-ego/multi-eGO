@@ -1,0 +1,31 @@
+;
+;	File 'topol.top' was generated
+;	By user: gaia (1003)
+;	On host: monza
+;	At date: Tue Dec 19 11:41:49 2023
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	                    :-) GROMACS - gmx pdb2gmx, 2023.2 (-:
+;	
+;	Executable:   /mnt/data/software/gmx23_thread/bin/gmx
+;	Data prefix:  /mnt/data/software/gmx23_thread
+;	Working dir:  /home/gaia/multi-eGO_carlo/inputs/popc/reference
+;	Command line:
+;	  gmx pdb2gmx -f native.pdb -ignh
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "../../../multi-ego-basic.ff/forcefield.itp"
+#include "../../../multi-ego-basic.ff/popc.itp"
+
+
+[ system ]
+; Name
+POPC
+
+[ molecules ]
+; Compound        #mols
+POPC            1

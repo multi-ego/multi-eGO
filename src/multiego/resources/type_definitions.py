@@ -1,4 +1,6 @@
 import pandas as pd
+import json
+import sys
 
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
@@ -176,3 +178,18 @@ aminoacids_list = [
 ]
 # TODO to check
 nucleic_acid_list = ["A", "C", "G", "T"]
+
+
+def parse_json(file_path):
+    if file_path:
+        try:
+            with open(file_path, "r") as file:
+                custom_dict = json.load(file)
+                if not isinstance(custom_dict, dict):
+                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
+                return custom_dict
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error in reading the custom dictionary: {e}")
+            sys.exit()
+    else:
+        return {}
