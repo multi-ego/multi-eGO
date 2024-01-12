@@ -355,8 +355,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]: v.size]
-    w = w[r[0][0]: w.size]
+    v = v[r[0][0] : v.size]
+    w = w[r[0][0] : w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -482,6 +482,14 @@ def calculate_intra_probabilities(args):
         topology_df["c12"] = topology_df["mego_type"].map(d)
 
         types = type_definitions.lj14_generator(topology_df)
+        # read user pairs
+        user_pairs = [(pair.atom1.name, pair.atom2.name, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
+        user_pairs = [
+            (topology_df[topology_df["name"] == ai].index[0], topology_df[topology_df["name"] == aj].index[0], c12)
+            for ai, aj, c12 in user_pairs
+        ]
+
+        # create Datarame with the pairs and the c12 values
         c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
 
         # consider special cases
@@ -494,6 +502,13 @@ def calculate_intra_probabilities(args):
 
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
+
+        # apply the user pairs (overwrite all other rules)
+        for ai, aj, c12 in user_pairs:
+            ai = int(ai)
+            aj = int(aj)
+            c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+            c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
