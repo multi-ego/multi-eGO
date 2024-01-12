@@ -393,7 +393,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     )
 
 
-def generate_c12_values(df, types, combinations):
+def generate_c12_values(df, types, combinations, molecule_type):
     """
     TODO
     ----
@@ -402,17 +402,19 @@ def generate_c12_values(df, types, combinations):
     all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
     c12_map = np.full(all_c12.shape, None)
     resnums = df["resnum"].to_numpy()
-    for combination in combinations:
-        (name_1, name_2, factor, constant, shift) = combination
-        if factor is not None and constant is not None or factor == constant:
-            raise RuntimeError("constant and error should be defined and mutualy exclusive")
-        if factor:
-            operation = lambda x: factor * x
-        if constant:
-            operation = lambda _: constant
-        combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
-        combined_map = combined_map | combined_map.T
-        c12_map = np.where(combined_map, operation(all_c12), c12_map)
+
+    if molecule_type == "protein":
+        for combination in combinations:
+            (name_1, name_2, factor, constant, shift) = combination
+            if factor is not None and constant is not None or factor == constant:
+                raise RuntimeError("constant and error should be defined and mutualy exclusive")
+            if factor:
+                operation = lambda x: factor * x
+            if constant:
+                operation = lambda _: constant
+            combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
+            combined_map = combined_map | combined_map.T
+            c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
     c12_map = np.where(c12_map == None, all_c12, c12_map)
 
@@ -471,6 +473,7 @@ def calculate_intra_probabilities(args):
         topology_df["sorter"] = sorter
         topology_df["ref_ri"] = topology_df["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
         topology_df.sort_values(by="sorter", inplace=True)
+        topology_df["mego_ai"] = [a[0].idx for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["mego_type"] = [a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["mego_name"] = [a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["name"] = topology_df["mego_name"]
@@ -479,16 +482,26 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by="ref_ai", inplace=True)
         topology_df["c12"] = topology_df["mego_type"].map(d)
 
+        first_aminoacid = topology_mego.residues[0].name
+        if first_aminoacid in type_definitions.aminoacids_list:
+            molecule_type = "protein"
+        elif first_aminoacid in type_definitions.nucleic_acid_list:
+            molecule_type = "nucleic_acid"
+        else:
+            molecule_type = "other"
+
         types = type_definitions.lj14_generator(topology_df)
-        # read user pairs
-        user_pairs = [(pair.atom1.name, pair.atom2.name, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
-        user_pairs = [
-            (topology_df[topology_df["name"] == ai].index[0], topology_df[topology_df["name"] == aj].index[0], c12)
-            for ai, aj, c12 in user_pairs
-        ]
+
+        if molecule_type == "other":
+            # read user pairs
+            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
+            user_pairs = [
+                (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
+                for ai, aj, c12 in user_pairs
+            ]
 
         # create Datarame with the pairs and the c12 values
-        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
+        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations, molecule_type)
 
         # consider special cases
         oxygen_mask = masking.create_matrix_mask(
@@ -502,12 +515,13 @@ def calculate_intra_probabilities(args):
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
 
         # apply the user pairs (overwrite all other rules)
-        for ai, aj, c12 in user_pairs:
-            ai = int(ai)
-            aj = int(aj)
-            if c12 > 0.0:
-                c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
-                c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+        if molecule_type == "other":
+            for ai, aj, c12 in user_pairs:
+                ai = int(ai)
+                aj = int(aj)
+                if c12 > 0.0:
+                    c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+                    c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
