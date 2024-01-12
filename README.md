@@ -2,7 +2,9 @@
 [![Version](https://img.shields.io/badge/Version-beta.1-blue)](https://github.com/multi-ego/multi-eGO/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![CI](https://github.com/plumed/plumed2/workflows/CI/badge.svg?branch=master)](https://github.com/plumed/plumed2/actions)
+[![Multi-eGO test](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml)
+[![cmdata](https://github.com/multi-ego/multi-eGO/actions/workflows/cmdata.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/cmdata.yml)
+[![CodeQL](https://github.com/multi-ego/multi-eGO/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/github-code-scanning/codeql)
 
 ## Current Developers:
 - Fran Bacic Toplek
@@ -31,7 +33,7 @@ conda activate meGO
 ```
 It is also possible to use ```pip install -r requirements.txt```.
 
-To install the `cmdata` gromacs tools: use the ```patch_gromacs.sh``` script found in ```multi-eGO/tools/cmdata/``` by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
+To install the `cmdata` gromacs tool: use the ```patch_gromacs.sh``` script found in ```multi-eGO/tools/cmdata/``` by providing the gromacs root directory as the argument. The script will then patch the GROMACS installation with the cmdata tool. After this, we have to compile GROMACS. To do so, please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 
 
 ## Usage
@@ -67,16 +69,16 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
 
 [Back to Usage](#usage)
 
-Assuming that a training simulation is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we use the ```cmdata``` tool . The tools has to be used from [GROMACS](https://www.gromacs.org) as a part of the trajectory analysis tools. 
+Assuming that a training simulation is already run, two steps are necessary to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do so, we use the ```cmdata``` tool. The tool needs to be installed by recompiling GROMACS, cf. [Installation](#Installation). 
 
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym
 ```
-As you can see, we gave an additional input, the ```aa_sym``` file. This file is a list of the symmetric atoms in the system. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
+As you can see, we gave an additional input, the ```aa_sym``` file. This file is a list of the equivalent atoms in the system, it is not compulsory and can be used to enforce symmetries in the interactions. We provide an example file in ```multi-eGO/tools/cmdata/aa_sym```. 
 > [!WARNING]
 > When using a deprotonated carboxy-terminus, it is necessary to add the carboxy-terminus to the ```aa_sym``` file. 
 
-The output will be a collection of histograms in the form of .dat files. These files then need to be converted to intra- and intermat files. To do so, we use ```tools/make_mat/make_mat.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
+The output will be a collection of histograms in the form of .dat text files. These files then need to be processesed to obtain contact distances and probabilities. To do so, we use ```tools/make_mat/make_mat.py``` as follows assuming the histograms are in the in the md simulation directory in a subdirectory called ```histo/```:
 ```
 python tools/make_mat/make_mat.py --histo $MD_DIRECTORY/histo --target_top $MD_DIRECTORY/topol.top --mego_top inputs/$SYSTEM_NAME/reference/topol.top --cutoff 0.75 --out inputs/$SYSTEM_NAME/md_ensemble # --proc 4 ## for multiprocessing
 ```
@@ -148,6 +150,6 @@ We set the energy scale &#949; to 0.3 kJ/mol and we train the model from the ```
 Happy simulating :)
 
 ## Cite us
-1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) Proc Natl Acad Sci USA 119, e2203181119 (2022) preprint available: [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2)
-2. Bacic Toplek, F., Scalone, E., et al. [Multi-eGO: model improvements towards the study of complex self-assembly processes.]() preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2023-67255)
+1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) Proc Natl Acad Sci USA 119, e2203181119 (2022); preprint available: [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2)
+2. Bacic Toplek, F., Scalone, E., et al. [Multi-eGO: model improvements towards the study of complex self-assembly processes.](https://doi.org/10.1021/acs.jctc.3c01182) J. Chem. Theory Comput. 20, 459-468 (2024); preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2023-67255)
 

@@ -154,8 +154,6 @@ private:
   rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
-  std::string outfile_inter_;
-  std::string outfile_intra_;
   std::vector<double> inv_num_mol_;
   std::vector<double> inv_num_mol_unique_;
   std::string sym_file_path_;
@@ -207,7 +205,7 @@ CMData::CMData() : sym_file_path_("") {}
 void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings *settings)
 {
   static const char *const desc[] = {
-      "[THISMODULE] calculates the intra- and intermat properties for multi-eGO",
+      "[THISMODULE] calculates histogram for interatomic distances for multi-eGO",
   };
 
   settings->setHelpText(desc);
@@ -220,14 +218,6 @@ void CMData::initOptions(IOptionsContainer *options, TrajectoryAnalysisSettings 
                     .store(&mol_cutoff_)
                     .defaultValue(6.0)
                     .description("Molecular cutoff in which to consider contacts intermolecularly"));
-  options->addOption(StringOption("ointra")
-                    .store(&outfile_intra_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
-  options->addOption(StringOption("ointer")
-                    .store(&outfile_inter_)
-                    .defaultValue("intramat.ndx")
-                    .description("Output of the intra-molecular contacts"));
   options->addOption(IntegerOption("nskip")
                     .store(&nskip_)
                     .defaultValue(0)
@@ -363,6 +353,7 @@ static inline void read_symmetry_indices(
   }
 }
 
+// kde
 static inline void kernel_density_estimator(std::vector<double>::iterator x, const std::vector<double> &bins, const double mu, const double norm)
 {
   double h = 0.01;
@@ -1316,7 +1307,7 @@ void CMData::writeOutput()
 } // namespace
 
 const char CMDataInfo::name[] = "cmdata";
-const char CMDataInfo::shortDescription[] = "Calculate contact data";
+const char CMDataInfo::shortDescription[] = "Calculate interatomic distance distributions";
 
 TrajectoryAnalysisModulePointer CMDataInfo::create()
 {

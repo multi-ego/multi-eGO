@@ -112,10 +112,10 @@ ref_t                    = _TEMP_
 ; pressure coupling     
 Pcoupl                   = c-rescale
 pcoupltype               = semiisotropic
-nstpcouple               = -1
+nstpcouple               = 20
 ; Time constant (ps), compressibility (1/bar) and reference P (bar)
-tau-p                    = 50
-compressibility          = 4.5e-5  4.5e-5 
+tau-p                    = 1
+compressibility          = 4.5e-5  0 
 ref-p                    = 1. 1.
 ; Scaling of reference coordinates, No, All or COM
 refcoord-scaling         = No
