@@ -4,7 +4,7 @@ This script calculates probabilities from histograms based on specified paramete
 
 Usage:
 ```
-python make_mat.py --histo <histogram_directory> --target_top <target_topology> --mego_top <mego_topology> [--inter] [--out <output_path>] [--out_name <output_name>] [--proc <num_processes>] --cutoff <max_cutoff>
+python make_mat.py --histo <histogram_directory> --target_top <target_topology> --mego_top <mego_topology> [--inter] [--out <output_path>] [--out_name <output_name>] [--proc <num_processes>] [--cutoff <max_cutoff>]
 ```
 Parameters:
 ```
