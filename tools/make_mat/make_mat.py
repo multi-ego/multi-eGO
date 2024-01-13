@@ -872,7 +872,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cutoff",
-        required=True,
+        default=0.75,
         type=float,
         help="To be set to the max cutoff used for the accumulation of the histograms",
     )
