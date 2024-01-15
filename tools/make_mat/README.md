@@ -26,6 +26,3 @@ Parameters:
     
     --cutoff: The maximum cutoff used for the accumulation of the histograms.
 ```
-
-    If the script is set for intramolecular calculations, it calls calculate_intra_probabilities(args).
-    If set for intermolecular calculations, it calls calculate_inter_probabilities(args).
