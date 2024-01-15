@@ -1,4 +1,4 @@
-# multi_domain_intramats.py
+# multi_domains_intramat.py
 
 ## Workflow:
 
@@ -9,17 +9,16 @@
 5) Use the new rc_intramat and the full md intramat for multi-eGO to generate a new ff for multi-domain proteins
 
 
-## Scrits:
+## Usage:
 
 type split:
-
-> multi_domain_intramats.py --type split --md_intra PATH/md_intramat --target_top PATH/target_top --mego_top PATH/mego_top --out ouput_directory --dom_res idx,idx,...
-
+```
+multi_domain_intramats.py --type split --md_intra PATH/md_intramat --target_top PATH/target_top --mego_top PATH/mego_top --out ouput_directory --dom_res idx,idx,...
+```
 This will split md intramat at the atoms corresponding to the beginning of the residues passed with --dom_res.
 
-
 type group:
-
-> multi_domain_intramats.py --type group --rc_intra PATH/rc_intramat --dom_rc_intra PATH/dom_rc_intramat --target_top PATH/target_top --mego_top PATH/mego_top --out ouput_directory --dom_res idx,idx,...
-
+```
+multi_domain_intramats.py --type group --rc_intra PATH/rc_intramat --dom_rc_intra PATH/dom_rc_intramat --target_top PATH/target_top --mego_top PATH/mego_top --out ouput_directory --dom_res idx,idx,...
+```
 This will group rc intramat and domain rc intramat at the atoms corresponding to the beginning of the residues passed with --dom_res.
