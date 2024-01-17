@@ -336,6 +336,8 @@ def get_cumulative_probability(values, weights, callback=allfunction):
 
 def c12_avg(values, weights, callback=allfunction):
     """
+    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
+
     Parameters
     ----------
     values : np.array
@@ -557,8 +559,11 @@ def calculate_intra_probabilities(args):
 
         # concatenate and remove partial dataframes
         for name in results:
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f'Ignoring partial dataframe in {name} as csv is empty')
         [os.remove(name) for name in results]
 
         df = df.astype(
@@ -789,10 +794,13 @@ def calculate_inter_probabilities(args):
         ########################
 
         # concatenate and remove partial dataframes
-        for i, name in enumerate(results):
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
-            os.remove(name)
+        for name in results:
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f'Ignoring partial dataframe in {name} as csv is empty')
+        [os.remove(name) for name in results]
 
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
