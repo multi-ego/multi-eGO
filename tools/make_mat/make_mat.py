@@ -533,11 +533,7 @@ def calculate_intra_probabilities(args):
                 part_df = pd.read_csv(name)
                 df = pd.concat([df, part_df])
             except pd.errors.EmptyDataError:
-<<<<<<< HEAD
                 print(f"Ignoring partial dataframe in {name} as csv is empty")
-=======
-                print(f'Ignoring partial dataframe in {name} as csv is empty')
->>>>>>> f02b2df
         [os.remove(name) for name in results]
 
         df = df.astype(
@@ -773,14 +769,8 @@ def calculate_inter_probabilities(args):
                 part_df = pd.read_csv(name)
                 df = pd.concat([df, part_df])
             except pd.errors.EmptyDataError:
-<<<<<<< HEAD
                 print(f"Ignoring partial dataframe in {name} as csv is empty")
         [os.remove(name) for name in results]
-=======
-                print(f'Ignoring partial dataframe in {name} as csv is empty')
-        [os.remove(name) for name in results]
-
->>>>>>> f02b2df
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
