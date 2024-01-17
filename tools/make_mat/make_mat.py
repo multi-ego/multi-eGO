@@ -336,6 +336,8 @@ def get_cumulative_probability(values, weights, callback=allfunction):
 
 def c12_avg(values, weights, callback=allfunction):
     """
+    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
+
     Parameters
     ----------
     values : np.array
@@ -353,8 +355,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]:v.size]
-    w = w[r[0][0]:w.size]
+    v = v[r[0][0] : v.size]
+    w = w[r[0][0] : w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -393,7 +395,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     )
 
 
-def generate_c12_values(df, types, combinations, molecule_type):
+def generate_c12_values(df, types, combinations):
     """
     TODO
     ----
@@ -402,19 +404,17 @@ def generate_c12_values(df, types, combinations, molecule_type):
     all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
     c12_map = np.full(all_c12.shape, None)
     resnums = df["resnum"].to_numpy()
-
-    if molecule_type == "protein":
-        for combination in combinations:
-            (name_1, name_2, factor, constant, shift) = combination
-            if factor is not None and constant is not None or factor == constant:
-                raise RuntimeError("constant and error should be defined and mutualy exclusive")
-            if factor:
-                operation = lambda x: factor * x
-            if constant:
-                operation = lambda _: constant
-            combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
-            combined_map = combined_map | combined_map.T
-            c12_map = np.where(combined_map, operation(all_c12), c12_map)
+    for combination in combinations:
+        (name_1, name_2, factor, constant, shift) = combination
+        if factor is not None and constant is not None or factor == constant:
+            raise RuntimeError("constant and error should be defined and mutualy exclusive")
+        if factor:
+            operation = lambda x: factor * x
+        if constant:
+            operation = lambda _: constant
+        combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
+        combined_map = combined_map | combined_map.T
+        c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
     c12_map = np.where(c12_map == None, all_c12, c12_map)
 
@@ -473,7 +473,6 @@ def calculate_intra_probabilities(args):
         topology_df["sorter"] = sorter
         topology_df["ref_ri"] = topology_df["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
         topology_df.sort_values(by="sorter", inplace=True)
-        topology_df["mego_ai"] = [a[0].idx for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["mego_type"] = [a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["mego_name"] = [a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
         topology_df["name"] = topology_df["mego_name"]
@@ -482,46 +481,19 @@ def calculate_intra_probabilities(args):
         topology_df.sort_values(by="ref_ai", inplace=True)
         topology_df["c12"] = topology_df["mego_type"].map(d)
 
-        first_aminoacid = topology_mego.residues[0].name
-        if first_aminoacid in type_definitions.aminoacids_list:
-            molecule_type = "protein"
-        elif first_aminoacid in type_definitions.nucleic_acid_list:
-            molecule_type = "nucleic_acid"
-        else:
-            molecule_type = "other"
-
         types = type_definitions.lj14_generator(topology_df)
-
-        if molecule_type == "other":
-            # read user pairs
-            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
-            user_pairs = [
-                (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
-                for ai, aj, c12 in user_pairs
-            ]
-
-        # create Datarame with the pairs and the c12 values
-        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations, molecule_type)
+        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations)
 
         # consider special cases
         oxygen_mask = masking.create_matrix_mask(
             topology_df["mego_type"].to_numpy(),
             topology_df["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O")],
+            [("OM", "OM"), ("O", "O"), ("OM", "O"), ("OE", "OE"), ("OM", "OE"), ("O", "OE")],
             symmetrize=True,
         )
 
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
-
-        # apply the user pairs (overwrite all other rules)
-        if molecule_type == "other":
-            for ai, aj, c12 in user_pairs:
-                ai = int(ai)
-                aj = int(aj)
-                if c12 > 0.0:
-                    c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
-                    c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
@@ -557,8 +529,11 @@ def calculate_intra_probabilities(args):
 
         # concatenate and remove partial dataframes
         for name in results:
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f"Ignoring partial dataframe in {name} as csv is empty")
         [os.remove(name) for name in results]
 
         df = df.astype(
@@ -666,7 +641,7 @@ def calculate_inter_probabilities(args):
         original_size_j = len(protein_ref_j.atoms)
 
         if mol_i == mol_j:
-            if N_mols[mol_i - 1] == 0:
+            if N_mols[mol_i - 1] == 1:
                 print(
                     f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}"
                 )
@@ -742,7 +717,7 @@ def calculate_inter_probabilities(args):
         oxygen_mask = masking.create_matrix_mask(
             topology_df_i["mego_type"].to_numpy(),
             topology_df_j["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O")],
+            [("OM", "OM"), ("O", "O"), ("OM", "O"), ("OE", "OE"), ("OM", "OE"), ("O", "OE")],
             symmetrize=True,
         )
 
@@ -789,11 +764,13 @@ def calculate_inter_probabilities(args):
         ########################
 
         # concatenate and remove partial dataframes
-        for i, name in enumerate(results):
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
-            os.remove(name)
-
+        for name in results:
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f"Ignoring partial dataframe in {name} as csv is empty")
+        [os.remove(name) for name in results]
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
@@ -872,7 +849,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cutoff",
-        default=0.75,
+        required=True,
         type=float,
         help="To be set to the max cutoff used for the accumulation of the histograms",
     )
