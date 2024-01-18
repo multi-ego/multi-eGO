@@ -336,6 +336,8 @@ def get_cumulative_probability(values, weights, callback=allfunction):
 
 def c12_avg(values, weights, callback=allfunction):
     """
+    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
+
     Parameters
     ----------
     values : np.array
@@ -353,8 +355,8 @@ def c12_avg(values, weights, callback=allfunction):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
-    v = v[r[0][0]:v.size]
-    w = w[r[0][0]:w.size]
+    v = v[r[0][0]: v.size]
+    w = w[r[0][0]: w.size]
 
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
@@ -481,7 +483,6 @@ def calculate_intra_probabilities(args):
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by="ref_ai", inplace=True)
         topology_df["c12"] = topology_df["mego_type"].map(d)
-
         first_aminoacid = topology_mego.residues[0].name
         if first_aminoacid in type_definitions.aminoacids_list:
             molecule_type = "protein"
@@ -557,8 +558,11 @@ def calculate_intra_probabilities(args):
 
         # concatenate and remove partial dataframes
         for name in results:
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f"Ignoring partial dataframe in {name} as csv is empty")
         [os.remove(name) for name in results]
 
         df = df.astype(
@@ -789,11 +793,13 @@ def calculate_inter_probabilities(args):
         ########################
 
         # concatenate and remove partial dataframes
-        for i, name in enumerate(results):
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
-            os.remove(name)
-
+        for name in results:
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f"Ignoring partial dataframe in {name} as csv is empty")
+        [os.remove(name) for name in results]
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
