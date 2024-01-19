@@ -2,5 +2,11 @@
 [ replace ]
 N		NL	17.0067	0.000  ; weight and charge include the 3 hydrogens
 
+[ PRO-NH2+ ]
+[ replace ]
+N		NT	16.0067	0.000
+[ dihedrals ]
+CD	N	CA	C	gd_39
+
 [ None ]
 
