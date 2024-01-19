@@ -15,12 +15,22 @@ import pandas as pd
 import parmed as pmd
 import time
 import warnings
-
+import gzip
 
 d = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i]
     for i in range(len(type_definitions.gromos_atp.name))
 }
+
+COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
+
+def write_mat(df, output_file):
+    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
+    out_content = out_content.replace("\n", "<newline>")
+    out_content = ' '.join(out_content.split())
+    out_content = out_content.replace("<newline>", "\n")
+    with gzip.open(output_file, "wt") as f:
+        f.write(out_content)
 
 
 def run_intra_(arguments):
@@ -202,8 +212,16 @@ def read_topologies(mego_top, target_top):
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        topology_mego = pmd.load_file(mego_top)
-        topology_ref = pmd.load_file(target_top)
+        try:
+            topology_mego = pmd.load_file(mego_top)
+        except Exception as e:
+            print(f"ERROR {e} in read_topologies while reading {mego_top}")
+            exit(1)
+        try:
+            topology_ref = pmd.load_file(target_top)
+        except Exception as e:
+            print(f"ERROR {e} in read_topologies while reading {target_top}")
+            exit(2)
 
     n_mol = len(list(topology_mego.molecules.keys()))
     mol_names = list(topology_mego.molecules.keys())
@@ -587,12 +605,9 @@ def calculate_intra_probabilities(args):
 
         df.index = range(len(df.index))
         out_name = args.out_name + "_" if args.out_name else ""
-
-        output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx"
+        output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx.gz"
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
-
-        df.to_csv(output_file, index=False, sep=" ", header=False, columns=columns)
-
+        write_mat(df, output_file)
 
 def calculate_inter_probabilities(args):
     """
@@ -815,9 +830,9 @@ def calculate_inter_probabilities(args):
 
         df.index = range(len(df.index))
         out_name = args.out_name + "_" if args.out_name else ""
-        output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx"
-
-        df.to_csv(output_file, index=False, sep=" ", columns=columns, header=False)
+        output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
+        print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+        write_mat(df, output_file)
 
 
 def calculate_probability(values, weights, callback=allfunction):
