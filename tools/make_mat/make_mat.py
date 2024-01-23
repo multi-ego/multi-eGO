@@ -16,6 +16,7 @@ import parmed as pmd
 import time
 import warnings
 import gzip
+import tarfile
 
 d = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i]
@@ -26,12 +27,23 @@ COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 def write_mat(df, output_file):
     out_content = df.to_string(index=False, header=False, columns=COLUMNS)
-    out_content = out_content.replace("\n", "<newline>")
+    out_content = out_content.replace("\n", "<")
     out_content = ' '.join(out_content.split())
-    out_content = out_content.replace("<newline>", "\n")
+    out_content = out_content.replace("<", "\n")
     with gzip.open(output_file, "wt") as f:
         f.write(out_content)
 
+def read_mat(path, name, protein_ref_indices, tar=False):
+    if args.tar:
+        with tarfile.open(path, "r:*") as tar:
+            ref_df = pd.read_csv(tar.extractfile(name), header=None, sep="\s+", usecols=[0, *protein_ref_indices])
+    else:
+        ref_df = pd.read_csv(f'{path}/{name}', header=None, sep="\s+", usecols=[0, *protein_ref_indices])
+    ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
+    ref_df.columns = ref_df_columns
+    ref_df.set_index("distance", inplace=True)
+
+    return ref_df
 
 def run_intra_(arguments):
     """
@@ -83,11 +95,13 @@ def run_intra_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            ref_f = f"{args.histo}/{ref_f}"
-            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            ref_df.columns = ref_df_columns
-            ref_df.set_index("distance", inplace=True)
+            # ref_f = f"{args.histo}/{ref_f}"
+            # with tarfile.open("sample.tar.gz", "r:*") as tar:
+                # ref_df = pd.read_csv(tar.extractfile(ref_f), header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            # ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            # ref_df.columns = ref_df_columns
+            # ref_df.set_index("distance", inplace=True)
+            ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -160,19 +174,21 @@ def run_inter_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            ref_f = f"{args.histo}/{ref_f}"
-            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            ref_df.columns = ref_df_columns
-            ref_df.set_index("distance", inplace=True)
+            # ref_f = f"{args.histo}/{ref_f}"
+            # ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            # ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            # ref_df.columns = ref_df_columns
+            # ref_df.set_index("distance", inplace=True)
+            ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # repeat for cumulative
-            c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
-            c_ref_df = pd.read_csv(c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            c_ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            c_ref_df.columns = c_ref_df_columns
-            c_ref_df.set_index("distance", inplace=True)
+            # c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
+            # c_ref_df = pd.read_csv(c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            # c_ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            # c_ref_df.columns = c_ref_df_columns
+            # c_ref_df.set_index("distance", inplace=True)
+            c_ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar, True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -475,7 +491,10 @@ def calculate_intra_probabilities(args):
         topology_df = pd.DataFrame()
 
         prefix = f"intra_mol_{mol_list[i]}_{mol_list[i]}"
-        target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        if args.tar:
+            with tarfile.open(args.histo, "r:*") as tar:
+                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
+        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
         protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][0]
         protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[i]][0]
@@ -665,7 +684,11 @@ def calculate_inter_probabilities(args):
         )
         prefix = f"inter_mol_{mol_i}_{mol_j}"
         # prefix_cum = f'inter_mol_c_{mol_i}_{mol_j}'
-        target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        # target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        if args.tar:
+            with tarfile.open(args.histo, "r:*") as tar:
+                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
+        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
         # target_list_cum = [x for x in os.listdir(args.histo) if prefix_cum in x]
         # target_list_norm = sorted(target_list_norm)
         # target_list_cum = sorted(target_list_cum)
@@ -897,11 +920,25 @@ if __name__ == "__main__":
         type=float,
         help="To be set to the max cutoff used for the accumulation of the histograms",
     )
+    parser.add_argument(
+        "--tar",
+        action="store_true",
+        help="Read from tar file instead of directory",
+    )
     args = parser.parse_args()
 
     # check if output file exists
     if not os.path.exists(args.out):
         print(f"The path '{args.out}' does not exist.")
+        sys.exit()
+
+    if not args.tar and not os.path.isdir(args.histo):
+        print(f"The path '{args.histo}' is not a directory.")
+        sys.exit()
+
+
+    if args.tar and not tarfile.is_tarfile(args.histo):
+        print(f"The path '{args.histo}' is not a tar file.")
         sys.exit()
 
     N_BINS = args.cutoff / (0.01 / 4)
