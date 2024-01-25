@@ -1,7 +1,6 @@
 import os
 import sys
 
-# import subpaths
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from multiego.resources import type_definitions
@@ -33,12 +32,13 @@ def write_mat(df, output_file):
     with gzip.open(output_file, "wt") as f:
         f.write(out_content)
 
-def read_mat(path, name, protein_ref_indices, tar=False):
+def read_mat(name, protein_ref_indices, args, cumulative=False):
+    path_prefix = f'{args.histo}'
     if args.tar:
-        with tarfile.open(path, "r:*") as tar:
+        with tarfile.open(args.histo, "r:*") as tar:
             ref_df = pd.read_csv(tar.extractfile(name), header=None, sep="\s+", usecols=[0, *protein_ref_indices])
     else:
-        ref_df = pd.read_csv(f'{path}/{name}', header=None, sep="\s+", usecols=[0, *protein_ref_indices])
+        ref_df = pd.read_csv(f'{path_prefix}/{name}', header=None, sep="\s+", usecols=[0, *protein_ref_indices])
     ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
     ref_df.columns = ref_df_columns
     ref_df.set_index("distance", inplace=True)
@@ -95,13 +95,7 @@ def run_intra_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            # ref_f = f"{args.histo}/{ref_f}"
-            # with tarfile.open("sample.tar.gz", "r:*") as tar:
-                # ref_df = pd.read_csv(tar.extractfile(ref_f), header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            # ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            # ref_df.columns = ref_df_columns
-            # ref_df.set_index("distance", inplace=True)
-            ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar)
+            ref_df = read_mat(ref_f, protein_ref_indices_j, args)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -174,21 +168,11 @@ def run_inter_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            # ref_f = f"{args.histo}/{ref_f}"
-            # ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            # ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            # ref_df.columns = ref_df_columns
-            # ref_df.set_index("distance", inplace=True)
-            ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar)
+            ref_df = read_mat(ref_f, protein_ref_indices_j, args)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # repeat for cumulative
-            # c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
-            # c_ref_df = pd.read_csv(c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
-            # c_ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
-            # c_ref_df.columns = c_ref_df_columns
-            # c_ref_df.set_index("distance", inplace=True)
-            c_ref_df = read_mat(args.histo, ref_f, protein_ref_indices_j, args.tar, True)
+            c_ref_df = read_mat(ref_f, protein_ref_indices_j, args, True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -683,20 +667,10 @@ def calculate_inter_probabilities(args):
             f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
         )
         prefix = f"inter_mol_{mol_i}_{mol_j}"
-        # prefix_cum = f'inter_mol_c_{mol_i}_{mol_j}'
-        # target_list = [x for x in os.listdir(args.histo) if prefix in x]
         if args.tar:
             with tarfile.open(args.histo, "r:*") as tar:
                 target_list = [x.name for x in tar.getmembers() if prefix in x.name]
         else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
-        # target_list_cum = [x for x in os.listdir(args.histo) if prefix_cum in x]
-        # target_list_norm = sorted(target_list_norm)
-        # target_list_cum = sorted(target_list_cum)
-        # target_list = list(zip(target_list_norm, target_list_cum))
-        # for n, c in target_list:
-        #     n = n.replace('inter_mol_','')
-        #     c = c.replace('inter_mol_c_','')
-        #     assert n == c, f'inter_mol {n} and inter_mol_d {c} are not the same'
 
         protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
         protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
