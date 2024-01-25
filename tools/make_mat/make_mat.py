@@ -1,6 +1,7 @@
 import os
 import sys
 
+# import subpaths
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from multiego.resources import type_definitions
@@ -14,36 +15,13 @@ import pandas as pd
 import parmed as pmd
 import time
 import warnings
-import gzip
-import tarfile
+
 
 d = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i]
     for i in range(len(type_definitions.gromos_atp.name))
 }
 
-COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
-
-def write_mat(df, output_file):
-    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
-    out_content = out_content.replace("\n", "<")
-    out_content = ' '.join(out_content.split())
-    out_content = out_content.replace("<", "\n")
-    with gzip.open(output_file, "wt") as f:
-        f.write(out_content)
-
-def read_mat(name, protein_ref_indices, args, cumulative=False):
-    path_prefix = f'{args.histo}'
-    if args.tar:
-        with tarfile.open(args.histo, "r:*") as tar:
-            ref_df = pd.read_csv(tar.extractfile(name), header=None, sep="\s+", usecols=[0, *protein_ref_indices])
-    else:
-        ref_df = pd.read_csv(f'{path_prefix}/{name}', header=None, sep="\s+", usecols=[0, *protein_ref_indices])
-    ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
-    ref_df.columns = ref_df_columns
-    ref_df.set_index("distance", inplace=True)
-
-    return ref_df
 
 def run_intra_(arguments):
     """
@@ -95,7 +73,11 @@ def run_intra_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            ref_df = read_mat(ref_f, protein_ref_indices_j, args)
+            ref_f = f"{args.histo}/{ref_f}"
+            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            ref_df.columns = ref_df_columns
+            ref_df.set_index("distance", inplace=True)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -168,11 +150,19 @@ def run_inter_(arguments):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
 
             # column mapping
-            ref_df = read_mat(ref_f, protein_ref_indices_j, args)
+            ref_f = f"{args.histo}/{ref_f}"
+            ref_df = pd.read_csv(ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            ref_df.columns = ref_df_columns
+            ref_df.set_index("distance", inplace=True)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # repeat for cumulative
-            c_ref_df = read_mat(ref_f, protein_ref_indices_j, args, True)
+            c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
+            c_ref_df = pd.read_csv(c_ref_f, header=None, sep="\s+", usecols=[0, *protein_ref_indices_j])
+            c_ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices_j]]
+            c_ref_df.columns = c_ref_df_columns
+            c_ref_df.set_index("distance", inplace=True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -212,16 +202,8 @@ def read_topologies(mego_top, target_top):
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        try:
-            topology_mego = pmd.load_file(mego_top)
-        except Exception as e:
-            print(f"ERROR {e} in read_topologies while reading {mego_top}")
-            exit(1)
-        try:
-            topology_ref = pmd.load_file(target_top)
-        except Exception as e:
-            print(f"ERROR {e} in read_topologies while reading {target_top}")
-            exit(2)
+        topology_mego = pmd.load_file(mego_top)
+        topology_ref = pmd.load_file(target_top)
 
     n_mol = len(list(topology_mego.molecules.keys()))
     mol_names = list(topology_mego.molecules.keys())
@@ -475,10 +457,7 @@ def calculate_intra_probabilities(args):
         topology_df = pd.DataFrame()
 
         prefix = f"intra_mol_{mol_list[i]}_{mol_list[i]}"
-        if args.tar:
-            with tarfile.open(args.histo, "r:*") as tar:
-                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
-        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
         protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][0]
         protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[i]][0]
@@ -608,9 +587,12 @@ def calculate_intra_probabilities(args):
 
         df.index = range(len(df.index))
         out_name = args.out_name + "_" if args.out_name else ""
-        output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx.gz"
+
+        output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx"
         print(f"Saving output for molecule {mol_list[i]} in {output_file}")
-        write_mat(df, output_file)
+
+        df.to_csv(output_file, index=False, sep=" ", header=False, columns=columns)
+
 
 def calculate_inter_probabilities(args):
     """
@@ -667,10 +649,16 @@ def calculate_inter_probabilities(args):
             f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
         )
         prefix = f"inter_mol_{mol_i}_{mol_j}"
-        if args.tar:
-            with tarfile.open(args.histo, "r:*") as tar:
-                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
-        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        # prefix_cum = f'inter_mol_c_{mol_i}_{mol_j}'
+        target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        # target_list_cum = [x for x in os.listdir(args.histo) if prefix_cum in x]
+        # target_list_norm = sorted(target_list_norm)
+        # target_list_cum = sorted(target_list_cum)
+        # target_list = list(zip(target_list_norm, target_list_cum))
+        # for n, c in target_list:
+        #     n = n.replace('inter_mol_','')
+        #     c = c.replace('inter_mol_c_','')
+        #     assert n == c, f'inter_mol {n} and inter_mol_d {c} are not the same'
 
         protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
         protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
@@ -827,9 +815,9 @@ def calculate_inter_probabilities(args):
 
         df.index = range(len(df.index))
         out_name = args.out_name + "_" if args.out_name else ""
-        output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
-        print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-        write_mat(df, output_file)
+        output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx"
+
+        df.to_csv(output_file, index=False, sep=" ", columns=columns, header=False)
 
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -894,25 +882,11 @@ if __name__ == "__main__":
         type=float,
         help="To be set to the max cutoff used for the accumulation of the histograms",
     )
-    parser.add_argument(
-        "--tar",
-        action="store_true",
-        help="Read from tar file instead of directory",
-    )
     args = parser.parse_args()
 
     # check if output file exists
     if not os.path.exists(args.out):
         print(f"The path '{args.out}' does not exist.")
-        sys.exit()
-
-    if not args.tar and not os.path.isdir(args.histo):
-        print(f"The path '{args.histo}' is not a directory.")
-        sys.exit()
-
-
-    if args.tar and not tarfile.is_tarfile(args.histo):
-        print(f"The path '{args.histo}' is not a tar file.")
         sys.exit()
 
     N_BINS = args.cutoff / (0.01 / 4)
