@@ -177,7 +177,6 @@ def run_inter_(arguments):
             # repeat for cumulative
             c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
             c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
-            c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
@@ -472,7 +471,7 @@ def calculate_intra_probabilities(args):
     Topology contains {N_molecules} molecules species. Namely {molecules_name}.
     Calculating intramat for all species
     """
-    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
+    )
     for i in range(N_molecules):
         print(f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}")
         df = pd.DataFrame()
@@ -481,9 +480,9 @@ def calculate_intra_probabilities(args):
         prefix = f"intra_mol_{mol_list[i]}_{mol_list[i]}"
         if args.tar:
             with tarfile.open(args.histo, "r:*") as tar:
+                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
         else:
             target_list = [x for x in os.listdir(args.histo) if prefix in x]
-        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
         protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][0]
         protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[i]][0]
@@ -675,9 +674,9 @@ def calculate_inter_probabilities(args):
         prefix = f"inter_mol_{mol_i}_{mol_j}"
         if args.tar:
             with tarfile.open(args.histo, "r:*") as tar:
+                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
         else:
             target_list = [x for x in os.listdir(args.histo) if prefix in x]
-        else: target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
         protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
         protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
