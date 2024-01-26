@@ -1,0 +1,16 @@
+[ moleculetype ]
+; molname       nrexcl
+CL              1
+
+[ atoms ]
+; id    at type         res nr  residu name     at name  cg nr  charge
+   1    IM                  1       CL             CL     1   -0.90000
+
+
+[ moleculetype ]
+; molname       nrexcl
+NA              1
+
+[ atoms ]
+; id    at type         res nr  residu name     at name  cg nr  charge
+   1    IP                  1       NA             NA     1    0.90000
