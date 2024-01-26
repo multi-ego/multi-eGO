@@ -336,5 +336,6 @@ def check_files_existence(args):
             if not top_files:
                 raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f"{ensemble}/*.ndx")
+            ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
             if not ndx_files and not args.egos == "rc":
-                raise FileNotFoundError(f"No .ndx files found in {ensemble}/")
+                raise FileNotFoundError(f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/")
