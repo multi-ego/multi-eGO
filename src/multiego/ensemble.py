@@ -327,11 +327,14 @@ def init_meGO_ensemble(args):
     if args.egos != "rc":
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
         if matrix_paths == []:
-            raise FileNotFoundError(".ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx")
+            matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
+            if matrix_paths == []:
+                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
             name = name.replace(".ndx", "")
+            name = name.replace(".gz", "")
             reference_contact_matrices[name] = initialize_molecular_contacts(
                 io.read_molecular_contacts(path),
                 path,
@@ -395,11 +398,14 @@ def init_meGO_ensemble(args):
         )
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
         if matrix_paths == []:
-            raise FileNotFoundError(".ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx")
+            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
+            if matrix_paths == []:
+                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
             name = name.replace(".ndx", "")
+            name = name.replace(".gz", "")
             train_contact_matrices[name] = initialize_molecular_contacts(
                 io.read_molecular_contacts(path),
                 path,
@@ -411,6 +417,7 @@ def init_meGO_ensemble(args):
             ref_name = ref_name.replace(f"{args.root_dir}/inputs/", "")
             ref_name = ref_name.replace("/", "_")
             ref_name = ref_name.replace(".ndx", "")
+            ref_name = ref_name.replace(".gz", "")
             ensemble["train_matrix_tuples"].append((name, ref_name))
 
     ensemble["train_matrices"] = train_contact_matrices
@@ -462,11 +469,14 @@ def init_meGO_ensemble(args):
 
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
         if matrix_paths == []:
-            raise FileNotFoundError(".ndx files must be named as intramat_X_X.ndx or intermat_1_1.ndx")
+            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
+            if matrix_paths == []:
+                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
             name = name.replace(".ndx", "")
+            name = name.replace(".gz", "")
             check_contact_matrices[name] = initialize_molecular_contacts(
                 io.read_molecular_contacts(path),
                 path,
@@ -479,6 +489,7 @@ def init_meGO_ensemble(args):
             ref_name = ref_name.replace(f"{args.root_dir}/inputs/", "")
             ref_name = ref_name.replace("/", "_")
             ref_name = ref_name.replace(".ndx", "")
+            ref_name = ref_name.replace(".gz", "")
             ensemble["check_matrix_tuples"].append((name, ref_name))
 
     ensemble["check_matrices"] = check_contact_matrices

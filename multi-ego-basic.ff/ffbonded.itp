@@ -415,15 +415,15 @@
 #define gd_56    180.000     31.0     2
 ; Omega dihedral - PRO
 
-; for pdb2gmx to recognize disulfide bonded interactions
-; bond-, angle- and dihedraltypes for specbonds:
+#ifdef DISULFIDE
 [ bondtypes ]
-;S      S       1    gb_36
+S      S       1    gb_36
 
 [ angletypes ]
-;CH1    CH2    S     1   ga_16
-;CH2    S      S     1   ga_6
+CH1    CH2    S     1   ga_16
+CH2    S      S     1   ga_6
 
 [ dihedraltypes ]
-;S      S      1   gd_21
-;CH2    S      1   gd_26
+S      S      1   gd_21
+CH2    S      1   gd_26
+#endif

@@ -2,3 +2,4 @@
 --system gpref --egos production --epsilon 0.235 --train md_ensemble
 --system abetaref --egos production --epsilon 0.33 --train native_MD --reference ref
 --system ttrref --egos production --epsilon 0.33 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.275
+--system lyso-bnz_ref --egos production --epsilon 0.34 --train md_ensemble --inter_epsilon 0.43 --inter_domain_epsilon 3
