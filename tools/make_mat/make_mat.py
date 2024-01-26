@@ -172,7 +172,8 @@ def run_inter_(arguments):
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # repeat for cumulative
-            c_ref_df = read_mat(ref_f, protein_ref_indices_j, args, True)
+            c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
+            c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
             c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
