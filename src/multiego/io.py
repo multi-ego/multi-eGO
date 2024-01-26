@@ -40,6 +40,23 @@ def read_molecular_contacts(path):
     contact_matrix["aj"] = contact_matrix["aj"].astype(str)
     contact_matrix["intra_domain"] = contact_matrix["intra_domain"].astype(bool)
 
+    if len(contact_matrix.loc[(contact_matrix["probability"] < 0) | (contact_matrix["probability"] > 1)].values) > 0:
+        print("ERROR: check your matrix, probabilities should be between 0 and 1.")
+        exit()
+    if (
+        len(
+            contact_matrix.loc[
+                (contact_matrix["distance"] < 0) | (contact_matrix["distance"] > contact_matrix["cutoff"])
+            ].values
+        )
+        > 0
+    ):
+        print("ERROR: check your matrix, distances should be between 0 and cutoff (last column)")
+        exit()
+    if len(contact_matrix.loc[(contact_matrix["cutoff"] < 0)].values) > 0:
+        print("ERROR: check your matrix, cutoff values cannot be negative")
+        exit()
+
     return contact_matrix
 
 
@@ -338,4 +355,6 @@ def check_files_existence(args):
             ndx_files = glob.glob(f"{ensemble}/*.ndx")
             ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
             if not ndx_files and not args.egos == "rc":
-                raise FileNotFoundError(f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/")
+                raise FileNotFoundError(
+                    f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
+                )
