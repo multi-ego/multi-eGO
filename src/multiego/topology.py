@@ -13,15 +13,28 @@ def get_bonds(topology):
     bonds_dataframe: DataFrame containing bond-related information such as atom indices, bond function,
                      equilibrium bond length (req), and force constant (k).
     """
-    bonds_dataframe = pd.DataFrame(
-        {
-            "ai": [bonds.atom1.idx + 1 for bonds in topology],
-            "aj": [bonds.atom2.idx + 1 for bonds in topology],
-            "funct": [bonds.funct for bonds in topology],
-            "req": [bonds.type.req for bonds in topology],
-            "k": [bonds.type.k for bonds in topology],
-        }
-    )
+    bonds_data = []
+
+    for bond in topology:
+        ai = bond.atom1.idx + 1
+        aj = bond.atom2.idx + 1
+        funct = bond.funct
+        if bond.type is not None:
+            req = bond.type.req
+            k = bond.type.k
+        else:
+            if bond.atom1.name == "SG" and bond.atom2.name == "SG":
+                req = 0.204 * 10.0
+                k = 2.5e05 / (4.184 * 100 * 2)
+            else:
+                req = None
+                k = None
+                print("WARNING: there is an unparametrized bond in your reference topology: ", bond)
+
+        bonds_data.append({"ai": ai, "aj": aj, "funct": funct, "req": req, "k": k})
+
+    bonds_dataframe = pd.DataFrame(bonds_data)
+
     # Conversion from KCal/mol/A^2 to KJ/mol/nm^2 and from Amber to Gromos
     bonds_dataframe["req"] = bonds_dataframe["req"] / 10.0
     bonds_dataframe["k"] = bonds_dataframe["k"] * 4.184 * 100 * 2
@@ -47,19 +60,63 @@ def get_bond_pairs(topology):
     return bond_tuple
 
 
+import pandas as pd
+
+
 def get_angles(topology):
-    angles_dataframe = pd.DataFrame(
-        {
-            "ai": [angle.atom1.idx + 1 for angle in topology],
-            "aj": [angle.atom2.idx + 1 for angle in topology],
-            "ak": [angle.atom3.idx + 1 for angle in topology],
-            "funct": [angle.funct for angle in topology],
-            "theteq": [angle.type.theteq for angle in topology],
-            "k": [angle.type.k for angle in topology],
-        }
-    )
+    """
+    Extracts angle data from a topology object and constructs a pandas DataFrame.
+
+    Parameters:
+    - topology (parmed.Structure): The ParmEd topology object containing angle information.
+
+    Returns:
+    - pandas.DataFrame: A DataFrame containing angle data, including atom indices (ai, aj, ak),
+                        function type (funct), equilibrium angles (theteq), and force constants (k).
+    """
+    # List to store angle data dictionaries
+    angles_data = []
+
+    # Iterate over each angle in the topology
+    for angle in topology:
+        # Extract indices of atoms involved in the angle
+        ai = angle.atom1.idx + 1
+        aj = angle.atom2.idx + 1
+        ak = angle.atom3.idx + 1
+
+        # Extract angle function type
+        funct = angle.funct
+
+        # Check if the angle type is not None
+        if angle.type is not None:
+            # If angle type is not None, extract parameters theteq and k
+            theteq = angle.type.theteq
+            k = angle.type.k
+        else:
+            # If angle type is None, handle the unparametrized angle
+            if angle.atom2.name == "SG" and (angle.atom1.name == "SG" or angle.atom3.name == "SG"):
+                # Handle special case for cysteine residues
+                theteq = 104.0
+                k = 4.613345e02 / (4.184 * 2)  # Converting kcal/(mol*rad^2) to kJ/(mol*rad^2)
+            else:
+                # Set the parameters to None and print a warning
+                theteq = None
+                k = None
+                print("WARNING: there is an unparametrized angle in your reference topology:", angle)
+
+        # Append the angle data to the angles_data list as a dictionary
+        angles_data.append({"ai": ai, "aj": aj, "ak": ak, "funct": funct, "theteq": theteq, "k": k})
+
+    # Create a pandas DataFrame from the angles_data list
+    angles_dataframe = pd.DataFrame(angles_data)
+
+    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
     angles_dataframe["k"] = angles_dataframe["k"] * 4.184 * 2
+
+    # Format k values in scientific notation with 6 decimal places
     angles_dataframe["k"] = angles_dataframe["k"].map(lambda x: "{:.6e}".format(x))
+
+    # Return the DataFrame containing angle data
     return angles_dataframe
 
 
@@ -74,19 +131,56 @@ def get_dihedrals(topology):
     - dihedrals_dataframe (pandas.DataFrame): DataFrame containing dihedral angles data, including atom indices,
       function type, phase, phi_k, and periodicity.
     """
-    dihedrals_dataframe = pd.DataFrame(
-        {
-            "ai": [dihedral.atom1.idx + 1 for dihedral in topology],
-            "aj": [dihedral.atom2.idx + 1 for dihedral in topology],
-            "ak": [dihedral.atom3.idx + 1 for dihedral in topology],
-            "al": [dihedral.atom4.idx + 1 for dihedral in topology],
-            "funct": [dihedral.funct for dihedral in topology],
-            "phase": [dihedral.type.phase for dihedral in topology],
-            "phi_k": [dihedral.type.phi_k for dihedral in topology],
-            "per": [dihedral.type.per for dihedral in topology],
-        }
-    )
+    dihedrals_data = []
+
+    # Iterate over each dihedral in the topology
+    for dihedral in topology:
+        # Extract indices of atoms involved in the dihedral
+        ai = dihedral.atom1.idx + 1
+        aj = dihedral.atom2.idx + 1
+        ak = dihedral.atom3.idx + 1
+        al = dihedral.atom4.idx + 1
+
+        # Extract dihedral function type
+        funct = dihedral.funct
+
+        # Check if the dihedral type is not None
+        if dihedral.type is not None:
+            # If dihedral type is not None, extract parameters theteq and k
+            phase = dihedral.type.phase
+            phi_k = dihedral.type.phi_k
+            per = dihedral.type.per
+        else:
+            # If dihedral type is None, handle the unparametrized dihedral
+            if dihedral.atom2.name == "SG" and dihedral.atom3.name == "SG":
+                # Handle special case for cysteine residues
+                phase = 0.0
+                phi_k = 16.7 / (4.184)  # Converting kcal/(mol*rad^2) to kJ/(mol*rad^2)
+                per = 2
+            elif dihedral.atom3.name == "SG" and dihedral.atom4.name == "SG":
+                # Handle special case for cysteine residues
+                phase = 0.0
+                phi_k = 2.93 / (4.184)  # Converting kcal/(mol*rad^2) to kJ/(mol*rad^2)
+                per = 3
+            else:
+                # Set the parameters to None and print a warning
+                phase = None
+                phi_k = None
+                per = None
+                print("WARNING: there is an unparametrized dihedral in your reference topology:", dihedral)
+
+        # Append the dihedral data to the dihedrals_data list as a dictionary
+        dihedrals_data.append(
+            {"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "phase": phase, "phi_k": phi_k, "per": per}
+        )
+
+    # Create a pandas DataFrame from the dihedrals_data list
+    dihedrals_dataframe = pd.DataFrame(dihedrals_data)
+
+    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
     dihedrals_dataframe["phi_k"] = dihedrals_dataframe["phi_k"] * 4.184
+
+    # Return the DataFrame containing dihedral data
     return dihedrals_dataframe
 
 
@@ -101,18 +195,41 @@ def get_impropers(topology):
     - impropers_dataframe (pandas.DataFrame): DataFrame containing improper torsion data, including atom indices,
       function type, psi_eq, and psi_k.
     """
-    impropers_dataframe = pd.DataFrame(
-        {
-            "ai": [improper.atom1.idx + 1 for improper in topology],
-            "aj": [improper.atom2.idx + 1 for improper in topology],
-            "ak": [improper.atom3.idx + 1 for improper in topology],
-            "al": [improper.atom4.idx + 1 for improper in topology],
-            "funct": [improper.funct for improper in topology],
-            "psi_eq": [improper.type.psi_eq for improper in topology],
-            "psi_k": [improper.type.psi_k for improper in topology],
-        }
-    )
+    impropers_data = []
+
+    # Iterate over each improper in the topology
+    for improper in topology:
+        # Extract indices of atoms involved in the improper
+        ai = improper.atom1.idx + 1
+        aj = improper.atom2.idx + 1
+        ak = improper.atom3.idx + 1
+        al = improper.atom4.idx + 1
+
+        # Extract improper function type
+        funct = improper.funct
+
+        # Check if the improper type is not None
+        if improper.type is not None:
+            # If improper type is not None, extract parameters theteq and k
+            psi_eq = improper.type.psi_eq
+            psi_k = improper.type.psi_k
+        else:
+            # If improper type is None, handle the unparametrized improper
+            # Set the parameters to None and print a warning
+            psi_eq = None
+            psi_k = None
+            print("WARNING: there is an unparametrized improper in your reference topology:", improper)
+
+        # Append the improper data to the impropers_data list as a dictionary
+        impropers_data.append({"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "psi_eq": psi_eq, "psi_k": psi_k})
+
+    # Create a pandas DataFrame from the impropers_data list
+    impropers_dataframe = pd.DataFrame(impropers_data)
+
+    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
     impropers_dataframe["psi_k"] = impropers_dataframe["psi_k"] * 4.184 * 2
+
+    # Return the DataFrame containing improper data
     return impropers_dataframe
 
 

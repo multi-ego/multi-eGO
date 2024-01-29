@@ -420,7 +420,7 @@
 S      S       1    gb_36
 
 [ angletypes ]
-CH1    CH2    S     1   ga_16
+;CH1    CH2    S     1   ga_16
 CH2    S      S     1   ga_6
 
 [ dihedraltypes ]

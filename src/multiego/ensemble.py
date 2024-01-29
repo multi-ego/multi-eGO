@@ -306,8 +306,8 @@ def init_meGO_ensemble(args):
     # ignore the dihedral type overriding in parmed
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        reference_topology = parmed.load_file(topology_path)
-
+        defines = {"DISULFIDE": 1}
+        reference_topology = parmed.load_file(topology_path, defines)
     (
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
