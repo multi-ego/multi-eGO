@@ -60,9 +60,6 @@ def get_bond_pairs(topology):
     return bond_tuple
 
 
-import pandas as pd
-
-
 def get_angles(topology):
     """
     Extracts angle data from a topology object and constructs a pandas DataFrame.
