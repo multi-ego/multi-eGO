@@ -62,9 +62,6 @@ and select the multi-ego-basic force-field. From this you should get a (.gro) fi
                       └── multi-eGO_basic.ff
 ```
 
-> [!NOTE]
-> When using a system with disulfide bridges, it is as of version `beta.1` necessary to remove the comments from ```ffbonded.itp``` in the ```multi-ego-basic.ff/``` folder and later to add them in the .top file.
-
 ### Analysis of a training simulation
 
 [Back to Usage](#usage)
