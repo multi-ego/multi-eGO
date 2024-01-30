@@ -23,7 +23,7 @@ Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [C
 
 ## Requirements
 Multi-*e*GO force fields and tools are intended to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
-You will need to know how to compile GROMACS from source, as some multi-eGO tools require GROMACS recompilation.
+You will need to know how to compile GROMACS from source, as some multi-eGO tools require GROMACS to be recompiled.
 
 ## Installation
 Use ```conda``` and the environment file provided as
