@@ -33,7 +33,7 @@ conda activate meGO
 ```
 It is also possible to use ``pip install -r requirements.txt``.
 
-To install the `cmdata` gromacs tool: use the ```patch_gromacs.sh``` script located in ```multi-eGO/tools/cmdata/``` with the gromacs root directory as argument. The script will then patch the GROMACS installation using the cmdata tool. After that we need to compile GROMACS. Please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
+To install the `cmdata` GROMACS tool: use the ```patch_gromacs.sh``` script located in ```multi-eGO/tools/cmdata/``` with the GROMACS root directory as argument. The script will then patch the GROMACS installation using the cmdata tool. After that GROMACS needs to be recompiled. Please refer to the [GROMACS installation guide](https://manual.gromacs.org/documentation/current/install-guide/index.html).
 
 
 ## Usage
@@ -53,7 +53,7 @@ Copy your PDB file and the ```multi-ego-basic.ff/``` included here into a folder
 ```
 gmx pdb2gmx -f file.pdb -ignh
 ```
-and select the multi-ego-basic forcefield. This should give you a (.gro) file for your structure and a (.top) topology file. In the ```multi-eGO/inputs``` folder, add a folder for your system and a ```reference/``` subfolder. Copy your GROMACS topology into this ```reference/``` subfolder so that the final structure looks like this:
+and select the multi-ego-basic forcefield. This should give you a ```(.gro)``` file for your structure and a ```(.top)``` topology file. In the ```multi-eGO/inputs``` folder, add a folder for your system and a ```reference/``` subfolder. Copy your GROMACS topology into this ```reference/``` subfolder so that the final structure looks like this:
 ```
 └── input
       └──  system_name
@@ -66,19 +66,19 @@ and select the multi-ego-basic forcefield. This should give you a (.gro) file fo
 
 [Back to Usage](#usage)
 
-Assuming that a training simulation has already been run, two steps are required to learn the interactions from that simulation. First, we need to extract the contact data from the simulation. To do this we use the ```cmdata``` tool. The tool has to be installed by recompiling GROMACS, see [Installation](#Installation). 
+Assuming that a training simulation has already been run, two steps are required to learn the interactions from that simulation. First, one need to extract the contact data from the simulation. To do this you can use the ```cmdata``` tool. The tool has to be installed by recompiling GROMACS, see [Installation](#Installation). 
 
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym
 ```
-As you can see, we have specified an additional input, the ```aa_sym``` file. This file is a list of equivalent atoms in the system, it is not mandatory and can be used to enforce symmetries in the interactions. We provide a sample file in ```multi-eGO/tools/cmdata/aa_sym```. 
+```cmdata``` reads a trajectory, a GROMACS run input file and a list ```aa_sym``` of equivalent atoms in the system. This latter file is optional and can be used to enforce symmetries in the interactions. We provide a sample file in ```multi-eGO/tools/cmdata/aa_sym```. 
 
-The output will be a collection of histograms in the form of ```.dat``` text files. These files then need to be processed to obtain contact distances and probabilities. To do this we use ```tools/make_mat/make_mat.py``` as follows, assuming that the histograms are located in the md simulation directory in a subdirectory called ```histo/```:
+The output will be a collection of histograms in the form of ```.dat``` text files. These files then need to be processed to obtain contact distances and probabilities. To do this one can use ```tools/make_mat/make_mat.py``` as follows, assuming that the histograms are located in the md simulation directory in a subdirectory called ```histo/```:
 ```
-python tools/make_mat/make_mat.py --histo $MD_DIRECTORY/histo --target_top $MD_DIRECTORY/topol.top --mego_top inputs/$SYSTEM_NAME/reference/topol.top --cutoff 0.75 --out inputs/$SYSTEM_NAME/md_ensemble # --proc 4 ## for multiprocessing.
+python tools/make_mat/make_mat.py --histo $MD_DIRECTORY/histo --target_top $MD_DIRECTORY/topol.top --mego_top inputs/$SYSTEM_NAME/reference/topol.top --out inputs/$SYSTEM_NAME/md_ensemble # --proc 4 ## for multiprocessing.
 ```
 
-Finally, we need to copy the topology, force field and contact files into an appropriate folder, such as
+Finally, you need to copy the topology, force field and contact files into an appropriate folder, such as
 
 ```
 └── input
@@ -101,7 +101,7 @@ Create a folder in which you want to run the random coil simulation. Copy the ``
 python multiego.py --system $SYSTEM_NAME --egos rc
 ```
 ```multiego.py``` will then create an output directory in ```multi-eGO/outputs/${SYSTEM_NAME}_rc``` which provides the inputs for the random coil simulation.
-The contents of the output folder are ```ffnonbonded.itp``` and ```topol_GRETA.top```. The former is the non-bonded interaction file and needs to be copied into the ```multi-ego-basic.ff/``` folder. The latter needs to be placed in the simulation root directory. We provide mdps tested with various multi-*e*GO setups in the ```multi-eGO/mdps``` folder. The order in which the mdps are run is as follows:
+The contents of the output folder are ```ffnonbonded.itp``` and ```topol_GRETA.top```. The former is the non-bonded interaction file and needs to be copied into the ```multi-ego-basic.ff/``` folder. The latter needs to be placed in the simulation root directory. We provide ```mdps``` simulation setup files tested with various multi-*e*GO setups in the ```multi-eGO/mdps``` folder. The order in which the simulations are run is as follows:
 
 ```
     1. ff_em.mdp
@@ -110,7 +110,7 @@ The contents of the output folder are ```ffnonbonded.itp``` and ```topol_GRETA.t
     4. ff_rc.mdp
 ```
 
-Once the simulation is done, we need to analyse it using ```cmdata``` and ```make_mat.py``` as before:
+Once the random coil simulation is done, you need to analyse it using ```cmdata``` and ```make_mat.py``` as before:
 
 ```
 gmx cmdata -f $YOUR_TRAJECTORY.xtc -s $YOUR_TOPOLOGY.tpr -sym aa_sym
@@ -136,11 +136,11 @@ This is the final structure of the input folders:
 
 [Back to Usage](#usage)
 
-To setup a multi-*e*GO production simulation, we need to run ```multiego.py``` again. Before running the code, make sure that the topologies of your systems all have the same *moleculetype* name. If they do not, you need to change the name in the ```topol.top``` file or the program will crash.
+To setup a multi-*e*GO production simulation, you need to run ```multiego.py``` again. Before running the code, make sure that the topologies of your systems all have the same *moleculetype* name. If they do not, you need to change the name in the ```topol.top``` file or the program will crash.
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train md_ensemble
 ```
-We set the energy scale &#949; to 0.3 kJ/mol and we train the model from the ```md_ensemble```. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The mdps are the same except for the last step which is now ```ff_aa.mdp```.
+Here one sets the energy scale &#949; to 0.3 kJ/mol and trains the model from the ```md_ensemble``` data. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The ```mdps``` files are the same except for the last step which is now ```ff_aa.mdp```.
 
 Happy simulating :)
 
