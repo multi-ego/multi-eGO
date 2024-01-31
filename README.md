@@ -48,7 +48,7 @@ To install the `cmdata` GROMACS tool: use the ```patch_gromacs.sh``` script loca
 
 [Back to Usage](#usage)
 
-The first step in running a multi-*e*GO simulation is to create a GROMACS topology file (.top). 
+The first step in running a multi-*e*GO simulation is to create a GROMACS topology file ```(.top)```. 
 Copy your PDB file and the ```multi-ego-basic.ff/``` included here into a folder, then run 
 ```
 gmx pdb2gmx -f file.pdb -ignh
