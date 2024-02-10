@@ -552,6 +552,8 @@ def calculate_intra_probabilities(args):
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
+        if np.isnan(c12_cutoff.astype(float)).any():
+            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
         ########################
         # PARALLEL PROCESS START
@@ -781,6 +783,10 @@ def calculate_inter_probabilities(args):
                 1.0 / 12.0,
             ),
         )
+        if np.any(c12_cutoff > args.cutoff):
+            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
+        if np.isnan(c12_cutoff.astype(float)).any():
+            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
         ########################
         # PARALLEL PROCESS START
