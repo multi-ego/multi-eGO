@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import time
 import glob
@@ -55,6 +56,12 @@ def read_molecular_contacts(path):
         exit()
     if len(contact_matrix.loc[(contact_matrix["cutoff"] < 0)].values) > 0:
         print("ERROR: check your matrix, cutoff values cannot be negative")
+        exit()
+    if contact_matrix.isnull().values.any():
+        print("ERROR: check your matrix, it contains NAN values")
+        exit()
+    if np.isinf(contact_matrix[["probability", "distance", "cutoff"]]).values.any():
+        print("ERROR: check your matrix, it contains INF values")
         exit()
 
     return contact_matrix
