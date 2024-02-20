@@ -3,8 +3,8 @@
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. ChemRxiv (2023) 10.26434/chemrxiv-2023-67255-v2
-; Created on the 21-12-2023 09:21
+; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
+; Created on the 20-02-2024 18:00
 ; With the following parameters:
 ;	- system          = abetaref            
 ;	- egos            = production          
@@ -17,6 +17,8 @@
 ;	- inter_domain_epsilon = 0.33                
 ;	- p_to_learn      = 0.9995              
 ;	- epsilon_min     = 0.07                
+;	- force_split     =                     
+;	- custom_dict     =                     
 ;	- root_dir        = /Users/carlo/Codes/multi-eGO
 
 
