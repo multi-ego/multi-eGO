@@ -1087,11 +1087,19 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # This is a debug check to avoid data inconsistencies
     if (np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"])).max() > 0:
-        print(meGO_LJ.loc[(np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"]) > 0)].to_string())
+        print(
+            meGO_LJ[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+            .loc[(np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"]) > 0)]
+            .to_string()
+        )
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
-        print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
+        print(
+            meGO_LJ[["source", "file", "rc_source", "rc_file", "rep", "cutoff"]]
+            .loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)]
+            .to_string()
+        )
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # keep only needed fields
@@ -1310,7 +1318,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
-        print(meGO_LJ.loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)].to_string())
+        print(
+            meGO_LJ[["source", "same_chain", "rep", "cutoff"]]
+            .loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)]
+            .to_string()
+        )
         exit("SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
     # now is a good time to acquire statistics on the parameters
@@ -1356,33 +1368,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_LJ
     test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
     meGO_LJ_14 = test.loc[(~test["same_chain_x"]) | ((test["same_chain_x"]) & (~test["same_chain_y"]))]
-    meGO_LJ_14 = meGO_LJ_14.drop(
-        columns=[
-            "sigma_y",
-            "epsilon_y",
-            "same_chain_y",
-            "probability_y",
-            "rc_probability_y",
-            "source_y",
-            "1-4_y",
-            "cutoff_y",
-            "rep_y",
-        ]
-    )
-    meGO_LJ_14.rename(
-        columns={
-            "sigma_x": "sigma",
-            "probability_x": "probability",
-            "rc_probability_x": "rc_probability",
-            "epsilon_x": "epsilon",
-            "same_chain_x": "same_chain",
-            "source_x": "source",
-            "1-4_x": "1-4",
-            "cutoff_x": "cutoff",
-            "rep_x": "rep",
-        },
-        inplace=True,
-    )
+    # removes columns ending with _y
+    meGO_LJ_14 = meGO_LJ_14.loc[:, ~meGO_LJ_14.columns.str.endswith("_y")]
+    # rename the columns _x
+    meGO_LJ_14.columns = meGO_LJ_14.columns.str.rstrip("_x")
 
     # copy 1-4 interactions into meGO_LJ_14
     copy14 = meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4")]
