@@ -8,15 +8,8 @@
 #include "cmdata/indexing.hpp"
 #include "cmdata/density.hpp"
 
-#ifdef DB
-#define LOG(x) std::cout << x << std::endl;
-#else
-#define LOG(x)
-#endif
-
 namespace cmdata::mindist
 {
-
 
 static void mindist_same(
   std::size_t start_mti_same, std::size_t start_im_same, std::size_t start_i_same, 
@@ -28,7 +21,6 @@ static void mindist_same(
   double weight
 )
 {
-  LOG("mindist_same");
   bool first_im_same = true, first_i_same = true, first_j_same = true;
   unsigned counter_same = 0;
   for (std::size_t mt_i = start_mti_same; mt_i < natmol2.size(); mt_i++)
@@ -70,7 +62,6 @@ static void mindist_cross(
   double weight
 )
 {
-  LOG("mindist_cross");
   bool first_im_cross = true, first_mtj_cross = true, first_jm_cross = true, first_i_cross = true, first_j_cross = true;
   unsigned counter_cross = 0;
   

@@ -4,13 +4,6 @@
 #include <condition_variable>
 #include <mutex>
 
-// #define DB
-#ifdef DB
-#define LOG(x) std::cout << x << std::endl;
-#else
-#define LOG(x)
-#endif
-
 namespace cmdata::parallel
 {
 
@@ -25,7 +18,6 @@ public:
   Semaphore( std::uint64_t counter = 0 ) : mut(std::mutex()), cv(std::condition_variable()), counter(counter) {}
   void acquire()
   {
-    LOG("acquire out of " << counter);
     std::unique_lock<std::mutex> lock(mut);
     cv.wait(lock, [this](){ return counter > 0; });
     --counter;
@@ -34,7 +26,6 @@ public:
 
   void release()
   {
-    LOG("release out of " << counter);
     std::unique_lock<std::mutex> lock(mut);
     ++counter;
     lock.unlock();

@@ -22,9 +22,4 @@ namespace cmdata::ftypes
   }
 }
 
-// #define PARAMETER_TYPES_INTRA int, std::size_t, std::size_t, double, double, int, const std::vector<int> &, const std::vector<int> &,const std::vector<double> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &
-// #define PARAMETER_TYPES_SAME int, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &, const std::vector<int> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &
-// #define PARAMETER_TYPES_CROSS int, int, std::size_t, std::size_t, std::size_t, std::size_t, double, double, const std::vector<int> &, const std::vector<int> &, const std::vector<std::vector<int>> &, const std::vector<double> &, std::vector<std::vector<std::mutex>> &, std::vector<std::vector<double>> &, std::vector<std::vector<std::vector<std::vector<double>>>> &
-// #define PARAMETER_TYPES_NORM std::size_t, int, int, double, double, std::vector<std::vector<std::vector<std::vector<double>>>> &
-
 #endif // _CMDATA_FUNCTION_TYPES_HPP

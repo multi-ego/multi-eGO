@@ -44,13 +44,6 @@
 #include <xdrfile.h>
 #include <xdrfile_xtc.h>
 
-// #define DB
-#ifdef DB
-#define LOG(x) std::cout << x << std::endl;
-#else
-#define LOG(x)
-#endif
-
 namespace cmdata
 {
 
@@ -96,11 +89,13 @@ private:
   double mcut2_;
   double cut_sig_2_;
   double dx_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> interm_same_mat_density_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_mat_density_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> intram_mat_density_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> interm_same_maxcdf_mol_;
-  std::vector<std::vector<std::vector<std::vector<double>>>> interm_cross_maxcdf_mol_;
+
+  using cmdata_matrix = std::vector<std::vector<std::vector<std::vector<double>>>>;
+  cmdata_matrix interm_same_mat_density_;
+  cmdata_matrix interm_cross_mat_density_;
+  cmdata_matrix intram_mat_density_;
+  cmdata_matrix interm_same_maxcdf_mol_;
+  cmdata_matrix interm_cross_maxcdf_mol_;
 
   // temporary containers for maxcdf operations
   std::vector<std::vector<double>> frame_same_mat_;
@@ -115,15 +110,10 @@ private:
   std::string mode_;
   bool intra_ = false, same_ = false, cross_ = false;
 
-  // ftypes
-  // using fsig_intra = cmdata::ftypes::f_signature<decltype(&cmdata::density::intra_mol_routine)>;
-  // using ftype_intra_ = decltype(cmdata::density::intra_mol_routine);
-  // using ftype_same_ = decltype(cmdata::density::intra_mol_routine);
-  // using ftype_cross_ = decltype(cmdata::density::intra_mol_routine);
+  // function types
   using ftype_intra_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::intra_mol_routine)>;
   using ftype_same_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::inter_mol_same_routine)>;
   using ftype_cross_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::inter_mol_cross_routine)>;
-  using ftype_norm_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::normalize_histo)>;
 
   std::function<ftype_intra_::signature> f_intra_mol_;
   std::function<ftype_same_::signature> f_inter_mol_same_;
@@ -141,7 +131,7 @@ private:
     long int n_loop_operations_same,
     const std::vector<std::vector<double>> &frame_same_mat,
     std::vector<std::vector<std::mutex>> &frame_same_mutex, 
-    std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
+    cmdata_matrix &interm_same_maxcdf_mol,
     std::size_t start_mti_cross,              // cross parameters
     std::size_t start_mtj_cross,
     std::size_t start_im_cross,
@@ -152,11 +142,9 @@ private:
     const std::vector<std::vector<int>> &cross_index, 
     const std::vector<std::vector<double>> &frame_cross_mat,
     std::vector<std::vector<std::mutex>> &frame_cross_mutex,
-    std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+    cmdata_matrix &interm_cross_maxcdf_mol
   )
   {
-    LOG("mindist kernel");
-    LOG("starting with " << n_loop_operations_same << " same operations and " << n_loop_operations_cross << " cross operations" << std::endl);
     if ( n_loop_operations_same != 0 )
     {
       cmdata::mindist::mindist_same(
@@ -165,8 +153,6 @@ private:
       );
     }
 
-    LOG("same done");
-    LOG("cross_index n_loop_operations_cross: " << n_loop_operations_cross << " " << cross_index.size());
     if ( n_loop_operations_cross != 0 )
     {
       cmdata::mindist::mindist_cross(
@@ -174,8 +160,6 @@ private:
         natmol2, cross_index, density_bins, num_mol_unique, frame_cross_mat, frame_cross_mutex, interm_cross_maxcdf_mol, weight
       );
     }
-
-    LOG("cross done");
   }
 
   static void molecule_routine(
@@ -184,15 +168,12 @@ private:
     const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, const double mcut2_, 
     rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, const std::vector<std::vector<std::vector<int>>> &equivalence_list_,
     std::vector<std::vector<double>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
-    std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_,
-    std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density_,
-    std::vector<std::vector<double>> &frame_cross_mat_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
-    std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
+    cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<double>> &frame_cross_mat_,
+    std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
     const std::function<ftype_intra_::signature> &f_intra_mol_, const std::function<ftype_same_::signature> &f_inter_mol_same_,
     const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight
   )
   {
-    LOG("molecule routine")
     const char * atomname;
     int tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
@@ -208,7 +189,6 @@ private:
     /* Loop over molecules  */
     for (int j = 0; j < nindex_; j++)
     {
-      LOG("molecule loop" << i << " " << j);
       if (j!=0)
         if (mol_j == num_mol_unique_[mol_id_[j-1]]) mol_j = 0;
 
@@ -229,7 +209,6 @@ private:
       /* cycle over the atoms of a molecule i */
       for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
       {
-        LOG("atom loop ii" << i << " " << j << " " << ii);
         std::size_t a_j = 0;
         mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
         if (atomname[0] == 'H')
@@ -240,7 +219,6 @@ private:
         /* cycle over the atoms of a molecule j */
         for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
         {
-          LOG("atom loop jj " << i << " " << j << " " << ii << " " << jj);
           mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
           if (atomname[0] == 'H')
           {
@@ -338,7 +316,6 @@ private:
     semaphore_.release();
   }
 
-
 public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
@@ -358,28 +335,6 @@ public:
     TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
-    std::string pbc_str;
-    switch (pbcType_)
-    {
-      case PbcType::Xyz:
-        pbc_str = "xyz";
-        break;
-      case PbcType::No:
-        pbc_str = "no";
-        break;
-      case PbcType::XY:
-        pbc_str = "xy";
-        break;
-      case PbcType::Screw:
-        pbc_str = "screw";
-        break;
-      case PbcType::Unset:
-        pbc_str = "unset";
-        break;
-      case PbcType::Count:
-        pbc_str = "count";
-        break;
-    }
 
     if (no_pbc_)
     {
@@ -440,7 +395,6 @@ public:
     mol_threads_.resize(nindex_);
     semaphore_.set_counter(std::min(num_threads_, nindex_));
     std::cout << "Using " << num_threads_ << " threads" << std::endl;
-    // pbc_ = no_pbc_ ? nullptr : top.
 
     // set up mode selection
     f_intra_mol_ = cmdata::ftypes::do_nothing<ftype_intra_>();
@@ -497,9 +451,7 @@ public:
     start_index.push_back(0);
     num_unique_molecules = 0;
     inv_num_mol_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
-    // ERROR IS HERE
     num_mol_unique_.push_back(num_mol[num_unique_molecules]);
-    LOG("num_mol_unique_ size: " << num_mol_unique_.size() << "\n");
     inv_num_mol_unique_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
     for (int i = 1; i < nindex_; i++)
     {
@@ -635,15 +587,12 @@ public:
 
       if ((std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
       {
-        
-        LOG("INSIDE IF");
         double weight = 1.0;
         if ( !weights_.empty() )
         {
           weight = weights_[frnr];
           weights_sum_ += weight;
         }
-        // rvec *x = frame_.x;
         /* resetting the per frame vector to zero */
         for ( std::size_t i = 0; i < frame_same_mat_.size(); i++ )
         {
@@ -659,7 +608,6 @@ public:
         /* start loop for each molecule */
         for (int i = 0; i < nindex_; i++)
         {
-          LOG("pre mol thread " << i);
           /* start molecule thread*/
           mol_threads_[i] = std::thread(molecule_routine, i, nindex_, pbc_, frame_->x, std::cref(inv_num_mol_), 
           cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
@@ -668,17 +616,13 @@ public:
           std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
           std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight);
           /* end molecule thread */
-          LOG("post mol thread " << i);
         }
         /* join molecule threads */
-        LOG("joining mol threads");
         for ( auto &thread : mol_threads_ ) thread.join();
-        LOG("mol threads joined");
 
         /* calculate the mindist accumulation indices */
         std::size_t num_ops_same = 0;
         for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-        LOG("num ops same: " << num_ops_same);
         int n_per_thread_same = (same_) ? num_ops_same / num_threads_  : 0;
         int n_threads_same_uneven = (same_) ? num_ops_same % num_threads_ : 0;
         std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
@@ -697,17 +641,11 @@ public:
         std::size_t start_mti_cross = 0, start_mtj_cross = 1, start_im_cross = 0, start_jm_cross = 0, start_i_cross = 0, start_j_cross = 0;
         std::size_t end_mti_cross = 1, end_mtj_cross = 2, end_im_cross = 1, end_jm_cross = 1, end_i_cross = 0, end_j_cross = 0;
 
-        LOG("end mti same: " << end_mti_same << std::endl);
-        LOG("natmol2 size: " << natmol2_.size() << std::endl);
-        LOG("natmol2[end_mti_same - 1]: " << natmol2_[end_mti_same - 1] << std::endl);
-
         for ( int tid = 0; tid < num_threads_; tid++ )
         {
-          LOG("tid: " << tid << std::endl);
           /* calculate same indices */
           int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
           long int n_loop_operations_total_same = n_loop_operations_same;
-          LOG("nloop operations same: " << n_loop_operations_same);
           while ( natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same) <= n_loop_operations_same )
           {
             int sub_same = natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same);
@@ -730,7 +668,6 @@ public:
             if (n_loop_operations_same == 0) break;
           }
           end_j_same += n_loop_operations_same;  
-          LOG("ici");
           /* calculate cross indices */
           int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
           if ( natmol2_.size() > 1 && cross_ )
@@ -782,7 +719,6 @@ public:
             end_i_cross += end_j_cross / natmol2_[end_mtj_cross-1];
             end_j_cross %= natmol2_[end_mtj_cross-1];
           }
-          LOG("pre start thread");
           /* start thread */
           threads_[tid] = std::thread(
             mindist_kernel, weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
@@ -793,7 +729,6 @@ public:
             std::ref(frame_cross_mutex_), std::ref(interm_cross_maxcdf_mol_)
           );
           /* end thread */
-          LOG("post start thread");
 
           /* set new starts */
           start_mti_same = end_mti_same - 1;
@@ -808,7 +743,6 @@ public:
           start_i_cross = end_i_cross;
           start_j_cross = end_j_cross;
         }
-        LOG("pre join");
         for ( auto &thread : threads_ ) thread.join();
         ++n_x_;
       }
@@ -826,11 +760,12 @@ public:
     // normalisations
     double norm = ( weights_.empty() ) ? 1. / n_x_ : 1. / weights_sum_;
 
-    std::function<ftype_norm_::signature> f_empty = cmdata::ftypes::do_nothing<ftype_norm_>();
+    using ftype_norm = cmdata::ftypes::function_traits<decltype(&cmdata::density::normalize_histo)>;
+    std::function<ftype_norm::signature> f_empty = cmdata::ftypes::do_nothing<ftype_norm>();
 
-    std::function<ftype_norm_::signature> normalize_intra = (intra_) ? cmdata::density::normalize_histo : f_empty;
-    std::function<ftype_norm_::signature> normalize_inter_same = (same_) ? cmdata::density::normalize_histo : f_empty;
-    std::function<ftype_norm_::signature> normalize_inter_cross = (cross_) ? cmdata::density::normalize_histo : f_empty;
+    std::function<ftype_norm::signature> normalize_intra = (intra_) ? cmdata::density::normalize_histo : f_empty;
+    std::function<ftype_norm::signature> normalize_inter_same = (same_) ? cmdata::density::normalize_histo : f_empty;
+    std::function<ftype_norm::signature> normalize_inter_cross = (cross_) ? cmdata::density::normalize_histo : f_empty;
 
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
@@ -881,52 +816,29 @@ public:
   void write_output( const std::string &output_prefix )
   {
     std::cout << "Writing data... " << std::endl;
-    std::function<void(const std::string &,
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_intra = [](const std::string &,
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
-    std::function<void(const std::string &,
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_inter_same = [](const std::string &,
-      std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
-    std::function<void(const std::string &,
-      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<int>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    )> write_inter_cross = [](const std::string &,
-      std::size_t, std::size_t, int, const std::vector<double> &, const std::vector<int> &,
-      const std::vector<std::vector<int>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &,
-      const std::vector<std::vector<std::vector<std::vector<double>>>> &
-    ){};
-
+    using ftype_write_intra = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_intra)>;
+    using ftype_write_inter_same = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_same)>;
+    using ftype_write_inter_cross = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_cross)>;
+    std::function<ftype_write_intra::signature> write_intra = cmdata::ftypes::do_nothing<ftype_write_intra>();
+    std::function<ftype_write_inter_same::signature> write_inter_same = cmdata::ftypes::do_nothing<ftype_write_inter_same>();
+    std::function<ftype_write_inter_cross::signature> write_inter_cross = cmdata::ftypes::do_nothing<ftype_write_inter_cross>();
     if (intra_) write_intra = cmdata::io::f_write_intra;
     if (same_) write_inter_same = cmdata::io::f_write_inter_same;
     if (cross_) write_inter_cross = cmdata::io::f_write_inter_cross;
 
-    float progress = 0.0, new_progress = 0.0;
-    cmdata::io::print_progress_bar(progress);
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
-      new_progress = static_cast<float>(i) / static_cast<float>(natmol2_.size());
-      if (new_progress - progress > 0.01)
-      {
-        progress = new_progress;
-        cmdata::io::print_progress_bar(progress);
-      }
+      std::cout << "Writing data for molecule " << i << "..." << std::endl;
+      cmdata::io::print_progress_bar(0.0);
+      float progress = 0.0, new_progress = 0.0;    
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
+        new_progress = static_cast<float>(ii) / static_cast<float>(natmol2_[i]);
+        if (new_progress - progress > 0.01)
+        {
+          progress = new_progress;
+          cmdata::io::print_progress_bar(progress);
+        }
         write_intra(output_prefix, i, ii, density_bins_, natmol2_, intram_mat_density_);
         write_inter_same(output_prefix, i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
       }
@@ -938,7 +850,8 @@ public:
         }
       }
     }
-    printf("finished\n");
+    cmdata::io::print_progress_bar(1.0);
+    std::cout << "\nFinished!" << std::endl;
   }
 };
 
