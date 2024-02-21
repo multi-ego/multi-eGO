@@ -50,14 +50,12 @@ namespace cmdata
 class CMData
 {
 private:
-  gmx::Selection refsel_;
   double cutoff_;
   double mol_cutoff_;
   int n_x_;
-  unsigned long int nframe_;
   int nskip_;
   rvec *xcm_ = nullptr;
-  gmx_mtop_t *mtop_ = NULL;
+  gmx_mtop_t *mtop_;
   std::vector<int> mol_id_;
   std::vector<double> inv_num_mol_;
   std::vector<double> inv_num_mol_unique_;
@@ -81,7 +79,6 @@ private:
   int nindex_;
   gmx::RangePartitioning mols_;
   std::vector<std::vector<int>> cross_index_;
-  std::vector<t_atoms> molecules_;
   std::vector<double> density_bins_;
   std::size_t n_bins_;
   int num_threads_;
@@ -118,49 +115,6 @@ private:
   std::function<ftype_intra_::signature> f_intra_mol_;
   std::function<ftype_same_::signature> f_inter_mol_same_;
   std::function<ftype_cross_::signature> f_inter_mol_cross_;
-
-  static void mindist_kernel(
-    double weight,                            // common parameters
-    const std::vector<int> &natmol2,
-    const std::vector<double> &density_bins,
-    const std::vector<int> &num_mol_unique,
-    std::size_t start_mti_same,               // same parameters
-    std::size_t start_im_same,
-    std::size_t start_i_same,
-    std::size_t start_j_same,
-    long int n_loop_operations_same,
-    const std::vector<std::vector<double>> &frame_same_mat,
-    std::vector<std::vector<std::mutex>> &frame_same_mutex, 
-    cmdata_matrix &interm_same_maxcdf_mol,
-    std::size_t start_mti_cross,              // cross parameters
-    std::size_t start_mtj_cross,
-    std::size_t start_im_cross,
-    std::size_t start_jm_cross,
-    std::size_t start_i_cross,
-    std::size_t start_j_cross,
-    int n_loop_operations_cross,
-    const std::vector<std::vector<int>> &cross_index, 
-    const std::vector<std::vector<double>> &frame_cross_mat,
-    std::vector<std::vector<std::mutex>> &frame_cross_mutex,
-    cmdata_matrix &interm_cross_maxcdf_mol
-  )
-  {
-    if ( n_loop_operations_same != 0 )
-    {
-      cmdata::mindist::mindist_same(
-        start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same, density_bins,
-        num_mol_unique, natmol2, frame_same_mat, frame_same_mutex, interm_same_maxcdf_mol, weight
-      );
-    }
-
-    if ( n_loop_operations_cross != 0 )
-    {
-      cmdata::mindist::mindist_cross(
-        start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_cross, 
-        natmol2, cross_index, density_bins, num_mol_unique, frame_cross_mat, frame_cross_mutex, interm_cross_maxcdf_mol, weight
-      );
-    }
-  }
 
   static void molecule_routine(
     const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<double> &inv_num_mol_, const double cut_sig_2_, 
@@ -227,7 +181,7 @@ private:
           }
           // check for chemical equivalence
           double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[j]][a_j].size());
-          if(i==j&&a_i!=a_j)
+          if (i==j&&a_i!=a_j)
           {
             // this is to account for the correct normalisation in the case in which
             // an intramolecular interaction is between two atoms that are also equivalent
@@ -240,7 +194,7 @@ private:
                 std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
                 std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
                 std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
-                if(geqa_i==geqa_j) nsym=nsym-1.0;
+                if (geqa_i==geqa_j) nsym=nsym-1.0;
               }
             }
           }
@@ -254,18 +208,18 @@ private:
               std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
               std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
               std::size_t delta  = eqa_i - eqa_j;
-              if(i==j&&a_i==a_j) {
+              if (i==j&&a_i==a_j) {
                 // this is the special case of intra-self that should not be symmetrized
                 // the distance of an atom with itself cannot be greater than 0.
                 geqa_i=ii;
                 geqa_j=jj;
               }
-              if(i==j&&a_i!=a_j&&geqa_i==geqa_j) continue;
+              if (i==j&&a_i!=a_j&&geqa_i==geqa_j) continue;
               rvec sym_dx;
               if (pbc != nullptr) pbc_dx(pbc, x[geqa_i], x[geqa_j], sym_dx);
               else rvec_sub(x[geqa_i], x[geqa_j], sym_dx);
               double dx2 = iprod(sym_dx, sym_dx);
-              if(i==j) 
+              if (i==j) 
               {
                 if (dx2 < cut_sig_2_)
                 { // intra molecule species
@@ -274,7 +228,7 @@ private:
               }
               else
               {
-                if(mol_id_[i]==mol_id_[j])
+                if (mol_id_[i]==mol_id_[j])
                 { // inter same molecule specie
                   if (dx2 < cut_sig_2_)
                   {
@@ -282,7 +236,7 @@ private:
                       i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
                     );
                   }
-                  if(delta!=0.) {
+                  if (delta!=0.) {
                     // this is to account for inversion atom/molecule
                     if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
                     else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
@@ -329,9 +283,6 @@ public:
     PbcType pbcType_;
     matrix boxtop_;
     mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
-    // std::unique_ptr<gmx_mtop_t> mt = std::make_unique<gmx_mtop_t>();
-    // readConfAndTopology(top_path.c_str(), &bTop_, mtop_, &pbcType_, nullptr, nullptr, boxtop_);
-    // readConfAndTopology(top_path.c_str(), &bTop_, mt.get(), &pbcType_, nullptr, nullptr, boxtop_);
     TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
@@ -366,15 +317,12 @@ public:
     free(frame_->x);
     free(frame_->offsets);
     free(frame_);
-    // xdrfile_close(trj_);
-    // free(pbc_);
-    // free(mtop_);
+    free(mtop_);
   }
 
   void initAnalysis()
   {
     n_x_ = 0;
-    nframe_ = 0;
 
     // get the number of atoms per molecule
     // equivalent to mols_ = gmx:gmx_mtop_molecules(*top.mtop());
@@ -386,7 +334,7 @@ public:
     // number of molecules
     nindex_ = mols_.numBlocks();
 
-    if ( num_threads_ > std::thread::hardware_concurrency() )
+    if (num_threads_ > std::thread::hardware_concurrency())
     {
       num_threads_ = std::thread::hardware_concurrency();
       std::cout << "Maximum thread number surpassed. Scaling num_threads down to " << num_threads_ << std::endl;
@@ -407,25 +355,25 @@ public:
     while (std::getline(modestream, tmp_mode, '+'))
     {
       printf(" - found %s", tmp_mode.c_str());
-      if ( tmp_mode == std::string("intra") )
+      if (tmp_mode == std::string("intra"))
       {
         intra_ = true;
         f_intra_mol_ = cmdata::density::intra_mol_routine;
-        printf(" :: activating intramat calculations\n");
+        std::cout << ":: activating intramat calculations" << std::endl;
       }
-      else if ( tmp_mode == std::string("same") )
+      else if (tmp_mode == std::string("same"))
       {
         same_ = true;
         f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
-        printf(" :: activating intermat same calculations\n");
+        std::cout << " :: activating intermat same calculations" << std::endl;
       }
-      else if ( tmp_mode == std::string("cross") )
+      else if (tmp_mode == std::string("cross"))
       {
         cross_ = true;
         f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
-        printf(" :: activating intermat cross calculations\n");
+        std::cout << " :: activating intermat cross calculations" << std::endl;
       }
-      else printf(" :: ignoring keyword\n");
+      else std::cout << " :: ignoring keyword" << std::endl;
     }
 
     std::vector<int> num_mol;
@@ -510,11 +458,11 @@ public:
 
     if (sym_file_path_=="") printf("No symmetry file provided. Running with standard settings.\n");
     else printf("Running with symmetry file %s\nReading file...\n", sym_file_path_.c_str());
-    cmdata::io::read_symmetry_indices(sym_file_path_, *mtop_, equivalence_list_, natmol2_, start_index);
+    cmdata::io::read_symmetry_indices(sym_file_path_, mtop_, equivalence_list_, natmol2_, start_index);
 
     if (list_sym_)
     {
-      printf("Writing out symmetry listing into %s\n", "sym_list.txt");
+      std::cout << "Writing out symmetry listing into sym_list.txt" << std::endl;
       std::fstream sym_list_file("sym_list.txt", std::fstream::out);
       for (int i = 0; i < equivalence_list_.size(); i++)
       {
@@ -557,7 +505,7 @@ public:
       }
     }
 
-    if ( weights_path_ != "" )
+    if (weights_path_ != "")
     {
       printf("Weights file provided. Reading weights from %s\n", weights_path_.c_str());
       weights_ = cmdata::io::read_weights_file(weights_path_);
@@ -588,7 +536,7 @@ public:
       if ((std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
       {
         double weight = 1.0;
-        if ( !weights_.empty() )
+        if (!weights_.empty())
         {
           weight = weights_[frnr];
           weights_sum_ += weight;
@@ -652,13 +600,13 @@ public:
             n_loop_operations_same -= sub_same;
             end_i_same++;
             end_j_same = end_i_same;
-            if ( static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1] )
+            if (static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1])
             {
               end_im_same++;
               end_i_same = 0;
               end_j_same = 0;
             }
-            if ( static_cast<int>(end_im_same) == num_mol_unique_[end_mti_same - 1] )
+            if (static_cast<int>(end_im_same) == num_mol_unique_[end_mti_same - 1])
             {
               end_mti_same++;
               end_im_same = 1;
@@ -670,7 +618,7 @@ public:
           end_j_same += n_loop_operations_same;  
           /* calculate cross indices */
           int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
-          if ( natmol2_.size() > 1 && cross_ )
+          if (natmol2_.size() > 1 && cross_)
           {
             int n_loop_operations_cross = n_loop_operations_total_cross;
             while ( natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
@@ -683,7 +631,7 @@ public:
               end_j_cross = 0;
 
               // case jm is above max
-              if ( end_jm_cross > num_mol_unique_[end_mtj_cross - 1] )
+              if (end_jm_cross > num_mol_unique_[end_mtj_cross - 1])
               {
                 end_im_cross++;
                 end_jm_cross = 1;
@@ -691,7 +639,7 @@ public:
                 end_j_cross = 0;
               }
               // case im is above max
-              if ( end_im_cross > num_mol_unique_[end_mti_cross - 1] )
+              if (end_im_cross > num_mol_unique_[end_mti_cross - 1])
               {
                 end_mtj_cross++;
                 end_im_cross = 1;
@@ -700,7 +648,7 @@ public:
                 end_j_cross = 0;
               }
               // case mtj is above max
-              if ( end_mtj_cross > natmol2_[end_mtj_cross - 1] )
+              if (end_mtj_cross > natmol2_[end_mtj_cross - 1])
               {
                 end_mti_cross++;
                 end_mtj_cross = end_mti_cross + 1;
@@ -709,8 +657,8 @@ public:
                 end_i_cross = 0;
                 end_j_cross = 0;
               }
-              if ( n_loop_operations_cross == 0 ) break;
-              if ( end_mti_cross == natmol2_.size() - 1 ) break;
+              if (n_loop_operations_cross == 0) break;
+              if (end_mti_cross == natmol2_.size() - 1) break;
             }
 
             // calculate overhangs and add them
@@ -721,7 +669,7 @@ public:
           }
           /* start thread */
           threads_[tid] = std::thread(
-            mindist_kernel, weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
+            cmdata::mindist::mindist_kernel, weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
             start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_total_same,
             std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_),
             start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross,
@@ -782,7 +730,7 @@ public:
           for ( std::size_t k = (same_) ? 0 : cmdata::indexing::n_bins(cutoff_); k < cmdata::indexing::n_bins(cutoff_); k++ )
           {
             sum+= dx_ * interm_same_maxcdf_mol_[i][ii][jj][k];
-            if ( sum > 1.0 ) sum=1.0;
+            if (sum > 1.0) sum=1.0;
             interm_same_maxcdf_mol_[i][ii][jj][k] = sum;
           }
           if (same_) interm_same_mat_density_[i][jj][ii] = interm_same_mat_density_[i][ii][jj];
@@ -804,7 +752,7 @@ public:
             for ( std::size_t k = (cross_) ? 0 : cmdata::indexing::n_bins(cutoff_); k < cmdata::indexing::n_bins(cutoff_); k++ )
             {
               sum += dx_ * interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k];
-              if ( sum > 1.0 ) sum = 1.0;
+              if (sum > 1.0) sum = 1.0;
               interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k] = sum;
             }
           }

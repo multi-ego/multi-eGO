@@ -41,7 +41,7 @@ static void mindist_same(
           lock.unlock();
 
           ++counter_same;
-          if ( counter_same == n_loop_operations_same ) return;
+          if (counter_same == n_loop_operations_same) return;
         }
         first_j_same = false;
       }
@@ -86,7 +86,7 @@ static void mindist_cross(
               lock.unlock();
 
               ++counter_cross;
-              if ( counter_cross == n_loop_operations_cross ) return;
+              if (counter_cross == n_loop_operations_cross) return;
             }
             first_j_cross = false;
           }
@@ -126,7 +126,7 @@ static void mindist_kernel(
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
-  if ( n_loop_operations_same != 0 )
+  if (n_loop_operations_same != 0)
   {
     mindist_same(
       start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_same, density_bins,
@@ -134,7 +134,7 @@ static void mindist_kernel(
     );
   }
 
-  if ( n_loop_operations_cross != 0 )
+  if (n_loop_operations_cross != 0)
   {
     mindist_cross(
       start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross, n_loop_operations_cross, 

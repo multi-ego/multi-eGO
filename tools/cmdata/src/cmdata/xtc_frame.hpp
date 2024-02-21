@@ -31,8 +31,6 @@ public:
   }
 };
 
-
-
 } // namespace cmdata::xtc
 
 #endif // _XTC_FRAME_HPP

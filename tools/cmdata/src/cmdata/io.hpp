@@ -108,7 +108,7 @@ namespace cmdata::io
 
 void read_symmetry_indices(
   const std::string &path,
-  gmx_mtop_t &top,
+  const gmx_mtop_t *top,
   std::vector<std::vector<std::vector<int>>> &eq_list,
   const std::vector<int> &natmol2_,
   const std::vector<int> &start_index
@@ -137,7 +137,6 @@ void read_symmetry_indices(
 
   while (std::getline(infile, line)) 
   {
-    int atom1_index, atom2_index;
     std::istringstream iss(line);
     if (!(iss >> residue_entry >> atom_entry_i >> atom_entry_j)) // each necessary field is there
     {
@@ -154,11 +153,11 @@ void read_symmetry_indices(
       a_i = 0;
       for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
       {
-        mtopGetAtomAndResidueName(top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
+        mtopGetAtomAndResidueName(*top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
 	      a_j = 0;
         for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
         {
-          mtopGetAtomAndResidueName(top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
+          mtopGetAtomAndResidueName(*top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
           if (((atom_name_i==atom_entry_i&&atom_name_j==atom_entry_j)||(atom_name_i==atom_entry_j&&atom_name_j==atom_entry_i))&&residue_entry==residue_name_i&&resn_i==resn_j)
           {
             bool insert = true;
@@ -184,7 +183,7 @@ void read_symmetry_indices(
 std::vector<double> read_weights_file( const std::string &path )
 {
   std::ifstream infile(path);
-  if ( !infile.good() )
+  if (!infile.good())
   {
     std::string errorMessage = "Cannot find the indicated weights file";
     throw std::runtime_error(errorMessage.c_str());
@@ -196,7 +195,7 @@ std::vector<double> read_weights_file( const std::string &path )
   {
     std::string value;
     std::istringstream iss(line);
-    if ( line == "" )
+    if (line == "")
     {
       printf("Detected empty line. Skipping...\n");
       continue;
@@ -232,7 +231,7 @@ void f_write_intra(const std::string &output_prefix,
 {
   std::filesystem::path ffh_intra = output_prefix + "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_intra(ffh_intra);
-  for (int k = 0; k < density_bins.size(); k++)
+  for ( std::size_t k = 0; k < density_bins.size(); k++ )
   {
     fp_intra << COUT_FLOAT_PREC6 << density_bins[k];
     for (int jj = 0; jj < natmol2[i]; jj++)
@@ -255,7 +254,7 @@ void f_write_inter_same(const std::string &output_prefix,
   std::ofstream fp_inter(ffh_inter);
   std::filesystem::path ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_inter_cum(ffh_inter_cum);
-  for (int k = 0; k < density_bins.size(); k++)
+  for ( std::size_t k = 0; k < density_bins.size(); k++ )
   {
     fp_inter << COUT_FLOAT_PREC6 << density_bins[k];
     fp_inter_cum << COUT_FLOAT_PREC6 << density_bins[k];
@@ -282,7 +281,7 @@ void f_write_inter_cross(const std::string &output_prefix,
   std::ofstream fp(ffh);
   std::filesystem::path ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_cum(ffh_cum);
-  for (int k = 0; k < interm_cross_mat_density[cross_index[i][j]][ii][0].size(); k++)
+  for ( std::size_t k = 0; k < interm_cross_mat_density[cross_index[i][j]][ii][0].size(); k++ )
   {
     fp << std::fixed << std::setprecision(7) << density_bins[k];
     fp_cum << std::fixed << std::setprecision(7) << density_bins[k];
