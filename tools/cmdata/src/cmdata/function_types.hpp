@@ -6,7 +6,6 @@ namespace cmdata::ftypes
   template<typename T>
   struct function_traits;
   
-  // Specialization for function pointers
   template<typename Ret, typename... Args>
   struct function_traits<Ret(*)(Args...)> {
       using return_type = Ret;
@@ -15,7 +14,7 @@ namespace cmdata::ftypes
       using signature = Ret(Args...);
   };
   
-  // Define a template function `do_nothing` that returns a no-op lambda
+  // does nothing while taking the same arguments as the function
   template<typename function_traits>
   auto do_nothing() {
       return [](auto&&... args) -> typename function_traits::return_type {};

@@ -29,8 +29,8 @@ int main(int argc, const char** argv)
   struct poptOption optionsTable[] = {
     {"traj", 'f', POPT_ARG_STRING, &p_traj_path, 0, "Trajectory file", "FILE"},
     {"top", 's', POPT_ARG_STRING, &p_top_path, 0, "Topology file", "FILE"},
-    {"t_begin", '\0', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_begin, 0, "Start time", "FLOAT"},
-    {"t_end", '\0', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_end, 0, "End time", "FLOAT"},
+    {"t_begin", 'b', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_begin, 0, "Start time", "FLOAT"},
+    {"t_end", 'e', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_end, 0, "End time", "FLOAT"},
     {"dt", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL, &dt, 0, "Time step", "INT"},
     {"cutoff", '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL, &cutoff, 0, "Cutoff distance", "DOUBLE"},
     {"mol_cutoff", '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL, &mol_cutoff, 0, "Molecule cutoff distance", "DOUBLE"},
@@ -144,7 +144,10 @@ int main(int argc, const char** argv)
     return 12;
   }
 
-  cmdata::CMData cmdata(top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, dt, mode, weights_path, sym_file_path, list_sym, nopbc);
+  cmdata::CMData cmdata(
+    top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, dt,
+    mode, weights_path, sym_file_path, list_sym, nopbc, t_begin, t_end
+  );
   cmdata.run();
   cmdata.process_data();
   cmdata.write_output(out_prefix);

@@ -50,41 +50,46 @@ namespace cmdata
 class CMData
 {
 private:
-  double cutoff_;
-  double mol_cutoff_;
+  // general fields
   int n_x_;
+  float dt_, t_begin_, t_end_;
   int nskip_;
-  rvec *xcm_ = nullptr;
   gmx_mtop_t *mtop_;
+  rvec *xcm_ = nullptr;
+  double cutoff_, mol_cutoff_, mcut2_, cut_sig_2_;
+
+  // molecule number fields
+  int nindex_;
+  std::vector<uint> selection_;
+  gmx::RangePartitioning mols_;
+  std::vector<int> natmol2_;
   std::vector<int> mol_id_;
-  std::vector<double> inv_num_mol_;
+  std::vector<int> num_mol_unique_;
   std::vector<double> inv_num_mol_unique_;
+  std::vector<double> inv_num_mol_;
+
+  // symmetry fields
+  bool list_sym_;
   std::string sym_file_path_;
   std::vector<std::vector<std::vector<int>>> equivalence_list_;
-  bool list_sym_;
-  std::string list_sym_path_;
-  std::vector<int> num_mol_unique_;
-  std::vector<double> weights_;
-  std::string weights_path_;
+  
+  // weights fields
   double weights_sum_;
+  std::string weights_path_;
+  std::vector<double> weights_;
+
+  // pbc fields
   bool no_pbc_;
   t_pbc *pbc_;
-  rvec *x_;
+
   // frame fields
   cmdata::xtc::Frame *frame_;
   XDRFILE *trj_;
-  float dt_;
 
-  std::vector<int> natmol2_;
-  int nindex_;
-  gmx::RangePartitioning mols_;
+  // density fields
   std::vector<std::vector<int>> cross_index_;
   std::vector<double> density_bins_;
   std::size_t n_bins_;
-  int num_threads_;
-
-  double mcut2_;
-  double cut_sig_2_;
   double dx_;
 
   using cmdata_matrix = std::vector<std::vector<std::vector<std::vector<double>>>>;
@@ -99,6 +104,9 @@ private:
   std::vector<std::vector<double>> frame_cross_mat_;
   std::vector<std::vector<std::mutex>> frame_same_mutex_;
   std::vector<std::vector<std::mutex>> frame_cross_mutex_;
+
+  // parallelization fields
+  int num_threads_;
   std::vector<std::thread> threads_;
   std::vector<std::thread> mol_threads_;
   cmdata::parallel::Semaphore semaphore_;
@@ -275,9 +283,10 @@ public:
     const std::string &top_path, const std::string &traj_path,
     double cutoff, double mol_cutoff, int nskip, int num_threads,
     int dt, const std::string &mode, const std::string &weights_path, 
-    const std::string &sym_file_path, bool list_sym, bool no_pbc
+    const std::string &sym_file_path, bool list_sym, bool no_pbc, float t_begin, float t_end
   ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads),
-      mode_(mode), weights_path_(weights_path), sym_file_path_(sym_file_path), list_sym_(list_sym), no_pbc_(no_pbc), dt_(dt)
+      mode_(mode), weights_path_(weights_path), sym_file_path_(sym_file_path), list_sym_(list_sym),
+      no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
   {
     bool bTop_;
     PbcType pbcType_;
@@ -318,6 +327,7 @@ public:
     free(frame_->offsets);
     free(frame_);
     free(mtop_);
+    if (xcm_ != nullptr) free(xcm_);
   }
 
   void initAnalysis()
@@ -456,8 +466,8 @@ public:
       }
     }
 
-    if (sym_file_path_=="") printf("No symmetry file provided. Running with standard settings.\n");
-    else printf("Running with symmetry file %s\nReading file...\n", sym_file_path_.c_str());
+    if (sym_file_path_=="") std::cout << "No symmetry file provided. Running with standard settings.\n";
+    else std::cout << "Running with symmetry file " << sym_file_path_ << "\nReading file...\n";
     cmdata::io::read_symmetry_indices(sym_file_path_, mtop_, equivalence_list_, natmol2_, start_index);
 
     if (list_sym_)
@@ -487,17 +497,17 @@ public:
 
     mcut2_ = mol_cutoff_ * mol_cutoff_;
     cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
-    snew(xcm_, nindex_);
+    if (same_ || cross_) xcm_ = (rvec*)malloc(nindex_ * sizeof(rvec));
 
     if (same_) frame_same_mat_.resize(natmol2_.size());
-    if (intra_ | same_) frame_same_mutex_.resize(natmol2_.size());
+    if (intra_ || same_) frame_same_mutex_.resize(natmol2_.size());
     if (cross_) frame_cross_mat_.resize(cross_index_.size());
     if (cross_) frame_cross_mutex_.resize(cross_index_.size());
     std::size_t sum_cross_mol_sizes = 0;
     for ( std::size_t i = 0; i < natmol2_.size(); i++ )
     {
       if (same_) frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
-      if (intra_ | same_) frame_same_mutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
+      if (intra_ || same_) frame_same_mutex_[i] = std::vector<std::mutex>(natmol2_[i] *  natmol2_[i]);
       for ( std::size_t j = i+1; j < natmol2_.size() && cross_; j++ )
       {
         frame_cross_mat_[cross_index_[i][j]].resize(natmol2_[i] * natmol2_[j] * num_mol_unique_[i] * num_mol_unique_[j], 0);
@@ -526,6 +536,11 @@ public:
     cmdata::io::print_progress_bar(progress);
     while (frame_->read_next_frame(trj_) == exdrOK)
     {
+      if (frame_->time < t_begin_ || (frame_->time > t_end_ && t_end_ >= 0)) 
+      {
+        frnr++;
+        continue;
+      }
       new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
       if (new_progress - progress > 0.01)
       {
@@ -552,7 +567,27 @@ public:
           #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
           for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
         }
-
+        if (same_ || cross_)
+        {
+          #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
+          for (int i = 0; i < nindex_; i++)
+          {
+            clear_rvec(xcm_[i]);
+            double tm = 0.;
+            for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
+            {
+              for (int m = 0; (m < DIM); m++)
+              {
+                xcm_[i][m] += frame_->x[ii][m];
+              }
+              tm += 1.0;
+            }
+            for (int m = 0; (m < DIM); m++)
+            {
+              xcm_[i][m] /= tm;
+            }
+          }
+        }
         /* start loop for each molecule */
         for (int i = 0; i < nindex_; i++)
         {

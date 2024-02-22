@@ -18,7 +18,6 @@ endif()
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}" )
 target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs)
-#target_link_libraries(${CMDATA} PRIVATE Gromacs::nblib)
 include_directories(${GROMACS_INCLUDE_DIRS})
 add_definitions(${GROMACS_DEFINITIONS})
 

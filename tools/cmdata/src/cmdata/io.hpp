@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <vector>
 #include <iomanip>
+#include <regex>
 
 #define COUT_FLOAT_PREC6 std::fixed << std::setprecision(6)
 
@@ -295,6 +296,50 @@ void f_write_inter_cross(const std::string &output_prefix,
   }
   fp.close();
   fp_cum.close();
+}
+
+std::vector<uint> read_selection( const std::string &path, const std::string &selection_name )
+{
+  bool found = false, finished = false;
+  std::ifstream infile(path);
+  if (!infile.good())
+  {
+    std::string errorMessage = "Cannot find the indicated selection file";
+    throw std::runtime_error(errorMessage.c_str());
+  }
+  std::vector<uint> sel;
+
+  std::string line;
+  while ( std::getline(infile, line) )
+  {
+    std::string value;
+    std::istringstream iss(line);
+    if (line == "") continue;
+
+    // find if regex matches the line (regex is no semicolon followed by 0 or more spaces followed by [ and 0 or more spaces followed by selection_name followed by 0 or more spaces followed by ])
+    std::regex re_found("([^;]+)\\s*\\[\\s*" + selection_name + "\\s*\\]");
+    // find if regex matches the line (same as above but any selection name)
+    std::regex re_finished("([^;]+)\\s*\\[\\s*.*\\s*\\]");
+    if (std::regex_search(line, re_finished) && found) finished = true;
+    if (std::regex_search(line, re_found)) found = true;
+    if (found && !finished)
+    {
+      // check if value is a number
+      iss >> value;
+      try
+      {
+        std::stoi(value);
+      }
+      catch (const std::invalid_argument& e)
+      {
+        std::cerr << "Error: " << e.what() << " in line " << line << std::endl;
+        std::cerr << "The value " << value << " found in " << path << " is not a number" << std::endl;
+      }
+      sel.push_back(std::stoi(value));
+    }
+  }
+
+  return sel;
 }
 
 /**
