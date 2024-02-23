@@ -87,10 +87,10 @@ private:
   XDRFILE *trj_;
 
   // density fields
-  std::vector<std::vector<int>> cross_index_;
-  std::vector<double> density_bins_;
-  std::size_t n_bins_;
   double dx_;
+  std::size_t n_bins_;
+  std::vector<double> density_bins_;
+  std::vector<std::vector<int>> cross_index_;
 
   using cmdata_matrix = std::vector<std::vector<std::vector<std::vector<double>>>>;
   cmdata_matrix interm_same_mat_density_;
@@ -536,19 +536,14 @@ public:
     cmdata::io::print_progress_bar(progress);
     while (frame_->read_next_frame(trj_) == exdrOK)
     {
-      if (frame_->time < t_begin_ || (frame_->time > t_end_ && t_end_ >= 0)) 
-      {
-        frnr++;
-        continue;
-      }
       new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
       if (new_progress - progress > 0.01)
       {
         progress = new_progress;
         cmdata::io::print_progress_bar(progress);
       }
-
-      if ((std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0) || ((nskip_ > 0) && ((frnr % nskip_) == 0)))
+      if ((frame_->time >= t_begin_ && (t_end_ < 0 || frame_->time <= t_end_ )) && // within time borders 
+          ( dt_ == 0 || std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0 || std::fmod(frnr, nskip_) == 0)) // skip frames
       {
         double weight = 1.0;
         if (!weights_.empty())

@@ -27,22 +27,22 @@ int main(int argc, const char** argv)
 
   // make popt options
   struct poptOption optionsTable[] = {
-    {"traj", 'f', POPT_ARG_STRING, &p_traj_path, 0, "Trajectory file", "FILE"},
-    {"top", 's', POPT_ARG_STRING, &p_top_path, 0, "Topology file", "FILE"},
-    {"t_begin", 'b', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_begin, 0, "Start time", "FLOAT"},
-    {"t_end", 'e', POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL, &t_end, 0, "End time", "FLOAT"},
-    {"dt", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL, &dt, 0, "Time step", "INT"},
-    {"cutoff", '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL, &cutoff, 0, "Cutoff distance", "DOUBLE"},
-    {"mol_cutoff", '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL, &mol_cutoff, 0, "Molecule cutoff distance", "DOUBLE"},
-    {"nskip", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL, &nskip, 0, "Number of frames to skip", "INT"},
-    {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL, &num_threads, 0, "Number of threads", "INT"},
-    {"mode", '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL, &p_mode, 0, "Mode of operation", "STRING"},
-    {"weights", '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL, &p_weights_path, 0, "Weights file", "FILE"},
-    {"sym", '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL, &p_sym_file_path, 0, "Symmetry file", "FILE"},
-    {"out", 'o', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL, &p_out_prefix, 0, "Output prefix", "STRING"},
-    {"list_sym", '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL, &list_sym, 0, "List symmetries", 0},
-    {"write_sym", '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL, &write_sym, 0, "Write symmetries", 0},
-    {"no_pbc", '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL, &p_nopbc, 0, "Ignore pbcs", 0},
+    {"traj",        'f',  POPT_ARG_STRING,                          &p_traj_path,     0, "Trajectory file",           "FILE"},
+    {"top",         's',  POPT_ARG_STRING,                          &p_top_path,      0, "Topology file",             "FILE"},
+    {"t_begin",     'b',  POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL,   &t_begin,         0, "Start time",                "FLOAT"},
+    {"t_end",       'e',  POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL,   &t_end,           0, "End time",                  "FLOAT"},
+    {"out",         'o',  POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_out_prefix,    0, "Output prefix",             "STRING"},
+    {"dt",          '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &dt,              0, "Time step",                 "INT"},
+    {"cutoff",      '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &cutoff,          0, "Cutoff distance",           "DOUBLE"},
+    {"mol_cutoff",  '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &mol_cutoff,      0, "Molecule cutoff distance",  "DOUBLE"},
+    {"nskip",       '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &nskip,           0, "Number of frames to skip",  "INT"},
+    {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",         "INT"},
+    {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",         "STRING"},
+    {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",              "FILE"},
+    {"sym",         '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_sym_file_path, 0, "Symmetry file",             "FILE"},
+    {"list_sym",    '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &list_sym,        0, "List symmetries",           0},
+    {"write_sym",   '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &write_sym,       0, "Write symmetries",          0},
+    {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",               0},
     POPT_TABLEEND
   };
 
@@ -113,9 +113,9 @@ int main(int argc, const char** argv)
     std::cerr << "Number of threads must be at least 1!" << std::endl;
     return 6;
   }
-  if ( dt <= 0 )
+  if ( dt < 0 )
   {
-    std::cerr << "Time step must be greater than 0!" << std::endl;
+    std::cerr << "Time step must be a positive number!" << std::endl;
     return 7;
   }
   if ( nskip < 0 )

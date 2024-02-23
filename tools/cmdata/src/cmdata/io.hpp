@@ -253,7 +253,7 @@ void f_write_inter_same(const std::string &output_prefix,
 {
   std::filesystem::path ffh_inter = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_inter(ffh_inter);
-  std::filesystem::path ffh_inter_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  std::filesystem::path ffh_inter_cum = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_inter_cum(ffh_inter_cum);
   for ( std::size_t k = 0; k < density_bins.size(); k++ )
   {
@@ -280,7 +280,7 @@ void f_write_inter_cross(const std::string &output_prefix,
 {
   std::filesystem::path ffh = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp(ffh);
-  std::filesystem::path ffh_cum = "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
+  std::filesystem::path ffh_cum = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
   std::ofstream fp_cum(ffh_cum);
   for ( std::size_t k = 0; k < interm_cross_mat_density[cross_index[i][j]][ii][0].size(); k++ )
   {
@@ -325,17 +325,19 @@ std::vector<uint> read_selection( const std::string &path, const std::string &se
     if (found && !finished)
     {
       // check if value is a number
-      iss >> value;
-      try
+      while (iss >> value)
       {
-        std::stoi(value);
+        try
+        {
+          std::stoi(value);
+        }
+        catch (const std::invalid_argument& e)
+        {
+          std::cerr << "Error: " << e.what() << " in line " << line << std::endl;
+          std::cerr << "The value " << value << " found in " << path << " is not a number" << std::endl;
+        }
+        sel.push_back(std::stoi(value));
       }
-      catch (const std::invalid_argument& e)
-      {
-        std::cerr << "Error: " << e.what() << " in line " << line << std::endl;
-        std::cerr << "The value " << value << " found in " << path << " is not a number" << std::endl;
-      }
-      sel.push_back(std::stoi(value));
     }
   }
 
