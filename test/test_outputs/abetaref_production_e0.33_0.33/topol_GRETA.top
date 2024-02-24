@@ -4,7 +4,7 @@
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
 ; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 20-02-2024 18:00
+; Created on the 24-02-2024 23:58
 ; With the following parameters:
 ;	- system          = abetaref            
 ;	- egos            = production          
@@ -18,6 +18,7 @@
 ;	- p_to_learn      = 0.9995              
 ;	- epsilon_min     = 0.07                
 ;	- force_split     =                     
+;	- single_molecule = 1                   
 ;	- custom_dict     =                     
 ;	- root_dir        = /Users/carlo/Codes/multi-eGO
 
