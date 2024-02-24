@@ -1388,6 +1388,14 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # remove from meGO_LJ_14 the intermolecular basic interactions
     meGO_LJ_14 = meGO_LJ_14.loc[~((~meGO_LJ_14["same_chain"]) & (meGO_LJ_14["source"] == "basic"))]
 
+    if not parameters.single_molecule:
+        # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
+        # avoid its use as intermolecular
+        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"])]
+        meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
+        # remove them from the default force-field
+        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]))]
+
     # to symmetrize a contact is enough to remove it from meGO_LJ_14, in this way the value used for the contact is the one meGO_LJ
     if not parameters.force_split:
         # Reset index of meGO_LJ_14
