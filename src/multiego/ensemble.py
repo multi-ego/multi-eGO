@@ -1076,6 +1076,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         -1.5 * meGO_LJ["rep"]
     )
 
+    # for repulsive interaction we reset sigma to its effective value
+    # this because when merging repulsive contacts from different sources what will matters
+    # will be the repulsive strength
+    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
+
     # Here we are reindexing like before
     meGO_LJ[["idx_ai", "idx_aj"]] = meGO_LJ[["ai", "aj"]]
     meGO_LJ.set_index(["idx_ai", "idx_aj"], inplace=True)
@@ -1166,10 +1171,12 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
     # Merging of multiple simulations:
-    # Here we sort all the atom pairs based on the distance and the probability and we keep the closer ones.
+    # Here we sort all the atom pairs based on the distance and the probability.
+    # among attractive we keep the shortest the same among repulsive.
+    meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
     meGO_LJ.sort_values(
-        by=["ai", "aj", "same_chain", "sigma", "epsilon"],
-        ascending=[True, True, True, True, False],
+        by=["ai", "aj", "same_chain", "type", "sigma", "epsilon"],
+        ascending=[True, True, True, False, True, False],
         inplace=True,
     )
     # Cleaning the duplicates
@@ -1178,6 +1185,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     cols = ["ai", "aj"]
     meGO_LJ[cols] = np.sort(meGO_LJ[cols].values, axis=1)
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
+    meGO_LJ.drop(columns=["type"], inplace=True)
 
     # add a flag to identify learned contacts vs check ones
     meGO_LJ["learned"] = 1
