@@ -568,6 +568,8 @@ def generate_14_data(meGO_ensemble):
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
     for molecule, bond_pair in meGO_ensemble["bond_pairs"].items():
+        if not bond_pair:
+            continue
         reduced_topology = (
             meGO_ensemble["topology_dataframe"]
             .loc[meGO_ensemble["topology_dataframe"]["molecule_name"] == molecule][
