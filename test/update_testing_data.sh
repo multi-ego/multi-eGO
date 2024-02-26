@@ -6,12 +6,14 @@ TEST_CASES="test_cases.txt"
 [ -d "${MEGO_ROOT}/inputs/gpref" ] && rm -rf ${MEGO_ROOT}/inputs/gpref
 [ -d "${MEGO_ROOT}/inputs/abetaref" ] && rm -rf ${MEGO_ROOT}/inputs/abetaref
 [ -d "${MEGO_ROOT}/inputs/ttrref" ] && rm -rf ${MEGO_ROOT}/inputs/ttrref
+[ -d "${MEGO_ROOT}/inputs/lyso-bnz_ref" ] && rm -rf ${MEGO_ROOT}/inputs/lyso-bnz_ref
 cp -r test_inputs/* ${MEGO_ROOT}/inputs
 
 echo "Deleting current test_outputs"
 rm -rf test_outputs/gpref*
 rm -rf test_outputs/abetaref*
 rm -rf test_outputs/ttrref*
+rm -rf test_outputs/lyso-bnz_ref*
 
 echo "Generating data for examples from ${TEST_CASES}..."
 # while read case; do echo $case ; done < ${ROOT}/${TEST_CASES}

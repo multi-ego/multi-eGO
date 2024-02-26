@@ -140,6 +140,12 @@ for a contact pair.
         help="Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
     )
     optional_args.add_argument(
+        "--single_molecule",
+        default=False,
+        action="store_true",
+        help="Enable optimisations valid if you are simulating a single molecule.",
+    )
+    optional_args.add_argument(
         "--custom_dict",
         type=str,
         help="Custom dictionary for special molecules",
