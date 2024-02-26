@@ -7,6 +7,10 @@ project(cmdata VERSION 0.1
 set(CMAKE_CXX_STANDARD 17)
 set(CMDATA cmdata)
 
+set( CMAKE_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
+set( CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
+set( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
+
 add_executable(${CMDATA} main.cpp)
 
 # set build type to release if not set (check if its debug, Debug, or DEBUG)
@@ -21,7 +25,6 @@ endif()
 
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}" )
-target_link_libraries(${CMDATA} PRIVATE )
 
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -36,3 +39,6 @@ target_include_directories(${CMDATA} PRIVATE src/xdrfile/include)
 
 # link libraries
 target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
+
+set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/bin)
+install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
