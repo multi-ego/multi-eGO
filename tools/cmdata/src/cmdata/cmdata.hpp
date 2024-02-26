@@ -1,23 +1,13 @@
 #ifndef _CMDATA_CMDATA_HPP
 #define _CMDATA_CMDATA_HPP
 
-#include "gromacs/analysisdata/analysisdata.h"
-#include "gromacs/selection/selection.h"
-#include "gromacs/selection/selectionoption.h"
-#include "gromacs/trajectory/trajectoryframe.h"
-#include "gromacs/trajectoryanalysis/analysissettings.h"
-#include "gromacs/trajectoryanalysis/topologyinformation.h"
-#include "gromacs/math/vec.h"
-#include "gromacs/pbcutil/pbc.h"
-#include "gromacs/fileio/tpxio.h"
-#include "gromacs/fileio/trxio.h"
-#include "gromacs/fileio/confio.h"
+// gromacs includes
+#include <gromacs/trajectoryanalysis/topologyinformation.h>
+#include <gromacs/math/vec.h>
+#include <gromacs/pbcutil/pbc.h>
+#include <gromacs/fileio/tpxio.h>
 
-#include "gromacs/utility/futil.h"
-#include "gromacs/utility/gmxassert.h"
-#include "gromacs/utility/smalloc.h"
-#include "gromacs/fileio/oenv.h"
-
+// cmdata includes
 #include "io.hpp"
 #include "indexing.hpp"
 #include "parallel.hpp"
@@ -41,6 +31,7 @@
 #include <sstream>
 #include <fstream>
 
+// xdrfile includes
 #include <xdrfile.h>
 #include <xdrfile_xtc.h>
 
@@ -166,7 +157,7 @@ private:
       /* for molecules of different specie we fill half a matrix */
       if (mol_id_[i] != mol_id_[j] && j < i) continue;
       std::size_t a_i = 0;
-      GMX_RELEASE_ASSERT(mols_.numBlocks() > 0, "Cannot access index[] from empty mols");
+      // GMX_RELEASE_ASSERT(mols_.numBlocks() > 0, "Cannot access index[] from empty mols");
 
       /* cycle over the atoms of a molecule i */
       for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
@@ -331,6 +322,11 @@ public:
   }
 
   void initAnalysis()
+  /**
+   * @brief Initializes the analysis by setting up the molecule partitioning and the mode selection
+   * 
+   * @todo Check if molecule block is empty
+  */
   {
     n_x_ = 0;
 
