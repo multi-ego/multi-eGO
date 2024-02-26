@@ -33,12 +33,15 @@ def get_bonds(topology):
 
         bonds_data.append({"ai": ai, "aj": aj, "funct": funct, "req": req, "k": k})
 
-    bonds_dataframe = pd.DataFrame(bonds_data)
+    if bonds_data:
+        bonds_dataframe = pd.DataFrame(bonds_data)
+        # Conversion from KCal/mol/A^2 to KJ/mol/nm^2 and from Amber to Gromos
+        bonds_dataframe["req"] = bonds_dataframe["req"] / 10.0
+        bonds_dataframe["k"] = bonds_dataframe["k"] * 4.184 * 100 * 2
+        bonds_dataframe["k"] = bonds_dataframe["k"].map(lambda x: "{:.6e}".format(x))
+    else:
+        bonds_dataframe = pd.DataFrame(columns=["ai", "aj", "funct", "req", "k"])
 
-    # Conversion from KCal/mol/A^2 to KJ/mol/nm^2 and from Amber to Gromos
-    bonds_dataframe["req"] = bonds_dataframe["req"] / 10.0
-    bonds_dataframe["k"] = bonds_dataframe["k"] * 4.184 * 100 * 2
-    bonds_dataframe["k"] = bonds_dataframe["k"].map(lambda x: "{:.6e}".format(x))
     return bonds_dataframe
 
 
@@ -104,15 +107,17 @@ def get_angles(topology):
         # Append the angle data to the angles_data list as a dictionary
         angles_data.append({"ai": ai, "aj": aj, "ak": ak, "funct": funct, "theteq": theteq, "k": k})
 
-    # Create a pandas DataFrame from the angles_data list
-    angles_dataframe = pd.DataFrame(angles_data)
+    if angles_data:
+        # Create a pandas DataFrame from the angles_data list
+        angles_dataframe = pd.DataFrame(angles_data)
 
-    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
-    angles_dataframe["k"] = angles_dataframe["k"] * 4.184 * 2
+        # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
+        angles_dataframe["k"] = angles_dataframe["k"] * 4.184 * 2
 
-    # Format k values in scientific notation with 6 decimal places
-    angles_dataframe["k"] = angles_dataframe["k"].map(lambda x: "{:.6e}".format(x))
-
+        # Format k values in scientific notation with 6 decimal places
+        angles_dataframe["k"] = angles_dataframe["k"].map(lambda x: "{:.6e}".format(x))
+    else:
+        angles_dataframe = pd.DataFrame(columns=["ai", "aj", "ak", "funct", "theteq", "k"])
     # Return the DataFrame containing angle data
     return angles_dataframe
 
@@ -170,12 +175,14 @@ def get_dihedrals(topology):
         dihedrals_data.append(
             {"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "phase": phase, "phi_k": phi_k, "per": per}
         )
+    if dihedrals_data:
+        # Create a pandas DataFrame from the dihedrals_data list
+        dihedrals_dataframe = pd.DataFrame(dihedrals_data)
 
-    # Create a pandas DataFrame from the dihedrals_data list
-    dihedrals_dataframe = pd.DataFrame(dihedrals_data)
-
-    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
-    dihedrals_dataframe["phi_k"] = dihedrals_dataframe["phi_k"] * 4.184
+        # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
+        dihedrals_dataframe["phi_k"] = dihedrals_dataframe["phi_k"] * 4.184
+    else:
+        dihedrals_dataframe = pd.DataFrame(columns=["ai", "aj", "ak", "al", "funct", "phase", "phi_k", "per"])
 
     # Return the DataFrame containing dihedral data
     return dihedrals_dataframe
@@ -220,11 +227,14 @@ def get_impropers(topology):
         # Append the improper data to the impropers_data list as a dictionary
         impropers_data.append({"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "psi_eq": psi_eq, "psi_k": psi_k})
 
-    # Create a pandas DataFrame from the impropers_data list
-    impropers_dataframe = pd.DataFrame(impropers_data)
+    if impropers_data:
+        # Create a pandas DataFrame from the impropers_data list
+        impropers_dataframe = pd.DataFrame(impropers_data)
 
-    # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
-    impropers_dataframe["psi_k"] = impropers_dataframe["psi_k"] * 4.184 * 2
+        # Convert k values from kcal/(mol*rad^2) to kJ/(mol*rad^2)
+        impropers_dataframe["psi_k"] = impropers_dataframe["psi_k"] * 4.184 * 2
+    else:
+        impropers_dataframe = pd.DataFrame(columns=["ai", "aj", "ak", "al", "funct", "psi_eq", "psi_k"])
 
     # Return the DataFrame containing improper data
     return impropers_dataframe
