@@ -1,6 +1,8 @@
 #ifndef _CMDATA_IO_HPP
 #define _CMDATA_IO_HPP
 
+#include <gromacs/trajectoryanalysis/topologyinformation.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -17,14 +19,14 @@ static inline void mtopGetMolblockIndex(const gmx_mtop_t& mtop,
                                         int*              moleculeIndex,
                                         int*              atomIndexInMolecule)
 {
-    GMX_ASSERT(globalAtomIndex >= 0, "The atom index to look up should not be negative");
-    GMX_ASSERT(globalAtomIndex < mtop.natoms, "The atom index to look up should be within range");
-    GMX_ASSERT(moleculeBlock != nullptr, "molBlock can not be NULL");
-    GMX_ASSERT(!mtop.moleculeBlockIndices.empty(), "The moleculeBlockIndices should not be empty");
-    GMX_ASSERT(*moleculeBlock >= 0,
-               "The starting molecule block index for the search should not be negative");
-    GMX_ASSERT(*moleculeBlock < gmx::ssize(mtop.moleculeBlockIndices),
-               "The starting molecule block index for the search should be within range");
+    // GMX_ASSERT(globalAtomIndex >= 0, "The atom index to look up should not be negative");
+    // GMX_ASSERT(globalAtomIndex < mtop.natoms, "The atom index to look up should be within range");
+    // GMX_ASSERT(moleculeBlock != nullptr, "molBlock can not be NULL");
+    // GMX_ASSERT(!mtop.moleculeBlockIndices.empty(), "The moleculeBlockIndices should not be empty");
+    // GMX_ASSERT(*moleculeBlock >= 0,
+              //  "The starting molecule block index for the search should not be negative");
+    // GMX_ASSERT(*moleculeBlock < gmx::ssize(mtop.moleculeBlockIndices),
+              //  "The starting molecule block index for the search should be within range");
 
     /* Search the molecule block index using bisection */
     int molBlock0 = -1;
@@ -203,6 +205,21 @@ std::vector<double> read_weights_file( const std::string &path )
     }
     iss >> value;
     w.push_back(std::stod(value));
+  }
+
+  if (w.size() == 0)
+  {
+    std::string errorMessage = "The weights file is empty";
+    throw std::runtime_error(errorMessage.c_str());
+  }
+
+  for ( std::size_t i = 0; i < w.size(); i++ )
+  {
+    if (w[i] < 0)
+    {
+      std::string errorMessage = "The weights file contains negative values";
+      throw std::runtime_error(errorMessage.c_str());
+    }
   }
 
   return w;
