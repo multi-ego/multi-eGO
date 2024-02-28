@@ -2,7 +2,9 @@
 #define _CMDATA_IO_HPP
 
 #include <filesystem>
+#include <string>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <stdio.h>
 #include <vector>
