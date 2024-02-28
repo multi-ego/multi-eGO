@@ -40,5 +40,5 @@ target_include_directories(${CMDATA} PRIVATE src/xdrfile/include)
 # link libraries
 target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/bin)
+set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
