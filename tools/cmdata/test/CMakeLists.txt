@@ -1,10 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
+# compile google test
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
 enable_testing()
 include(GoogleTest)
 include(CTest)
-
-# compile google test
 
 file(GLOB TEST_LIST "*/*.cpp")
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

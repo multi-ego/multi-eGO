@@ -5,7 +5,9 @@
 #include <gromacs/fileio/tpxio.h>
 
 #include <filesystem>
+#include <string>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <stdio.h>
 #include <vector>

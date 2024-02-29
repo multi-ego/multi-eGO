@@ -674,7 +674,7 @@ public:
                 end_j_cross = 0;
               }
               // case mtj is above max
-              if (end_mtj_cross > natmol2_[end_mtj_cross - 1])
+              if (end_mtj_cross > natmol2_.size())
               {
                 end_mti_cross++;
                 end_mtj_cross = end_mti_cross + 1;
