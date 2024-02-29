@@ -2,6 +2,7 @@
 #define _CMDATA_IO_HPP
 
 #include <gromacs/trajectoryanalysis/topologyinformation.h>
+#include <gromacs/fileio/tpxio.h>
 
 #include <filesystem>
 #include <fstream>

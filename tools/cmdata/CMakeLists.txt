@@ -7,9 +7,9 @@ project(cmdata VERSION 0.1
 set(CMAKE_CXX_STANDARD 17)
 set(CMDATA cmdata)
 
-set( CMAKE_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
-set( CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib" )
-set( CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE )
+set(CMAKE_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 add_executable(${CMDATA} main.cpp)
 
@@ -24,7 +24,7 @@ elseif(CMAKE_BUILD_TYPE MATCHES "Release" OR NOT CMAKE_BUILD_TYPE)
 endif()
 
 # find gromacs
-find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}" )
+find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
 
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -49,7 +49,6 @@ if(CMDATA_BUILD_TESTS)
   FetchContent_Declare(
     googletest
     URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
   FetchContent_MakeAvailable(googletest)

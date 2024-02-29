@@ -3,9 +3,12 @@
 
 #include "io.hpp"
 
-TEST(read_weights_file_test, CorrectFileContents)
+class ReadWeightsFileTest : public ::testing::Test {
+protected:
+};
+
+TEST(ReadWeightsFileTest, CorrectFileContents)
 {
-  std::string filename = "../aa_sym";
   std::vector<double> weights = cmdata::io::read_weights_file("resources/weights_good.txt");
   ASSERT_THAT(weights, testing::ElementsAre(
     5.20805e-02, 6.26943e-02, 5.89982e-02, 5.90832e-02, 6.20511e-02,
@@ -15,19 +18,19 @@ TEST(read_weights_file_test, CorrectFileContents)
   ));
 }
 
-TEST(read_weights_file_test, FileNotFound)
+TEST(ReadWeightsFileTest, FileNotFound)
 {
   std::string filename = "resources/weights_nofile.txt";
   ASSERT_THROW(cmdata::io::read_weights_file(filename), std::runtime_error);
 }
 
-TEST(read_weights_file_test, EmptyFile)
+TEST(ReadWeightsFileTest, EmptyFile)
 {
   std::string filename = "resources/weights_empty.txt";
   ASSERT_THROW(cmdata::io::read_weights_file(filename), std::runtime_error);
 }
 
-TEST(read_weights_file_test, NegativeValues)
+TEST(ReadWeightsFileTest, NegativeValues)
 {
   std::string filename = "resources/weights_bad.txt";
   ASSERT_THROW(cmdata::io::read_weights_file(filename), std::runtime_error);
