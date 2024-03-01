@@ -23,7 +23,7 @@ protected:
 
   void TearDown() override
   {
-    // free(mtop);
+    free(mtop);
   }
 };
 
