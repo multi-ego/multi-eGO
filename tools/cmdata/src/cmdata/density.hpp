@@ -5,7 +5,7 @@
 #include <mutex>
 #include <vector>
 
-#include "cmdata/indexing.hpp"
+#include "indexing.hpp"
 
 namespace cmdata::density
 {
