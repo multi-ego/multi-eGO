@@ -1,0 +1,34 @@
+diff --color -ruN popt/CMakeLists.txt popto/CMakeLists.txt
+--- popt/CMakeLists.txt	2024-03-01 14:48:37.837697092 +0100
++++ popto/CMakeLists.txt	2024-03-01 14:16:44.194234963 +0100
+@@ -87,3 +87,4 @@
+ # Enable testing
+ include(CTest)
+ enable_testing()
++add_subdirectory(tests)
+diff --color -ruN popt/src/CMakeLists.txt popto/src/CMakeLists.txt
+--- popt/src/CMakeLists.txt	2024-03-01 14:48:37.837697092 +0100
++++ popto/src/CMakeLists.txt	2024-03-01 14:16:44.198234990 +0100
+@@ -25,15 +25,13 @@
+ endif()
+ 
+ set_target_properties(popt PROPERTIES
+-    VERSION ${PROJECT_VERSION}
+-    SOVERSION ${POPT_SOVERSION}
+-    C_STANDARD 99
+-    C_STANDARD_REQUIRED ON
+-    C_EXTENSIONS ON
+-    PUBLIC_HEADER popt.h
+-    if(not APPLE)
+-        LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
+-    endif()
++	VERSION ${PROJECT_VERSION}
++	SOVERSION ${POPT_SOVERSION}
++	C_STANDARD 99
++	C_STANDARD_REQUIRED ON
++	C_EXTENSIONS ON
++	PUBLIC_HEADER popt.h
++	LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
+ )
+ 
+ # Install the library
