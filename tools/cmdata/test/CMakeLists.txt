@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
 # compile google test
-include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://github.com/google/googletest/archive/refs/tags/v1.14.0.tar.gz
@@ -9,7 +8,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-enable_testing()
 include(GoogleTest)
 include(CTest)
 
@@ -21,7 +19,6 @@ foreach(TEST ${TEST_LIST})
     message(STATUS " :: creating build for ${TEST}")
     get_filename_component(T_NAME ${TEST} NAME_WE)
     add_executable(${T_NAME} ${TEST})
-    add_test(NAME ${T_NAME} COMMAND "${CMAKE_CURRENT_BINARY_DIR}/${T_NAME}")
     target_include_directories(${T_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/cmdata)
     target_link_libraries(${T_NAME} GTest::gtest_main GTest::gmock_main Gromacs::libgromacs xdrfile popt)
     target_compile_features(${T_NAME} PUBLIC cxx_std_17)

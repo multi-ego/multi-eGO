@@ -29,13 +29,25 @@ find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d 
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# add popt
-add_subdirectory(src/popt)
-target_include_directories(${CMDATA} PRIVATE src/popt)
+include(FetchContent)
+SET(FETCHCONTENT_QUIET OFF)
+SET(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cmdata_fetch)
 
-# add xdrfile
-add_subdirectory(src/xdrfile/)
-target_include_directories(${CMDATA} PRIVATE src/xdrfile/include)
+message(STATUS "Fetching popt")
+FetchContent_Declare(
+  popt
+  URL https://github.com/rpm-software-management/popt/archive/refs/heads/master.zip
+  GIT_TAG 2bca0aa
+  PATCH_COMMAND patch -R --directory=${FETCHCONTENT_BASE_DIR}/popt-src --strip=1 < ${CMAKE_CURRENT_SOURCE_DIR}/popt.patch
+)
+FetchContent_MakeAvailable(popt)
+
+message(STATUS "Fetching xdrfile")
+FetchContent_Declare(
+  xdrfile
+  URL https://github.com/chemfiles/xdrfile/archive/refs/heads/chemfiles.zip
+)
+FetchContent_MakeAvailable(xdrfile)
 
 # link libraries
 target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
@@ -45,5 +57,6 @@ install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # build test
 if(CMDATA_BUILD_TESTS)
+  enable_testing()
   add_subdirectory(test/)
 endif()

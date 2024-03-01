@@ -3,10 +3,6 @@
 
 #include "io.hpp"
 
-class ReadWeightsFileTest : public ::testing::Test {
-protected:
-};
-
 TEST(ReadWeightsFileTest, CorrectFileContents)
 {
   std::vector<double> weights = cmdata::io::read_weights_file("resources/weights_good.txt");

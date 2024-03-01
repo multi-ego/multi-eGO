@@ -5,7 +5,7 @@
 
 class ReadSymmetryIndicesTest : public ::testing::Test {
 protected:
-  std::string top_path = "resources/test_gp.tpr";
+  std::string top_path = std::string("resources/test_gp.tpr");
   gmx_mtop_t* mtop;
   int natoms;
   std::vector<int> natmol2;
@@ -23,7 +23,7 @@ protected:
 
   void TearDown() override
   {
-    free(mtop);
+    // free(mtop);
   }
 };
 
