@@ -1094,10 +1094,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
 
     # apply symmetries 
-    dict_sbtype_to_resname = meGO_ensemble['topology_dataframe'].set_index('sb_type')['resname'].to_dict()
-
-    
     tmp_df = pd.DataFrame()
+    dict_sbtype_to_resname = meGO_ensemble['topology_dataframe'].set_index('sb_type')['resname'].to_dict()
     symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else {}
     mglj_resn_ai = meGO_LJ['ai'].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_LJ['aj'].map(dict_sbtype_to_resname)
