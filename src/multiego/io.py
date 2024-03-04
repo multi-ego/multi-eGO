@@ -22,7 +22,7 @@ def read_symmetry_file(path):
     print("\t-", f"Reading symmetry file {path}")
     with open(path, "r") as file:
         lines = file.readlines()
-    symmetry = {}
+    symmetry = []
     for i, line in enumerate(lines):
         if '#' in line:
             lines[i] = line.split('#')[0]
@@ -32,8 +32,7 @@ def read_symmetry_file(path):
         if line.startswith("\n"):
             continue
         else:
-            key, value = line.split()[0], line.split()[1:]
-            symmetry[key] = value
+            symmetry.append(line.split())
     return symmetry
     
 

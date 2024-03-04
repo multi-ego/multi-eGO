@@ -1096,25 +1096,25 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # apply symmetries 
     tmp_df = pd.DataFrame()
     dict_sbtype_to_resname = meGO_ensemble['topology_dataframe'].set_index('sb_type')['resname'].to_dict()
-    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else {}
+    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
     mglj_resn_ai = meGO_LJ['ai'].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_LJ['aj'].map(dict_sbtype_to_resname)
 
-    for k in symmetries.keys():
-        for atypes in itertools.combinations(symmetries[k], 2):
-            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[0]}_') & (mglj_resn_ai == k)]
-            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[0]}_') & (mglj_resn_aj == k)]
-            ai_rows['ai'] = atypes[1] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
-            aj_rows['aj'] = atypes[1] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]            
+    for sym in symmetries:
+        for atypes in itertools.combinations(sym[1:], 2):
+            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[0]}_') & (mglj_resn_ai == sym[0])].copy()
+            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[0]}_') & (mglj_resn_aj == sym[0])].copy()
+            ai_rows.loc[:, 'ai'] = atypes[1] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
+            aj_rows.loc[:, 'aj'] = atypes[1] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]            
             
             ai_rows['ai'], ai_rows['aj'] = np.where(ai_rows['ai'].str.split('_').str[2] < ai_rows['aj'].str.split('_').str[2], (ai_rows['ai'], ai_rows['aj']), (ai_rows['aj'], ai_rows['ai']))
             aj_rows['ai'], aj_rows['aj'] = np.where(aj_rows['ai'].str.split('_').str[2] < aj_rows['aj'].str.split('_').str[2], (aj_rows['ai'], aj_rows['aj']), (aj_rows['aj'], aj_rows['ai']))
             tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
 
-            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[1]}_') & (mglj_resn_ai == k)]
-            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[1]}_') & (mglj_resn_aj == k)]
-            ai_rows['ai'] = atypes[0] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
-            aj_rows['aj'] = atypes[0] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]
+            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[1]}_') & (mglj_resn_ai == sym[0])].copy()
+            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[1]}_') & (mglj_resn_aj == sym[0])].copy()
+            ai_rows.loc[:, 'ai'] = atypes[0] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
+            aj_rows.loc[:, 'aj'] = atypes[0] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]
 
             ai_rows['ai'], ai_rows['aj'] = np.where(ai_rows['ai'].str.split('_').str[2] < ai_rows['aj'].str.split('_').str[2], (ai_rows['ai'], ai_rows['aj']), (ai_rows['aj'], ai_rows['ai']))
             aj_rows['ai'], aj_rows['aj'] = np.where(aj_rows['ai'].str.split('_').str[2] < aj_rows['aj'].str.split('_').str[2], (aj_rows['ai'], aj_rows['aj']), (aj_rows['aj'], aj_rows['ai']))
