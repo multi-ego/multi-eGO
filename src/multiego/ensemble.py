@@ -9,6 +9,7 @@ import pandas as pd
 import parmed
 import os
 import warnings
+import itertools
 
 
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
@@ -1091,6 +1092,43 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
+
+    # apply symmetries 
+    symmetries = [['MET', 'CA', 'CB']]
+    dict_sbtype_to_resname = meGO_ensemble['topology_dataframe'].set_index('sb_type')['resname'].to_dict()
+
+    print(meGO_LJ[['ai', 'aj']])
+
+    for sym in symmetries:
+        mglj_resn_ai = meGO_LJ['ai'].map(dict_sbtype_to_resname)
+        mglj_resn_aj = meGO_LJ['aj'].map(dict_sbtype_to_resname)
+        # iterate through atom types as each possible combination of two (order does matter)
+        tmp_df = pd.DataFrame()
+        import time
+        for atypes in itertools.combinations(sym[1:], 2):
+            print(f'starting with {atypes[0]}_{atypes[1]}')
+            time.sleep(1)
+            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[0]}_') & (mglj_resn_ai == sym[0])]
+            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[0]}_') & (mglj_resn_aj == sym[0])]
+            
+            ai_rows['ai'] = atypes[1] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
+            aj_rows['aj'] = atypes[1] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]
+            tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
+            # repeat for the other atom type
+            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[1]}_')]
+            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[1]}_')]
+            ai_rows['ai'] = atypes[0] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
+            aj_rows['aj'] = atypes[0] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]
+
+            # sort the column desctiptors so that the first element from x.split('_')[2] is always smaller (in ai) than the second (aj)
+            ai_rows['ai'], ai_rows['aj'] = np.where(ai_rows['ai'].str.split('_').str[2] < ai_rows['aj'].str.split('_').str[2], (ai_rows['ai'], ai_rows['aj']), (ai_rows['aj'], ai_rows['ai']))
+
+            tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
+        print(tmp_df[['ai', 'aj']])
+        # duplicates of ai and aj are averaged on probability
+
+    meGO_LJ = pd.concat([meGO_LJ, tmp_df])
+
     # This is a debug check to avoid data inconsistencies
     if (np.abs(meGO_LJ["rc_cutoff"] - meGO_LJ["cutoff"])).max() > 0:
         print(
@@ -1437,8 +1475,16 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c12"] = -meGO_LJ_14["epsilon"]
 
     meGO_LJ["type"] = 1
+    print('before')
+    print(meGO_LJ["ai"].to_string())
     meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble["sbtype_number_dict"])
     meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"])
+    print('after')
+    print(meGO_LJ["number_ai"].to_string())
+    print("\n\nHERE NO WORL\n\n")
+    print(f'dict\n{meGO_ensemble["sbtype_number_dict"]}\n\n')
+    print(meGO_LJ["number_ai"].to_string())
+    print(meGO_LJ["number_ai"].isna().sum())
     meGO_LJ["number_ai"] = meGO_LJ["number_ai"].astype(int)
     meGO_LJ["number_aj"] = meGO_LJ["number_aj"].astype(int)
 
