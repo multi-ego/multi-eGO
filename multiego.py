@@ -155,6 +155,12 @@ for a contact pair.
         action="store_true",
         help="Removes headers from the output files when set",
     )
+    optional_args.add_argument(
+        "--symmetry",
+        default="",
+        type=str,
+        help="Symmetry file for the system",
+    )
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
