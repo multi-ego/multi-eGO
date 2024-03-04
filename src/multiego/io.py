@@ -8,12 +8,12 @@ import os
 def read_symmetry_file(path):
     """
     Reads the symmetry file and returns a dictionary of the symmetry parameters.
-    
+
         Parameters
         ----------
         path : str
             The path to the symmetry file
-    
+
         Returns
         -------
         symmetry : dict
@@ -24,8 +24,8 @@ def read_symmetry_file(path):
         lines = file.readlines()
     symmetry = []
     for i, line in enumerate(lines):
-        if '#' in line:
-            lines[i] = line.split('#')[0]
+        if "#" in line:
+            lines[i] = line.split("#")[0]
         lines[i] = lines[i].strip()
 
     for line in lines:
@@ -34,7 +34,7 @@ def read_symmetry_file(path):
         else:
             symmetry.append(line.split())
     return symmetry
-    
+
 
 def read_molecular_contacts(path):
     """

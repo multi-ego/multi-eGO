@@ -1092,32 +1092,55 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
-
-    # apply symmetries 
+    # apply symmetries
     tmp_df = pd.DataFrame()
-    dict_sbtype_to_resname = meGO_ensemble['topology_dataframe'].set_index('sb_type')['resname'].to_dict()
+    dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
     symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
-    mglj_resn_ai = meGO_LJ['ai'].map(dict_sbtype_to_resname)
-    mglj_resn_aj = meGO_LJ['aj'].map(dict_sbtype_to_resname)
+    mglj_resn_ai = meGO_LJ["ai"].map(dict_sbtype_to_resname)
+    mglj_resn_aj = meGO_LJ["aj"].map(dict_sbtype_to_resname)
 
     for sym in symmetries:
         for atypes in itertools.combinations(sym[1:], 2):
-            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[0]}_') & (mglj_resn_ai == sym[0])].copy()
-            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[0]}_') & (mglj_resn_aj == sym[0])].copy()
-            ai_rows.loc[:, 'ai'] = atypes[1] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
-            aj_rows.loc[:, 'aj'] = atypes[1] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]            
-            
-            ai_rows['ai'], ai_rows['aj'] = np.where(ai_rows['ai'].str.split('_').str[2] < ai_rows['aj'].str.split('_').str[2], (ai_rows['ai'], ai_rows['aj']), (ai_rows['aj'], ai_rows['ai']))
-            aj_rows['ai'], aj_rows['aj'] = np.where(aj_rows['ai'].str.split('_').str[2] < aj_rows['aj'].str.split('_').str[2], (aj_rows['ai'], aj_rows['aj']), (aj_rows['aj'], aj_rows['ai']))
+            ai_rows = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
+            aj_rows = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
+            ai_rows.loc[:, "ai"] = (
+                atypes[1] + "_" + ai_rows["ai"].str.split("_").str[1] + "_" + ai_rows["ai"].str.split("_").str[2]
+            )
+            aj_rows.loc[:, "aj"] = (
+                atypes[1] + "_" + aj_rows["aj"].str.split("_").str[1] + "_" + aj_rows["aj"].str.split("_").str[2]
+            )
+
+            ai_rows["ai"], ai_rows["aj"] = np.where(
+                ai_rows["ai"].str.split("_").str[2] < ai_rows["aj"].str.split("_").str[2],
+                (ai_rows["ai"], ai_rows["aj"]),
+                (ai_rows["aj"], ai_rows["ai"]),
+            )
+            aj_rows["ai"], aj_rows["aj"] = np.where(
+                aj_rows["ai"].str.split("_").str[2] < aj_rows["aj"].str.split("_").str[2],
+                (aj_rows["ai"], aj_rows["aj"]),
+                (aj_rows["aj"], aj_rows["ai"]),
+            )
             tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
 
-            ai_rows = meGO_LJ[meGO_LJ['ai'].str.startswith(f'{atypes[1]}_') & (mglj_resn_ai == sym[0])].copy()
-            aj_rows = meGO_LJ[meGO_LJ['aj'].str.startswith(f'{atypes[1]}_') & (mglj_resn_aj == sym[0])].copy()
-            ai_rows.loc[:, 'ai'] = atypes[0] + '_' + ai_rows['ai'].str.split('_').str[1] + '_' + ai_rows['ai'].str.split('_').str[2]
-            aj_rows.loc[:, 'aj'] = atypes[0] + '_' + aj_rows['aj'].str.split('_').str[1] + '_' + aj_rows['aj'].str.split('_').str[2]
+            ai_rows = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
+            aj_rows = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
+            ai_rows.loc[:, "ai"] = (
+                atypes[0] + "_" + ai_rows["ai"].str.split("_").str[1] + "_" + ai_rows["ai"].str.split("_").str[2]
+            )
+            aj_rows.loc[:, "aj"] = (
+                atypes[0] + "_" + aj_rows["aj"].str.split("_").str[1] + "_" + aj_rows["aj"].str.split("_").str[2]
+            )
 
-            ai_rows['ai'], ai_rows['aj'] = np.where(ai_rows['ai'].str.split('_').str[2] < ai_rows['aj'].str.split('_').str[2], (ai_rows['ai'], ai_rows['aj']), (ai_rows['aj'], ai_rows['ai']))
-            aj_rows['ai'], aj_rows['aj'] = np.where(aj_rows['ai'].str.split('_').str[2] < aj_rows['aj'].str.split('_').str[2], (aj_rows['ai'], aj_rows['aj']), (aj_rows['aj'], aj_rows['ai']))
+            ai_rows["ai"], ai_rows["aj"] = np.where(
+                ai_rows["ai"].str.split("_").str[2] < ai_rows["aj"].str.split("_").str[2],
+                (ai_rows["ai"], ai_rows["aj"]),
+                (ai_rows["aj"], ai_rows["ai"]),
+            )
+            aj_rows["ai"], aj_rows["aj"] = np.where(
+                aj_rows["ai"].str.split("_").str[2] < aj_rows["aj"].str.split("_").str[2],
+                (aj_rows["ai"], aj_rows["aj"]),
+                (aj_rows["aj"], aj_rows["ai"]),
+            )
             tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
 
     meGO_LJ = pd.concat([meGO_LJ, tmp_df])
@@ -1231,18 +1254,81 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         meGO_check_contacts = check_dataset.loc[
             (
                 (check_dataset["probability"] > check_dataset["md_threshold"])
-                & (check_dataset["probability"] >= check_dataset["rc_probability"])
+                & (check_dataset["probability"] > check_dataset["rc_probability"])
                 & (check_dataset["rep"] > 0.0)
+                & (check_dataset["1-4"] == "1>4")
             )
-            | ((check_dataset["1-4"] == "1_4") & (check_dataset["rep"] > 0.0))
         ].copy()
-        meGO_check_contacts = meGO_check_contacts.loc[
-            (meGO_check_contacts["1-4"] != "1_2_3") & (meGO_check_contacts["1-4"] != "0")
-        ]
-        meGO_check_contacts["sigma"] = (meGO_check_contacts["distance"]) / (2.0 ** (1.0 / 6.0))
+        meGO_check_contacts["sigma"] = meGO_check_contacts["distance"] / (2.0 ** (1.0 / 6.0))
         meGO_check_contacts["learned"] = 0
         # set the epsilon of these contacts using the default c12 repulsive term
         meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
+        mglj_resn_ai = meGO_check_contacts["ai"].map(dict_sbtype_to_resname)
+        mglj_resn_aj = meGO_check_contacts["aj"].map(dict_sbtype_to_resname)
+        tmp_df = pd.DataFrame()
+        # apply symmetries to check contacts
+        for sym in symmetries:
+            for atypes in itertools.combinations(sym[1:], 2):
+                ai_rows = meGO_check_contacts[
+                    meGO_check_contacts["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])
+                ].copy()
+                aj_rows = meGO_check_contacts[
+                    meGO_check_contacts["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])
+                ].copy()
+                ai_rows.loc[:, "ai"] = (
+                    atypes[1] + "_" + ai_rows["ai"].str.split("_").str[1] + "_" + ai_rows["ai"].str.split("_").str[2]
+                )
+                aj_rows.loc[:, "aj"] = (
+                    atypes[1] + "_" + aj_rows["aj"].str.split("_").str[1] + "_" + aj_rows["aj"].str.split("_").str[2]
+                )
+
+                ai_rows["ai"], ai_rows["aj"] = np.where(
+                    ai_rows["ai"].str.split("_").str[2] < ai_rows["aj"].str.split("_").str[2],
+                    (ai_rows["ai"], ai_rows["aj"]),
+                    (ai_rows["aj"], ai_rows["ai"]),
+                )
+                aj_rows["ai"], aj_rows["aj"] = np.where(
+                    aj_rows["ai"].str.split("_").str[2] < aj_rows["aj"].str.split("_").str[2],
+                    (aj_rows["ai"], aj_rows["aj"]),
+                    (aj_rows["aj"], aj_rows["ai"]),
+                )
+                tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
+
+                ai_rows = meGO_check_contacts[
+                    meGO_check_contacts["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])
+                ].copy()
+                aj_rows = meGO_check_contacts[
+                    meGO_check_contacts["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])
+                ].copy()
+                ai_rows.loc[:, "ai"] = (
+                    atypes[0] + "_" + ai_rows["ai"].str.split("_").str[1] + "_" + ai_rows["ai"].str.split("_").str[2]
+                )
+                aj_rows.loc[:, "aj"] = (
+                    atypes[0] + "_" + aj_rows["aj"].str.split("_").str[1] + "_" + aj_rows["aj"].str.split("_").str[2]
+                )
+
+                ai_rows["ai"], ai_rows["aj"] = np.where(
+                    ai_rows["ai"].str.split("_").str[2] < ai_rows["aj"].str.split("_").str[2],
+                    (ai_rows["ai"], ai_rows["aj"]),
+                    (ai_rows["aj"], ai_rows["ai"]),
+                )
+                aj_rows["ai"], aj_rows["aj"] = np.where(
+                    aj_rows["ai"].str.split("_").str[2] < aj_rows["aj"].str.split("_").str[2],
+                    (aj_rows["ai"], aj_rows["aj"]),
+                    (aj_rows["aj"], aj_rows["ai"]),
+                )
+                tmp_df = pd.concat([tmp_df, ai_rows, aj_rows])
+
+        meGO_check_contacts = pd.concat([meGO_check_contacts, tmp_df])
+        # check contacts are all repulsive so among duplicates we keep the one with shortest distance
+        meGO_check_contacts.sort_values(
+            by=["ai", "aj", "same_chain", "distance"],
+            ascending=[True, True, True, True],
+            inplace=True,
+        )
+        # Cleaning the duplicates
+        meGO_check_contacts = meGO_check_contacts.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
+
         meGO_LJ = pd.concat([meGO_LJ, meGO_check_contacts], axis=0, sort=False, ignore_index=True)
         meGO_LJ.drop_duplicates(inplace=True, ignore_index=True)
         # this calculates the increase in energy (if any) to form the "check" contact
@@ -1254,7 +1340,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                 "epsilon",
                 "source",
                 "same_chain",
-                "1-4",
             ]
         ].apply(check_LJ, parameters)
         meGO_LJ = pd.merge(
@@ -1273,6 +1358,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
         # rescale problematic contacts
         meGO_LJ["epsilon"] *= meGO_LJ["energy_at_check_dist"]
+        # remove uninformative check contacts (i.e. check contacts with energy == 1)
+        meGO_LJ = meGO_LJ[(meGO_LJ["learned"] == 1) | (meGO_LJ["energy_at_check_dist"] < 1.0)]
         meGO_LJ.drop("energy_at_check_dist", axis=1, inplace=True)
         # reapply boundaries for repulsion
         meGO_LJ.loc[
@@ -1286,19 +1373,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "epsilon",
         ] = (
             -20.0 * meGO_LJ["rep"]
-        )
-        # reapply 1-4 boundaries
-        meGO_LJ.loc[
-            (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.666 * meGO_LJ["rep"]),
-            "epsilon",
-        ] = (
-            -0.666 * meGO_LJ["rep"]
-        )
-        meGO_LJ.loc[
-            (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 1.5 * meGO_LJ["rep"]),
-            "epsilon",
-        ] = (
-            -1.5 * meGO_LJ["rep"]
         )
         # safety cleaning
         meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
@@ -1597,26 +1671,21 @@ def check_LJ(test, parameters):
             rc_dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["rc_distance"]
             if dist_check < rc_dist_check:
                 energy = ((dist_check) ** 12) / eps
+                if energy > 1.0:
+                    energy = 1.0
     else:
-        # this is the special case for 1-4 interactions
-        if (test.loc[test.source.isin(parameters.check)]).iloc[0]["1-4"] == "1_4":
-            # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
-            # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
-            if dist_check < dist_train:
-                energy = (dist_check / dist_train) ** 12
-
-        # this is the case where we can a contact defined in both check and train
-        else:
-            # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
-            # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
-            # epsilon from train
-            eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
-            if dist_check < dist_train and eps < 0:
-                energy = (dist_check / dist_train) ** 12
+        # distance from check
+        dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+        # distance from train
+        dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
+        # distance from check
+        sig_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
+        # distance from train
+        sig_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
+        # epsilon from train
+        eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
+        if dist_check < dist_train and eps < 0 and sig_check < sig_train:
+            energy = (sig_check / sig_train) ** 12
 
     return energy
 
