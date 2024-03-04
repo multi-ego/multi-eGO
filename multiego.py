@@ -155,6 +155,12 @@ for a contact pair.
         action="store_true",
         help="Removes headers from the output files when set",
     )
+    optional_args.add_argument(
+        "--symmetry",
+        default="",
+        type=str,
+        help="Symmetry file for the system",
+    )
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
@@ -268,6 +274,7 @@ def get_meGO_LJ(meGO_ensemble, args):
         meGO_LJ_14 = pairs14
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
     else:
+        symmetries = io.read_symmetry_file(args.symmetry) if args.symmetry else {}
         train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14)
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
 
