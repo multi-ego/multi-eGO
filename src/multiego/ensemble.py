@@ -1101,26 +1101,59 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     for sym in symmetries:
         for atypes in itertools.combinations(sym[1:], 2):
-            stmp_df_ai = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai.loc[:, "ai"] = (
-                atypes[1] + "_" + stmp_df_ai["ai"].str.split("_").str[1] + "_" + stmp_df_ai["ai"].str.split("_").str[2]
+            stmp_df_ai_L = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
+            stmp_df_aj_L = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
+            stmp_df_ai_L.loc[:, "ai"] = (
+                atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
             )
-            stmp_df_aj.loc[:, "aj"] = (
-                atypes[1] + "_" + stmp_df_aj["aj"].str.split("_").str[1] + "_" + stmp_df_aj["aj"].str.split("_").str[2]
-            )
-            if tmp_df.empty:
-                continue
-            tmp_df_i = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-            tmp_df_j = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-            tmp_df_i.loc[:, "ai"] = (
-                atypes[1] + "_" + tmp_df_i["ai"].str.split("_").str[1] + "_" + tmp_df_i["ai"].str.split("_").str[2]
-            )
-            tmp_df_j.loc[:, "aj"] = (
-                atypes[1] + "_" + tmp_df_j["aj"].str.split("_").str[1] + "_" + tmp_df_j["aj"].str.split("_").str[2]
+            stmp_df_aj_L.loc[:, "aj"] = (
+                atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
             )
 
-            tmp_df = pd.concat([tmp_df, stmp_df_ai, stmp_df_aj, tmp_df_i, tmp_df_j])
+            stmp_df_ai_R = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
+            stmp_df_aj_R = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
+            stmp_df_ai_R.loc[:, "ai"] = (
+                atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
+            )
+            stmp_df_aj_R.loc[:, "aj"] = (
+                atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
+            )
+            if not tmp_df.empty:
+                mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
+                mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
+                tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                tmp_df_i_L.loc[:, "ai"] = (
+                    atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
+                )
+                tmp_df_j_L.loc[:, "aj"] = (
+                    atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
+                )
+
+                tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                tmp_df_i_R.loc[:, "ai"] = (
+                    atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
+                )
+                tmp_df_j_R.loc[:, "aj"] = (
+                    atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
+                )
+
+                tmp_df = pd.concat(
+                    [
+                        tmp_df,
+                        stmp_df_ai_L,
+                        stmp_df_aj_L,
+                        stmp_df_ai_R,
+                        stmp_df_aj_R,
+                        tmp_df_i_L,
+                        tmp_df_j_L,
+                        tmp_df_i_R,
+                        tmp_df_j_R,
+                    ]
+                )
+            else:
+                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
 
     meGO_LJ = pd.concat([meGO_LJ, tmp_df])
 
@@ -1246,33 +1279,61 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         mglj_resn_aj = meGO_check_contacts["aj"].map(dict_sbtype_to_resname)
         tmp_df = pd.DataFrame()
         # apply symmetries to check contacts
-        tmp_df = pd.DataFrame()
         for sym in symmetries:
             for atypes in itertools.combinations(sym[1:], 2):
-                stmp_df_ai = meGO_check_contacts[
-                    meGO_check_contacts["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])
-                ].copy()
-                stmp_df_aj = meGO_check_contacts[
-                    meGO_check_contacts["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])
-                ].copy()
-                stmp_df_ai.loc[:, "ai"] = (
-                    atypes[1] + "_" + stmp_df_ai["ai"].str.split("_").str[1] + "_" + stmp_df_ai["ai"].str.split("_").str[2]
+                stmp_df_ai_L = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
+                stmp_df_aj_L = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
+                stmp_df_ai_L.loc[:, "ai"] = (
+                    atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
                 )
-                stmp_df_aj.loc[:, "aj"] = (
-                    atypes[1] + "_" + stmp_df_aj["aj"].str.split("_").str[1] + "_" + stmp_df_aj["aj"].str.split("_").str[2]
-                )
-                if tmp_df.empty:
-                    continue
-                tmp_df_i = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-                tmp_df_j = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-                tmp_df_i.loc[:, "ai"] = (
-                    atypes[1] + "_" + tmp_df_i["ai"].str.split("_").str[1] + "_" + tmp_df_i["ai"].str.split("_").str[2]
-                )
-                tmp_df_j.loc[:, "aj"] = (
-                    atypes[1] + "_" + tmp_df_j["aj"].str.split("_").str[1] + "_" + tmp_df_j["aj"].str.split("_").str[2]
+                stmp_df_aj_L.loc[:, "aj"] = (
+                    atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
                 )
 
-                tmp_df = pd.concat([tmp_df, stmp_df_ai, stmp_df_aj, tmp_df_i, tmp_df_j])
+                stmp_df_ai_R = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
+                stmp_df_aj_R = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
+                stmp_df_ai_R.loc[:, "ai"] = (
+                    atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
+                )
+                stmp_df_aj_R.loc[:, "aj"] = (
+                    atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
+                )
+                if not tmp_df.empty:
+                    mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
+                    mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
+                    tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                    tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                    tmp_df_i_L.loc[:, "ai"] = (
+                        atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
+                    )
+                    tmp_df_j_L.loc[:, "aj"] = (
+                        atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
+                    )
+
+                    tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                    tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                    tmp_df_i_R.loc[:, "ai"] = (
+                        atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
+                    )
+                    tmp_df_j_R.loc[:, "aj"] = (
+                        atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
+                    )
+
+                    tmp_df = pd.concat(
+                        [
+                            tmp_df,
+                            stmp_df_ai_L,
+                            stmp_df_aj_L,
+                            stmp_df_ai_R,
+                            stmp_df_aj_R,
+                            tmp_df_i_L,
+                            tmp_df_j_L,
+                            tmp_df_i_R,
+                            tmp_df_j_R,
+                        ]
+                    )
+                else:
+                    tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
 
         meGO_check_contacts = pd.concat([meGO_check_contacts, tmp_df])
         # check contacts are all repulsive so among duplicates we keep the one with shortest distance
