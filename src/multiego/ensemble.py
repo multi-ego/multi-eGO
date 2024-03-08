@@ -1268,7 +1268,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                 (check_dataset["probability"] > check_dataset["md_threshold"])
                 & (check_dataset["probability"] > check_dataset["rc_probability"])
                 & (check_dataset["rep"] > 0.0)
-                & (check_dataset["1-4"] == "1>4")
+                & ((check_dataset["1-4"] == "1>4") | (check_dataset["1-4"] == "1_4"))
             )
         ].copy()
         meGO_check_contacts["sigma"] = meGO_check_contacts["distance"] / (2.0 ** (1.0 / 6.0))
@@ -1364,6 +1364,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                 "epsilon",
                 "source",
                 "same_chain",
+                "1-4",
             ]
         ].apply(check_LJ, parameters)
         meGO_LJ = pd.merge(
@@ -1397,6 +1398,20 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             "epsilon",
         ] = (
             -20.0 * meGO_LJ["rep"]
+        )
+        # reapply 1-4 boundaries for repulsion
+        meGO_LJ.loc[
+            (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.666 * meGO_LJ["rep"]),
+            "epsilon",
+        ] = (
+            -0.666 * meGO_LJ["rep"]
+        )
+        # and an upper value
+        meGO_LJ.loc[
+            (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 1.5 * meGO_LJ["rep"]),
+            "epsilon",
+        ] = (
+            -1.5 * meGO_LJ["rep"]
         )
         # safety cleaning
         meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
@@ -1698,18 +1713,29 @@ def check_LJ(test, parameters):
                 if energy > 1.0:
                     energy = 1.0
     else:
-        # distance from check
-        dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
-        # distance from train
-        dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
-        # distance from check
-        sig_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
-        # distance from train
-        sig_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
-        # epsilon from train
-        eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
-        if dist_check < dist_train and eps < 0 and sig_check < sig_train:
-            energy = (sig_check / sig_train) ** 12
+        # this is the special case for 1-4 interactions
+        if (test.loc[test.source.isin(parameters.check)]).iloc[0]["1-4"] == "1_4":
+            # distance from check
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from train
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
+            if dist_check < dist_train:
+                energy = (dist_check / dist_train) ** 12
+
+        # this is the case where we can a contact defined in both check and train
+        else:
+            # distance from check
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from train
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from check
+            sig_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
+            # distance from train
+            sig_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
+            # epsilon from train
+            eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
+            if dist_check < dist_train and eps < 0 and sig_check < sig_train:
+                energy = (sig_check / sig_train) ** 12
 
     return energy
 
