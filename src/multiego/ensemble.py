@@ -1154,7 +1154,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             ].copy()
 
             same = pd.concat([same_L, same_R])
-            print(f"same figa {same}")
 
             if not same.empty:
                 # single change combinations
