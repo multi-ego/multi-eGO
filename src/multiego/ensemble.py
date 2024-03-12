@@ -1103,6 +1103,14 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         for atypes in itertools.combinations(sym[1:], 2):
             stmp_df_ai_L = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
             stmp_df_aj_L = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
+            same_L = stmp_df_ai_L[
+                (stmp_df_ai_L["same_chain"] == False) & 
+                ( (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_")) |
+                (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_")) |
+                (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_")) |
+                (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_")) )
+            ].copy()                                 
+
             stmp_df_ai_L.loc[:, "ai"] = (
                 atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
             )
@@ -1112,6 +1120,53 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
             stmp_df_ai_R = meGO_LJ[meGO_LJ["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
             stmp_df_aj_R = meGO_LJ[meGO_LJ["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
+            same_R = stmp_df_ai_R[
+                (stmp_df_ai_R["same_chain"] == False) &
+                ( (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_")) |
+                (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_")) |
+                (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_")) |
+                (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_")) )
+            ].copy()
+
+            accumulate_self = pd.concat([same_L, same_R])
+            if not accumulate_self.empty:
+                same_L_c = same_L.copy()
+                same_L_c.loc[:, "ai"] = (
+                    atypes[0] + "_" + same_L["ai"].str.split("_").str[1] + "_" + same_L["ai"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_L_c])
+                same_L_c = same_L.copy()
+                same_L.loc[:, "aj"] = (
+                    atypes[0] + "_" + same_L["aj"].str.split("_").str[1] + "_" + same_L["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_L_c])
+                same_L_c = same_L.copy()
+                same_L_c.loc[:, "ai"] = (
+                    atypes[1] + "_" + same_L["ai"].str.split("_").str[1] + "_" + same_L["ai"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_L_c])
+                same_L_c = same_L.copy()
+                same_L_c.loc[:, "aj"] = (
+                    atypes[1] + "_" + same_L["aj"].str.split("_").str[1] + "_" + same_L["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_L_c])
+
+                same_R_c = same_R.copy()
+                same_R_c.loc[:, "ai"] = (
+                    atypes[0] + "_" + same_R["ai"].str.split("_").str[1] + "_" + same_R["ai"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_R_c])
+                same_R_c = same_R.copy()
+                same_R_c.loc[:, "aj"] = (
+                    atypes[0] + "_" + same_R["aj"].str.split("_").str[1] + "_" + same_R["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_R_c])
+                same_R_c = same_R.copy()
+                same_R_c.loc[:, "ai"] = (
+                    atypes[1] + "_" + same_R["ai"].str.split("_").str[1] + "_" + same_R["ai"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_R_c])
+
             stmp_df_ai_R.loc[:, "ai"] = (
                 atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
             )
@@ -1150,10 +1205,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
                         tmp_df_j_L,
                         tmp_df_i_R,
                         tmp_df_j_R,
+                        accumulate_self
                     ]
                 )
             else:
-                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
+                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R, accumulate_self])
 
     meGO_LJ = pd.concat([meGO_LJ, tmp_df])
 
