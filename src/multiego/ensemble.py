@@ -1146,6 +1146,218 @@ def consistency_checks(meGO_LJ):
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
 
+def check_LJ(test, parameters):
+    """
+    Computes the energy associated with Lennard-Jones (LJ) interactions based on specific conditions.
+
+    Parameters
+    ----------
+    test : pd.DataFrame
+        DataFrame containing information about LJ interactions to be checked.
+    parameters : dict
+        Dictionary containing specific parameters used for checking LJ interactions.
+
+    Returns
+    -------
+    float
+        Energy associated with the LJ interactions based on the conditions met.
+
+    Notes
+    -----
+    This function evaluates different criteria within the test dataset to calculate the energy associated
+    with LJ interactions. It considers cases where LJ parameters exist both in the check dataset (test)
+    and the default parameters obtained from the training dataset. Energy calculations are made based
+    on different criteria and returned as the computed energy.
+    """
+    energy = 1.0
+    if len(test) == 1:
+        # this is the case where we have a contact from check and default c12s from train
+        if (len(test.loc[test.source.isin(parameters.check)])) == 1:
+            # default c12
+            eps = -test.loc[(test.source.isin(parameters.check))].iloc[0]["epsilon"]
+            # distance from check
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            rc_dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["rc_distance"]
+            if dist_check < rc_dist_check:
+                energy = ((dist_check) ** 12) / eps
+                if energy > 1.0:
+                    energy = 1.0
+    else:
+        # this is the special case for 1-4 interactions
+        if (test.loc[test.source.isin(parameters.check)]).iloc[0]["1-4"] == "1_4":
+            # distance from check
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from train
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
+            if dist_check < dist_train:
+                energy = (dist_check / dist_train) ** 12
+
+        # this is the case where we can a contact defined in both check and train
+        else:
+            # distance from check
+            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from train
+            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
+            # distance from check
+            sig_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
+            # distance from train
+            sig_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
+            # epsilon from train
+            eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
+            if dist_check < dist_train and eps < 0 and sig_check < sig_train:
+                energy = (sig_check / sig_train) ** 12
+
+    return energy
+
+
+def apply_symmetries(meGO_ensemble, meGO_input, parameters):
+    tmp_df = pd.DataFrame()
+    dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
+    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
+    mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
+    mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
+
+    for sym in symmetries:
+        for atypes in itertools.combinations(sym[1:], 2):
+            stmp_df_ai_L = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
+            stmp_df_aj_L = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
+            stmp_df_ai_L.loc[:, "ai"] = (
+                atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
+            )
+            stmp_df_aj_L.loc[:, "aj"] = (
+                atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
+            )
+
+            stmp_df_ai_R = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
+            stmp_df_aj_R = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
+            stmp_df_ai_R.loc[:, "ai"] = (
+                atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
+            )
+            stmp_df_aj_R.loc[:, "aj"] = (
+                atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
+            )
+
+            mglj_stmp_ai_L = stmp_df_ai_L["ai"].map(dict_sbtype_to_resname)
+            mglj_stmp_aj_L = stmp_df_ai_L["aj"].map(dict_sbtype_to_resname)
+            res_idx = np.array([x[2] for x in stmp_df_ai_L["ai"].str.split("_")])
+            res_jdx = np.array([x[2] for x in stmp_df_ai_L["aj"].str.split("_")])
+            same_L = stmp_df_ai_L[
+                (stmp_df_ai_L["same_chain"] == False)
+                & (res_idx == res_jdx)
+                & (mglj_stmp_ai_L == sym[0])
+                & (mglj_stmp_aj_L == sym[0])
+                & (
+                    (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
+                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
+                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
+                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
+                )
+            ].copy()
+
+            mglj_stmp_ai_R = stmp_df_ai_R["ai"].map(dict_sbtype_to_resname)
+            mglj_stmp_aj_R = stmp_df_ai_R["aj"].map(dict_sbtype_to_resname)
+            res_idx = np.array([x[2] for x in stmp_df_ai_R["ai"].str.split("_")])
+            res_jdx = np.array([x[2] for x in stmp_df_ai_R["aj"].str.split("_")])
+            same_R = stmp_df_ai_R[
+                (stmp_df_ai_R["same_chain"] == False)
+                & (res_idx == res_jdx)
+                & (mglj_stmp_ai_R == sym[0])
+                & (mglj_stmp_aj_R == sym[0])
+                & (
+                    (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
+                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
+                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
+                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
+                )
+            ].copy()
+
+            same = pd.concat([same_L, same_R])
+
+            if not same.empty:
+                # single change combinations
+                accumulate_self, same_c = same.copy(), same.copy()
+                same_c.loc[:, "ai"] = (
+                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
+                )
+                if not accumulate_self.empty:
+                    accumulate_self = pd.concat([accumulate_self, same_c])
+                else:
+                    accumulate_self = same_c.copy()
+                same_c = same.copy()
+                same.loc[:, "aj"] = atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
+                accumulate_self = pd.concat([accumulate_self, same_c])
+                same_c = same.copy()
+                same_c.loc[:, "ai"] = (
+                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_c])
+                same_c = same.copy()
+                same_c.loc[:, "aj"] = (
+                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_c])
+                # double change combinations
+                same_c = same.copy()
+                same_c.loc[:, "ai"] = (
+                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
+                )
+                same_c.loc[:, "aj"] = (
+                    atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_c])
+                same_c = same.copy()
+                same_c.loc[:, "ai"] = (
+                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
+                )
+                same_c.loc[:, "aj"] = (
+                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
+                )
+                accumulate_self = pd.concat([accumulate_self, same_c])
+                if not tmp_df.empty:
+                    tmp_df = pd.concat([tmp_df, accumulate_self])
+                else:
+                    tmp_df = accumulate_self.copy()
+
+            if not tmp_df.empty:
+                mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
+                mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
+                tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                tmp_df_i_L.loc[:, "ai"] = (
+                    atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
+                )
+                tmp_df_j_L.loc[:, "aj"] = (
+                    atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
+                )
+
+                tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
+                tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
+                tmp_df_i_R.loc[:, "ai"] = (
+                    atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
+                )
+                tmp_df_j_R.loc[:, "aj"] = (
+                    atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
+                )
+
+                tmp_df = pd.concat(
+                    [
+                        tmp_df,
+                        stmp_df_ai_L,
+                        stmp_df_aj_L,
+                        stmp_df_ai_R,
+                        stmp_df_aj_R,
+                        tmp_df_i_L,
+                        tmp_df_j_L,
+                        tmp_df_i_R,
+                        tmp_df_j_R,
+                    ]
+                )
+            else:
+                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
+
+    return tmp_df
+
+
 def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     """
     Generates LJ (Lennard-Jones) interactions and associated atomic contacts within a molecular ensemble.
@@ -1443,218 +1655,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
 
     return meGO_LJ, meGO_LJ_14
-
-
-def check_LJ(test, parameters):
-    """
-    Computes the energy associated with Lennard-Jones (LJ) interactions based on specific conditions.
-
-    Parameters
-    ----------
-    test : pd.DataFrame
-        DataFrame containing information about LJ interactions to be checked.
-    parameters : dict
-        Dictionary containing specific parameters used for checking LJ interactions.
-
-    Returns
-    -------
-    float
-        Energy associated with the LJ interactions based on the conditions met.
-
-    Notes
-    -----
-    This function evaluates different criteria within the test dataset to calculate the energy associated
-    with LJ interactions. It considers cases where LJ parameters exist both in the check dataset (test)
-    and the default parameters obtained from the training dataset. Energy calculations are made based
-    on different criteria and returned as the computed energy.
-    """
-    energy = 1.0
-    if len(test) == 1:
-        # this is the case where we have a contact from check and default c12s from train
-        if (len(test.loc[test.source.isin(parameters.check)])) == 1:
-            # default c12
-            eps = -test.loc[(test.source.isin(parameters.check))].iloc[0]["epsilon"]
-            # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
-            rc_dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["rc_distance"]
-            if dist_check < rc_dist_check:
-                energy = ((dist_check) ** 12) / eps
-                if energy > 1.0:
-                    energy = 1.0
-    else:
-        # this is the special case for 1-4 interactions
-        if (test.loc[test.source.isin(parameters.check)]).iloc[0]["1-4"] == "1_4":
-            # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
-            # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
-            if dist_check < dist_train:
-                energy = (dist_check / dist_train) ** 12
-
-        # this is the case where we can a contact defined in both check and train
-        else:
-            # distance from check
-            dist_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["distance"]
-            # distance from train
-            dist_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["distance"]
-            # distance from check
-            sig_check = test.loc[(test.source.isin(parameters.check))].iloc[0]["sigma"]
-            # distance from train
-            sig_train = test.loc[~(test.source.isin(parameters.check))].iloc[0]["sigma"]
-            # epsilon from train
-            eps = test.loc[~(test.source.isin(parameters.check))].iloc[0]["epsilon"]
-            if dist_check < dist_train and eps < 0 and sig_check < sig_train:
-                energy = (sig_check / sig_train) ** 12
-
-    return energy
-
-
-def apply_symmetries(meGO_ensemble, meGO_input, parameters):
-    tmp_df = pd.DataFrame()
-    dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
-    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
-    mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
-    mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
-
-    for sym in symmetries:
-        for atypes in itertools.combinations(sym[1:], 2):
-            stmp_df_ai_L = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_L = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_L.loc[:, "ai"] = (
-                atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_L.loc[:, "aj"] = (
-                atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
-            )
-
-            stmp_df_ai_R = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_R = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_R.loc[:, "ai"] = (
-                atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_R.loc[:, "aj"] = (
-                atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
-            )
-
-            mglj_stmp_ai_L = stmp_df_ai_L["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_L = stmp_df_ai_L["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_L["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_L["aj"].str.split("_")])
-            same_L = stmp_df_ai_L[
-                (stmp_df_ai_L["same_chain"] == False)
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_L == sym[0])
-                & (mglj_stmp_aj_L == sym[0])
-                & (
-                    (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            mglj_stmp_ai_R = stmp_df_ai_R["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_R = stmp_df_ai_R["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_R["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_R["aj"].str.split("_")])
-            same_R = stmp_df_ai_R[
-                (stmp_df_ai_R["same_chain"] == False)
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_R == sym[0])
-                & (mglj_stmp_aj_R == sym[0])
-                & (
-                    (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            same = pd.concat([same_L, same_R])
-
-            if not same.empty:
-                # single change combinations
-                accumulate_self, same_c = same.copy(), same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                if not accumulate_self.empty:
-                    accumulate_self = pd.concat([accumulate_self, same_c])
-                else:
-                    accumulate_self = same_c.copy()
-                same_c = same.copy()
-                same.loc[:, "aj"] = atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                # double change combinations
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                if not tmp_df.empty:
-                    tmp_df = pd.concat([tmp_df, accumulate_self])
-                else:
-                    tmp_df = accumulate_self.copy()
-
-            if not tmp_df.empty:
-                mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
-                mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
-                tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_L.loc[:, "ai"] = (
-                    atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_L.loc[:, "aj"] = (
-                    atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
-                )
-
-                tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_R.loc[:, "ai"] = (
-                    atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_R.loc[:, "aj"] = (
-                    atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
-                )
-
-                tmp_df = pd.concat(
-                    [
-                        tmp_df,
-                        stmp_df_ai_L,
-                        stmp_df_aj_L,
-                        stmp_df_ai_R,
-                        stmp_df_aj_R,
-                        tmp_df_i_L,
-                        tmp_df_j_L,
-                        tmp_df_i_R,
-                        tmp_df_j_R,
-                    ]
-                )
-            else:
-                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
-
-    return tmp_df
 
 
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
