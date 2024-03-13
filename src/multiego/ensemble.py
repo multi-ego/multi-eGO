@@ -1290,16 +1290,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
-    # Removing the reverse duplicates
-    # cols = ["ai", "aj"]
-    # meGO_LJ[cols] = np.sort(meGO_LJ[cols].values, axis=1)
-    # meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     # Pairs prioritise intramolecular interactions
     meGO_LJ_14.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, False], inplace=True)
     meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
-    # meGO_LJ_14[cols] = np.sort(meGO_LJ_14[cols].values, axis=1)
-    # meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     # where meGO_LJ_14 is the same of meGO_LJ and same_chain is yes that the line can be dropped
     # that is I want to keep lines with same_chain no or lines with same chain yes that have same_chain no in meGO_LJ
@@ -1366,6 +1360,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         columns={"ai": "aj", "aj": "ai", "molecule_name_ai": "molecule_name_aj", "molecule_name_aj": "molecule_name_ai"}
     ).copy()
     # Concatenate original and inverse DataFrames
+    # Here we have a fully symmetric matrix for both intra/intersame/intercross
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
     # Sorting the pairs prioritising learned interactions
@@ -1392,9 +1387,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["number_ai"] = meGO_LJ["number_ai"].astype(int)
     meGO_LJ["number_aj"] = meGO_LJ["number_aj"].astype(int)
 
-    # Needed to properly handle the sorting by inversion for eterogeneous species
-    meGO_LJ["molecule_name_ai_for_check"] = meGO_LJ["molecule_name_ai"]
-
     # final_fields
     final_fields = [
         "ai",
@@ -1416,35 +1408,39 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         "source",
         "number_ai",
         "number_aj",
-        "molecule_name_ai_for_check",
     ]
     meGO_LJ = meGO_LJ[final_fields]
-    # Create inverse DataFrame
-    inv_meGO = meGO_LJ.rename(
-        columns={
-            "aj": "ai",
-            "ai": "aj",
-            "molecule_name_ai": "molecule_name_aj",
-            "molecule_name_aj": "molecule_name_ai",
-            "number_ai": "number_aj",
-            "number_aj": "number_ai",
-        }
-    ).copy()
 
-    meGO_LJ = pd.concat([meGO_LJ, inv_meGO], axis=0, sort=False, ignore_index=True)
     # Here we want to sort so that ai is smaller than aj
-    meGO_LJ = meGO_LJ[
-        ((meGO_LJ["number_ai"] <= meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"]))
-        | ((meGO_LJ["number_ai"] < meGO_LJ["number_aj"]) & (meGO_LJ["molecule_name_ai"] != meGO_LJ["molecule_name_aj"]))
-        | (
-            (meGO_LJ["number_ai"] == meGO_LJ["number_aj"])
-            & (meGO_LJ["molecule_name_ai"] != meGO_LJ["molecule_name_aj"])
-            & (meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_ai_for_check"])
-        )
-    ]
+    meGO_LJ = meGO_LJ[(meGO_LJ["ai"] <= meGO_LJ["aj"])]
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+        [
+            meGO_LJ["aj"],
+            meGO_LJ["ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["number_aj"],
+            meGO_LJ["number_ai"],
+        ],
+    )
+
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
-    meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
-    meGO_LJ = meGO_LJ.drop(columns=["molecule_name_ai_for_check"])
 
     return meGO_LJ, meGO_LJ_14
 
