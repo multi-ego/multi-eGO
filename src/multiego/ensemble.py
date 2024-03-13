@@ -1242,7 +1242,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, parameters):
             res_idx = np.array([x[2] for x in stmp_df_ai_L["ai"].str.split("_")])
             res_jdx = np.array([x[2] for x in stmp_df_ai_L["aj"].str.split("_")])
             same_L = stmp_df_ai_L[
-                (stmp_df_ai_L["same_chain"] == False)
+                (stmp_df_ai_L["same_chain"] is False)
                 & (res_idx == res_jdx)
                 & (mglj_stmp_ai_L == sym[0])
                 & (mglj_stmp_aj_L == sym[0])
@@ -1259,7 +1259,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, parameters):
             res_idx = np.array([x[2] for x in stmp_df_ai_R["ai"].str.split("_")])
             res_jdx = np.array([x[2] for x in stmp_df_ai_R["aj"].str.split("_")])
             same_R = stmp_df_ai_R[
-                (stmp_df_ai_R["same_chain"] == False)
+                (stmp_df_ai_R["same_chain"] is False)
                 & (res_idx == res_jdx)
                 & (mglj_stmp_ai_R == sym[0])
                 & (mglj_stmp_aj_R == sym[0])
