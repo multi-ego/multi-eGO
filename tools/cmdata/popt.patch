@@ -1,10 +1,18 @@
 diff --color -ruN popt/CMakeLists.txt popto/CMakeLists.txt
---- popt/CMakeLists.txt	2024-03-01 14:48:37.837697092 +0100
+--- popt/CMakeLists.txt	2024-03-14 14:44:57.685892148 +0100
 +++ popto/CMakeLists.txt	2024-03-01 14:16:44.194234963 +0100
-@@ -87,3 +87,4 @@
- # Enable testing
- include(CTest)
- enable_testing()
+@@ -79,7 +79,12 @@
+ endif()
+ 
+ add_subdirectory(src)
++add_subdirectory(doc)
+ if (EXISTS po/popt.pot)
+ 	add_subdirectory(po)
+ endif()
+ 
++# Enable testing
++include(CTest)
++enable_testing()
 +add_subdirectory(tests)
 diff --color -ruN popt/src/CMakeLists.txt popto/src/CMakeLists.txt
 --- popt/src/CMakeLists.txt	2024-03-01 14:48:37.837697092 +0100
