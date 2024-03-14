@@ -1,41 +1,42 @@
---- CMakeLists.txt	2024-03-14 15:45:17
-+++ CMakeLists.txt.orig	2024-03-04 10:42:51
-@@ -103,7 +103,12 @@
- 
+diff --color -Naur popt_orig/CMakeLists.txt popt_patch/CMakeLists.txt
+--- popt_orig/CMakeLists.txt	2024-03-14 16:24:38.310420219 +0100
++++ popt_patch/CMakeLists.txt	2024-03-14 16:25:42.162353238 +0100
+@@ -79,12 +79,6 @@
+ endif()
  
  add_subdirectory(src)
-+add_subdirectory(doc)
+-add_subdirectory(doc)
  if (EXISTS po/popt.pot)
  	add_subdirectory(po)
  endif()
- 
-+# Enable testing
-+include(CTest)
-+enable_testing()
-+add_subdirectory(tests)
-diff --color -ruN popt/src/CMakeLists.txt popto/src/CMakeLists.txt
---- popt/src/CMakeLists.txt	2024-03-01 14:48:37.837697092 +0100
-+++ popto/src/CMakeLists.txt	2024-03-01 14:16:44.198234990 +0100
-@@ -25,15 +25,13 @@
+-
+-# Enable testing
+-include(CTest)
+-enable_testing()
+-add_subdirectory(tests)
+diff --color -Naur popt_orig/src/CMakeLists.txt popt_patch/src/CMakeLists.txt
+--- popt_orig/src/CMakeLists.txt	2024-03-14 16:23:52.010463824 +0100
++++ popt_patch/src/CMakeLists.txt	2024-03-14 16:26:29.646298783 +0100
+@@ -25,13 +25,15 @@
  endif()
  
  set_target_properties(popt PROPERTIES
--    VERSION ${PROJECT_VERSION}
--    SOVERSION ${POPT_SOVERSION}
--    C_STANDARD 99
--    C_STANDARD_REQUIRED ON
--    C_EXTENSIONS ON
--    PUBLIC_HEADER popt.h
--    if(not APPLE)
--        LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
--    endif()
-+	VERSION ${PROJECT_VERSION}
-+	SOVERSION ${POPT_SOVERSION}
-+	C_STANDARD 99
-+	C_STANDARD_REQUIRED ON
-+	C_EXTENSIONS ON
-+	PUBLIC_HEADER popt.h
-+	LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
+-	VERSION ${PROJECT_VERSION}
+-	SOVERSION ${POPT_SOVERSION}
+-	C_STANDARD 99
+-	C_STANDARD_REQUIRED ON
+-	C_EXTENSIONS ON
+-	PUBLIC_HEADER popt.h
+-	LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
++    VERSION ${PROJECT_VERSION}
++    SOVERSION ${POPT_SOVERSION}
++    C_STANDARD 99
++    C_STANDARD_REQUIRED ON
++    C_EXTENSIONS ON
++    PUBLIC_HEADER popt.h
++    if(not APPLE)
++        LINK_FLAGS "-Wl,--no-undefined -Wl,--version-script,\"${PROJECT_SOURCE_DIR}/src/libpopt.vers\""
++    endif()
  )
  
  # Install the library
