@@ -1,8 +1,7 @@
-diff --color -ruN popt/CMakeLists.txt popto/CMakeLists.txt
---- popt/CMakeLists.txt	2024-03-14 14:44:57.685892148 +0100
-+++ popto/CMakeLists.txt	2024-03-01 14:16:44.194234963 +0100
-@@ -79,7 +79,12 @@
- endif()
+--- CMakeLists.txt	2024-03-14 15:45:17
++++ CMakeLists.txt.orig	2024-03-04 10:42:51
+@@ -103,7 +103,12 @@
+ 
  
  add_subdirectory(src)
 +add_subdirectory(doc)
