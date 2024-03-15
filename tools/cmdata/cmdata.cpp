@@ -1010,7 +1010,7 @@ void CMData::analyzeFrame(int frnr, const t_trxframe &fr, t_pbc *pbc, Trajectory
           end_i_same = 0;
           end_j_same = 0;
         }
-        if ( static_cast<int>(end_im_same) == num_mol_unique_[end_mti_same - 1] )
+        if ( static_cast<int>(end_im_same) -1 == num_mol_unique_[end_mti_same - 1] )
         {
           end_mti_same++;
           end_im_same = 1;
