@@ -18,12 +18,12 @@ int main(int argc, const char** argv)
   double cutoff = 0.75, mol_cutoff = 6.0;
   int nskip = 0, num_threads = 1, dt = 0;
   float t_begin = 0.0, t_end = -1.0;
-  char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL, *p_weights_path = NULL, *p_sym_file_path = NULL;
+  char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL, *p_weights_path = NULL;
   char *p_out_prefix = NULL;
-  std::string traj_path, top_path, mode, weights_path, sym_file_path;
+  std::string traj_path, top_path, mode, weights_path;
   std::string out_prefix;
   int *p_nopbc = NULL;
-  bool list_sym = false, write_sym = false, nopbc = false;
+  bool nopbc = false;
 
   // make popt options
   struct poptOption optionsTable[] = {
@@ -39,9 +39,6 @@ int main(int argc, const char** argv)
     {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",         "INT"},
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",         "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",              "FILE"},
-    {"sym",         '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_sym_file_path, 0, "Symmetry file",             "FILE"},
-    {"list_sym",    '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &list_sym,        0, "List symmetries",           0},
-    {"write_sym",   '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &write_sym,       0, "Write symmetries",          0},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",               0},
     POPT_TABLEEND
   };
@@ -62,7 +59,6 @@ int main(int argc, const char** argv)
   top_path = std::string(p_top_path);
   mode = p_mode ? std::string(p_mode) : std::string("intra+same+cross");
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
-  if ( p_sym_file_path != NULL ) sym_file_path = std::string(p_sym_file_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
 
@@ -81,11 +77,6 @@ int main(int argc, const char** argv)
   {
     std::cerr << "Weights file does not exist!" << std::endl;
     return 3;
-  }
-  if ( !sym_file_path.empty() && !std::filesystem::exists(std::filesystem::path(sym_file_path)) )
-  {
-    std::cerr << "Symmetry file does not exist!" << std::endl;
-    return 4;
   }
   if ( !out_prefix.empty() )
   {
@@ -146,7 +137,7 @@ int main(int argc, const char** argv)
 
   cmdata::CMData cmdata(
     top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, dt,
-    mode, weights_path, sym_file_path, list_sym, nopbc, t_begin, t_end
+    mode, weights_path, nopbc, t_begin, t_end
   );
   cmdata.run();
   cmdata.process_data();
