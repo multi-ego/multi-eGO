@@ -1,8 +1,8 @@
-diff --color -Naur popt_orig/CMakeLists.txt popt_patch/CMakeLists.txt
---- popt_orig/CMakeLists.txt	2024-03-14 16:24:38.310420219 +0100
-+++ popt_patch/CMakeLists.txt	2024-03-14 16:25:42.162353238 +0100
-@@ -79,12 +79,6 @@
- endif()
+diff --color -Naur CMakeLists.txt.origCMakeLists.txt
+--- CMakeLists.txt	2024-03-14 16:24:38.310420219 +0100
++++ CMakeLists.txt	2024-03-14 16:25:42.162353238 +0100
+@@ -103,12 +103,6 @@
+ 
  
  add_subdirectory(src)
 -add_subdirectory(doc)
@@ -14,9 +14,9 @@ diff --color -Naur popt_orig/CMakeLists.txt popt_patch/CMakeLists.txt
 -include(CTest)
 -enable_testing()
 -add_subdirectory(tests)
-diff --color -Naur popt_orig/src/CMakeLists.txt popt_patch/src/CMakeLists.txt
---- popt_orig/src/CMakeLists.txt	2024-03-14 16:23:52.010463824 +0100
-+++ popt_patch/src/CMakeLists.txt	2024-03-14 16:26:29.646298783 +0100
+diff --color -Naur src/CMakeLists.txt.orig src/CMakeLists.txt
+--- src/CMakeLists.txt	2024-03-14 16:23:52.010463824 +0100
++++ src/CMakeLists.txt	2024-03-14 16:26:29.646298783 +0100
 @@ -25,13 +25,15 @@
  endif()
  
