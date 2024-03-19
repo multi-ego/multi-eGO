@@ -27,6 +27,7 @@ int main(int argc, const char** argv)
 
   // make popt options
   struct poptOption optionsTable[] = {
+    POPT_AUTOHELP
     {"traj",        'f',  POPT_ARG_STRING,                          &p_traj_path,     0, "Trajectory file",           "FILE"},
     {"top",         's',  POPT_ARG_STRING,                          &p_top_path,      0, "Topology file",             "FILE"},
     {"t_begin",     'b',  POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL,   &t_begin,         0, "Start time",                "FLOAT"},
@@ -45,7 +46,12 @@ int main(int argc, const char** argv)
 
   // parse options
   poptContext opt_context = poptGetContext("cmdata", argc, argv, optionsTable, 0);
-  poptGetNextOpt(opt_context); // needs to be run to parse
+  int opt=poptGetNextOpt(opt_context); // needs to be run to parse
+  if (opt < -1) {
+      /* Handle error condition */
+      fprintf(stderr, "%s: %s\n", poptBadOption(opt_context, POPT_BADOPTION_NOALIAS), poptStrerror(opt));
+      return 1;
+  }
   poptFreeContext(opt_context);
 
   // check if traj and top are set
