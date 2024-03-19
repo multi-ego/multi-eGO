@@ -45,7 +45,7 @@ FetchContent_MakeAvailable(popt)
 message(STATUS "Fetching xdrfile")
 FetchContent_Declare(
   xdrfile
-  URL https://github.com/wesbarnett/libxdrfile/archive/refs/tags/2.1.2.zip
+  URL https://github.com/multi-ego/xdrfile/archive/refs/heads/chemfiles.zip 
 )
 FetchContent_MakeAvailable(xdrfile)
 
