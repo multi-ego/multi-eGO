@@ -558,7 +558,7 @@ public:
             n_loop_operations_same -= sub_same;
             end_i_same++;
             end_j_same = end_i_same;
-            if (static_cast<int>(end_j_same) -1 == natmol2_[end_mti_same - 1])
+            if (static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1])
             {
               end_im_same++;
               end_i_same = 0;
