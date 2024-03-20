@@ -639,6 +639,10 @@ def generate_14_data(meGO_ensemble):
             pairs["source"] = "1-4"
             pairs["probability"] = 1.0
             pairs["rc_probability"] = 1.0
+            # copy and symmetrize
+            tmp = pairs.copy()
+            tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
+            pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
 
         pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
