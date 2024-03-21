@@ -239,15 +239,17 @@ def write_topology(
     """
     write_header = not parameters.no_header
     molecule_footer = []
-    header = make_header(vars(parameters))
+    header = ""
+    if write_header:
+        header = make_header(vars(parameters))
+
     with open(f"{output_folder}/topol_GRETA.top", "w") as file:
         header += """
 ; Include forcefield parameters
 #include "multi-ego-basic.ff/forcefield.itp"
 """
 
-        if write_header:
-            file.write(header)
+        file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
             exclusions = pd.DataFrame(columns=["ai", "aj"])
             pairs = meGO_LJ_14[molecule]
