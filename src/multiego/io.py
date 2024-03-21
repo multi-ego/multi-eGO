@@ -5,6 +5,37 @@ import glob
 import os
 
 
+def read_symmetry_file(path):
+    """
+    Reads the symmetry file and returns a dictionary of the symmetry parameters.
+
+        Parameters
+        ----------
+        path : str
+            The path to the symmetry file
+
+        Returns
+        -------
+        symmetry : dict
+            The symmetry parameters as a dictionary
+    """
+    print("\t-", f"Reading symmetry file {path}")
+    with open(path, "r") as file:
+        lines = file.readlines()
+    symmetry = []
+    for i, line in enumerate(lines):
+        if "#" in line:
+            lines[i] = line.split("#")[0]
+        lines[i] = lines[i].strip()
+
+    for line in lines:
+        if line.startswith("\n"):
+            continue
+        else:
+            symmetry.append(line.split())
+    return symmetry
+
+
 def read_molecular_contacts(path):
     """
     Reads intra-/intermat files to determine molecular contact statistics.
@@ -208,15 +239,17 @@ def write_topology(
     """
     write_header = not parameters.no_header
     molecule_footer = []
-    header = make_header(vars(parameters))
+    header = ""
+    if write_header:
+        header = make_header(vars(parameters))
+
     with open(f"{output_folder}/topol_GRETA.top", "w") as file:
         header += """
 ; Include forcefield parameters
 #include "multi-ego-basic.ff/forcefield.itp"
 """
 
-        if write_header:
-            file.write(header)
+        file.write(header)
         for molecule, bonded_interactions in bonded_interactions_dict.items():
             exclusions = pd.DataFrame(columns=["ai", "aj"])
             pairs = meGO_LJ_14[molecule]

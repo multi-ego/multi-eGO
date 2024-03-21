@@ -1,8 +1,13 @@
 #ifndef _CMDATA_IO_HPP
 #define _CMDATA_IO_HPP
 
+#include <gromacs/trajectoryanalysis/topologyinformation.h>
+#include <gromacs/fileio/tpxio.h>
+
 #include <filesystem>
+#include <string>
 #include <fstream>
+#include <sstream>
 #include <iostream>
 #include <stdio.h>
 #include <vector>
@@ -17,14 +22,14 @@ static inline void mtopGetMolblockIndex(const gmx_mtop_t& mtop,
                                         int*              moleculeIndex,
                                         int*              atomIndexInMolecule)
 {
-    GMX_ASSERT(globalAtomIndex >= 0, "The atom index to look up should not be negative");
-    GMX_ASSERT(globalAtomIndex < mtop.natoms, "The atom index to look up should be within range");
-    GMX_ASSERT(moleculeBlock != nullptr, "molBlock can not be NULL");
-    GMX_ASSERT(!mtop.moleculeBlockIndices.empty(), "The moleculeBlockIndices should not be empty");
-    GMX_ASSERT(*moleculeBlock >= 0,
-               "The starting molecule block index for the search should not be negative");
-    GMX_ASSERT(*moleculeBlock < gmx::ssize(mtop.moleculeBlockIndices),
-               "The starting molecule block index for the search should be within range");
+    // GMX_ASSERT(globalAtomIndex >= 0, "The atom index to look up should not be negative");
+    // GMX_ASSERT(globalAtomIndex < mtop.natoms, "The atom index to look up should be within range");
+    // GMX_ASSERT(moleculeBlock != nullptr, "molBlock can not be NULL");
+    // GMX_ASSERT(!mtop.moleculeBlockIndices.empty(), "The moleculeBlockIndices should not be empty");
+    // GMX_ASSERT(*moleculeBlock >= 0,
+              //  "The starting molecule block index for the search should not be negative");
+    // GMX_ASSERT(*moleculeBlock < gmx::ssize(mtop.moleculeBlockIndices),
+              //  "The starting molecule block index for the search should be within range");
 
     /* Search the molecule block index using bisection */
     int molBlock0 = -1;
@@ -107,80 +112,6 @@ void mtopGetAtomAndResidueName(const gmx_mtop_t& mtop,
 namespace cmdata::io
 {
 
-void read_symmetry_indices(
-  const std::string &path,
-  const gmx_mtop_t *top,
-  std::vector<std::vector<std::vector<int>>> &eq_list,
-  const std::vector<int> &natmol2_,
-  const std::vector<int> &start_index
-  )
-{
-
-  eq_list.resize(natmol2_.size());
-  for (std::size_t i = 0; i < natmol2_.size(); i++) {
-    eq_list[i].resize(natmol2_[i]);
-    for (int ii = 0; ii < natmol2_[i]; ii++)
-    {
-      eq_list[i][ii].push_back(ii);
-    }
-  }
-
-  std::ifstream infile(path);
-  if(path!=""&&!infile.good())
-  {
-    std::string errorMessage = "Cannot find the indicated symmetry file";
-    throw std::runtime_error(errorMessage.c_str());
-  }
-  
-  int molb = 0;
-  std::string residue_entry, atom_entry_i, atom_entry_j, left;
-  std::string line;
-
-  while (std::getline(infile, line)) 
-  {
-    std::istringstream iss(line);
-    if (!(iss >> residue_entry >> atom_entry_i >> atom_entry_j)) // each necessary field is there
-    {
-      if (line=="") continue;
-      printf("Skipping line\n%s\n due to syntax non-conformity\n", line.c_str());
-      continue;
-    }
-    if((iss >> left)) printf("Found a problem while reading the symmestry file: %s\n This element is ignored.\n Multiple equivament atoms should be set listing the relevant combinations\n", left.c_str());
-
-    const char *atom_name_i, *atom_name_j, *residue_name_i, *residue_name_j;
-    int a_i, a_j, resn_i, resn_j;
-    for (std::size_t i = 0; i < natmol2_.size(); i++)
-    {
-      a_i = 0;
-      for (int ii = start_index[i]; ii < start_index[i]+natmol2_[i]; ii++)
-      {
-        mtopGetAtomAndResidueName(*top, ii, &molb, &atom_name_i, &resn_i, &residue_name_i, nullptr);
-	      a_j = 0;
-        for (int jj = start_index[i]; jj < start_index[i]+natmol2_[i]; jj++)
-        {
-          mtopGetAtomAndResidueName(*top, jj, &molb, &atom_name_j, &resn_j, &residue_name_j, nullptr);
-          if (((atom_name_i==atom_entry_i&&atom_name_j==atom_entry_j)||(atom_name_i==atom_entry_j&&atom_name_j==atom_entry_i))&&residue_entry==residue_name_i&&resn_i==resn_j)
-          {
-            bool insert = true;
-            // check if element is already inserted
-            for ( auto e : eq_list[i][a_i] )
-            {
-              if (e==a_j) insert = false;
-            }
-            // insert if not yet present
-            if (insert) {
-              eq_list[i][a_i].push_back(a_j);
-            }
-          }
-	        a_j++;
-        }
-	      a_i++;
-      }
-    }
-  }
-}
-
-
 std::vector<double> read_weights_file( const std::string &path )
 {
   std::ifstream infile(path);
@@ -203,6 +134,21 @@ std::vector<double> read_weights_file( const std::string &path )
     }
     iss >> value;
     w.push_back(std::stod(value));
+  }
+
+  if (w.size() == 0)
+  {
+    std::string errorMessage = "The weights file is empty";
+    throw std::runtime_error(errorMessage.c_str());
+  }
+
+  for ( std::size_t i = 0; i < w.size(); i++ )
+  {
+    if (w[i] < 0)
+    {
+      std::string errorMessage = "The weights file contains negative values";
+      throw std::runtime_error(errorMessage.c_str());
+    }
   }
 
   return w;

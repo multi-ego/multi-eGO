@@ -1,28 +1,4 @@
 
-; Multi-eGO force field version beta.1
-; https://github.com/multi-ego/multi-eGO
-; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 25-02-2024 00:00
-; With the following parameters:
-;	- system          = lyso-bnz_ref        
-;	- egos            = production          
-;	- epsilon         = 0.34                
-;	- reference       = reference           
-;	- train           = md_ensemble         
-;	- check           =                     
-;	- out             =                     
-;	- inter_epsilon   = 0.43                
-;	- inter_domain_epsilon = 3.0                 
-;	- p_to_learn      = 0.9995              
-;	- epsilon_min     = 0.07                
-;	- force_split     =                     
-;	- single_molecule = 1                   
-;	- custom_dict     =                     
-;	- root_dir        = /Users/carlo/Codes/multi-eGO
-
-
 ; Include forcefield parameters
 #include "multi-ego-basic.ff/forcefield.itp"
 

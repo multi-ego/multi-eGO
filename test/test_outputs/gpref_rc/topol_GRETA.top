@@ -1,28 +1,4 @@
 
-; Multi-eGO force field version beta.1
-; https://github.com/multi-ego/multi-eGO
-; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 24-02-2024 23:58
-; With the following parameters:
-;	- system          = gpref               
-;	- egos            = rc                  
-;	- epsilon         =                     
-;	- reference       = reference           
-;	- train           =                     
-;	- check           =                     
-;	- out             =                     
-;	- inter_epsilon   =                     
-;	- inter_domain_epsilon =                     
-;	- p_to_learn      = 0.9995              
-;	- epsilon_min     = 0.07                
-;	- force_split     =                     
-;	- single_molecule =                     
-;	- custom_dict     =                     
-;	- root_dir        = /Users/carlo/Codes/multi-eGO
-
-
 ; Include forcefield parameters
 #include "multi-ego-basic.ff/forcefield.itp"
 
