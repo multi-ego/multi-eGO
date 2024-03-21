@@ -954,7 +954,7 @@ def generate_basic_LJ(meGO_ensemble):
 
 def set_epsilon(meGO_LJ, parameters):
     # Epsilon is initialised to nan to easily remove not learned contacts
-    meGO_LJ["epsilon"] = np.nan
+    meGO_LJ["epsilon"] = pd.NA
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
@@ -1029,6 +1029,9 @@ def set_epsilon(meGO_LJ, parameters):
         -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
 
+    # update the c12 1-4 interactions
+    meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+
     # clean NaN and zeros
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
@@ -1039,21 +1042,19 @@ def set_epsilon(meGO_LJ, parameters):
 def repulsions_in_range(meGO_LJ):
     # lower value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
         -0.1 * meGO_LJ["rep"]
     )
     # higher value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 20.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 20.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
         -20.0 * meGO_LJ["rep"]
     )
 
-    # update the c12 1-4 interactions
-    meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     # but within a lower
     meGO_LJ.loc[
         (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.666 * meGO_LJ["rep"]),
