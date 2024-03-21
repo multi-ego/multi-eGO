@@ -1402,8 +1402,28 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.reset_index(inplace=True)
 
     # when distance estimates are poor we use the cutoff value
-    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["cutoff"]
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["cutoff"]
+    # meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["cutoff"]
+    # meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["cutoff"]
+    meGO_LJ.loc[
+        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]), "distance"
+    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]),
+        "rc_distance",
+    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]), "distance"
+    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]),
+        "rc_distance",
+    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "distance"] = (
+        meGO_LJ["rep"] / parameters.inter_epsilon
+    ) ** (1.0 / 12.0)
+    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "rc_distance"] = (
+        meGO_LJ["rep"] / parameters.inter_epsilon
+    ) ** (1.0 / 12.0)
 
     # at this point meGO_LJ is symmetric in ai/aj for interaction between identical molecules
     # while it is not symmetric for cross interactions
