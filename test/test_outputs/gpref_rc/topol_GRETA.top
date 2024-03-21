@@ -1,4 +1,7 @@
 
+; Include forcefield parameters
+#include "multi-ego-basic.ff/forcefield.itp"
+
 [ moleculetype ]
 ; Name	nrexcl
 GB_1_Protein			3
