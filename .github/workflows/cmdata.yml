@@ -24,17 +24,11 @@ jobs:
     - name: Build gromacs 
       run: |
         git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
+        bash tools/cmdata/patch_gromacs.sh gromacs/
         cd gromacs; mkdir build; cd build
-        cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMX_INSTALL_LEGACY_API=ON -DGMX_IMD=OFF
+        cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMXAPI=OFF -DGMX_IMD=OFF
         make -j2 
         sudo make install
-    - name: Build cmdata 
-      run: |
-        cd tools/cmdata; mkdir build; cd build
-        cmake ../
-        make
-        sudo make install
-        cmdata --help
     - name: Run cmdata test 
       run: |
         source /usr/local/gromacs/bin/GMXRC
