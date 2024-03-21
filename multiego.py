@@ -32,28 +32,10 @@ for a contact pair.
 
   1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
      > python multiego.py --system GB1 --egos rc
-     in this case multiego expect the following input structure:
-     └── input
-         └── GB1
-             └── reference
-                 ├── topol.top
-                 └── multi-eGO_basic.ff
 
   2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
      interaction energy is set to 0.3 kJ/mol
      > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
-     in this case multiego expect the following input structure:
-     └── input
-         └── GB1
-             ├── reference
-             │   ├── topol.top
-             │   ├── intramat_1_1.ndx
-             │   └── multi-eGO_basic.ff
-             └── md_monomer
-                 ├── topol.top
-                 ├── intramat_1_1.ndx
-                 └── all-atom.ff
-
 """,
     )
     # Required arguments
