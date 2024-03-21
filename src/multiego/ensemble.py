@@ -953,6 +953,30 @@ def generate_basic_LJ(meGO_ensemble):
 
 
 def set_epsilon(meGO_LJ, parameters):
+    """
+    Set the epsilon parameter for LJ interactions based on probability and distance.
+
+    This function sets the epsilon parameter for LJ interactions based on the probability and distance of interactions.
+    It adjusts epsilon values to represent the strength of LJ interactions, considering both attractive and repulsive forces.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+    parameters : object
+        Object containing parameters used for setting epsilon values.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing LJ parameters with updated epsilon values.
+
+    Notes
+    -----
+    This function calculates epsilon values for LJ interactions based on the probability and distance of interactions,
+    adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
+    consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
+    """
     # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ["epsilon"] = np.nan
 
@@ -1040,6 +1064,28 @@ def set_epsilon(meGO_LJ, parameters):
 
 
 def repulsions_in_range(meGO_LJ):
+    """
+    Adjust repulsion values within specific ranges to maintain consistency.
+
+    This function adjusts repulsion values within specific ranges to maintain consistency and prevent unrealistic
+    or extreme repulsion values. It ensures that repulsion values are within acceptable bounds based on the LJ parameters.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing LJ parameters with adjusted repulsion values within specified ranges.
+
+    Notes
+    -----
+    This function is crucial for maintaining the integrity of LJ parameters by ensuring that repulsion values are within
+    reasonable bounds. Extreme or unrealistic repulsion values can lead to inaccuracies or anomalies in simulations
+    or calculations.
+    """
     # lower value for repulsion
     meGO_LJ.loc[
         (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
@@ -1074,6 +1120,34 @@ def repulsions_in_range(meGO_LJ):
 
 
 def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
+    """
+    Apply check rules to filter and modify LJ parameters based on a check dataset.
+
+    This function applies check rules to filter and modify LJ (Lennard-Jones) parameters based on a check dataset.
+    It removes low probability contacts, applies symmetries, resolves duplicates, calculates energy changes,
+    and adjusts LJ parameters accordingly.
+
+    Parameters
+    ----------
+    meGO_ensemble : pd.DataFrame
+        DataFrame containing information about the molecular ensemble.
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+    check_dataset : pd.DataFrame
+        DataFrame containing check dataset information.
+    parameters : object
+        Object containing parameters for the function.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing updated LJ parameters after applying check rules.
+
+    Notes
+    -----
+    This function is crucial for refining LJ parameters based on experimental or computational check data.
+    It ensures that LJ parameters are consistent with observed or calculated interactions.
+    """
     # Remove low probability ones
     meGO_check_contacts = check_dataset.loc[
         (
@@ -1141,6 +1215,25 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
 
 
 def consistency_checks(meGO_LJ):
+    """
+    Perform consistency checks on LJ parameters.
+
+    This function performs consistency checks on LJ (Lennard-Jones) parameters to avoid data inconsistencies.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters such as repulsive term (rep) and cutoff distance (cutoff).
+
+    Raises
+    ------
+    RuntimeError
+        If inconsistencies are found between the calculated cutoff distance and the provided cutoff values.
+
+    Notes
+    -----
+    This function is primarily used for debugging purposes to ensure data integrity and consistency.
+    """
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(
@@ -1216,6 +1309,25 @@ def check_LJ(test, parameters):
 
 
 def apply_symmetries(meGO_ensemble, meGO_input, parameters):
+    """
+    Apply symmetries to the molecular ensemble.
+
+    This function applies symmetries to the input molecular ensemble based on the provided symmetry parameters.
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        A dictionary containing relevant meGO data such as interactions and statistics within the molecular ensemble.
+    meGO_input : pd.DataFrame
+        Input DataFrame containing molecular ensemble data.
+    parameters : dict
+        A dictionary containing parameters parsed from the command-line, including symmetry information.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame containing the molecular ensemble data with applied symmetries.
+    """
     tmp_df = pd.DataFrame()
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
     symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
@@ -1380,7 +1492,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     Returns
     -------
-    meGO_atomic_contacts_merged : pd.DataFrame
+    meGO_LJ : pd.DataFrame
         Contains non-bonded atomic contacts associated with LJ parameters and statistics.
     meGO_LJ_14 : pd.DataFrame
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
