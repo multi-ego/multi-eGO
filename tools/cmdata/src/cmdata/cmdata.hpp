@@ -58,11 +58,6 @@ private:
   std::vector<int> num_mol_unique_;
   std::vector<double> inv_num_mol_unique_;
   std::vector<double> inv_num_mol_;
-
-  // symmetry fields
-  bool list_sym_;
-  std::string sym_file_path_;
-  std::vector<std::vector<std::vector<int>>> equivalence_list_;
   
   // weights fields
   double weights_sum_;
@@ -119,7 +114,7 @@ private:
     const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<double> &inv_num_mol_, const double cut_sig_2_, 
     const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_, 
     const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, const double mcut2_, 
-    rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, const std::vector<std::vector<std::vector<int>>> &equivalence_list_,
+    rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, 
     std::vector<std::vector<double>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
     cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<double>> &frame_cross_mat_,
     std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
@@ -178,85 +173,48 @@ private:
             a_j++;
             continue;
           }
-          // check for chemical equivalence
-          double nsym = static_cast<double>(equivalence_list_[mol_id_[i]][a_i].size()*equivalence_list_[mol_id_[j]][a_j].size());
-          if (i==j&&a_i!=a_j)
+          std::size_t delta  = a_i - a_j;
+          rvec sym_dx;
+          if (pbc != nullptr) pbc_dx(pbc, x[ii], x[jj], sym_dx);
+          else rvec_sub(x[ii], x[jj], sym_dx);
+          double dx2 = iprod(sym_dx, sym_dx);
+          if (i==j) 
           {
-            // this is to account for the correct normalisation in the case in which
-            // an intramolecular interaction is between two atoms that are also equivalent
-            for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
-            {
-              for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
-              {
-                // get molecule-wise atom index considering equivalence
-                std::size_t eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
-                std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
-                std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-                std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
-                if (geqa_i==geqa_j) nsym=nsym-1.0;
-              }
+            if (dx2 < cut_sig_2_)
+            { // intra molecule species
+              f_intra_mol_(i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, inv_num_mol_, frame_same_mutex_, intram_mat_density_);
             }
           }
-          for (std::size_t eq_i = 0; eq_i < equivalence_list_[mol_id_[i]][a_i].size(); eq_i++)
+          else
           {
-            for (std::size_t eq_j = 0; eq_j < equivalence_list_[mol_id_[j]][a_j].size(); eq_j++)
-            {
-              // get molecule-wise atom index considering equivalence
-              std::size_t eqa_i  = equivalence_list_[mol_id_[i]][a_i][eq_i];             // molecule-wise equivalence index i
-              std::size_t geqa_i = ii + (eqa_i - equivalence_list_[mol_id_[i]][a_i][0]); // global equivalence index i
-              std::size_t eqa_j  = equivalence_list_[mol_id_[j]][a_j][eq_j];             // molecule-wise equivalence index j
-              std::size_t geqa_j = jj + (eqa_j - equivalence_list_[mol_id_[j]][a_j][0]); // global equivalence index j
-              std::size_t delta  = eqa_i - eqa_j;
-              if (i==j&&a_i==a_j) {
-                // this is the special case of intra-self that should not be symmetrized
-                // the distance of an atom with itself cannot be greater than 0.
-                geqa_i=ii;
-                geqa_j=jj;
-              }
-              if (i==j&&a_i!=a_j&&geqa_i==geqa_j) continue;
-              rvec sym_dx;
-              if (pbc != nullptr) pbc_dx(pbc, x[geqa_i], x[geqa_j], sym_dx);
-              else rvec_sub(x[geqa_i], x[geqa_j], sym_dx);
-              double dx2 = iprod(sym_dx, sym_dx);
-              if (i==j) 
+            if (mol_id_[i]==mol_id_[j])
+            { // inter same molecule specie
+              if (dx2 < cut_sig_2_)
               {
+                f_inter_mol_same_(
+                  i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                );
+              }
+              if (delta!=0.) {
+                // this is to account for inversion atom/molecule
+                if (pbc != nullptr) pbc_dx(pbc, x[ii-delta], x[jj+delta], sym_dx);
+                else rvec_sub(x[ii-delta], x[jj+delta], sym_dx);
+                dx2 = iprod(sym_dx, sym_dx);
                 if (dx2 < cut_sig_2_)
-                { // intra molecule species
-                  f_intra_mol_(i, a_i, a_j, dx2, weight, nsym, mol_id_, natmol2_, density_bins_, inv_num_mol_, frame_same_mutex_, intram_mat_density_);
+                {
+                  f_inter_mol_same_(
+                    i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
+                  );
                 }
               }
-              else
+            } 
+            else
+            { // inter cross molecule species
+              if (dx2 < cut_sig_2_)
               {
-                if (mol_id_[i]==mol_id_[j])
-                { // inter same molecule specie
-                  if (dx2 < cut_sig_2_)
-                  {
-                    f_inter_mol_same_(
-                      i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
-                    );
-                  }
-                  if (delta!=0.) {
-                    // this is to account for inversion atom/molecule
-                    if (pbc != nullptr) pbc_dx(pbc, x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                    else rvec_sub(x[geqa_i-delta], x[geqa_j+delta], sym_dx);
-                    dx2 = iprod(sym_dx, sym_dx);
-                    if (dx2 < cut_sig_2_)
-                    {
-                      f_inter_mol_same_(
-                        i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
-                      );
-                    }
-                  }
-                } 
-                else
-                { // inter cross molecule species
-                  if (dx2 < cut_sig_2_)
-                  {
-                    f_inter_mol_cross_(
-                      i, j, mol_i, mol_j, a_i, a_j, dx2, weight, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
-                    );
-                  }
-                }
+                f_inter_mol_cross_(
+                  i, j, mol_i, mol_j, a_i, a_j, dx2, weight, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
+                );
               }
             }
           }
@@ -274,9 +232,9 @@ public:
     const std::string &top_path, const std::string &traj_path,
     double cutoff, double mol_cutoff, int nskip, int num_threads,
     int dt, const std::string &mode, const std::string &weights_path, 
-    const std::string &sym_file_path, bool list_sym, bool no_pbc, float t_begin, float t_end
+    bool no_pbc, float t_begin, float t_end
   ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads),
-      mode_(mode), weights_path_(weights_path), sym_file_path_(sym_file_path), list_sym_(list_sym),
+      mode_(mode), weights_path_(weights_path),
       no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
   {
     bool bTop_;
@@ -462,32 +420,6 @@ public:
       }
     }
 
-    if (sym_file_path_=="") std::cout << "No symmetry file provided. Running with standard settings.\n";
-    else std::cout << "Running with symmetry file " << sym_file_path_ << "\nReading file...\n";
-    cmdata::io::read_symmetry_indices(sym_file_path_, mtop_, equivalence_list_, natmol2_, start_index);
-
-    if (list_sym_)
-    {
-      std::cout << "Writing out symmetry listing into sym_list.txt" << std::endl;
-      std::fstream sym_list_file("sym_list.txt", std::fstream::out);
-      for (int i = 0; i < equivalence_list_.size(); i++)
-      {
-        sym_list_file << "[ molecule_" << i << " ]\n";
-        for ( int j = 0; j < equivalence_list_[i].size(); j++ )
-        {
-          sym_list_file << "atom " << j << ":";
-          for ( int k = 0; k < equivalence_list_[i][j].size(); k++ )
-          {
-            sym_list_file << " " << equivalence_list_[i][j][k];
-          }
-          sym_list_file << "\n";
-        }
-        sym_list_file << "\n";
-      }
-      sym_list_file << "\n";
-      sym_list_file.close();
-    }
-
     n_bins_ = cmdata::indexing::n_bins(cutoff_);
     dx_ = cutoff_ / static_cast<double>(n_bins_);
 
@@ -585,7 +517,7 @@ public:
           /* start molecule thread*/
           mol_threads_[i] = std::thread(molecule_routine, i, nindex_, pbc_, frame_->x, std::cref(inv_num_mol_), 
           cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
-          std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::cref(equivalence_list_), std::ref(frame_same_mat_),
+          std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::ref(frame_same_mat_),
           std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
           std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
           std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight);
@@ -632,7 +564,7 @@ public:
               end_i_same = 0;
               end_j_same = 0;
             }
-            if (static_cast<int>(end_im_same) == num_mol_unique_[end_mti_same - 1])
+            if (static_cast<int>(end_im_same) -1 == num_mol_unique_[end_mti_same - 1])
             {
               end_mti_same++;
               end_im_same = 1;

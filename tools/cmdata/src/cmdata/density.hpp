@@ -33,7 +33,7 @@ void kernel_density_estimator(std::vector<double>::iterator x, const std::vector
 }
 
 void intra_mol_routine( 
-  int i, std::size_t a_i, std::size_t a_j, double dx2, double weight, int nsym, const std::vector<int> &mol_id_,
+  int i, std::size_t a_i, std::size_t a_j, double dx2, double weight, const std::vector<int> &mol_id_,
   const std::vector<int> &natmol2_, const std::vector<double> &density_bins_,
   const std::vector<double> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
   std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density_
@@ -41,7 +41,7 @@ void intra_mol_routine(
 {
   std::size_t same_mutex_index = cmdata::indexing::mutex_access(mol_id_[i], a_i, a_j, natmol2_);
   std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
-  kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), weight*inv_num_mol_[i]/nsym);
+  kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), weight*inv_num_mol_[i]);
   lock.unlock();
 }
 

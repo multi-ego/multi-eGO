@@ -38,14 +38,14 @@ FetchContent_Declare(
   popt
   URL https://github.com/rpm-software-management/popt/archive/refs/heads/master.zip
   GIT_TAG 2bca0aa
-  PATCH_COMMAND patch -R --directory=${FETCHCONTENT_BASE_DIR}/popt-src --strip=1 < ${CMAKE_CURRENT_SOURCE_DIR}/popt.patch
+  PATCH_COMMAND patch --directory=${FETCHCONTENT_BASE_DIR}/popt-src -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/popt.patch
 )
 FetchContent_MakeAvailable(popt)
 
 message(STATUS "Fetching xdrfile")
 FetchContent_Declare(
   xdrfile
-  URL https://github.com/chemfiles/xdrfile/archive/refs/heads/chemfiles.zip
+  URL https://github.com/multi-ego/xdrfile/archive/refs/heads/chemfiles.zip 
 )
 FetchContent_MakeAvailable(xdrfile)
 
