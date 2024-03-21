@@ -22,7 +22,7 @@ Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [C
 - [Cite us](#cite-us)
 
 ## Requirements
-Multi-*e*GO force fields and tools are intended to be used with [GROMACS](https://www.gromacs.org), currently tested versions are 2021 to 2023.
+Multi-*e*GO force fields and tools are intended to be used with [GROMACS](https://www.gromacs.org), currently suggested versions are 2023 and 2024.
 You will need to know how to compile GROMACS from source, as some multi-eGO tools require GROMACS to be recompiled.
 
 ## Installation
