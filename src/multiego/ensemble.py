@@ -444,8 +444,6 @@ def init_meGO_ensemble(args):
             warnings.simplefilter("ignore")
             topology = parmed.load_file(topology_path)
 
-        print("\t-", f"{simulation} topology contains: {topology.molecules}")
-
         (
             temp_topology_dataframe,
             molecules_idx_sbtype_dictionary,
@@ -953,6 +951,30 @@ def generate_basic_LJ(meGO_ensemble):
 
 
 def set_epsilon(meGO_LJ, parameters):
+    """
+    Set the epsilon parameter for LJ interactions based on probability and distance.
+
+    This function sets the epsilon parameter for LJ interactions based on the probability and distance of interactions.
+    It adjusts epsilon values to represent the strength of LJ interactions, considering both attractive and repulsive forces.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+    parameters : object
+        Object containing parameters used for setting epsilon values.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing LJ parameters with updated epsilon values.
+
+    Notes
+    -----
+    This function calculates epsilon values for LJ interactions based on the probability and distance of interactions,
+    adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
+    consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
+    """
     # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ["epsilon"] = np.nan
 
@@ -1040,6 +1062,28 @@ def set_epsilon(meGO_LJ, parameters):
 
 
 def repulsions_in_range(meGO_LJ):
+    """
+    Adjust repulsion values within specific ranges to maintain consistency.
+
+    This function adjusts repulsion values within specific ranges to maintain consistency and prevent unrealistic
+    or extreme repulsion values. It ensures that repulsion values are within acceptable bounds based on the LJ parameters.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing LJ parameters with adjusted repulsion values within specified ranges.
+
+    Notes
+    -----
+    This function is crucial for maintaining the integrity of LJ parameters by ensuring that repulsion values are within
+    reasonable bounds. Extreme or unrealistic repulsion values can lead to inaccuracies or anomalies in simulations
+    or calculations.
+    """
     # lower value for repulsion
     meGO_LJ.loc[
         (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
@@ -1073,7 +1117,35 @@ def repulsions_in_range(meGO_LJ):
     return meGO_LJ
 
 
-def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
+def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, parameters):
+    """
+    Apply check rules to filter and modify LJ parameters based on a check dataset.
+
+    This function applies check rules to filter and modify LJ (Lennard-Jones) parameters based on a check dataset.
+    It removes low probability contacts, applies symmetries, resolves duplicates, calculates energy changes,
+    and adjusts LJ parameters accordingly.
+
+    Parameters
+    ----------
+    meGO_ensemble : pd.DataFrame
+        DataFrame containing information about the molecular ensemble.
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters.
+    check_dataset : pd.DataFrame
+        DataFrame containing check dataset information.
+    parameters : object
+        Object containing parameters for the function.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing updated LJ parameters after applying check rules.
+
+    Notes
+    -----
+    This function is crucial for refining LJ parameters based on experimental or computational check data.
+    It ensures that LJ parameters are consistent with observed or calculated interactions.
+    """
     # Remove low probability ones
     meGO_check_contacts = check_dataset.loc[
         (
@@ -1088,8 +1160,9 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
     # set the epsilon of these contacts using the default c12 repulsive term
     meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
     # apply symmetries to the check contacts
-    meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, parameters)
-    meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
+    if parameters.symmetry:
+        meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, symmetries, parameters)
+        meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
     # check contacts are all repulsive so among duplicates we keep the one with shortest distance
     meGO_check_contacts.sort_values(
         by=["ai", "aj", "same_chain", "distance"],
@@ -1141,6 +1214,25 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
 
 
 def consistency_checks(meGO_LJ):
+    """
+    Perform consistency checks on LJ parameters.
+
+    This function performs consistency checks on LJ (Lennard-Jones) parameters to avoid data inconsistencies.
+
+    Parameters
+    ----------
+    meGO_LJ : pd.DataFrame
+        DataFrame containing LJ parameters such as repulsive term (rep) and cutoff distance (cutoff).
+
+    Raises
+    ------
+    RuntimeError
+        If inconsistencies are found between the calculated cutoff distance and the provided cutoff values.
+
+    Notes
+    -----
+    This function is primarily used for debugging purposes to ensure data integrity and consistency.
+    """
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(
@@ -1215,10 +1307,28 @@ def check_LJ(test, parameters):
     return energy
 
 
-def apply_symmetries(meGO_ensemble, meGO_input, parameters):
+def apply_symmetries(meGO_ensemble, meGO_input, symmetries, parameters):
+    """
+    Apply symmetries to the molecular ensemble.
+
+    This function applies symmetries to the input molecular ensemble based on the provided symmetry parameters.
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        A dictionary containing relevant meGO data such as interactions and statistics within the molecular ensemble.
+    meGO_input : pd.DataFrame
+        Input DataFrame containing molecular ensemble data.
+    parameters : dict
+        A dictionary containing parameters parsed from the command-line, including symmetry information.
+
+    Returns
+    -------
+    pd.DataFrame
+        A pandas DataFrame containing the molecular ensemble data with applied symmetries.
+    """
     tmp_df = pd.DataFrame()
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
-    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
 
@@ -1380,7 +1490,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     Returns
     -------
-    meGO_atomic_contacts_merged : pd.DataFrame
+    meGO_LJ : pd.DataFrame
         Contains non-bonded atomic contacts associated with LJ parameters and statistics.
     meGO_LJ_14 : pd.DataFrame
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
@@ -1428,8 +1538,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["learned"] = 1
 
     # apply symmetries for equivalent atoms
-    meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters)
-    meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
+    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
+    if parameters.symmetry:
+        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries, parameters)
+        meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
@@ -1475,7 +1587,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # the idea here is that if a contact would be attractive/mild c12 smaller in the check dataset
     # and the same contact is instead repulsive in the training, then the repulsive term can be rescaled
     if not check_dataset.empty:
-        meGO_LJ = do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters)
+        meGO_LJ = do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, parameters)
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
@@ -1526,8 +1638,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
     # remove them from the default force-field
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
-    # remove from meGO_LJ_14 the intermolecular basic interactions
-    meGO_LJ_14 = meGO_LJ_14.loc[~((~meGO_LJ_14["same_chain"]) & (meGO_LJ_14["source"] == "basic"))]
 
     if not parameters.single_molecule:
         # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
