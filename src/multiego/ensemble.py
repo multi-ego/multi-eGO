@@ -954,7 +954,7 @@ def generate_basic_LJ(meGO_ensemble):
 
 def set_epsilon(meGO_LJ, parameters):
     # Epsilon is initialised to nan to easily remove not learned contacts
-    meGO_LJ["epsilon"] = pd.NA
+    meGO_LJ["epsilon"] = np.nan
 
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
