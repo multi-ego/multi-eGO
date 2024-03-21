@@ -444,8 +444,6 @@ def init_meGO_ensemble(args):
             warnings.simplefilter("ignore")
             topology = parmed.load_file(topology_path)
 
-        print("\t-", f"{simulation} topology contains: {topology.molecules}")
-
         (
             temp_topology_dataframe,
             molecules_idx_sbtype_dictionary,
@@ -1119,7 +1117,7 @@ def repulsions_in_range(meGO_LJ):
     return meGO_LJ
 
 
-def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
+def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, parameters):
     """
     Apply check rules to filter and modify LJ parameters based on a check dataset.
 
@@ -1162,8 +1160,9 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
     # set the epsilon of these contacts using the default c12 repulsive term
     meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
     # apply symmetries to the check contacts
-    meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, parameters)
-    meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
+    if parameters.symmetry:
+        meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, symmetries, parameters)
+        meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
     # check contacts are all repulsive so among duplicates we keep the one with shortest distance
     meGO_check_contacts.sort_values(
         by=["ai", "aj", "same_chain", "distance"],
@@ -1308,7 +1307,7 @@ def check_LJ(test, parameters):
     return energy
 
 
-def apply_symmetries(meGO_ensemble, meGO_input, parameters):
+def apply_symmetries(meGO_ensemble, meGO_input, symmetries, parameters):
     """
     Apply symmetries to the molecular ensemble.
 
@@ -1330,7 +1329,6 @@ def apply_symmetries(meGO_ensemble, meGO_input, parameters):
     """
     tmp_df = pd.DataFrame()
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
-    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
 
@@ -1540,8 +1538,10 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["learned"] = 1
 
     # apply symmetries for equivalent atoms
-    meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters)
-    meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
+    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
+    if parameters.symmetry:
+        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries, parameters)
+        meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
@@ -1587,7 +1587,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # the idea here is that if a contact would be attractive/mild c12 smaller in the check dataset
     # and the same contact is instead repulsive in the training, then the repulsive term can be rescaled
     if not check_dataset.empty:
-        meGO_LJ = do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters)
+        meGO_LJ = do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, parameters)
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
