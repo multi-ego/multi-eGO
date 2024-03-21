@@ -1638,8 +1638,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
     # remove them from the default force-field
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
-    # remove from meGO_LJ_14 the intermolecular basic interactions
-    meGO_LJ_14 = meGO_LJ_14.loc[~((~meGO_LJ_14["same_chain"]) & (meGO_LJ_14["source"] == "basic"))]
 
     if not parameters.single_molecule:
         # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
