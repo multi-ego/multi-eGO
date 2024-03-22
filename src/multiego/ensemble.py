@@ -415,12 +415,16 @@ def init_meGO_ensemble(args):
 
     ensemble["train_matrices"] = train_contact_matrices
 
+    comparison_set = set()
+
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
             comparison_set = set(
                 comparison_dataframe[~comparison_dataframe["name"].astype(str).str.startswith("H")]["name"].to_list()
             )
+        else:
+            raise RuntimeError("the molecule names in the training topologies do not match those in the reference")
 
     difference_set = comparison_set.difference(reference_set)
     if difference_set:
@@ -491,6 +495,8 @@ def init_meGO_ensemble(args):
                 comparison_set = set(
                     comparison_dataframe[~comparison_dataframe["name"].astype(str).str.startswith("H")]["name"].to_list()
                 )
+            else:
+                raise RuntimeError("the molecule names in the checking topologies do not match those in the reference")
 
         difference_set = comparison_set.difference(reference_set)
         if difference_set:
@@ -751,7 +757,9 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     for name, ref_name in meGO_ensemble["check_matrix_tuples"]:
         # sysname_check_from_intramat_1_1 <-> sysname_reference_intramat_1_1
         if ref_name not in meGO_ensemble["reference_matrices"].keys():
-            raise RuntimeError("say something")
+            raise RuntimeError(
+                f'Encountered error while trying to find {ref_name} in reference matrices {meGO_ensemble["reference_matrices"].keys()}'
+            )
 
         temp_merged = pd.merge(
             meGO_ensemble["check_matrices"][name],
