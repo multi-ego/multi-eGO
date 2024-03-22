@@ -322,22 +322,15 @@ public:
       if (tmp_mode == std::string("intra"))
       {
         intra_ = true;
-        f_intra_mol_ = cmdata::density::intra_mol_routine;
-        std::cout << ":: activating intramat calculations" << std::endl;
       }
       else if (tmp_mode == std::string("same"))
       {
         same_ = true;
-        f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
-        std::cout << " :: activating intermat same calculations" << std::endl;
       }
       else if (tmp_mode == std::string("cross"))
       {
         cross_ = true;
-        f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
-        std::cout << " :: activating intermat cross calculations" << std::endl;
       }
-      else std::cout << " :: ignoring keyword" << std::endl;
     }
 
     std::vector<int> num_mol;
@@ -383,19 +376,34 @@ public:
     }
 
     printf("number of different molecules %lu\n", natmol2_.size());
-    for(std::size_t i=0; i<natmol2_.size();i++) printf("mol %lu num %u size %u\n", i, num_mol[i], natmol2_[i]);
+    bool check_same = false;
+    for(std::size_t i=0; i<natmol2_.size();i++) {
+      printf("mol %lu num %u size %u\n", i, num_mol[i], natmol2_[i]);
+      if(num_mol[i]>1) check_same = true;
+    }
+    if(!check_same && same_) same_ = false;
+    if(natmol2_.size()<2) cross_ = false; 
 
     if (same_)
     {
+      f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
+      std::cout << " :: activating intermat same calculations" << std::endl;
       interm_same_mat_density_.resize(natmol2_.size());
       interm_same_maxcdf_mol_.resize(natmol2_.size());
     }
     if (cross_)
     {
+      f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
+      std::cout << " :: activating intermat cross calculations" << std::endl;
       interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
       interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
     }
-    if (intra_) intram_mat_density_.resize(natmol2_.size());
+    if (intra_) 
+    {
+      f_intra_mol_ = cmdata::density::intra_mol_routine;
+      std::cout << ":: activating intramat calculations" << std::endl;
+      intram_mat_density_.resize(natmol2_.size());
+    }
 
     density_bins_.resize(cmdata::indexing::n_bins(cutoff_));
     for (std::size_t i = 0; i < density_bins_.size(); i++)
