@@ -1,11 +1,10 @@
 # cmdata
 
 `cmdata` is a tool that calculates interatomic distances and generates probability distribution and CDF used in multi-eGO to generate the input matrices. It works using the GROMACS API.
-it works with GROMACS 2021-2023.
 
 ## Installation
 
-To install it you need to compile and install GROMACS (2023/2024) using `-DGMX_INSTALL_LEGACY_API=ON`. The in a local subfolder (e.g., `build`, run `cmake ..` then `make` and `make install`.
+To install it you need to compile and install GROMACS (2023/2024) using `-DGMX_INSTALL_LEGACY_API=ON`. Then in a local subfolder (e.g., `build`, run `cmake ..` then `make` and `make install`.
 
 ## Usage
 cmdata calculates a histogram for interatomic distances for multi-eGO.
