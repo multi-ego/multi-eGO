@@ -331,6 +331,11 @@ public:
       {
         cross_ = true;
       }
+      else
+      {
+        printf("mode can be one from: intra, same, cross. Use + to concatenate more than one, i.e. intra+cross\n");
+        exit(1);
+      }
     }
 
     std::vector<int> num_mol;
