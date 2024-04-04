@@ -318,7 +318,6 @@ public:
     std::stringstream modestream{ mode_ };
     while (std::getline(modestream, tmp_mode, '+'))
     {
-      printf(" - found %s", tmp_mode.c_str());
       if (tmp_mode == std::string("intra"))
       {
         intra_ = true;
@@ -333,9 +332,10 @@ public:
       }
       else
       {
-        printf("mode can be one from: intra, same, cross. Use + to concatenate more than one, i.e. intra+cross\n");
+        printf("Wrong mode: %s\nMode must be one from: intra, same, cross. Use + to concatenate more than one, i.e. intra+cross\n", tmp_mode.c_str());
         exit(1);
       }
+      printf(" - found %s", tmp_mode.c_str());
     }
 
     std::vector<int> num_mol;
