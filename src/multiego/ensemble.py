@@ -1109,18 +1109,16 @@ def repulsions_in_range(meGO_LJ):
 
     # but within a lower
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.666 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -0.666 * meGO_LJ["rep"]
+        -0.1 * meGO_LJ["rep"]
     )
     # and an upper value
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 1.5 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > meGO_LJ["rep"]),
         "epsilon",
-    ] = (
-        -1.5 * meGO_LJ["rep"]
-    )
+    ] = -meGO_LJ["rep"]
 
     return meGO_LJ
 
