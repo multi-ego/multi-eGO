@@ -1556,10 +1556,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # will be the repulsive strength
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
 
-    # Here we are reindexing like before
-    meGO_LJ[["idx_ai", "idx_aj"]] = meGO_LJ[["ai", "aj"]]
-    meGO_LJ.set_index(["idx_ai", "idx_aj"], inplace=True)
-
     # add a flag to identify learned contacts
     meGO_LJ["learned"] = 1
 
@@ -1568,6 +1564,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     if parameters.symmetry:
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries, parameters)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
+        meGO_LJ.reset_index(inplace=True)
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
