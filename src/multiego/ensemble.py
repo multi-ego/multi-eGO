@@ -423,12 +423,16 @@ def init_meGO_ensemble(args):
 
     ensemble["train_matrices"] = train_contact_matrices
 
+    comparison_set = set()
+
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
             comparison_set = set(
                 comparison_dataframe[~comparison_dataframe["name"].astype(str).str.startswith("H")]["name"].to_list()
             )
+        else:
+            raise RuntimeError("the molecule names in the training topologies do not match those in the reference")
 
     difference_set = comparison_set.difference(reference_set)
     if difference_set:
@@ -499,6 +503,8 @@ def init_meGO_ensemble(args):
                 comparison_set = set(
                     comparison_dataframe[~comparison_dataframe["name"].astype(str).str.startswith("H")]["name"].to_list()
                 )
+            else:
+                raise RuntimeError("the molecule names in the checking topologies do not match those in the reference")
 
         difference_set = comparison_set.difference(reference_set)
         if difference_set:
@@ -759,7 +765,9 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     for name, ref_name in meGO_ensemble["check_matrix_tuples"]:
         # sysname_check_from_intramat_1_1 <-> sysname_reference_intramat_1_1
         if ref_name not in meGO_ensemble["reference_matrices"].keys():
-            raise RuntimeError("say something")
+            raise RuntimeError(
+                f'Encountered error while trying to find {ref_name} in reference matrices {meGO_ensemble["reference_matrices"].keys()}'
+            )
 
         temp_merged = pd.merge(
             meGO_ensemble["check_matrices"][name],
@@ -1166,18 +1174,16 @@ def repulsions_in_range(meGO_LJ):
 
     # but within a lower
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.666 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -0.666 * meGO_LJ["rep"]
+        -0.1 * meGO_LJ["rep"]
     )
     # and an upper value
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 1.5 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > meGO_LJ["rep"]),
         "epsilon",
-    ] = (
-        -1.5 * meGO_LJ["rep"]
-    )
+    ] = -meGO_LJ["rep"]
 
     return meGO_LJ
 
@@ -1577,8 +1583,28 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.reset_index(inplace=True)
 
     # when distance estimates are poor we use the cutoff value
-    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["cutoff"]
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["cutoff"]
+    # meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["cutoff"]
+    # meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["cutoff"]
+    meGO_LJ.loc[
+        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]), "distance"
+    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]),
+        "rc_distance",
+    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]), "distance"
+    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[
+        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]),
+        "rc_distance",
+    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
+    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "distance"] = (
+        meGO_LJ["rep"] / parameters.inter_epsilon
+    ) ** (1.0 / 12.0)
+    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "rc_distance"] = (
+        meGO_LJ["rep"] / parameters.inter_epsilon
+    ) ** (1.0 / 12.0)
 
     # at this point meGO_LJ is symmetric in ai/aj for interaction between identical molecules
     # while it is not symmetric for cross interactions
@@ -1595,10 +1621,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # will be the repulsive strength
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
 
-    # Here we are reindexing like before
-    meGO_LJ[["idx_ai", "idx_aj"]] = meGO_LJ[["ai", "aj"]]
-    meGO_LJ.set_index(["idx_ai", "idx_aj"], inplace=True)
-
     # add a flag to identify learned contacts
     meGO_LJ["learned"] = 1
 
@@ -1607,6 +1629,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     if parameters.symmetry:
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries, parameters)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
+        meGO_LJ.reset_index(inplace=True)
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
