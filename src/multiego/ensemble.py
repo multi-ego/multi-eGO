@@ -985,7 +985,7 @@ def set_epsilon(meGO_LJ, parameters):
     """
     # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ["epsilon"] = np.nan
-
+    f = 0.01
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
@@ -994,7 +994,7 @@ def set_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["same_chain"]),
         "epsilon",
-    ] = -(parameters.epsilon / np.log(meGO_LJ["rc_threshold"])) * (
+    ] = -(parameters.epsilon / (np.log(meGO_LJ["rc_threshold"])) + np.log(f)) * (
         np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
     )
     meGO_LJ.loc[
