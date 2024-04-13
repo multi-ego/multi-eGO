@@ -143,6 +143,13 @@ for a contact pair.
         type=str,
         help="Symmetry file for the system",
     )
+    optional_args.add_argument(
+        "--f",
+        default=1,
+        type=float,
+        help="partition function normalization",
+    )
+
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
