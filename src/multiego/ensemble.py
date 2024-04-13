@@ -994,24 +994,24 @@ def set_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["same_chain"]),
         "epsilon",
-    ] = -(parameters.epsilon / (np.log(meGO_LJ["rc_threshold"])) + np.log(f)) * (
-        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+    ] = -(parameters.epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"])) * (
+        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])) - np.log(meGO_LJ["f"]))
     )
     meGO_LJ.loc[
         (~meGO_LJ["intra_domain"])
         & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["same_chain"]),
         "epsilon",
-    ] = -(parameters.inter_domain_epsilon / np.log(meGO_LJ["rc_threshold"])) * (
-        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+    ] = -(parameters.inter_domain_epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"])) * (
+        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])) - np.log(meGO_LJ["f"]))
     )
     # Attractive intermolecular
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (~meGO_LJ["same_chain"]),
         "epsilon",
-    ] = -(parameters.inter_epsilon / np.log(meGO_LJ["rc_threshold"])) * (
-        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+    ] = -(parameters.inter_epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"])) * (
+        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])) - np.log(meGO_LJ["f"]))
     )
 
     # General repulsive term
@@ -1023,8 +1023,8 @@ def set_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["same_chain"])
         & (meGO_LJ["rep"] > 0),
         "epsilon",
-    ] = -(parameters.epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
-        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+    ] = -(parameters.epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"]))) * meGO_LJ["distance"] ** 12 * (np.log(
+        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - np.log(meGO_LJ["f"]))
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1034,8 +1034,8 @@ def set_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["same_chain"])
         & (meGO_LJ["rep"] > 0),
         "epsilon",
-    ] = -(parameters.inter_domain_epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
-        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+    ] = -(parameters.inter_domain_epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"]))) * meGO_LJ["distance"] ** 12 * (np.log(
+        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - np.log(meGO_LJ["f"]))
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1045,8 +1045,8 @@ def set_epsilon(meGO_LJ, parameters):
         & (~meGO_LJ["same_chain"])
         & (meGO_LJ["rep"] > 0),
         "epsilon",
-    ] = -(parameters.inter_epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
-        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+    ] = -(parameters.inter_epsilon / (np.log(meGO_LJ["rc_threshold"]) + np.log(meGO_LJ["f"]))) * meGO_LJ["distance"] ** 12 * np.log(
+        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - np.log(meGO_LJ["f"])
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
