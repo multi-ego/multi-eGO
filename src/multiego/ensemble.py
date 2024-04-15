@@ -241,14 +241,14 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         contact_matrix.loc[
             (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]),
             "rc_threshold",
-        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.epsilon)))/args.f
+        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.epsilon)))
         contact_matrix.loc[
             (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]),
             "rc_threshold",
-        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.inter_domain_epsilon)))/args.f
+        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.inter_domain_epsilon)))
         contact_matrix.loc[(~contact_matrix["same_chain"]), "rc_threshold"] = md_threshold ** (
             1.0 / (1.0 - (args.epsilon_min / args.inter_epsilon))
-        )/args.f
+        )
         contact_matrix.loc[
             (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]),
             "limit_rc",
@@ -260,15 +260,17 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         contact_matrix.loc[(~contact_matrix["same_chain"]), "limit_rc"] = 1.0 / contact_matrix["rc_threshold"] ** (
             args.epsilon_min / args.inter_epsilon
         ) * args.f ** ( 1 - (args.epsilon_min / args.epsilon) )
-
-        f_min = md_threshold ** ( (args.epsilon_min ) / (args.epsilon - args.epsilon_min))
+        
+        f_min = md_threshold 
+        f_max = 1./contact_matrix["rc_threshold"][0]
         if args.f!=1:
             print(f"""------------------
 Partition function correction selected.
 Minimum value for f={f_min}
+Maximum value for f={f_max}
 ----------------------""")
-            if args.f<f_min:
-                print(f"f={args.f} > f_min={f_min}. Choose a value bigger then f_min")
+            if args.f<f_min or args.f > f_max:
+                print(f"f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
                 exit()
     return contact_matrix
 
