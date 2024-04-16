@@ -274,7 +274,7 @@ Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------""")
             if args.f > f_max:
-                print(f"f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
+                print(f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
                 exit()
 
         if args.inter_domain_f!=1:
@@ -287,7 +287,7 @@ Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------""")
             if args.inter_domain_f > f_max:
-                print(f"f_max={f_max} > f={args.inter_domain_f} > f_min={f_min}. Choose a proper value")
+                print(f"f is not in the correct range:\n f_max={f_max} > f={args.inter_domain_f} > f_min={f_min}. Choose a proper value")
                 exit()
 
         if args.inter_domain_f!=1:
@@ -300,7 +300,7 @@ Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------""")
             if args.inter_f > f_max:
-                print(f"f_max={f_max} > f={args.inter_f} > f_min={f_min}. Choose a proper value")
+                print(f"f is not in the correct range:\n f_max={f_max} > f={args.inter_f} > f_min={f_min}. Choose a proper value")
                 exit()
     return contact_matrix
 
