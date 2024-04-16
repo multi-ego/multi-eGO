@@ -1426,11 +1426,6 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
 
 def print_stats(meGO_LJ):
     # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
-    print(
-        f"""
-    - LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
-    """
-    )
     intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"])])
     interd_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"])])
     interm_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"])])
@@ -1499,6 +1494,7 @@ def print_stats(meGO_LJ):
 
     print(
         f"""
+    - LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
     - Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
     - Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
     - The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
