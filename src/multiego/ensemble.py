@@ -1049,7 +1049,6 @@ def set_epsilon(meGO_LJ, parameters):
     """
     # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ["epsilon"] = np.nan
-    f = 0.01
     # Epsilon reweight based on probability
     # Paissoni Equation 2.1
     # Attractive intramolecular
