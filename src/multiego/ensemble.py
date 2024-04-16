@@ -275,56 +275,57 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         f_min = md_threshold
 
         if args.f != 1:
-            f_max = (
-                1.0 / contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"])][0]
-            )
-
-            print(
-                f"""------------------
-Partition function correction selected for INTRA molecular interaction.
+            tmp_f_max = contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"])]
+            if not tmp_f_max.empty:
+                f_max = 1.0 / tmp_f_max.iloc[0]
+                print(
+                    f"""------------------
+Partition function correction selected for intra-molecular interaction.
 Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------"""
-            )
-            if args.f > f_max:
-                print(f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
-                exit()
+                )
+                if args.f > f_max:
+                    print(
+                        f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value"
+                    )
+                    exit()
+
+        if args.inter_f != 1:
+            tmp_f_max = contact_matrix["rc_threshold"].loc[(~contact_matrix["same_chain"])]
+            if not tmp_f_max.empty:
+                f_max = 1.0 / tmp_f_max.iloc[0]
+                print(
+                    f"""------------------
+Partition function correction selected for inter-molecular interaction.
+Minimum value for f={f_min}
+Maximum value for f={f_max}
+----------------------"""
+                )
+                if args.inter_f > f_max:
+                    print(
+                        f"f is not in the correct range:\n f_max={f_max} > f={args.inter_f} > f_min={f_min}. Choose a proper value"
+                    )
+                    exit()
 
         if args.inter_domain_f != 1:
-            f_max = (
-                1.0 / contact_matrix["rc_threshold"].loc[(~contact_matrix["same_chain"]) & (contact_matrix["intra_domain"])][0]
-            )
+            tmp_f_max = contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"])]
+            if not tmp_f_max.empty:
+                f_max = 1.0 / tmp_f_max.iloc[0]
 
-            print(
-                f"""------------------
-Partition function correction selected for INTER-DOMAIN interaction.
+                print(
+                    f"""------------------
+Partition function correction selected for inter-domain interaction.
 Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------"""
-            )
-            if args.inter_domain_f > f_max:
-                print(
-                    f"f is not in the correct range:\n f_max={f_max} > f={args.inter_domain_f} > f_min={f_min}. Choose a proper value"
                 )
-                exit()
+                if args.inter_domain_f > f_max:
+                    print(
+                        f"f is not in the correct range:\n f_max={f_max} > f={args.inter_domain_f} > f_min={f_min}. Choose a proper value"
+                    )
+                    exit()
 
-        if args.inter_domain_f != 1:
-            f_max = (
-                1.0 / contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"])][0]
-            )
-
-            print(
-                f"""------------------
-Partition function correction selected for INTER molecular interaction.
-Minimum value for f={f_min}
-Maximum value for f={f_max}
-----------------------"""
-            )
-            if args.inter_f > f_max:
-                print(
-                    f"f is not in the correct range:\n f_max={f_max} > f={args.inter_f} > f_min={f_min}. Choose a proper value"
-                )
-                exit()
     return contact_matrix
 
 
