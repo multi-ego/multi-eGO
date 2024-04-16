@@ -235,31 +235,21 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             p_sort_normalized = np.cumsum(p_sort) / norm
             md_threshold = p_sort[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
+        # set the epsilon_0 this simplify a lot of the following code
+        # for intra-domain
+        contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
+        # for inter-domain
+        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+            args.inter_domain_epsilon
+        )
+        # for inter-molecular
+        contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
         # add the columns for rc, md threshold
         contact_matrix["md_threshold"] = np.zeros(len(p_sort)) + md_threshold
-        contact_matrix["rc_threshold"] = np.zeros(len(p_sort))
-        contact_matrix.loc[
-            (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]),
-            "rc_threshold",
-        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.epsilon)))
-        contact_matrix.loc[
-            (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]),
-            "rc_threshold",
-        ] = md_threshold ** (1.0 / (1.0 - (args.epsilon_min / args.inter_domain_epsilon)))
-        contact_matrix.loc[(~contact_matrix["same_chain"]), "rc_threshold"] = md_threshold ** (
-            1.0 / (1.0 - (args.epsilon_min / args.inter_epsilon))
+        contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
+            1.0 / (1.0 - (args.epsilon_min / contact_matrix["epsilon_0"]))
         )
-        contact_matrix.loc[
-            (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]),
-            "limit_rc",
-        ] = 1.0 / contact_matrix["rc_threshold"] ** (args.epsilon_min / args.epsilon)
-        contact_matrix.loc[
-            (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]),
-            "limit_rc",
-        ] = 1.0 / contact_matrix["rc_threshold"] ** (args.epsilon_min / args.inter_domain_epsilon)
-        contact_matrix.loc[(~contact_matrix["same_chain"]), "limit_rc"] = 1.0 / contact_matrix["rc_threshold"] ** (
-            args.epsilon_min / args.inter_epsilon
-        )
+        contact_matrix["limit_rc"] = 1.0 / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
 
     return contact_matrix
 
@@ -958,7 +948,7 @@ def generate_basic_LJ(meGO_ensemble):
     return basic_LJ
 
 
-def set_epsilon(meGO_LJ, parameters):
+def set_epsilon(meGO_LJ):
     """
     Set the epsilon parameter for LJ interactions based on probability and distance.
 
@@ -969,8 +959,6 @@ def set_epsilon(meGO_LJ, parameters):
     ----------
     meGO_LJ : pd.DataFrame
         DataFrame containing LJ parameters.
-    parameters : object
-        Object containing parameters used for setting epsilon values.
 
     Returns
     -------
@@ -985,71 +973,25 @@ def set_epsilon(meGO_LJ, parameters):
     """
     # Epsilon is initialised to nan to easily remove not learned contacts
     meGO_LJ["epsilon"] = np.nan
-
-    # Epsilon reweight based on probability
-    # Paissoni Equation 2.1
-    # Attractive intramolecular
+    # Attractive
     meGO_LJ.loc[
-        (meGO_LJ["intra_domain"])
-        & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["same_chain"]),
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])),
         "epsilon",
-    ] = -(parameters.epsilon / np.log(meGO_LJ["rc_threshold"])) * (
-        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-    )
-    meGO_LJ.loc[
-        (~meGO_LJ["intra_domain"])
-        & (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["same_chain"]),
-        "epsilon",
-    ] = -(parameters.inter_domain_epsilon / np.log(meGO_LJ["rc_threshold"])) * (
-        np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-    )
-    # Attractive intermolecular
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (~meGO_LJ["same_chain"]),
-        "epsilon",
-    ] = -(parameters.inter_epsilon / np.log(meGO_LJ["rc_threshold"])) * (
+    ] = -(meGO_LJ["epsilon_0"] / np.log(meGO_LJ["rc_threshold"])) * (
         np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
     )
 
     # General repulsive term
     # These are with negative sign to store them as epsilon values
-    # Intramolecular
     meGO_LJ.loc[
-        (meGO_LJ["intra_domain"])
-        & (meGO_LJ["probability"] < np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["same_chain"])
-        & (meGO_LJ["rep"] > 0),
+        (meGO_LJ["probability"] < np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])) & (meGO_LJ["rep"] > 0),
         "epsilon",
-    ] = -(parameters.epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
+    ] = -(meGO_LJ["epsilon_0"] / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
         meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
-    meGO_LJ.loc[
-        (~meGO_LJ["intra_domain"])
-        & (meGO_LJ["probability"] < np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["same_chain"])
-        & (meGO_LJ["rep"] > 0),
-        "epsilon",
-    ] = -(parameters.inter_domain_epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
-        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) - (
-        meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-    )
-    # Intermolecular
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] < np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (~meGO_LJ["same_chain"])
-        & (meGO_LJ["rep"] > 0),
-        "epsilon",
-    ] = -(parameters.inter_epsilon / np.log(meGO_LJ["rc_threshold"])) * meGO_LJ["distance"] ** 12 * np.log(
-        meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) - (
-        meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-    )
+
     # mid case for Pmd>Prc but not enough to be attractive
     meGO_LJ.loc[
         (meGO_LJ["probability"] <= meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
@@ -1167,7 +1109,7 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, para
     meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
     # apply symmetries to the check contacts
     if parameters.symmetry:
-        meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, symmetries, parameters)
+        meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, symmetries)
         meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
     # check contacts are all repulsive so among duplicates we keep the one with shortest distance
     meGO_check_contacts.sort_values(
@@ -1313,7 +1255,7 @@ def check_LJ(test, parameters):
     return energy
 
 
-def apply_symmetries(meGO_ensemble, meGO_input, symmetries, parameters):
+def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
     """
     Apply symmetries to the molecular ensemble.
 
@@ -1518,34 +1460,18 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ.reset_index(inplace=True)
 
     # when distance estimates are poor we use the cutoff value
-    # meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["cutoff"]
-    # meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["cutoff"]
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]), "distance"
-    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
-    meGO_LJ.loc[
-        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]),
-        "rc_distance",
-    ] = (meGO_LJ["rep"] / parameters.epsilon) ** (1.0 / 12.0)
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]), "distance"
-    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
-    meGO_LJ.loc[
-        (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]),
-        "rc_distance",
-    ] = (meGO_LJ["rep"] / parameters.inter_domain_epsilon) ** (1.0 / 12.0)
-    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "distance"] = (
-        meGO_LJ["rep"] / parameters.inter_epsilon
-    ) ** (1.0 / 12.0)
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]) & (~meGO_LJ["same_chain"]), "rc_distance"] = (
-        meGO_LJ["rep"] / parameters.inter_epsilon
+    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (meGO_LJ["rep"] / meGO_LJ["epsilon_0"]) ** (
+        1.0 / 12.0
+    )
+    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = (
+        meGO_LJ["rep"] / meGO_LJ["epsilon_0"]
     ) ** (1.0 / 12.0)
 
     # at this point meGO_LJ is symmetric in ai/aj for interaction between identical molecules
     # while it is not symmetric for cross interactions
 
     # generate attractive and repulsive interactions
-    meGO_LJ = set_epsilon(meGO_LJ, parameters)
+    meGO_LJ = set_epsilon(meGO_LJ)
     # fix for too small/too large repulsion
     meGO_LJ = repulsions_in_range(meGO_LJ)
 
@@ -1560,9 +1486,9 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["learned"] = 1
 
     # apply symmetries for equivalent atoms
-    symmetries = io.read_symmetry_file(parameters.symmetry) if parameters.symmetry else []
     if parameters.symmetry:
-        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries, parameters)
+        symmetries = io.read_symmetry_file(parameters.symmetry)
+        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
 
