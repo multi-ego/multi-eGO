@@ -269,7 +269,7 @@ Partition function correction selected.
 Minimum value for f={f_min}
 Maximum value for f={f_max}
 ----------------------""")
-            if args.f<f_min or args.f > f_max:
+            if args.f > f_max:
                 print(f"f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
                 exit()
     return contact_matrix
