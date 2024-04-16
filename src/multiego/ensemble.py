@@ -225,8 +225,10 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
     if simulation != args.reference:
         # calculate adaptive rc/md threshold
         # sort probabilities, and calculate the normalized cumulative distribution
-        p_sort = np.sort(contact_matrix["probability"].to_numpy())[::-1]
+        p_sort = np.sort(contact_matrix["probability"].loc[(contact_matrix["intra_domain"])].to_numpy())[::-1]
+        p_sort_id = np.sort(contact_matrix["probability"].loc[~(contact_matrix["intra_domain"])].to_numpy())[::-1]
         norm = np.sum(p_sort)
+        norm_id = np.sum(p_sort_id)
         if norm == 0:
             p_sort_normalized = 0
             md_threshold = 1
@@ -234,6 +236,14 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             # find md threshold
             p_sort_normalized = np.cumsum(p_sort) / norm
             md_threshold = p_sort[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
+
+        if norm_id == 0:
+            p_sort_normalized = 0
+            md_threshold_id = 1
+        else:
+            # find md threshold
+            p_sort_normalized = np.cumsum(p_sort_id) / norm_id
+            md_threshold_id = p_sort_id[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
         # set the epsilon_0 this simplify a lot of the following code
         # for intra-domain
@@ -245,7 +255,8 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
         # add the columns for rc, md threshold
-        contact_matrix["md_threshold"] = np.zeros(len(p_sort)) + md_threshold
+        contact_matrix = contact_matrix.assign(md_threshold=md_threshold) 
+        contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
         contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
             1.0 / (1.0 - (args.epsilon_min / contact_matrix["epsilon_0"]))
         )
