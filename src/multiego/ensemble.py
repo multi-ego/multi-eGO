@@ -1628,8 +1628,14 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # now we can remove all repulsive contacts with default (i.e., rep) c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
-    # by either intra/inter training
-    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["epsilon"] < 0) & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < 0.001))]
+    # by either intra/inter training. We cannot remove 1-4 interactions.
+    meGO_LJ = meGO_LJ.loc[
+        ~(
+            (meGO_LJ["epsilon"] < 0)
+            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < 0.001)
+            & (meGO_LJ["1-4"] == "1>4")
+        )
+    ]
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
