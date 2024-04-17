@@ -257,7 +257,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
             * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
         )
-        contact_matrix["limit_rc"] = 1.0 / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
 
         # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
         f_min = md_threshold
