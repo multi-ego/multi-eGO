@@ -978,7 +978,8 @@ def set_epsilon(meGO_LJ):
     meGO_LJ["epsilon"] = np.nan
     # Attractive
     meGO_LJ.loc[
-        (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])),
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / np.log(meGO_LJ["rc_threshold"])) * (
         np.log(meGO_LJ["probability"] / np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
@@ -1531,14 +1532,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
     # This keep only significant attractive/repulsive interactions
-    meGO_LJ = train_dataset.loc[
-        (train_dataset["probability"] > train_dataset["md_threshold"])
-        | (
-            (train_dataset["probability"] <= train_dataset["md_threshold"])
-            & (train_dataset["probability"] > 0.0)
-            & (train_dataset["probability"] < np.maximum(train_dataset["rc_probability"], train_dataset["rc_threshold"]))
-        )
-    ].copy()
+    meGO_LJ = train_dataset.loc[(train_dataset["probability"] > 0.0)].copy()
     # remove intramolecular excluded interactions
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_2_3") & (meGO_LJ["1-4"] != "0")]
 
@@ -1631,6 +1625,11 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
+
+    # now we can remove all repulsive contacts with default (i.e., rep) c12 becasue these
+    # are uninformative and predefined. This also allow to replace them with contact learned
+    # by either intra/inter training
+    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["epsilon"] < 0) & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < 0.001))]
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
