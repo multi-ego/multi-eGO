@@ -4,7 +4,8 @@
 
 ## Installation
 
-To install it you need to compile and install GROMACS (2023/2024) using `-DGMX_INSTALL_LEGACY_API=ON`. Then in a local subfolder (e.g., `build`, run `cmake ..` then `make` and `make install`.
+To install it you need to compile and install GROMACS (2023/2024) using `-DGMX_INSTALL_LEGACY_API=ON` `-DBUILD_SHARED_LIBS=ON` 
+`-DGMX_INSTALL_NBLIB_API=ON`. Then in a local subfolder (e.g., `build`, run `cmake ..` then `make` and `make install`).
 
 ## Usage
 cmdata calculates a histogram for interatomic distances for multi-eGO.
