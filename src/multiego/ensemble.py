@@ -808,7 +808,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
         print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
             .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
             .to_string()
         )
@@ -879,7 +879,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         # This is a debug check to avoid data inconsistencies
         if (np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"])).max() > 0:
             print(
-                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
                 .loc[(np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"]) > 0)]
                 .to_string()
             )
@@ -1048,7 +1048,7 @@ def set_epsilon(meGO_LJ):
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
     # Epsilon is initialised to nan to easily remove not learned contacts
-    meGO_LJ["epsilon"] = np.nan
+    meGO_LJ["epsilon"] = -meGO_LJ["rep"]
     # Attractive
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
@@ -1065,7 +1065,10 @@ def set_epsilon(meGO_LJ):
         & (meGO_LJ["rep"] > 0),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
-        np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
+        np.log(
+            np.maximum(meGO_LJ["probability"], meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
+            / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        )
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1606,7 +1609,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
     # This keep only significant attractive/repulsive interactions
-    meGO_LJ = train_dataset.loc[(train_dataset["probability"] > 0.0)].copy()
+    meGO_LJ = train_dataset.copy()
     # remove intramolecular excluded interactions
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_2_3") & (meGO_LJ["1-4"] != "0")]
 
