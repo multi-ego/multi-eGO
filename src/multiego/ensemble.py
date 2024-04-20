@@ -808,7 +808,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
         print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
             .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
             .to_string()
         )
@@ -879,7 +879,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         # This is a debug check to avoid data inconsistencies
         if (np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"])).max() > 0:
             print(
-                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
                 .loc[(np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"]) > 0)]
                 .to_string()
             )
