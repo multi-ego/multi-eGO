@@ -1086,6 +1086,7 @@ def set_epsilon(meGO_LJ):
     meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
 
     # clean NaN and zeros
+    meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
     return meGO_LJ
