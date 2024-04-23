@@ -1066,7 +1066,7 @@ def set_epsilon(meGO_LJ):
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
         np.log(
-            np.maximum(meGO_LJ["probability"], meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
+            np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
             / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         )
     ) - (
