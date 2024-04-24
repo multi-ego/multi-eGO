@@ -1724,12 +1724,16 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["sign"] = np.sign(meGO_LJ["epsilon"])
     meGO_LJ.loc[(meGO_LJ["epsilon"] > 0) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]), "trivial"] = True
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0) & (meGO_LJ["rc_probability"] <= meGO_LJ["rc_threshold"]), "trivial"] = True
-    # Identify rows where "trivial" is True and there exists another duplicate row
-    duplicated_at_least_one_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False) & meGO_LJ["trivial"]
+    # Identify rows where "trivial repulsive" is True and there exists another duplicate row
+    duplicated_at_least_one_trivial = (
+        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["sign"] == -1)
+    )
     # Identify rows where both are trivial/not trivial
     duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
     # Identify rows where both are attractive or repulsive
     duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "sign"], keep=False)
+    # Identify rows where an attractive contact is trivial
+    # trivial_attractive = meGO_LJ["trivial"] & meGO_LJ["sign"] > 0
     # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
     remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
     # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive
