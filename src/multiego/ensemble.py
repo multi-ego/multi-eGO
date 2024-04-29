@@ -1047,8 +1047,8 @@ def set_epsilon(meGO_LJ):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
-    # Epsilon is initialised to nan to easily remove not learned contacts
-    meGO_LJ["epsilon"] = -meGO_LJ["rep"]
+    # Epsilon is initialised to a rescaled C12
+    meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     # Attractive
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
@@ -1061,8 +1061,10 @@ def set_epsilon(meGO_LJ):
     # General repulsive term
     # These are with negative sign to store them as epsilon values
     meGO_LJ.loc[
-        (meGO_LJ["probability"] < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["rep"] > 0),
+        (
+            np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
+            < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+        ),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
         np.log(
@@ -1071,15 +1073,6 @@ def set_epsilon(meGO_LJ):
         )
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-    )
-
-    # mid case for Pmd>Prc but not enough to be attractive
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] <= meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["probability"] >= meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])),
-        "epsilon",
-    ] = (
-        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
 
     # update the c12 1-4 interactions
