@@ -161,6 +161,12 @@ for a contact pair.
         type=float,
         help="partition function normalization inter_domain",
     )
+    optional_args.add_argument(
+        "--relative_c12d",
+        default=0.001,
+        type=float,
+        help="Relative deviation from default to set new replulsive c12"
+    )
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
