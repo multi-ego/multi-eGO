@@ -1711,7 +1711,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[
         ~(
             (meGO_LJ["epsilon"] < 0)
-            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < 0.001)
+            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
