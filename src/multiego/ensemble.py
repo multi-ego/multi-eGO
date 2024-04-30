@@ -1048,8 +1048,14 @@ def set_epsilon(meGO_LJ):
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
     # Epsilon is initialised to a rescaled C12
+    # This is always correct becasue distance is always well defined by either training data
+    # or using default C12 values
+    # negative epsilon are used to identify non-attractive interactions
     meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-    # Attractive
+
+    # Attractive interactions
+    # These are defined only if the training probability is greater than MD_threshold and
+    # by comparing them with RC_probabilities
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
@@ -1059,7 +1065,8 @@ def set_epsilon(meGO_LJ):
     )
 
     # General repulsive term
-    # These are with negative sign to store them as epsilon values
+    # this is used only when MD_p < RC_p eventually corrected by the ZF 
+    # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
             np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
@@ -1076,6 +1083,7 @@ def set_epsilon(meGO_LJ):
     )
 
     # update the c12 1-4 interactions
+    # in principle this is not needed but we redefine them to be safe
     meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
 
     # clean NaN and zeros
