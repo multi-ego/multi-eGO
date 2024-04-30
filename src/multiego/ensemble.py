@@ -1065,7 +1065,7 @@ def set_epsilon(meGO_LJ):
     )
 
     # General repulsive term
-    # this is used only when MD_p < RC_p eventually corrected by the ZF 
+    # this is used only when MD_p < RC_p eventually corrected by the ZF
     # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
