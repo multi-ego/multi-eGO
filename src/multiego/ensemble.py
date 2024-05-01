@@ -1357,148 +1357,49 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
     pd.DataFrame
         A pandas DataFrame containing the molecular ensemble data with applied symmetries.
     """
-    tmp_df = pd.DataFrame()
+    # Step 1: Initialize variables
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
+    df_list = []
+
+    # Step 2: Loop through symmetries and permutations
+    for sym in symmetries:
+        # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
+        meGO_filtered = meGO_input[(mglj_resn_ai == sym[0]) | (mglj_resn_aj == sym[0])]
+        mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
+        mgf_resn_aj = meGO_filtered["aj"].map(dict_sbtype_to_resname)
+        for atypes in itertools.permutations(sym[1:]):
+            t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & (mgf_resn_ai == sym[0])]
+            t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & (mgf_resn_aj == sym[0])]
+            t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            df_list.extend([t_df_ai, t_df_aj])
+
+    # Step 3: Concatenate DataFrames
+    df_tmp = pd.concat(df_list, ignore_index=True)
+    df_list = []
+    df_tmp.drop_duplicates(inplace=True)
+
+    # Step 4: Filter and concatenate again
+    df_resn_ai = df_tmp["ai"].map(dict_sbtype_to_resname)
+    df_resn_aj = df_tmp["aj"].map(dict_sbtype_to_resname)
 
     for sym in symmetries:
-        for atypes in itertools.combinations(sym[1:], 2):
-            stmp_df_ai_L = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_L = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_L.loc[:, "ai"] = (
-                atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_L.loc[:, "aj"] = (
-                atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
-            )
+        # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
+        df_tmp_filt = df_tmp[(df_resn_ai == sym[0]) | (df_resn_aj == sym[0])]
+        df_resn_ai_f = df_tmp_filt["ai"].map(dict_sbtype_to_resname)
+        df_resn_aj_f = df_tmp_filt["aj"].map(dict_sbtype_to_resname)
+        for atypes in itertools.permutations(sym[1:]):
+            t_df_ai = df_tmp_filt[df_tmp_filt["ai"].str.startswith(f"{atypes[0]}_") & (df_resn_ai_f == sym[0])]
+            t_df_aj = df_tmp_filt[df_tmp_filt["aj"].str.startswith(f"{atypes[0]}_") & (df_resn_aj_f == sym[0])]
+            t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            df_list.extend([t_df_ai, t_df_aj])
 
-            stmp_df_ai_R = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_R = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_R.loc[:, "ai"] = (
-                atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_R.loc[:, "aj"] = (
-                atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
-            )
-
-            mglj_stmp_ai_L = stmp_df_ai_L["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_L = stmp_df_ai_L["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_L["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_L["aj"].str.split("_")])
-            same_L = stmp_df_ai_L[
-                (~stmp_df_ai_L["same_chain"])
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_L == sym[0])
-                & (mglj_stmp_aj_L == sym[0])
-                & (
-                    (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            mglj_stmp_ai_R = stmp_df_ai_R["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_R = stmp_df_ai_R["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_R["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_R["aj"].str.split("_")])
-            same_R = stmp_df_ai_R[
-                (~stmp_df_ai_R["same_chain"])
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_R == sym[0])
-                & (mglj_stmp_aj_R == sym[0])
-                & (
-                    (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            same = pd.concat([same_L, same_R])
-
-            if not same.empty:
-                # single change combinations
-                accumulate_self, same_c = same.copy(), same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                if not accumulate_self.empty:
-                    accumulate_self = pd.concat([accumulate_self, same_c])
-                else:
-                    accumulate_self = same_c.copy()
-                same_c = same.copy()
-                same.loc[:, "aj"] = atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                # double change combinations
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                if not tmp_df.empty:
-                    tmp_df = pd.concat([tmp_df, accumulate_self])
-                else:
-                    tmp_df = accumulate_self.copy()
-
-            if not tmp_df.empty:
-                mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
-                mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
-                tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_L.loc[:, "ai"] = (
-                    atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_L.loc[:, "aj"] = (
-                    atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
-                )
-
-                tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_R.loc[:, "ai"] = (
-                    atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_R.loc[:, "aj"] = (
-                    atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
-                )
-
-                tmp_df = pd.concat(
-                    [
-                        tmp_df,
-                        stmp_df_ai_L,
-                        stmp_df_aj_L,
-                        stmp_df_ai_R,
-                        stmp_df_aj_R,
-                        tmp_df_i_L,
-                        tmp_df_j_L,
-                        tmp_df_i_R,
-                        tmp_df_j_R,
-                    ]
-                )
-            else:
-                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
+    # Step 5: Concatenate and remove duplicates
+    tmp_df = pd.concat(df_list + [df_tmp], ignore_index=True)
+    tmp_df.drop_duplicates(inplace=True)
 
     return tmp_df
 
