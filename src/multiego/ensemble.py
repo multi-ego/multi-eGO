@@ -1365,6 +1365,8 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
 
     # Step 2: Loop through symmetries and permutations
     for sym in symmetries:
+        if not sym:
+            continue
         # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
         meGO_filtered = meGO_input[(mglj_resn_ai == sym[0]) | (mglj_resn_aj == sym[0])]
         mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
@@ -1386,6 +1388,8 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
     df_resn_aj = df_tmp["aj"].map(dict_sbtype_to_resname)
 
     for sym in symmetries:
+        if not sym:
+            continue
         # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
         df_tmp_filt = df_tmp[(df_resn_ai == sym[0]) | (df_resn_aj == sym[0])]
         df_resn_ai_f = df_tmp_filt["ai"].map(dict_sbtype_to_resname)
