@@ -5,6 +5,95 @@ import glob
 import os
 
 
+def strip_gz_suffix(filename):
+    """
+    Remove the '.gz' suffix from a filename if it ends with '.gz'.
+
+    This function checks if the provided filename ends with the '.gz' suffix.
+    If it does, the suffix is stripped (removed), and the modified filename is returned.
+    If the filename does not end with '.gz', it is returned unchanged.
+
+    Parameters:
+    - filename (str): The filename to process.
+
+    Returns:
+    - str: The filename without the '.gz' suffix, if it was originally present.
+           Otherwise, the original filename is returned.
+    """
+    if filename.endswith(".gz"):
+        return filename[:-3]
+    return filename
+
+
+def check_matrix_compatibility(input_path):
+    """
+    Check for matrix file compatibility by identifying any overlapping files
+    that exist in both uncompressed ('.ndx') and compressed ('.ndx.gz') formats
+    within a specified directory.
+
+    This function searches for files with the patterns 'int??mat_?_?.ndx' and
+    'int??mat_?_?.ndx.gz' in the provided input directory. It then checks for any
+    common files that appear in both uncompressed and compressed forms.
+    If such overlaps are found, a ValueError is raised indicating an issue
+    with file compatibility, highlighting the names of the conflicting files.
+
+    Parameters:
+    - input_path (str): The path to the directory where the files will be checked.
+
+    Raises:
+    - ValueError: If files with both '.ndx' and '.ndx.gz' versions are found.
+
+    Returns:
+    - None: The function returns None but raises an error if incompatible files are found.
+    """
+    matrix_paths = glob.glob(f"{input_path}/int??mat_?_?.ndx")
+    matrix_paths_gz = glob.glob(f"{input_path}/int??mat_?_?.ndx.gz")
+    stripped_matrix_paths_gz_set = set(map(strip_gz_suffix, matrix_paths_gz))
+    matrix_paths_set = set(matrix_paths)
+    # Find intersection of the two sets
+    common_files = matrix_paths_set.intersection(stripped_matrix_paths_gz_set)
+
+    # Check if there are any common elements and raise an error if there are
+    if common_files:
+        raise ValueError(f"Error: Some files have both non-gz and gz versions: {common_files}")
+
+
+def check_matrix_format(args):
+    """
+    Check the format of matrix files across multiple directories to ensure consistency
+    and compatibility. This function specifically checks that there are no overlapping files
+    in uncompressed ('.ndx') and compressed ('.ndx.gz') formats within the reference directory,
+    training simulations, and check simulations directories.
+
+    This function iterates through directories specified in the provided 'args' object. It starts
+    by checking the reference directory for matrix file compatibility, then proceeds to check
+    each training and checking simulation directory for similar issues.
+
+    Parameters:
+    - args (Namespace): An argparse.Namespace or similar object containing configuration settings.
+      Expected keys include:
+      - root_dir (str): The root directory under which all other directories are organized.
+      - system (str): The specific system folder under 'root_dir' to use.
+      - reference (str): The subdirectory within 'system' that contains the reference files.
+      - train (list of str): A list of subdirectories within 'system' for training simulations.
+      - check (list of str): A list of subdirectories within 'system' for checking simulations.
+
+    Raises:
+    - ValueError: If files with both '.ndx' and '.ndx.gz' versions are found in any checked directory.
+
+    Returns:
+    - None: The function returns None but raises an error if incompatible files are found in any directory.
+    """
+    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference}"
+    check_matrix_compatibility(reference_path)
+    for simulation in args.train:
+        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+        check_matrix_compatibility(simulation_path)
+    for simulation in args.check:
+        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+        check_matrix_compatibility(simulation_path)
+
+
 def read_symmetry_file(path):
     """
     Reads the symmetry file and returns a dictionary of the symmetry parameters.
