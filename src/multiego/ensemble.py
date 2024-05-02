@@ -382,13 +382,12 @@ def init_meGO_ensemble(args):
     ) = initialize_topology(reference_topology, custom_dict)
 
     reference_contact_matrices = {}
+    io.check_matrix_format(args)
     if args.egos != "rc":
-        io.check_matrix_format(args)
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
@@ -454,10 +453,9 @@ def init_meGO_ensemble(args):
             ignore_index=True,
         )
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
@@ -527,10 +525,9 @@ def init_meGO_ensemble(args):
         )
 
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
