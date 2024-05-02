@@ -383,6 +383,7 @@ def init_meGO_ensemble(args):
 
     reference_contact_matrices = {}
     if args.egos != "rc":
+        io.check_matrix_format(args)
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
         if matrix_paths == []:
             matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
