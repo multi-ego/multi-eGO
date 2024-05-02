@@ -1,0 +1,7 @@
+[ moleculetype ]
+; molname       nrexcl
+Ca+2            1
+
+[ atoms ]
+; id    at type         res nr  residu name     at name  cg nr  charge
+   1    C0                  1       Ca+2           Cal     1    1.80000

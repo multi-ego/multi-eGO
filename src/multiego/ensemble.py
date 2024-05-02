@@ -249,9 +249,9 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for intra-domain
         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
         # for inter-domain
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-            args.inter_domain_epsilon
-        )
+        contact_matrix.loc[
+            (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"
+        ] = args.inter_domain_epsilon
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
         # add the columns for rc, md threshold
@@ -321,6 +321,7 @@ def init_meGO_ensemble(args):
 
     reference_contact_matrices = {}
     if args.egos != "rc":
+        io.check_matrix_format(args)
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
         if matrix_paths == []:
             matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
