@@ -90,7 +90,7 @@ def initialize_topology(topology, custom_dict):
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx + 1))
             col_molecule.append(f"{molecule_number}_{molecule_name}")
-            new_resnum.append(str(atom.residue.number))
+            new_resnum.append(str(atom.residue.idx + 1))
 
     ensemble_topology_dataframe["number"] = new_number
     ensemble_topology_dataframe["molecule"] = col_molecule
