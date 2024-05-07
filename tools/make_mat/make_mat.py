@@ -521,7 +521,8 @@ def calculate_intra_probabilities(args):
 
         if molecule_type == "other":
             # read user pairs
-            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
+            molecule_keys = list(topology_mego.molecules.keys())
+            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts]
             user_pairs = [
                 (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
                 for ai, aj, c12 in user_pairs
