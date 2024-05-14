@@ -5,6 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from multiego.resources import type_definitions
 from multiego.util import masking
+from multiego import io
 
 import argparse
 import itertools
@@ -508,6 +509,11 @@ def calculate_intra_probabilities(args):
         topology_df["type"] = topology_df["mego_type"]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df["c12"] = topology_df["mego_type"].map(d)
         first_aminoacid = topology_mego.residues[0].name
         if first_aminoacid in type_definitions.aminoacids_list:
@@ -750,6 +756,11 @@ def calculate_inter_probabilities(args):
         topology_df_i["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_i.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
 
         # preparing topology of molecule j
@@ -762,6 +773,11 @@ def calculate_inter_probabilities(args):
         topology_df_j["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_j.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
 
         oxygen_mask = masking.create_matrix_mask(
@@ -911,6 +927,11 @@ if __name__ == "__main__":
         "--tar",
         action="store_true",
         help="Read from tar file instead of directory",
+    )
+    parser.add_argument(
+        "--custom_c12",
+        type=str,
+        help="Custom dictionary of c12 for special molecules",
     )
     args = parser.parse_args()
 
