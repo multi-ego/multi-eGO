@@ -3,6 +3,7 @@
 
 #include "gromacs/math/vec.h"
 #include "gromacs/math/vectypes.h"
+#include <gromacs/pbcutil/pbc.h>
 
 #include <xdrfile_xtc.h>
 
@@ -24,9 +25,17 @@ public:
   Frame(int natom) : natom(natom) { x = (rvec*)malloc(natom * sizeof(rvec)); }
   // ~Frame() { free(x); free(offsets); }
 
-  int read_next_frame(XDRFILE *xd)
+  int read_next_frame(XDRFILE *xd, bool nopbc, PbcType pbc_type, t_pbc *pbc)
   {
     int status = read_xtc(xd, natom, &step, &time, box, x, &prec);
+    if (nopbc)
+    {
+      pbc = nullptr;
+    }
+    else
+    {
+      set_pbc(pbc, pbc_type, box);
+    }
     return status;    
   }
 };
