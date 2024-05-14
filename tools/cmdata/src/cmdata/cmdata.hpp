@@ -122,6 +122,7 @@ private:
     const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight
   )
   {
+    semaphore_.acquire();
     const char * atomname;
     int tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
@@ -133,7 +134,6 @@ private:
     }
     if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
     int molb = 0;
-    semaphore_.acquire();
     /* Loop over molecules  */
     for (int j = 0; j < nindex_; j++)
     {
@@ -226,6 +226,7 @@ private:
     }
     semaphore_.release();
   }
+    PbcType pbcType_;
 
 public:
   CMData(
@@ -238,7 +239,6 @@ public:
       no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
   {
     bool bTop_;
-    PbcType pbcType_;
     matrix boxtop_;
     mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
     TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
@@ -337,6 +337,7 @@ public:
       }
       printf(" - found %s", tmp_mode.c_str());
     }
+    printf("\n");
 
     std::vector<int> num_mol;
     num_mol.push_back(1);
@@ -438,7 +439,7 @@ public:
 
     mcut2_ = mol_cutoff_ * mol_cutoff_;
     cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
-    if (same_ || cross_) xcm_ = (rvec*)malloc(nindex_ * sizeof(rvec));
+    xcm_ = (rvec*)malloc(nindex_ * sizeof(rvec));
 
     if (same_) frame_same_mat_.resize(natmol2_.size());
     if (intra_ || same_) frame_same_mutex_.resize(natmol2_.size());
@@ -475,7 +476,7 @@ public:
     int frnr = 0;
     float progress = 0.0, new_progress = 0.0;
     cmdata::io::print_progress_bar(progress);
-    while (frame_->read_next_frame(trj_) == exdrOK)
+    while (frame_->read_next_frame(trj_, no_pbc_, pbcType_, pbc_) == exdrOK)
     {
       new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
       if (new_progress - progress > 0.01)
@@ -503,25 +504,22 @@ public:
           #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
           for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
         }
-        if (same_ || cross_)
+        #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
+        for (int i = 0; i < nindex_; i++)
         {
-          #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
-          for (int i = 0; i < nindex_; i++)
+          clear_rvec(xcm_[i]);
+          double tm = 0.;
+          for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
           {
-            clear_rvec(xcm_[i]);
-            double tm = 0.;
-            for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
-            {
-              for (int m = 0; (m < DIM); m++)
-              {
-                xcm_[i][m] += frame_->x[ii][m];
-              }
-              tm += 1.0;
-            }
             for (int m = 0; (m < DIM); m++)
             {
-              xcm_[i][m] /= tm;
+              xcm_[i][m] += frame_->x[ii][m];
             }
+            tm += 1.0;
+          }
+          for (int m = 0; (m < DIM); m++)
+          {
+            xcm_[i][m] /= tm;
           }
         }
         /* start loop for each molecule */
@@ -629,7 +627,7 @@ public:
                 end_j_cross = 0;
               }
               if (n_loop_operations_cross == 0) break;
-              if (end_mti_cross == natmol2_.size() - 1) break;
+              if (end_mti_cross == natmol2_.size()) break;
             }
 
             // calculate overhangs and add them
