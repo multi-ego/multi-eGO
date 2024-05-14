@@ -288,13 +288,28 @@ def make_header(parameters):
     for parameter, value in parameters.items():
         if parameter == "no_header":
             continue
+        if parameter == "multi_epsilon_inter":
+            values_list = np.array(value[np.triu_indices_from(value)], dtype=str)
+            # values_list = np.array(values_list, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(values_list))
+            continue
+        if parameter == "names_inter":
+            n = value.size
+            # indices_upper_tri = np.triu_indices(n)
+            tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
+            continue
         if type(value) is list:
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, ", ".join(value))
+            value = np.array(value, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+        elif type(value) is np.ndarray:
+            value = np.array(value, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif not value:
             value = ""
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, ", ".join(value))
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         else:
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, value)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, value)
     header += "\n"
 
     return header
@@ -395,6 +410,7 @@ def write_topology(
             file.write(f"{molecule}\t\t\t1\n")
 
 
+# TODO is it ever used?
 def get_name(parameters):
     """
     Creates the output directory name.
@@ -412,7 +428,7 @@ def get_name(parameters):
     if parameters.egos == "rc":
         name = f"{parameters.system}_{parameters.egos}"
     else:
-        name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
+        name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_{parameters.inter_epsilon}"
     return name
 
 
@@ -438,9 +454,17 @@ def create_output_directories(parameters):
         if parameters.out:
             name = f"{parameters.system}_{parameters.egos}_{parameters.out}"
     else:
-        name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
-        if parameters.out:
-            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
+        if parameters.multi_epsi_intra is not None:
+            name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}"
+            if parameters.out:
+                name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}_{parameters.out}"
+            output_folder = f"{parameters.root_dir}/outputs/{name}"
+        else:
+            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
+            if parameters.out:
+                name = (
+                    f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
+                )
     output_folder = f"{parameters.root_dir}/outputs/{name}"
 
     if not os.path.exists(output_folder):
@@ -487,3 +511,54 @@ def check_files_existence(args):
                 raise FileNotFoundError(
                     f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
                 )
+
+
+def read_intra_file(file_path):
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        exit()
+
+    names = []
+    epsilons = []
+    with open(file_path, "r") as file:
+        for line in file:
+            name, param = line.strip().split(maxsplit=1)
+            names.append(name)
+            epsilons.append(float(param))
+    epsilons = np.array(epsilons)
+    return names, epsilons
+
+
+def read_inter_file(file_path):
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        exit()
+
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Extracting names and parameters
+    names_col = np.array([line.split()[0] for line in lines[1:]])
+    names_row = np.array(lines[0].split())
+
+    # Check that the names are consistent on rows and columns (avoid mistakes)
+    if np.any(names_row != names_col):
+        print(
+            f"""ERROR: the names are inconsistent in the inter epsilon matrix:
+              Rows:{names_row}
+              Columns:{names_col}
+              Please fix to be sure to avoid silly mistakes
+              """
+        )
+        exit()
+
+    epsilons = [line.split()[1:] for line in lines[1:]]
+    epsilons = np.array(epsilons, dtype=float)
+    if np.any(epsilons != epsilons.T):
+        print(f"ERROR: the matrix of inter epsilon must be symmetric, check the input file {file_path}")
+        exit()
+    return names_row, epsilons
+
+
+def read_custom_c12_parameters(file):
+    return pd.read_csv(file, names=["name", "at.num", "c12"], usecols=[0, 1, 6], header=0)

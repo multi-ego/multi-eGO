@@ -245,18 +245,67 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             p_sort_normalized = np.cumsum(p_sort_id) / norm_id
             md_threshold_id = p_sort_id[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
+        # needed to obtain the correct epsilon
+        contact_matrix["molecule_idx_ai_temp"] = contact_matrix["molecule_name_ai"].str.split("_").str[0]
+        contact_matrix["molecule_idx_aj_temp"] = contact_matrix["molecule_name_aj"].str.split("_").str[0]
+
         # set the epsilon_0 this simplify a lot of the following code
         # for intra-domain
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "zf"] = args.f
         # for inter-domain
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-            args.inter_domain_epsilon
-        )
         contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "zf"] = args.inter_domain_f
         # for inter-molecular
-        contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
+        if args.multi_mode:
+            # for intra-domain
+            if args.multi_epsilon is not None:
+                temp_epsi_intra = args.multi_epsilon[contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1]
+                contact_matrix.loc[
+                    (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"
+                ] = temp_epsi_intra
+                if name[0] == "intramat":
+                    print(f"		-Intra-domain epsilon {temp_epsi_intra}")
+            else:
+                print("intra multi modality violated: this should never happend")
+            # for inter-domain
+            if args.multi_epsilon_inter_domain is not None:
+                temp_epsi_inter_dom = args.multi_epsilon_inter_domain[
+                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1
+                ]
+                contact_matrix.loc[
+                    (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"
+                ] = temp_epsi_inter_dom
+                if name[0] == "intramat":
+                    print(f"		-Inter-domain epsilon {temp_epsi_inter_dom}")
+            else:
+                print("inter domain multi modality violated: this should never happend")
+            # for inter-molecular
+            if args.multi_epsilon_inter is not None:
+                temp_epsi_inter = args.multi_epsilon_inter[
+                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1,
+                    contact_matrix["molecule_idx_aj_temp"].to_numpy(dtype=int)[0] - 1,
+                ]
+                contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = temp_epsi_inter
+                if name[0] == "intermat":
+                    print(f"		-Inter-molecular epsilon {temp_epsi_inter}")
+            else:
+                print("inter multi modality violated: this should never happend")
+        else:
+            # for intra-domain
+            contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
+            if name[0] == "intramat":
+                print(f"		-Intra-domain epsilon {args.epsilon}")
+            # for inter-domain
+            contact_matrix.loc[
+                (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"
+            ] = args.inter_domain_epsilon
+            if name[0] == "intramat":
+                print(f"		-Inter-domain epsilon {args.inter_domain_epsilon}")
+            # for inter-molecular
+            contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
+            if name[0] == "intermat":
+                print(f"		-Inter-molecular epsilon {args.inter_epsilon}")
+
         # add the columns for rc, md threshold
         contact_matrix = contact_matrix.assign(md_threshold=md_threshold)
         contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
@@ -380,6 +429,23 @@ def init_meGO_ensemble(args):
         sbtype_moltype_dict,
         molecule_type_dict,
     ) = initialize_topology(reference_topology, custom_dict)
+
+    if args.multi_mode:
+        mol_check = []
+        for mol in reference_topology.molecules:
+            mol_check.append(mol)
+        if len(mol_check) != len(args.names):
+            print("Error the number of molecules in the input file is different from that in the topology")
+            exit()
+        for i, mol_appo in enumerate(mol_check):
+            if mol_appo != args.names[i]:
+                print(
+                    f"""ERROR: the name of the molecule from topology is different from that of the input file.
+                    The names must be chosen in the same way to avoid further errors in the association to the specific epsilon.
+                    File: {args.names[i]} ---- mego_topology: {mol_appo}
+                    """
+                )
+                exit()
 
     reference_contact_matrices = {}
     io.check_matrix_format(args)
@@ -714,7 +780,7 @@ def generate_14_data(meGO_ensemble):
     return pairs14, exclusion_bonds14
 
 
-def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
+def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args):
     """
     Initializes LJ (Lennard-Jones) datasets for train and check matrices within a molecular ensemble.
 
@@ -788,6 +854,12 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset["type_ai"] = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
     train_dataset["type_aj"] = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        type_to_c12.update(type_to_c12_appo)
+
     oxygen_mask = masking.create_linearized_mask(
         train_dataset["type_ai"].to_numpy(),
         train_dataset["type_aj"].to_numpy(),
@@ -859,6 +931,11 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset["type_ai"] = check_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
         check_dataset["type_aj"] = check_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
         type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            type_to_c12.update(type_to_c12_appo)
+
         oxygen_mask = masking.create_linearized_mask(
             check_dataset["type_ai"].to_numpy(),
             check_dataset["type_aj"].to_numpy(),
@@ -888,7 +965,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     return train_dataset, check_dataset
 
 
-def generate_basic_LJ(meGO_ensemble):
+def generate_basic_LJ(meGO_ensemble, args):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
 
@@ -934,6 +1011,11 @@ def generate_basic_LJ(meGO_ensemble):
 
     topol_df = meGO_ensemble["topology_dataframe"]
     name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        name_to_c12.update(name_to_c12_appo)
+
     if meGO_ensemble["reference_matrices"] == {}:
         basic_LJ = pd.DataFrame(columns=columns)
         basic_LJ["index_ai"] = [
@@ -1712,7 +1794,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    basic_LJ = generate_basic_LJ(meGO_ensemble)
+    basic_LJ = generate_basic_LJ(meGO_ensemble, parameters)
     basic_LJ = basic_LJ[needed_fields]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
