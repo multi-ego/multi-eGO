@@ -3,10 +3,13 @@ import subprocess
 import shutil
 import os
 import numpy as np
-from src.multiego import io
+import sys
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
+
+sys.path.append(MEGO_ROOT)
+from src.multiego import io
 
 
 def read_infile(path):
