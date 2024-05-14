@@ -181,9 +181,8 @@ for a contact pair.
         print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
         sys.exit()
 
-    #######################
-    ##MULTI EPSILON CASES##  #TODO add the option to write in the multi epsi inter file Nones in order to remove interaction between systems
-    #######################
+    # MULTI EPSILON CASES
+    # TODO add the option to write in the multi epsi inter file Nones in order to remove interaction between systems
     # CHECK if either the single option or the multi option are provided. If both break
     if args.epsilon is not None and args.multi_epsi_intra is not None:
         print("""Choose either a single intra epsilon for the system or the multi-epsilon inter. Cannot choose both""")
@@ -200,11 +199,11 @@ for a contact pair.
     # CHECK if multi_epsi_inter_domain or multi_epsi_intra are parsed but not the multi_epsi_intra break
     if args.multi_epsi_intra is None and (args.multi_epsi_inter_domain is not None or args.multi_epsi_inter is not None):
         print(
-            f"""--multi_epsi_inter_domain or --multi_epsi_inter where used, but --multi_epsi_intra was not parsed. 
-    In order to use the multi-epsilon option --multi_epsi_intra must be parsed. Please provide one or use the single epsslon case with:
-              --epsilon
-              --inter_domain_epsilon
-              --inter_epsilon"""
+            """--multi_epsi_inter_domain or --multi_epsi_inter where used, but --multi_epsi_intra was not parsed.
+        In order to use the multi-epsilon option --multi_epsi_intra must be parsed. Please provide one or use the single epsslon case with:
+            --epsilon
+            --inter_domain_epsilon
+            --inter_epsilon"""
         )
         exit()
 
@@ -221,7 +220,7 @@ for a contact pair.
         # multi_inter domain None but inter domain parsed --> ERROR
         if args.multi_epsi_inter_domain is None and args.inter_domain_epsilon is not None:
             print(
-                """Inter domain option should be parsed with --multi_epsi_inter_domain if --multi_epsi_intra is used and not with --inter_domain_epsilon 
+                """Inter domain option should be parsed with --multi_epsi_inter_domain if --multi_epsi_intra is used and not with --inter_domain_epsilon
             Choose either multiple epsilon options:
                    --multi_epsi_intra PATH_TO_FILE
                    --multi_epsi_inter_domain PATH_TO_FILE
@@ -244,7 +243,7 @@ for a contact pair.
         # No multi_epsilon_inter, no inter_epsilon --> set multi_epsilon_inter as one of the multi_epsi_intra (should not be needed if it's not defined explicetily)
         if args.multi_epsi_inter is None and args.inter_epsilon is None and args.multi_epsi_intra is not None:
             print(
-                """--multi intra mode activated, but no information for inter epsilon was set. 
+                """--multi intra mode activated, but no information for inter epsilon was set.
 Please set also the inter molecular interaction using one of the following options:
                   -inter_epsilon VALUE
                   -multi_epsi_inter PATH_TO_FILE """
@@ -270,13 +269,13 @@ Please set also the inter molecular interaction using one of the following optio
         # if multi_inter and no multi intra break
         if args.multi_epsi_inter is not None and args.multi_epsi_intra is None:
             print(
-                f"""if multi_epsi_inter is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
+                """if multi_epsi_inter is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
             )
 
         # if multi_inter_domain and no multi intra break
         if args.multi_epsi_inter_domain is not None and args.multi_epsi_intra is None:
             print(
-                f"""--if multi_epsi_inter_domain is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
+                """--if multi_epsi_inter_domain is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
             )
     else:
         setattr(args, "multi_mode", False)
