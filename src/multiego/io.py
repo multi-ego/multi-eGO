@@ -3,7 +3,6 @@ import pandas as pd
 import time
 import glob
 import os
-import numpy as np
 
 
 def strip_gz_suffix(filename):

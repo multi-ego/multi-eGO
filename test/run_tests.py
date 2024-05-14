@@ -99,7 +99,7 @@ def prep_system_data(name, egos, test_case):
         name_appo, multi_epsilon_inter_domain = io.read_intra_file(egos[1])
         name_appo, multi_epsilon_inter = io.read_inter_file(egos[2])
         out_egos = (
-            f"production_epsis_intra"
+            "production_epsis_intra"
             + "-".join(np.array(multi_epsilon, dtype=str))
             + "_interdomain"
             + "-".join(np.array(multi_epsilon_inter_domain, dtype=str))
