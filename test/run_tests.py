@@ -2,6 +2,8 @@ import unittest
 import subprocess
 import shutil
 import os
+import numpy as np
+from src.multiego import io
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
@@ -60,7 +62,7 @@ def read_outfile(path):
     return out_string
 
 
-def prep_system_data(name, egos):
+def prep_system_data(name, egos, test_case):
     """
     Prepares system data to be compared and tested by reading all necessary files.
 
@@ -87,8 +89,21 @@ def prep_system_data(name, egos):
     """
     if egos == "rc":
         out_egos = egos
-    else:
+    elif "--epsilon" in test_case:
         out_egos = f"production_e{egos[0]}_{egos[1]}"
+    elif "--multi_epsi_intra" in test_case:
+        name_appo, multi_epsilon = io.read_intra_file(egos[0])
+        name_appo, multi_epsilon_inter_domain = io.read_intra_file(egos[1])
+        name_appo, multi_epsilon_inter = io.read_inter_file(egos[2])
+        out_egos = (
+            f"production_epsis_intra"
+            + "-".join(np.array(multi_epsilon, dtype=str))
+            + "_interdomain"
+            + "-".join(np.array(multi_epsilon_inter_domain, dtype=str))
+            + "_inter"
+            + "-".join(np.array(multi_epsilon_inter, dtype=str).flatten())
+        )
+
     topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top")
     topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}_{out_egos}/topol_GRETA.top")
     ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp")
@@ -126,22 +141,55 @@ def create_test_cases(test_case):
     else:
         # figure out the name suffix and epsilons
         name_suffix = "production"
-        intra_epsilon_index = test_case.index("--epsilon") + 1
-        intra_epsilon = test_case[intra_epsilon_index]
-        if "--inter_epsilon" not in test_case:
-            inter_epsilon = intra_epsilon
+        if "--epsilon" in test_case:
+            intra_epsilon_index = test_case.index("--epsilon") + 1
+            intra_epsilon = test_case[intra_epsilon_index]
+            if "--inter_epsilon" not in test_case:
+                inter_epsilon = intra_epsilon
+            else:
+                inter_epsilon_index = (
+                    egos_index if "--inter_epsilon" not in test_case else test_case.index("--inter_epsilon") + 1
+                )
+                inter_epsilon = test_case[inter_epsilon_index]
+        elif "--multi_epsi_intra" in test_case:
+            intra_epsilon_index = test_case.index("--multi_epsi_intra") + 1
+            intra_epsilon = test_case[intra_epsilon_index]
+            if "--multi_epsi_inter_domain" not in test_case:
+                inter_domain_epsilon = intra_epsilon
+            else:
+                inter_domain_epsilon_index = (
+                    egos_index
+                    if "--multi_epsi_inter_domain" not in test_case
+                    else test_case.index("--multi_epsi_inter_domain") + 1
+                )
+                inter_domain_epsilon = test_case[inter_domain_epsilon_index]
+
+            if "--multi_epsi_inter" not in test_case:
+                inter_epsilon = None
+            else:
+                inter_epsilon_index = (
+                    egos_index if "--multi_epsi_inter" not in test_case else test_case.index("--multi_epsi_inter") + 1
+                )
+                inter_epsilon = test_case[inter_epsilon_index]
+
         else:
-            inter_epsilon_index = egos_index if "--inter_epsilon" not in test_case else test_case.index("--inter_epsilon") + 1
-            inter_epsilon = test_case[inter_epsilon_index]
+            print("ERROR: test cases are impossible: either --epsilon or --multi_epsi_intra ")
+            exit()
 
     function_name = f"test_{system_name}_{name_suffix}"
-    system_egos = "rc" if name_suffix == "rc" else [intra_epsilon, inter_epsilon]
+    if egos == "rc":
+        system_egos = "rc"
+    elif "--epsilon" in test_case:
+        system_egos = [intra_epsilon, inter_epsilon]
+
+    elif "--multi_epsi_intra" in test_case:
+        system_egos = [intra_epsilon, inter_domain_epsilon, inter_epsilon]
 
     def function_template(self):
         name = system_name
         egos = system_egos
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, egos=egos)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, egos=egos, test_case=test_case)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
 
