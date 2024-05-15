@@ -379,14 +379,14 @@ public:
     if (same_)
     {
       f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
-      std::cout << " :: activating intermat same calculations" << std::endl;
+      std::cout << ":: activating intermat same calculations" << std::endl;
       interm_same_mat_density_.resize(natmol2_.size());
       interm_same_maxcdf_mol_.resize(natmol2_.size());
     }
     if (cross_)
     {
       f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
-      std::cout << " :: activating intermat cross calculations" << std::endl;
+      std::cout << ":: activating intermat cross calculations" << std::endl;
       interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
       interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
     }
