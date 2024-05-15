@@ -412,6 +412,20 @@
 #define gd_56    180.000     31.0     2
 ; Omega dihedral - PRO
 
+; Gaia's additional dihedral groups for Cholesterol 
+#define gd_57 180.00 5.920 3
+; Double Bond dihedrals
+#define gd_58 20.00 5.920 3
+;
+#define gd_59 -140.00 5.920 1
+;
+#define gd_60 145.00 5.920 1
+;
+#define gd_61 150.0   5.92    1
+;
+#define gd_62 -90.0   5.92    1 
+;
+
 #ifdef DISULFIDE
 [ bondtypes ]
 S      S       1    gb_36
