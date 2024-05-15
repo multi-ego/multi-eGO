@@ -10,6 +10,7 @@
 - Fran Bacic Toplek
 - Carlo Camilloni
 - Riccardo Capelli
+- Gaia Poloni
 - Emanuele Scalone
 - Bruno Stegani
   
