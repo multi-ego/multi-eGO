@@ -77,7 +77,6 @@ def initialize_topology(topology, custom_dict):
     ) = (pd.DataFrame(), [], [], [], {})
 
     molecule_type_dict = {}
-    first_index = topology.atoms[0].idx + 1
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
