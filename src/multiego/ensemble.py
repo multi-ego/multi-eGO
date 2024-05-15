@@ -74,14 +74,9 @@ def initialize_topology(topology, custom_dict):
         col_molecule,
         new_resnum,
         ensemble_molecules_idx_sbtype_dictionary,
-        temp_number_c12_dict,
-    ) = (pd.DataFrame(), [], [], [], {}, {})
+    ) = (pd.DataFrame(), [], [], [], {})
 
     molecule_type_dict = {}
-    first_index = topology.atoms[0].idx + 1
-
-    for atom in topology.atoms:
-        temp_number_c12_dict[str(atom.idx + 1)] = atom.epsilon * 4.184
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
@@ -116,10 +111,10 @@ def initialize_topology(topology, custom_dict):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp['name'], type_definitions.gromos_atp['c12'])}
     ensemble_topology_dataframe["charge"] = 0.0
     ensemble_topology_dataframe["c6"] = 0.0
-    ensemble_topology_dataframe["c12"] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe["number"]))]
-    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["c12"].map(temp_number_c12_dict)
+    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
     ensemble_topology_dataframe["molecule_type"] = ensemble_topology_dataframe["molecule_name"].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
