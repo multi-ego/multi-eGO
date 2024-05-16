@@ -100,32 +100,36 @@ static void mindist_cross(
   }
 }
 
-static void mindist_kernel(
-  double weight,                            // common parameters
+static void mindist_kernel( // indices
+  const cmdata::indexing::SameThreadIndices &same_thread_indices, 
+  const cmdata::indexing::CrossThreadIndices &cross_thread_indices, 
+  const double weight,                            // common parameters
   const std::vector<int> &natmol2,
   const std::vector<double> &density_bins,
   const std::vector<int> &num_mol_unique,
-  std::size_t start_mti_same,               // same parameters
-  std::size_t start_im_same,
-  std::size_t start_i_same,
-  std::size_t start_j_same,
-  long int n_loop_operations_same,
   const std::vector<std::vector<double>> &frame_same_mat,
   std::vector<std::vector<std::mutex>> &frame_same_mutex, 
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
-  std::size_t start_mti_cross,              // cross parameters
-  std::size_t start_mtj_cross,
-  std::size_t start_im_cross,
-  std::size_t start_jm_cross,
-  std::size_t start_i_cross,
-  std::size_t start_j_cross,
-  int n_loop_operations_cross,
   const std::vector<std::vector<int>> &cross_index, 
   const std::vector<std::vector<double>> &frame_cross_mat,
   std::vector<std::vector<std::mutex>> &frame_cross_mutex,
   std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
 )
 {
+  const std::size_t start_mti_same = same_thread_indices.start_mti_same;
+  const std::size_t start_im_same = same_thread_indices.start_im_same;
+  const std::size_t start_i_same = same_thread_indices.start_i_same;
+  const std::size_t start_j_same = same_thread_indices.start_j_same;
+  const long int n_loop_operations_same = same_thread_indices.n_loop_operations_same;
+
+  const std::size_t start_mti_cross = cross_thread_indices.start_mti_cross;
+  const std::size_t start_mtj_cross = cross_thread_indices.start_mtj_cross;
+  const std::size_t start_im_cross = cross_thread_indices.start_im_cross;
+  const std::size_t start_jm_cross = cross_thread_indices.start_jm_cross;
+  const std::size_t start_i_cross = cross_thread_indices.start_i_cross;
+  const std::size_t start_j_cross = cross_thread_indices.start_j_cross;
+  const int n_loop_operations_cross = cross_thread_indices.n_loop_operations_cross;
+
   if (n_loop_operations_same != 0)
   {
     mindist_same(
