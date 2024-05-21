@@ -4,6 +4,7 @@
 #include <filesystem>
 // cmdata import
 #include "src/cmdata/cmdata.hpp"
+#include "src/cmdata/resdata.hpp"
 // #include "src/cmdata/resdata.hpp"
 // external library import
 #include <popt.h>
@@ -152,13 +153,25 @@ int main(int argc, const char** argv)
     return 12;
   }
 
-  cmdata::CMData cmdata(
-    top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
-    mode, weights_path, nopbc, t_begin, t_end
-  );
-  cmdata.run();
-  cmdata.process_data();
-  cmdata.write_output(out_prefix);
-
+  if ( !res )
+  {
+    cmdata::CMData cmdata(
+      top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
+      mode, weights_path, nopbc, t_begin, t_end
+    );
+    cmdata.run();
+    cmdata.process_data();
+    cmdata.write_output(out_prefix);
+  }
+  else
+  {
+    cmdata::ResData resdata(
+      top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
+      mode, weights_path, nopbc, t_begin, t_end
+    );
+    resdata.run();
+    resdata.process_data();
+    resdata.write_output(out_prefix);
+  }
   return 0;
 }
