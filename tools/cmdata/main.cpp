@@ -4,7 +4,6 @@
 #include <filesystem>
 // cmdata import
 #include "src/cmdata/cmdata.hpp"
-// #include "src/cmdata/resdata.hpp"
 // external library import
 #include <popt.h>
 
@@ -45,7 +44,6 @@ int main(int argc, const char** argv)
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
-    {"res",         '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_res,           0, "Residue-based",               0},
     POPT_TABLEEND
   };
 
@@ -72,7 +70,6 @@ int main(int argc, const char** argv)
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
-  if ( p_res != NULL ) res = true;
 
   // check if paths are valid
   if ( !std::filesystem::exists(std::filesystem::path(traj_path)) )
