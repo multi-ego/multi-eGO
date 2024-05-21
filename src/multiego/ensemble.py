@@ -44,7 +44,7 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     return molecule_type_dict
 
 
-def initialize_topology(topology, custom_dict):
+def initialize_topology(topology, custom_dict, args):
     """
     Initializes a topology DataFrame using provided molecule information.
 
@@ -112,6 +112,11 @@ def initialize_topology(topology, custom_dict):
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
     atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp['name'], type_definitions.gromos_atp['c12'])}
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        atp_c12_map.update(name_to_c12_appo)
+
     ensemble_topology_dataframe["charge"] = 0.0
     ensemble_topology_dataframe["c6"] = 0.0
     ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
@@ -423,7 +428,7 @@ def init_meGO_ensemble(args):
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
-    ) = initialize_topology(reference_topology, custom_dict)
+    ) = initialize_topology(reference_topology, custom_dict, args)
 
     if args.multi_mode:
         mol_check = []
@@ -507,7 +512,7 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology, custom_dict)
+        ) = initialize_topology(topology, custom_dict, args)
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -578,7 +583,7 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology, custom_dict)
+        ) = initialize_topology(topology, custom_dict, args)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
