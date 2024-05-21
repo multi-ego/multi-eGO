@@ -445,6 +445,190 @@ C311    C312    C313    C314 gd_34
 C312    C313    C314    C315 gd_34
 C313    C314    C315    C316 gd_34
 
+[ CHL1 ]
+ [ atoms ]
+  C3   CH2      0.000     0
+  O3    O       0.000     0
+  C4   CH2      0.000     0
+  C5   CH2      0.000     0
+  C6   CH2      0.000     0 
+  C7   CH2      0.000     0
+  C8   CH2      0.000     0
+ C14   CH2      0.000     0
+ C15   CH2      0.000     0
+ C16   CH2      0.000     0
+ C17   CH2      0.000     0
+ C13   CH2      0.000     0
+ C18   CH2      0.000     0
+ C12   CH2      0.000     0
+ C11   CH2      0.000     0
+  C9   CH2      0.000     0
+ C10   CH2      0.000     0
+ C19   CH2      0.000     0
+  C1   CH2      0.000     0
+  C2   CH1      0.000     0
+ C20   CH2      0.000     0
+ C21   CH2      0.000     0
+ C22   CH2      0.000     0
+ C23   CH2      0.000     0
+ C24   CH2      0.000     0
+ C25   CH2      0.000     0
+ C26   CH2      0.000     0
+ C27   CH3      0.000     0
+
+ [ bonds ]
+  C3 O3 gb_18 
+  C3 C4 gb_27
+  C3 C2 gb_27
+  C4 C5 gb_27
+  C5 C6 gb_10 ; double bond 
+  C5 C10 gb_27
+  C6 C7 gb_27
+  C7 C8 gb_27
+  C8 C14 gb_27
+  C8 C9 gb_27
+  C14 C15 gb_27
+  C14 C13 gb_27
+  C15 C16 gb_27
+  C16 C17 gb_27
+  C17 C13 gb_27
+  C17 C20 gb_27
+  C13 C18 gb_27
+  C13 C12 gb_27
+  C12 C11 gb_27
+  C11 C9 gb_27
+  C9 C10 gb_27
+  C10 C19 gb_27
+  C10 C1 gb_27
+  C2 C1 gb_27
+  C20 C21 gb_27
+  C20 C22 gb_27
+  C22 C23 gb_27
+  C23 C24 gb_27
+  C24 C25 gb_27
+  C25 C26 gb_27
+  C25 C27 gb_27
+
+[ angles ]
+  O3 C3 C4 ga_13
+  O3 C3 C2 ga_13 
+  C4 C3 C2 ga_15 
+  C3 C4 C5 ga_15 
+  C4 C5 C6 ga_27 ; double bond  
+  C4 C5 C10 ga_15
+  C6 C5 C10 ga_27 ; double bond
+  C5 C6 C7 ga_27 ; double bond
+  C6 C7 C8 ga_15 
+  C7 C8 C14 ga_15 
+  C7 C8 C9 ga_15 
+  C14 C8 C9 ga_15 
+  C8 C14 C15 ga_15 
+  C8 C14 C13 ga_15 
+  C15 C14 C13 ga_15 
+  C14 C15 C16 ga_15 
+  C15 C16 C17 ga_15 
+  C16 C17 C13 ga_15 
+  C16 C17 C20 ga_15 
+  C13 C17 C20 ga_15 
+  C14 C13 C17 ga_15 
+  C14 C13 C18 ga_15 
+  C14 C13 C12 ga_15 
+  C17 C13 C18 ga_15 
+  C17 C13 C12 ga_15 
+  C18 C13 C12 ga_15 
+  C13 C12 C11 ga_15 
+  C12 C11 C9 ga_15 
+  C8 C9 C11 ga_15 
+  C8 C9 C10 ga_15 
+  C11 C9 C10 ga_15 
+  C5 C10 C9 ga_15 
+  C5 C10 C19 ga_15 
+  C5 C10 C1 ga_15 
+  C9 C10 C19 ga_15 
+  C9 C10 C1 ga_15 
+  C19 C10 C1 ga_15 
+  C10 C1 C2 ga_15 
+  C3 C2 C1 ga_15 
+  C17 C20 C21 ga_15 
+  C17 C20 C22 ga_15 
+  C21 C20 C22 ga_15 
+  C20 C22 C23 ga_15 
+  C22 C23 C24 ga_15 
+  C23 C24 C25 ga_15 
+  C24 C25 C26 ga_15 
+  C24 C25 C27 ga_15 
+  C26 C25 C27 ga_15 
+
+[ dihedrals ]
+  O3 C3 C4 C5 gd_11
+  O3 C3 C2 C1 gd_11
+  C4 C3 C2 C1 gd_34
+  C5 C4 C3 C2 gd_34
+  C3 C4 C5 C6 gd_57 ; double bond 
+  C3 C4 C5 C10 gd_34
+  C4 C5 C6 C7 gd_57 ; double bond
+  C4 C5 C10 C9 gd_34
+  C4 C5 C10 C19 gd_34
+  C4 C5 C10 C1 gd_34
+  C6 C5 C10 C9 gd_57 ; double bond
+  C6 C5 C10 C19 gd_57 ; double bond
+  C6 C5 C10 C1 gd_57 ; double bond 
+  C7 C6 C5 C10 gd_57 ; double bond
+  C5 C6 C7 C8 gd_57; double bond
+  C6 C7 C8 C14 gd_34
+  C6 C7 C8 C9 gd_34
+  C7 C8 C14 C15 gd_34
+  C7 C8 C14 C13 gd_34
+  C7 C8 C9 C11 gd_34
+  C7 C8 C9 C10 gd_34
+  C14 C8 C9 C11 gd_34
+  C14 C8 C9 C10 gd_58
+  C15 C14 C8 C9 gd_34
+  C13 C14 C8 C9 gd_34
+  C8 C14 C15 C16 gd_34
+  C8 C14 C13 C17 gd_34
+  C8 C14 C13 C18 gd_58
+  C8 C14 C13 C12 gd_58
+  C15 C14 C13 C17 gd_59
+  C15 C14 C13 C18 gd_34
+  C15 C14 C13 C12 gd_34
+  C16 C15 C14 C13 gd_34
+  C14 C15 C16 C17 gd_34
+  C15 C16 C17 C13 gd_34
+  C15 C16 C17 C20 gd_34
+  C16 C17 C13 C18 gd_34
+  C16 C17 C13 C12 gd_34
+  C16 C17 C20 C21 gd_34
+  C16 C17 C20 C22 gd_34
+  C13 C17 C20 C21 gd_34
+  C13 C17 C20 C22 gd_34
+  C14 C13 C17 C16 gd_60
+  C14 C13 C17 C20 gd_34
+  C18 C13 C17 C20 gd_61
+  C12 C13 C17 C20 gd_62
+  C14 C13 C12 C11 gd_34
+  C17 C13 C12 C11 gd_34
+  C18 C13 C12 C11 gd_34
+  C13 C12 C11 C9 gd_34
+  C12 C11 C9 C10 gd_34
+  C8 C9 C11 C12 gd_34
+  C8 C9 C10 C19 gd_34
+  C8 C9 C10 C1 gd_34
+  C11 C9 C10 C19 gd_34
+  C11 C9 C10 C1 gd_34
+  C5 C10 C9 C8 gd_34
+  C5 C10 C9 C11 gd_34
+  C5 C10 C1 C2 gd_34
+  C9 C10 C1 C2 gd_34
+  C19 C10 C1 C2 gd_34
+  C3 C2 C1 C10 gd_34
+  C17 C20 C22 C23 gd_34
+  C21 C20 C22 C23 gd_34
+  C20 C22 C23 C24 gd_34
+  C22 C23 C24 C25 gd_34
+  C23 C24 C25 C26 gd_34
+  C23 C24 C25 C27 gd_34
+
 ;[ POPC ]
 ; [ atoms ]
 ;  CN1   CH3p    0.000    0    
