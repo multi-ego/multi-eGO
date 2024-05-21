@@ -111,7 +111,7 @@ def initialize_topology(topology, custom_dict, args):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
-    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp['name'], type_definitions.gromos_atp['c12'])}
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c12"])}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
