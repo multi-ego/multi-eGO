@@ -528,7 +528,10 @@ def calculate_intra_probabilities(args):
         if molecule_type == "other":
             # read user pairs
             molecule_keys = list(topology_mego.molecules.keys())
-            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts]
+            user_pairs = [
+                (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
+                for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts
+            ]
             user_pairs = [
                 (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
                 for ai, aj, c12 in user_pairs
@@ -556,6 +559,10 @@ def calculate_intra_probabilities(args):
                 if c12 > 0.0:
                     c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+
+        mismatched = topology_df.loc[topology_df["ref_type"].str[0] != topology_df["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
@@ -800,6 +807,14 @@ def calculate_inter_probabilities(args):
                 1.0 / 12.0,
             ),
         )
+
+        mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+        mismatched = topology_df_j.loc[topology_df_j["ref_type"].str[0] != topology_df_j["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
         if np.isnan(c12_cutoff.astype(float)).any():
