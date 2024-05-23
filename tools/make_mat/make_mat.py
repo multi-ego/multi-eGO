@@ -580,6 +580,10 @@ def calculate_intra_probabilities(args):
                     c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
+        mismatched = topology_df.loc[topology_df["ref_type"].str[0] != topology_df["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
         if np.isnan(c12_cutoff.astype(float)).any():
@@ -823,6 +827,15 @@ def calculate_inter_probabilities(args):
                 1.0 / 12.0,
             ),
         )
+       
+
+        mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+        mismatched = topology_df_j.loc[topology_df_j["ref_type"].str[0] != topology_df_j["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+
         if args.residue:
             c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
         if np.any(c12_cutoff > args.cutoff):
