@@ -31,8 +31,8 @@ def write_mat(df, output_file, indices=np.array([]), topologies=()):
     if indices.size != 0:
         out_df = out_df.astype({"ai": "int32", "aj": "int32"})
         out_df = out_df.astype({"ai": "int32", "aj": "int32"})
-        filter_i = out_df["ai"].isin(topologies[0]['ref_ai'].values.astype(int))
-        filter_j = out_df["aj"].isin(topologies[1]['ref_ai'].values.astype(int))
+        filter_i = out_df["ai"].isin(topologies[0]["ref_ai"].values.astype(int))
+        filter_j = out_df["aj"].isin(topologies[1]["ref_ai"].values.astype(int))
         out_df = out_df[filter_i & filter_j]
         out_df = out_df[indices]
         i = 1
@@ -548,7 +548,10 @@ def calculate_intra_probabilities(args):
         if molecule_type == "other":
             # read user pairs
             molecule_keys = list(topology_mego.molecules.keys())
-            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts]
+            user_pairs = [
+                (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
+                for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts
+            ]
             user_pairs = [
                 (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
                 for ai, aj, c12 in user_pairs
@@ -882,7 +885,9 @@ def calculate_inter_probabilities(args):
         output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
         print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
         if args.residue:
-            indices = ((topology_df_j["mego_name"].to_numpy() == "CA") * (topology_df_i["mego_name"].to_numpy()[:, np.newaxis] == "CA"))
+            indices = (topology_df_j["mego_name"].to_numpy() == "CA") * (
+                topology_df_i["mego_name"].to_numpy()[:, np.newaxis] == "CA"
+            )
             indices = indices.flatten()
 
             write_mat(df, output_file, indices, (topology_df_i, topology_df_j))
