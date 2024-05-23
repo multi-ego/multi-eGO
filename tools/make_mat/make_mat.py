@@ -26,8 +26,28 @@ d = {
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
-def write_mat(df, output_file):
-    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
+def write_mat(df, output_file, indices=np.array([]), topologies=()):
+    out_df = df.copy()
+    if indices.size != 0:
+        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
+        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
+        filter_i = out_df["ai"].isin(topologies[0]["ref_ai"].values.astype(int))
+        filter_j = out_df["aj"].isin(topologies[1]["ref_ai"].values.astype(int))
+        out_df = out_df[filter_i & filter_j]
+        out_df = out_df[indices]
+        i = 1
+        j = 1
+        # size_i = out_df["ai"].unique().size
+        size_j = out_df["aj"].unique().size
+        for index, row in out_df.iterrows():
+            out_df.at[index, "ai"] = i
+            out_df.at[index, "aj"] = j
+            j += 1
+            if j > size_j:
+                j = 1
+                i += 1
+
+    out_content = out_df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
@@ -815,6 +835,8 @@ def calculate_inter_probabilities(args):
         if not mismatched.empty:
             raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
 
+        if args.residue:
+            c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
         if np.isnan(c12_cutoff.astype(float)).any():
@@ -874,7 +896,15 @@ def calculate_inter_probabilities(args):
         out_name = args.out_name + "_" if args.out_name else ""
         output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
         print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-        write_mat(df, output_file)
+        if args.residue:
+            indices = (topology_df_j["mego_name"].to_numpy() == "CA") * (
+                topology_df_i["mego_name"].to_numpy()[:, np.newaxis] == "CA"
+            )
+            indices = indices.flatten()
+
+            write_mat(df, output_file, indices, (topology_df_i, topology_df_j))
+        else:
+            write_mat(df, output_file)
 
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -948,6 +978,10 @@ if __name__ == "__main__":
         "--custom_c12",
         type=str,
         help="Custom dictionary of c12 for special molecules",
+    )
+    parser.add_argument(
+        "--residue",
+        action="store_true",
     )
     args = parser.parse_args()
 
