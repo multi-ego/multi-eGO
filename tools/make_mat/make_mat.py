@@ -827,7 +827,6 @@ def calculate_inter_probabilities(args):
                 1.0 / 12.0,
             ),
         )
-       
 
         mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
         if not mismatched.empty:
