@@ -85,7 +85,7 @@ def initialize_topology(topology, custom_dict, args):
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx + 1))
             col_molecule.append(f"{molecule_number}_{molecule_name}")
-            new_resnum.append(str(atom.residue.idx + 1))
+            new_resnum.append(str(atom.residue.number))
 
     ensemble_topology_dataframe["number"] = new_number
     ensemble_topology_dataframe["molecule"] = col_molecule
@@ -260,9 +260,9 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             # for intra-domain
             if args.multi_epsilon is not None:
                 temp_epsi_intra = args.multi_epsilon[contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1]
-                contact_matrix.loc[
-                    (contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"
-                ] = temp_epsi_intra
+                contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
+                    temp_epsi_intra
+                )
                 if name[0] == "intramat":
                     print(f"		-Intra-domain epsilon {temp_epsi_intra}")
             else:
@@ -272,9 +272,9 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
                 temp_epsi_inter_dom = args.multi_epsilon_inter_domain[
                     contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1
                 ]
-                contact_matrix.loc[
-                    (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"
-                ] = temp_epsi_inter_dom
+                contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+                    temp_epsi_inter_dom
+                )
                 if name[0] == "intramat":
                     print(f"		-Inter-domain epsilon {temp_epsi_inter_dom}")
             else:
@@ -296,9 +296,9 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             if name[0] == "intramat":
                 print(f"		-Intra-domain epsilon {args.epsilon}")
             # for inter-domain
-            contact_matrix.loc[
-                (contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"
-            ] = args.inter_domain_epsilon
+            contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+                args.inter_domain_epsilon
+            )
             if name[0] == "intramat":
                 print(f"		-Inter-domain epsilon {args.inter_domain_epsilon}")
             # for inter-molecular
