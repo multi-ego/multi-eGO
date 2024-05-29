@@ -264,7 +264,21 @@
 ; 
 ; ICP(H)[N]  CP[N] PD[N] NP[N]
 ;
-#define gd_4    180.000       5.86          1
+#define gd_0    -90.000       2.00          1
+; N-CHn-CHn-OA (lipid)	1.4
+#define gd_1    -90.000       2.00          1
+; N-CHn-CHn-OA (lipid)	1.4
+#define gd_2    -90.000       4.00          1
+; N-CHn-CHn-OA (lipid)	1.4
+
+#define gd_3   -180.000       3.20          3
+; N-CHn-CHn-OA (lipid)	1.4
+#define gd_3bis   -180.000    2.40          1
+; N-CHn-CHn-OA (lipid)	1.4
+
+
+;#define gd_4    180.000      5.67          1
+#define gd_4    180.000      10.00          1
 ; N-CHn-CHn-OA (lipid)	1.4
 ;
 #define gd_10   180.000       5.86          2
@@ -318,7 +332,7 @@
 #define gd_29     0.000       3.77          3
 ; -C,CHn,SI-	0.9
 ;
-#define gd_29bis  0.000       1.00          2
+#define gd_29bis  0.000       4.50          2
 ; -C,CHn,SI-	0.9
 ;
 #define gd_30     0.000       3.90          3
@@ -330,7 +344,8 @@
 #define gd_34     0.000       5.92          3
 ; -CHn,SI-CHn-	1.4
 ;
-#define gd_36     0.000       8.62          3
+;#define gd_36     0.000       8.62          3
+#define gd_36     0.000       6.00          3
 ; N-CHn-CHn-OA (lipid)	2.1
 ;
 #define gd_38     0.000        0.0          4
@@ -371,17 +386,14 @@
 #define gd_45b 180.000 0.05 1
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ; 
-; OPT November, 23 2022 
-#define gd_48 180.0 6 2
+; OPT April,  3 2024 
+#define gd_48 180.0 5 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49 0 7 2
+#define gd_49 180 11 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_50 0 3.5 3
-; Backbone dihedral angle -C-N-CA-C  GLY
-;
-#define gd_51 -180 1.9 1
+#define gd_51 -180 1.7 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ; OPT November, 23 2022
@@ -400,15 +412,29 @@
 #define gd_56    180.000     31.0     2
 ; Omega dihedral - PRO
 
-; for pdb2gmx to recognize disulfide bonded interactions
-; bond-, angle- and dihedraltypes for specbonds:
+; Gaia's additional dihedral groups for Cholesterol 
+#define gd_57 180.00 5.920 3
+; Double Bond dihedrals
+#define gd_58 20.00 5.920 3
+;
+#define gd_59 -140.00 5.920 1
+;
+#define gd_60 145.00 5.920 1
+;
+#define gd_61 150.0   5.92    1
+;
+#define gd_62 -90.0   5.92    1 
+;
+
+#ifdef DISULFIDE
 [ bondtypes ]
-;S      S       1    gb_36
+S      S       1    gb_36
 
 [ angletypes ]
 ;CH1    CH2    S     1   ga_16
-;CH2    S      S     1   ga_6
+CH2    S      S     1   ga_6
 
 [ dihedraltypes ]
-;S      S      1   gd_21
-;CH2    S      1   gd_26
+S      S      1   gd_21
+CH2    S      1   gd_26
+#endif
