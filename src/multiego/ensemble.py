@@ -44,7 +44,7 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
     return molecule_type_dict
 
 
-def initialize_topology(topology, custom_dict):
+def initialize_topology(topology, custom_dict, args):
     """
     Initializes a topology DataFrame using provided molecule information.
 
@@ -74,16 +74,9 @@ def initialize_topology(topology, custom_dict):
         col_molecule,
         new_resnum,
         ensemble_molecules_idx_sbtype_dictionary,
-        temp_number_c12_dict,
-        temp_number_c6_dict,
-    ) = (pd.DataFrame(), [], [], [], {}, {}, {})
+    ) = (pd.DataFrame(), [], [], [], {})
 
     molecule_type_dict = {}
-    first_index = topology.atoms[0].idx + 1
-
-    for atom in topology.atoms:
-        temp_number_c12_dict[str(atom.idx + 1)] = atom.epsilon * 4.184
-        temp_number_c6_dict[str(atom.idx + 1)] = atom.sigma * 0.1
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
@@ -118,11 +111,15 @@ def initialize_topology(topology, custom_dict):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c12"])}
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        atp_c12_map.update(name_to_c12_appo)
+
     ensemble_topology_dataframe["charge"] = 0.0
-    ensemble_topology_dataframe["c6"] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe["number"]))]
-    ensemble_topology_dataframe["c6"] = ensemble_topology_dataframe["c6"].map(temp_number_c6_dict)
-    ensemble_topology_dataframe["c12"] = [str(i + first_index) for i in range(len(ensemble_topology_dataframe["number"]))]
-    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["c12"].map(temp_number_c12_dict)
+    ensemble_topology_dataframe["c6"] = ensemble_topology_dataframe["type"].map(atp_c6_map)
+    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
     ensemble_topology_dataframe["molecule_type"] = ensemble_topology_dataframe["molecule_name"].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -250,18 +247,67 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             p_sort_normalized = np.cumsum(p_sort_id) / norm_id
             md_threshold_id = p_sort_id[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
+        # needed to obtain the correct epsilon
+        contact_matrix["molecule_idx_ai_temp"] = contact_matrix["molecule_name_ai"].str.split("_").str[0]
+        contact_matrix["molecule_idx_aj_temp"] = contact_matrix["molecule_name_aj"].str.split("_").str[0]
+
         # set the epsilon_0 this simplify a lot of the following code
         # for intra-domain
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "zf"] = args.f
         # for inter-domain
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-            args.inter_domain_epsilon
-        )
         contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "zf"] = args.inter_domain_f
         # for inter-molecular
-        contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
+        if args.multi_mode:
+            # for intra-domain
+            if args.multi_epsilon is not None:
+                temp_epsi_intra = args.multi_epsilon[contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1]
+                contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
+                    temp_epsi_intra
+                )
+                if name[0] == "intramat":
+                    print(f"		-Intra-domain epsilon {temp_epsi_intra}")
+            else:
+                print("intra multi modality violated: this should never happend")
+            # for inter-domain
+            if args.multi_epsilon_inter_domain is not None:
+                temp_epsi_inter_dom = args.multi_epsilon_inter_domain[
+                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1
+                ]
+                contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+                    temp_epsi_inter_dom
+                )
+                if name[0] == "intramat":
+                    print(f"		-Inter-domain epsilon {temp_epsi_inter_dom}")
+            else:
+                print("inter domain multi modality violated: this should never happend")
+            # for inter-molecular
+            if args.multi_epsilon_inter is not None:
+                temp_epsi_inter = args.multi_epsilon_inter[
+                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1,
+                    contact_matrix["molecule_idx_aj_temp"].to_numpy(dtype=int)[0] - 1,
+                ]
+                contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = temp_epsi_inter
+                if name[0] == "intermat":
+                    print(f"		-Inter-molecular epsilon {temp_epsi_inter}")
+            else:
+                print("inter multi modality violated: this should never happend")
+        else:
+            # for intra-domain
+            contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
+            if name[0] == "intramat":
+                print(f"		-Intra-domain epsilon {args.epsilon}")
+            # for inter-domain
+            contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+                args.inter_domain_epsilon
+            )
+            if name[0] == "intramat":
+                print(f"		-Inter-domain epsilon {args.inter_domain_epsilon}")
+            # for inter-molecular
+            contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
+            if name[0] == "intermat":
+                print(f"		-Inter-molecular epsilon {args.inter_epsilon}")
+
         # add the columns for rc, md threshold
         contact_matrix = contact_matrix.assign(md_threshold=md_threshold)
         contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
@@ -385,15 +431,32 @@ def init_meGO_ensemble(args):
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
-    ) = initialize_topology(reference_topology, custom_dict)
+    ) = initialize_topology(reference_topology, custom_dict, args)
+
+    if args.multi_mode:
+        mol_check = []
+        for mol in reference_topology.molecules:
+            mol_check.append(mol)
+        if len(mol_check) != len(args.names):
+            print("Error the number of molecules in the input file is different from that in the topology")
+            exit()
+        for i, mol_appo in enumerate(mol_check):
+            if mol_appo != args.names[i]:
+                print(
+                    f"""ERROR: the name of the molecule from topology is different from that of the input file.
+                    The names must be chosen in the same way to avoid further errors in the association to the specific epsilon.
+                    File: {args.names[i]} ---- mego_topology: {mol_appo}
+                    """
+                )
+                exit()
 
     reference_contact_matrices = {}
+    io.check_matrix_format(args)
     if args.egos != "rc":
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
@@ -429,6 +492,7 @@ def init_meGO_ensemble(args):
         return ensemble
 
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
+    unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
 
     # now we process the train contact matrices
     train_contact_matrices = {}
@@ -454,17 +518,20 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology, custom_dict)
+        ) = initialize_topology(topology, custom_dict, args)
+        # check that the molecules defined have a reference
+        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
             axis=0,
             ignore_index=True,
         )
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
@@ -526,7 +593,10 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
-        ) = initialize_topology(topology, custom_dict)
+        ) = initialize_topology(topology, custom_dict, args)
+        # check that the molecules defined have a reference
+        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -534,10 +604,9 @@ def init_meGO_ensemble(args):
         )
 
         matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx")
+        matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
         if matrix_paths == []:
-            matrix_paths = glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
-            if matrix_paths == []:
-                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
@@ -724,7 +793,7 @@ def generate_14_data(meGO_ensemble):
     return pairs14, exclusion_bonds14
 
 
-def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
+def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args):
     """
     Initializes LJ (Lennard-Jones) datasets for train and check matrices within a molecular ensemble.
 
@@ -798,6 +867,12 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     train_dataset["type_ai"] = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
     train_dataset["type_aj"] = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        type_to_c12.update(type_to_c12_appo)
+
     oxygen_mask = masking.create_linearized_mask(
         train_dataset["type_ai"].to_numpy(),
         train_dataset["type_aj"].to_numpy(),
@@ -816,7 +891,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
         print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
             .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
             .to_string()
         )
@@ -869,6 +944,11 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         check_dataset["type_ai"] = check_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
         check_dataset["type_aj"] = check_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
         type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            type_to_c12.update(type_to_c12_appo)
+
         oxygen_mask = masking.create_linearized_mask(
             check_dataset["type_ai"].to_numpy(),
             check_dataset["type_aj"].to_numpy(),
@@ -887,7 +967,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
         # This is a debug check to avoid data inconsistencies
         if (np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"])).max() > 0:
             print(
-                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "cutoff"]]
+                check_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
                 .loc[(np.abs(check_dataset["rc_cutoff"] - check_dataset["cutoff"]) > 0)]
                 .to_string()
             )
@@ -898,7 +978,7 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14):
     return train_dataset, check_dataset
 
 
-def generate_basic_LJ(meGO_ensemble):
+def generate_basic_LJ(meGO_ensemble, args):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
 
@@ -948,6 +1028,11 @@ def generate_basic_LJ(meGO_ensemble):
     name_to_bare_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.bare_c12)}
     name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
     name_to_c6 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c6)}
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        name_to_c12.update(name_to_c12_appo)
+
     if meGO_ensemble["reference_matrices"] == {}:
         basic_LJ = pd.DataFrame(columns=columns)
         basic_LJ["index_ai"] = [
@@ -1112,9 +1197,15 @@ def set_epsilon(meGO_LJ):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
-    # Epsilon is initialised to nan to easily remove not learned contacts
-    meGO_LJ["epsilon"] = np.nan
-    # Attractive
+    # Epsilon is initialised to a rescaled C12
+    # This is always correct becasue distance is always well defined by either training data
+    # or using default C12 values
+    # negative epsilon are used to identify non-attractive interactions
+    meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+
+    # Attractive interactions
+    # These are defined only if the training probability is greater than MD_threshold and
+    # by comparing them with RC_probabilities
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
@@ -1124,27 +1215,25 @@ def set_epsilon(meGO_LJ):
     )
 
     # General repulsive term
-    # These are with negative sign to store them as epsilon values
+    # this is used only when MD_p < RC_p eventually corrected by the ZF
+    # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
-        (meGO_LJ["probability"] < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["rep"] > 0),
+        (
+            np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
+            < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+        ),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
-        np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
+        np.log(
+            np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
+            / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        )
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
 
-    # mid case for Pmd>Prc but not enough to be attractive
-    meGO_LJ.loc[
-        (meGO_LJ["probability"] <= meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["probability"] >= meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])),
-        "epsilon",
-    ] = (
-        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-    )
-
     # update the c12 1-4 interactions
+    # in principle this is not needed but we redefine them to be safe
     meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
 
     # clean NaN and zeros
@@ -1304,6 +1393,16 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, para
     return meGO_LJ
 
 
+def check_molecule_names(ref_list, tmp_list):
+    # Check if all unique entries in temp_topology_dataframe are in other_dataframe
+    missing_molecules = [molecule for molecule in tmp_list if molecule not in ref_list]
+
+    if missing_molecules:
+        raise ValueError(
+            f"The following molecule(s) from a train dataset {missing_molecules} are not found in the reference dataset  {ref_list}"
+        )
+
+
 def consistency_checks(meGO_LJ):
     """
     Perform consistency checks on LJ parameters.
@@ -1418,148 +1517,53 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
     pd.DataFrame
         A pandas DataFrame containing the molecular ensemble data with applied symmetries.
     """
-    tmp_df = pd.DataFrame()
+    # Step 1: Initialize variables
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
+    df_list = []
+
+    # Step 2: Loop through symmetries and permutations
+    for sym in symmetries:
+        if not sym:
+            continue
+        # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
+        meGO_filtered = meGO_input[(mglj_resn_ai == sym[0]) | (mglj_resn_aj == sym[0])]
+        mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
+        mgf_resn_aj = meGO_filtered["aj"].map(dict_sbtype_to_resname)
+        for atypes in itertools.permutations(sym[1:]):
+            t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & (mgf_resn_ai == sym[0])]
+            t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & (mgf_resn_aj == sym[0])]
+            t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            df_list.extend([t_df_ai, t_df_aj])
+
+    # Step 3: Concatenate DataFrames
+    df_tmp = pd.concat(df_list, ignore_index=True)
+    df_list = []
+    df_tmp.drop_duplicates(inplace=True)
+
+    # Step 4: Filter and concatenate again
+    df_resn_ai = df_tmp["ai"].map(dict_sbtype_to_resname)
+    df_resn_aj = df_tmp["aj"].map(dict_sbtype_to_resname)
 
     for sym in symmetries:
-        for atypes in itertools.combinations(sym[1:], 2):
-            stmp_df_ai_L = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_L = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_L.loc[:, "ai"] = (
-                atypes[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[1] + "_" + stmp_df_ai_L["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_L.loc[:, "aj"] = (
-                atypes[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[1] + "_" + stmp_df_aj_L["aj"].str.split("_").str[2]
-            )
+        if not sym:
+            continue
+        # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
+        df_tmp_filt = df_tmp[(df_resn_ai == sym[0]) | (df_resn_aj == sym[0])]
+        df_resn_ai_f = df_tmp_filt["ai"].map(dict_sbtype_to_resname)
+        df_resn_aj_f = df_tmp_filt["aj"].map(dict_sbtype_to_resname)
+        for atypes in itertools.permutations(sym[1:]):
+            t_df_ai = df_tmp_filt[df_tmp_filt["ai"].str.startswith(f"{atypes[0]}_") & (df_resn_ai_f == sym[0])]
+            t_df_aj = df_tmp_filt[df_tmp_filt["aj"].str.startswith(f"{atypes[0]}_") & (df_resn_aj_f == sym[0])]
+            t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
+            df_list.extend([t_df_ai, t_df_aj])
 
-            stmp_df_ai_R = meGO_input[meGO_input["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai == sym[0])].copy()
-            stmp_df_aj_R = meGO_input[meGO_input["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj == sym[0])].copy()
-            stmp_df_ai_R.loc[:, "ai"] = (
-                atypes[0] + "_" + stmp_df_ai_R["ai"].str.split("_").str[1] + "_" + stmp_df_ai_R["ai"].str.split("_").str[2]
-            )
-            stmp_df_aj_R.loc[:, "aj"] = (
-                atypes[0] + "_" + stmp_df_aj_R["aj"].str.split("_").str[1] + "_" + stmp_df_aj_R["aj"].str.split("_").str[2]
-            )
-
-            mglj_stmp_ai_L = stmp_df_ai_L["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_L = stmp_df_ai_L["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_L["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_L["aj"].str.split("_")])
-            same_L = stmp_df_ai_L[
-                (~stmp_df_ai_L["same_chain"])
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_L == sym[0])
-                & (mglj_stmp_aj_L == sym[0])
-                & (
-                    (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_L["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_L["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            mglj_stmp_ai_R = stmp_df_ai_R["ai"].map(dict_sbtype_to_resname)
-            mglj_stmp_aj_R = stmp_df_ai_R["aj"].map(dict_sbtype_to_resname)
-            res_idx = np.array([x[2] for x in stmp_df_ai_R["ai"].str.split("_")])
-            res_jdx = np.array([x[2] for x in stmp_df_ai_R["aj"].str.split("_")])
-            same_R = stmp_df_ai_R[
-                (~stmp_df_ai_R["same_chain"])
-                & (res_idx == res_jdx)
-                & (mglj_stmp_ai_R == sym[0])
-                & (mglj_stmp_aj_R == sym[0])
-                & (
-                    (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[0]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[1]}_"))
-                    | (stmp_df_ai_R["ai"].str.startswith(f"{atypes[1]}_") & stmp_df_ai_R["aj"].str.startswith(f"{atypes[0]}_"))
-                )
-            ].copy()
-
-            same = pd.concat([same_L, same_R])
-
-            if not same.empty:
-                # single change combinations
-                accumulate_self, same_c = same.copy(), same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                if not accumulate_self.empty:
-                    accumulate_self = pd.concat([accumulate_self, same_c])
-                else:
-                    accumulate_self = same_c.copy()
-                same_c = same.copy()
-                same.loc[:, "aj"] = atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                # double change combinations
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[0] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[0] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                same_c = same.copy()
-                same_c.loc[:, "ai"] = (
-                    atypes[1] + "_" + same["ai"].str.split("_").str[1] + "_" + same["ai"].str.split("_").str[2]
-                )
-                same_c.loc[:, "aj"] = (
-                    atypes[1] + "_" + same["aj"].str.split("_").str[1] + "_" + same["aj"].str.split("_").str[2]
-                )
-                accumulate_self = pd.concat([accumulate_self, same_c])
-                if not tmp_df.empty:
-                    tmp_df = pd.concat([tmp_df, accumulate_self])
-                else:
-                    tmp_df = accumulate_self.copy()
-
-            if not tmp_df.empty:
-                mglj_resn_ai_tmp = tmp_df["ai"].map(dict_sbtype_to_resname)
-                mglj_resn_aj_tmp = tmp_df["aj"].map(dict_sbtype_to_resname)
-                tmp_df_i_L = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[0]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_L = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[0]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_L.loc[:, "ai"] = (
-                    atypes[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[1] + "_" + tmp_df_i_L["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_L.loc[:, "aj"] = (
-                    atypes[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[1] + "_" + tmp_df_j_L["aj"].str.split("_").str[2]
-                )
-
-                tmp_df_i_R = tmp_df[tmp_df["ai"].str.startswith(f"{atypes[1]}_") & (mglj_resn_ai_tmp == sym[0])].copy()
-                tmp_df_j_R = tmp_df[tmp_df["aj"].str.startswith(f"{atypes[1]}_") & (mglj_resn_aj_tmp == sym[0])].copy()
-                tmp_df_i_R.loc[:, "ai"] = (
-                    atypes[0] + "_" + tmp_df_i_R["ai"].str.split("_").str[1] + "_" + tmp_df_i_R["ai"].str.split("_").str[2]
-                )
-                tmp_df_j_R.loc[:, "aj"] = (
-                    atypes[0] + "_" + tmp_df_j_R["aj"].str.split("_").str[1] + "_" + tmp_df_j_R["aj"].str.split("_").str[2]
-                )
-
-                tmp_df = pd.concat(
-                    [
-                        tmp_df,
-                        stmp_df_ai_L,
-                        stmp_df_aj_L,
-                        stmp_df_ai_R,
-                        stmp_df_aj_R,
-                        tmp_df_i_L,
-                        tmp_df_j_L,
-                        tmp_df_i_R,
-                        tmp_df_j_R,
-                    ]
-                )
-            else:
-                tmp_df = pd.concat([tmp_df, stmp_df_ai_L, stmp_df_aj_L, stmp_df_ai_R, stmp_df_aj_R])
+    # Step 5: Concatenate and remove duplicates
+    tmp_df = pd.concat(df_list + [df_tmp], ignore_index=True)
+    tmp_df.drop_duplicates(inplace=True)
 
     return tmp_df
 
@@ -1671,7 +1675,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
     # This keep only significant attractive/repulsive interactions
-    meGO_LJ = train_dataset.loc[(train_dataset["probability"] > 0.0)].copy()
+    meGO_LJ = train_dataset.copy()
     # remove intramolecular excluded interactions
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_2_3") & (meGO_LJ["1-4"] != "0")]
 
@@ -1739,6 +1743,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
 
+    print("\t- Merging multiple states (training, symmetries, inter/intra, check)")
+
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.
     # among attractive we keep the shortest the same among repulsive.
@@ -1771,10 +1777,33 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[
         ~(
             (meGO_LJ["epsilon"] < 0)
-            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < 0.001)
+            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
+
+    # transfer rule for inter/intra contacts:
+    # 1) only attractive contacts can be transferd
+    # 2) attractive contacts that can be transferd are those non affected by their random coil (prc <= rc_threshold)
+    # 3) an attractive contacts can only take the place of a trivial repulsive contact (i.e. a repulsive contact with prc <= rc_threshold)
+    meGO_LJ["trivial"] = False
+    meGO_LJ["sign"] = np.sign(meGO_LJ["epsilon"])
+    meGO_LJ.loc[(meGO_LJ["epsilon"] > 0) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]), "trivial"] = True
+    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0) & (meGO_LJ["rc_probability"] <= meGO_LJ["rc_threshold"]), "trivial"] = True
+    # Identify rows where "trivial repulsive" is True and there exists another duplicate row
+    duplicated_at_least_one_trivial = (
+        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["sign"] == -1)
+    )
+    # Identify rows where both are trivial/not trivial
+    duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
+    # Identify rows where both are attractive or repulsive
+    duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "sign"], keep=False)
+    # Identify rows where an attractive contact is trivial
+    # trivial_attractive = meGO_LJ["trivial"] & meGO_LJ["sign"] > 0
+    # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
+    remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
+    # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive
+    meGO_LJ = meGO_LJ[~remove_duplicates_mask]
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
@@ -1785,7 +1814,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # Sorting the pairs prioritising intermolecular interactions
     meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
-    # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     # Pairs prioritise intramolecular interactions
@@ -1809,7 +1837,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     if not parameters.single_molecule:
         # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
-        # avoid its use as intermolecular
+        # avoid its use as intermolecular, this includes all repulsive
         copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"])]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
@@ -1825,6 +1853,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
             (~meGO_LJ_14_reset_index["same_chain"])
             & (meGO_LJ_14_reset_index["molecule_name_ai"] == meGO_LJ_14_reset_index["molecule_name_aj"])
             & (meGO_LJ_14_reset_index["epsilon"] > 0.0)
+            & (meGO_LJ_14_reset_index["rc_probability"] <= meGO_LJ_14_reset_index["rc_threshold"])
         ]
         filtered_train_dataset = train_dataset.loc[train_dataset["same_chain"]].copy()
         filtered_train_dataset.sort_values(by=["ai", "aj", "rc_threshold"], ascending=[True, True, True], inplace=True)
@@ -1845,7 +1874,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    basic_LJ = generate_basic_LJ(meGO_ensemble)
+    basic_LJ = generate_basic_LJ(meGO_ensemble, parameters)
     basic_LJ = basic_LJ[needed_fields]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 

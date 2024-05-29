@@ -1,25 +1,28 @@
 ;
-;	File 'topol_Protein_chain_A.itp' was generated
-;	By user: brunost (505)
-;	On host: dhcp-161-103.celoria26-16000022-smfn_biodip.unimi.it
-;	At date: Thu Apr 20 14:21:08 2023
+;	File 'topol.top' was generated
+;	By user: bruno (1003)
+;	On host: roma
+;	At date: Wed Apr 17 11:45:13 2024
 ;
-;	This is a include topology file
+;	This is a standalone topology file
 ;
 ;	Created by:
-;	            :-) GROMACS - gmx pdb2gmx, 2021.5-plumed-2.9.0-dev (-:
+;	              :-) GROMACS - gmx pdb2gmx, 2022.6-plumed_2.9.0 (-:
 ;	
-;	Executable:   /Users/brunost/software/gromacs/bin/gmx_mpi
-;	Data prefix:  /Users/brunost/software/gromacs
-;	Working dir:  /Users/brunost/Desktop/multi-ego/inputs/1l84_5BNZ/reference
+;	Executable:   /home/bruno/soft/gromacs22_mego/bin/gmx_mpi
+;	Data prefix:  /home/bruno/soft/gromacs22_mego
+;	Working dir:  /home/bruno/mego_Bruno/multi-eGO/inputs/1l84_5BNZ_post_sym/test
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f starting.pdb -ignh
+;	  gmx_mpi pdb2gmx -f real_native.pdb -ignh
 ;	Force field was read from current directory or a relative path - path added.
 ;
 
+; Include forcefield parameters
+#include "../../../multi-ego-basic.ff/forcefield.itp"
+
 [ moleculetype ]
 ; Name            nrexcl
-Lyso     3
+Lyso             3
 
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
@@ -54,12 +57,12 @@ Lyso     3
     25          N      4    PHE      N      4          0    15.0067
     26        CH1      4    PHE     CA      4          0     13.019
     27        CH2      4    PHE     CB      4          0     14.027
-    28          C      4    PHE     CG      4          0     12.011
-    29          C      4    PHE    CD1      4          0     12.011
-    30          C      4    PHE    CD2      4          0     12.011
-    31          C      4    PHE    CE1      4          0     12.011
-    32          C      4    PHE    CE2      4          0     12.011
-    33          C      4    PHE     CZ      4          0     12.011
+    28         CH      4    PHE     CG      4          0     13.019
+    29         CH      4    PHE    CD1      4          0     13.019
+    30         CH      4    PHE    CD2      4          0     13.019
+    31         CH      4    PHE    CE1      4          0     13.019
+    32         CH      4    PHE    CE2      4          0     13.019
+    33         CH      4    PHE     CZ      4          0     13.019
     34          C      4    PHE      C      4          0     12.011
     35          O      4    PHE      O      4          0    15.9994   ; qtot 0
 ; residue   5 GLU rtp GLU  q  0.0
@@ -188,12 +191,12 @@ Lyso     3
    145          N     18    TYR      N     18          0    15.0067
    146        CH1     18    TYR     CA     18          0     13.019
    147        CH2     18    TYR     CB     18          0     14.027
-   148          C     18    TYR     CG     18          0     12.011
-   149          C     18    TYR    CD1     18          0     12.011
-   150          C     18    TYR    CD2     18          0     12.011
-   151          C     18    TYR    CE1     18          0     12.011
-   152          C     18    TYR    CE2     18          0     12.011
-   153          C     18    TYR     CZ     18          0     12.011
+   148         CH     18    TYR     CG     18          0     13.019
+   149         CH     18    TYR    CD1     18          0     13.019
+   150         CH     18    TYR    CD2     18          0     13.019
+   151         CH     18    TYR    CE1     18          0     13.019
+   152         CH     18    TYR    CE2     18          0     13.019
+   153         CH     18    TYR     CZ     18          0     13.019
    154         OA     18    TYR     OH     18          0    16.9994
    155          C     18    TYR      C     18          0     12.011
    156          O     18    TYR      O     18          0    15.9994   ; qtot 0
@@ -243,12 +246,12 @@ Lyso     3
    194          N     24    TYR      N     24          0    15.0067
    195        CH1     24    TYR     CA     24          0     13.019
    196        CH2     24    TYR     CB     24          0     14.027
-   197          C     24    TYR     CG     24          0     12.011
-   198          C     24    TYR    CD1     24          0     12.011
-   199          C     24    TYR    CD2     24          0     12.011
-   200          C     24    TYR    CE1     24          0     12.011
-   201          C     24    TYR    CE2     24          0     12.011
-   202          C     24    TYR     CZ     24          0     12.011
+   197         CH     24    TYR     CG     24          0     13.019
+   198         CH     24    TYR    CD1     24          0     13.019
+   199         CH     24    TYR    CD2     24          0     13.019
+   200         CH     24    TYR    CE1     24          0     13.019
+   201         CH     24    TYR    CE2     24          0     13.019
+   202         CH     24    TYR     CZ     24          0     13.019
    203         OA     24    TYR     OH     24          0    16.9994
    204          C     24    TYR      C     24          0     12.011
    205          O     24    TYR      O     24          0    15.9994   ; qtot 0
@@ -256,12 +259,12 @@ Lyso     3
    206          N     25    TYR      N     25          0    15.0067
    207        CH1     25    TYR     CA     25          0     13.019
    208        CH2     25    TYR     CB     25          0     14.027
-   209          C     25    TYR     CG     25          0     12.011
-   210          C     25    TYR    CD1     25          0     12.011
-   211          C     25    TYR    CD2     25          0     12.011
-   212          C     25    TYR    CE1     25          0     12.011
-   213          C     25    TYR    CE2     25          0     12.011
-   214          C     25    TYR     CZ     25          0     12.011
+   209         CH     25    TYR     CG     25          0     13.019
+   210         CH     25    TYR    CD1     25          0     13.019
+   211         CH     25    TYR    CD2     25          0     13.019
+   212         CH     25    TYR    CE1     25          0     13.019
+   213         CH     25    TYR    CE2     25          0     13.019
+   214         CH     25    TYR     CZ     25          0     13.019
    215         OA     25    TYR     OH     25          0    16.9994
    216          C     25    TYR      C     25          0     12.011
    217          O     25    TYR      O     25          0    15.9994   ; qtot 0
@@ -611,12 +614,12 @@ Lyso     3
    519          N     67    PHE      N     67          0    15.0067
    520        CH1     67    PHE     CA     67          0     13.019
    521        CH2     67    PHE     CB     67          0     14.027
-   522          C     67    PHE     CG     67          0     12.011
-   523          C     67    PHE    CD1     67          0     12.011
-   524          C     67    PHE    CD2     67          0     12.011
-   525          C     67    PHE    CE1     67          0     12.011
-   526          C     67    PHE    CE2     67          0     12.011
-   527          C     67    PHE     CZ     67          0     12.011
+   522         CH     67    PHE     CG     67          0     13.019
+   523         CH     67    PHE    CD1     67          0     13.019
+   524         CH     67    PHE    CD2     67          0     13.019
+   525         CH     67    PHE    CE1     67          0     13.019
+   526         CH     67    PHE    CE2     67          0     13.019
+   527         CH     67    PHE     CZ     67          0     13.019
    528          C     67    PHE      C     67          0     12.011
    529          O     67    PHE      O     67          0    15.9994   ; qtot 0
 ; residue  68 ASN rtp ASN  q  0.0
@@ -795,12 +798,12 @@ Lyso     3
    682          N     88    TYR      N     88          0    15.0067
    683        CH1     88    TYR     CA     88          0     13.019
    684        CH2     88    TYR     CB     88          0     14.027
-   685          C     88    TYR     CG     88          0     12.011
-   686          C     88    TYR    CD1     88          0     12.011
-   687          C     88    TYR    CD2     88          0     12.011
-   688          C     88    TYR    CE1     88          0     12.011
-   689          C     88    TYR    CE2     88          0     12.011
-   690          C     88    TYR     CZ     88          0     12.011
+   685         CH     88    TYR     CG     88          0     13.019
+   686         CH     88    TYR    CD1     88          0     13.019
+   687         CH     88    TYR    CD2     88          0     13.019
+   688         CH     88    TYR    CE1     88          0     13.019
+   689         CH     88    TYR    CE2     88          0     13.019
+   690         CH     88    TYR     CZ     88          0     13.019
    691         OA     88    TYR     OH     88          0    16.9994
    692          C     88    TYR      C     88          0     12.011
    693          O     88    TYR      O     88          0    15.9994   ; qtot 0
@@ -933,12 +936,12 @@ Lyso     3
    804          N    104    PHE      N    104          0    15.0067
    805        CH1    104    PHE     CA    104          0     13.019
    806        CH2    104    PHE     CB    104          0     14.027
-   807          C    104    PHE     CG    104          0     12.011
-   808          C    104    PHE    CD1    104          0     12.011
-   809          C    104    PHE    CD2    104          0     12.011
-   810          C    104    PHE    CE1    104          0     12.011
-   811          C    104    PHE    CE2    104          0     12.011
-   812          C    104    PHE     CZ    104          0     12.011
+   807         CH    104    PHE     CG    104          0     13.019
+   808         CH    104    PHE    CD1    104          0     13.019
+   809         CH    104    PHE    CD2    104          0     13.019
+   810         CH    104    PHE    CE1    104          0     13.019
+   811         CH    104    PHE    CE2    104          0     13.019
+   812         CH    104    PHE     CZ    104          0     13.019
    813          C    104    PHE      C    104          0     12.011
    814          O    104    PHE      O    104          0    15.9994   ; qtot 0
 ; residue 105 GLN rtp GLN  q  0.0
@@ -1011,12 +1014,12 @@ Lyso     3
    872          N    114    PHE      N    114          0    15.0067
    873        CH1    114    PHE     CA    114          0     13.019
    874        CH2    114    PHE     CB    114          0     14.027
-   875          C    114    PHE     CG    114          0     12.011
-   876          C    114    PHE    CD1    114          0     12.011
-   877          C    114    PHE    CD2    114          0     12.011
-   878          C    114    PHE    CE1    114          0     12.011
-   879          C    114    PHE    CE2    114          0     12.011
-   880          C    114    PHE     CZ    114          0     12.011
+   875         CH    114    PHE     CG    114          0     13.019
+   876         CH    114    PHE    CD1    114          0     13.019
+   877         CH    114    PHE    CD2    114          0     13.019
+   878         CH    114    PHE    CE1    114          0     13.019
+   879         CH    114    PHE    CE2    114          0     13.019
+   880         CH    114    PHE     CZ    114          0     13.019
    881          C    114    PHE      C    114          0     12.011
    882          O    114    PHE      O    114          0    15.9994   ; qtot 0
 ; residue 115 THR rtp THR  q  0.0
@@ -1128,15 +1131,15 @@ Lyso     3
    977          N    126    TRP      N    126          0    15.0067
    978        CH1    126    TRP     CA    126          0     13.019
    979        CH2    126    TRP     CB    126          0     14.027
-   980          C    126    TRP     CG    126          0     12.011
-   981          C    126    TRP    CD1    126          0     12.011
-   982          C    126    TRP    CD2    126          0     12.011
+   980         CH    126    TRP     CG    126          0     13.019
+   981         CH    126    TRP    CD1    126          0     13.019
+   982         CH    126    TRP    CD2    126          0     13.019
    983         NR    126    TRP    NE1    126          0    15.0067
-   984          C    126    TRP    CE2    126          0     12.011
-   985          C    126    TRP    CE3    126          0     12.011
-   986          C    126    TRP    CZ2    126          0     12.011
-   987          C    126    TRP    CZ3    126          0     12.011
-   988          C    126    TRP    CH2    126          0     12.011
+   984         CH    126    TRP    CE2    126          0     13.019
+   985         CH    126    TRP    CE3    126          0     13.019
+   986         CH    126    TRP    CZ2    126          0     13.019
+   987         CH    126    TRP    CZ3    126          0     13.019
+   988         CH    126    TRP    CH2    126          0     13.019
    989          C    126    TRP      C    126          0     12.011
    990          O    126    TRP      O    126          0    15.9994   ; qtot 0
 ; residue 127 ASP rtp ASP  q  0.0
@@ -1235,27 +1238,27 @@ Lyso     3
   1072          N    138    TRP      N    138          0    15.0067
   1073        CH1    138    TRP     CA    138          0     13.019
   1074        CH2    138    TRP     CB    138          0     14.027
-  1075          C    138    TRP     CG    138          0     12.011
-  1076          C    138    TRP    CD1    138          0     12.011
-  1077          C    138    TRP    CD2    138          0     12.011
+  1075         CH    138    TRP     CG    138          0     13.019
+  1076         CH    138    TRP    CD1    138          0     13.019
+  1077         CH    138    TRP    CD2    138          0     13.019
   1078         NR    138    TRP    NE1    138          0    15.0067
-  1079          C    138    TRP    CE2    138          0     12.011
-  1080          C    138    TRP    CE3    138          0     12.011
-  1081          C    138    TRP    CZ2    138          0     12.011
-  1082          C    138    TRP    CZ3    138          0     12.011
-  1083          C    138    TRP    CH2    138          0     12.011
+  1079         CH    138    TRP    CE2    138          0     13.019
+  1080         CH    138    TRP    CE3    138          0     13.019
+  1081         CH    138    TRP    CZ2    138          0     13.019
+  1082         CH    138    TRP    CZ3    138          0     13.019
+  1083         CH    138    TRP    CH2    138          0     13.019
   1084          C    138    TRP      C    138          0     12.011
   1085          O    138    TRP      O    138          0    15.9994   ; qtot 0
 ; residue 139 TYR rtp TYR  q  0.0
   1086          N    139    TYR      N    139          0    15.0067
   1087        CH1    139    TYR     CA    139          0     13.019
   1088        CH2    139    TYR     CB    139          0     14.027
-  1089          C    139    TYR     CG    139          0     12.011
-  1090          C    139    TYR    CD1    139          0     12.011
-  1091          C    139    TYR    CD2    139          0     12.011
-  1092          C    139    TYR    CE1    139          0     12.011
-  1093          C    139    TYR    CE2    139          0     12.011
-  1094          C    139    TYR     CZ    139          0     12.011
+  1089         CH    139    TYR     CG    139          0     13.019
+  1090         CH    139    TYR    CD1    139          0     13.019
+  1091         CH    139    TYR    CD2    139          0     13.019
+  1092         CH    139    TYR    CE1    139          0     13.019
+  1093         CH    139    TYR    CE2    139          0     13.019
+  1094         CH    139    TYR     CZ    139          0     13.019
   1095         OA    139    TYR     OH    139          0    16.9994
   1096          C    139    TYR      C    139          0     12.011
   1097          O    139    TYR      O    139          0    15.9994   ; qtot 0
@@ -1419,15 +1422,15 @@ Lyso     3
   1236          N    158    TRP      N    158          0    15.0067
   1237        CH1    158    TRP     CA    158          0     13.019
   1238        CH2    158    TRP     CB    158          0     14.027
-  1239          C    158    TRP     CG    158          0     12.011
-  1240          C    158    TRP    CD1    158          0     12.011
-  1241          C    158    TRP    CD2    158          0     12.011
+  1239         CH    158    TRP     CG    158          0     13.019
+  1240         CH    158    TRP    CD1    158          0     13.019
+  1241         CH    158    TRP    CD2    158          0     13.019
   1242         NR    158    TRP    NE1    158          0    15.0067
-  1243          C    158    TRP    CE2    158          0     12.011
-  1244          C    158    TRP    CE3    158          0     12.011
-  1245          C    158    TRP    CZ2    158          0     12.011
-  1246          C    158    TRP    CZ3    158          0     12.011
-  1247          C    158    TRP    CH2    158          0     12.011
+  1243         CH    158    TRP    CE2    158          0     13.019
+  1244         CH    158    TRP    CE3    158          0     13.019
+  1245         CH    158    TRP    CZ2    158          0     13.019
+  1246         CH    158    TRP    CZ3    158          0     13.019
+  1247         CH    158    TRP    CH2    158          0     13.019
   1248          C    158    TRP      C    158          0     12.011
   1249          O    158    TRP      O    158          0    15.9994   ; qtot 0
 ; residue 159 ASP rtp ASP  q  0.0
@@ -1449,12 +1452,12 @@ Lyso     3
   1263          N    161    TYR      N    161          0    15.0067
   1264        CH1    161    TYR     CA    161          0     13.019
   1265        CH2    161    TYR     CB    161          0     14.027
-  1266          C    161    TYR     CG    161          0     12.011
-  1267          C    161    TYR    CD1    161          0     12.011
-  1268          C    161    TYR    CD2    161          0     12.011
-  1269          C    161    TYR    CE1    161          0     12.011
-  1270          C    161    TYR    CE2    161          0     12.011
-  1271          C    161    TYR     CZ    161          0     12.011
+  1266         CH    161    TYR     CG    161          0     13.019
+  1267         CH    161    TYR    CD1    161          0     13.019
+  1268         CH    161    TYR    CD2    161          0     13.019
+  1269         CH    161    TYR    CE1    161          0     13.019
+  1270         CH    161    TYR    CE2    161          0     13.019
+  1271         CH    161    TYR     CZ    161          0     13.019
   1272         OA    161    TYR     OH    161          0    16.9994
   1273          C    161    TYR      C    161          0     12.011
   1274          O    161    TYR      O    161          0    15.9994   ; qtot 0

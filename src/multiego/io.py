@@ -5,6 +5,95 @@ import glob
 import os
 
 
+def strip_gz_suffix(filename):
+    """
+    Remove the '.gz' suffix from a filename if it ends with '.gz'.
+
+    This function checks if the provided filename ends with the '.gz' suffix.
+    If it does, the suffix is stripped (removed), and the modified filename is returned.
+    If the filename does not end with '.gz', it is returned unchanged.
+
+    Parameters:
+    - filename (str): The filename to process.
+
+    Returns:
+    - str: The filename without the '.gz' suffix, if it was originally present.
+           Otherwise, the original filename is returned.
+    """
+    if filename.endswith(".gz"):
+        return filename[:-3]
+    return filename
+
+
+def check_matrix_compatibility(input_path):
+    """
+    Check for matrix file compatibility by identifying any overlapping files
+    that exist in both uncompressed ('.ndx') and compressed ('.ndx.gz') formats
+    within a specified directory.
+
+    This function searches for files with the patterns 'int??mat_?_?.ndx' and
+    'int??mat_?_?.ndx.gz' in the provided input directory. It then checks for any
+    common files that appear in both uncompressed and compressed forms.
+    If such overlaps are found, a ValueError is raised indicating an issue
+    with file compatibility, highlighting the names of the conflicting files.
+
+    Parameters:
+    - input_path (str): The path to the directory where the files will be checked.
+
+    Raises:
+    - ValueError: If files with both '.ndx' and '.ndx.gz' versions are found.
+
+    Returns:
+    - None: The function returns None but raises an error if incompatible files are found.
+    """
+    matrix_paths = glob.glob(f"{input_path}/int??mat_?_?.ndx")
+    matrix_paths_gz = glob.glob(f"{input_path}/int??mat_?_?.ndx.gz")
+    stripped_matrix_paths_gz_set = set(map(strip_gz_suffix, matrix_paths_gz))
+    matrix_paths_set = set(matrix_paths)
+    # Find intersection of the two sets
+    common_files = matrix_paths_set.intersection(stripped_matrix_paths_gz_set)
+
+    # Check if there are any common elements and raise an error if there are
+    if common_files:
+        raise ValueError(f"Error: Some files have both non-gz and gz versions: {common_files}")
+
+
+def check_matrix_format(args):
+    """
+    Check the format of matrix files across multiple directories to ensure consistency
+    and compatibility. This function specifically checks that there are no overlapping files
+    in uncompressed ('.ndx') and compressed ('.ndx.gz') formats within the reference directory,
+    training simulations, and check simulations directories.
+
+    This function iterates through directories specified in the provided 'args' object. It starts
+    by checking the reference directory for matrix file compatibility, then proceeds to check
+    each training and checking simulation directory for similar issues.
+
+    Parameters:
+    - args (Namespace): An argparse.Namespace or similar object containing configuration settings.
+      Expected keys include:
+      - root_dir (str): The root directory under which all other directories are organized.
+      - system (str): The specific system folder under 'root_dir' to use.
+      - reference (str): The subdirectory within 'system' that contains the reference files.
+      - train (list of str): A list of subdirectories within 'system' for training simulations.
+      - check (list of str): A list of subdirectories within 'system' for checking simulations.
+
+    Raises:
+    - ValueError: If files with both '.ndx' and '.ndx.gz' versions are found in any checked directory.
+
+    Returns:
+    - None: The function returns None but raises an error if incompatible files are found in any directory.
+    """
+    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference}"
+    check_matrix_compatibility(reference_path)
+    for simulation in args.train:
+        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+        check_matrix_compatibility(simulation_path)
+    for simulation in args.check:
+        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+        check_matrix_compatibility(simulation_path)
+
+
 def read_symmetry_file(path):
     """
     Reads the symmetry file and returns a dictionary of the symmetry parameters.
@@ -199,13 +288,28 @@ def make_header(parameters):
     for parameter, value in parameters.items():
         if parameter == "no_header":
             continue
+        if parameter == "multi_epsilon_inter":
+            values_list = np.array(value[np.triu_indices_from(value)], dtype=str)
+            # values_list = np.array(values_list, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(values_list))
+            continue
+        if parameter == "names_inter":
+            n = value.size
+            # indices_upper_tri = np.triu_indices(n)
+            tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
+            continue
         if type(value) is list:
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, ", ".join(value))
+            value = np.array(value, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+        elif type(value) is np.ndarray:
+            value = np.array(value, dtype=str)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif not value:
             value = ""
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, ", ".join(value))
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         else:
-            header += ";\t- {:<15} = {:<20}\n".format(parameter, value)
+            header += ";\t- {:<26} = {:<20}\n".format(parameter, value)
     header += "\n"
 
     return header
@@ -306,6 +410,7 @@ def write_topology(
             file.write(f"{molecule}\t\t\t1\n")
 
 
+# TODO is it ever used?
 def get_name(parameters):
     """
     Creates the output directory name.
@@ -323,7 +428,7 @@ def get_name(parameters):
     if parameters.egos == "rc":
         name = f"{parameters.system}_{parameters.egos}"
     else:
-        name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
+        name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_{parameters.inter_epsilon}"
     return name
 
 
@@ -349,9 +454,17 @@ def create_output_directories(parameters):
         if parameters.out:
             name = f"{parameters.system}_{parameters.egos}_{parameters.out}"
     else:
-        name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
-        if parameters.out:
-            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
+        if parameters.multi_epsi_intra is not None:
+            name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}"
+            if parameters.out:
+                name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}_{parameters.out}"
+            output_folder = f"{parameters.root_dir}/outputs/{name}"
+        else:
+            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
+            if parameters.out:
+                name = (
+                    f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
+                )
     output_folder = f"{parameters.root_dir}/outputs/{name}"
 
     if not os.path.exists(output_folder):
@@ -398,3 +511,54 @@ def check_files_existence(args):
                 raise FileNotFoundError(
                     f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
                 )
+
+
+def read_intra_file(file_path):
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        exit()
+
+    names = []
+    epsilons = []
+    with open(file_path, "r") as file:
+        for line in file:
+            name, param = line.strip().split(maxsplit=1)
+            names.append(name)
+            epsilons.append(float(param))
+    epsilons = np.array(epsilons)
+    return names, epsilons
+
+
+def read_inter_file(file_path):
+    if not os.path.exists(file_path):
+        print(f"File {file_path} does not exist.")
+        exit()
+
+    with open(file_path, "r") as file:
+        lines = file.readlines()
+
+    # Extracting names and parameters
+    names_col = np.array([line.split()[0] for line in lines[1:]])
+    names_row = np.array(lines[0].split())
+
+    # Check that the names are consistent on rows and columns (avoid mistakes)
+    if np.any(names_row != names_col):
+        print(
+            f"""ERROR: the names are inconsistent in the inter epsilon matrix:
+              Rows:{names_row}
+              Columns:{names_col}
+              Please fix to be sure to avoid silly mistakes
+              """
+        )
+        exit()
+
+    epsilons = [line.split()[1:] for line in lines[1:]]
+    epsilons = np.array(epsilons, dtype=float)
+    if np.any(epsilons != epsilons.T):
+        print(f"ERROR: the matrix of inter epsilon must be symmetric, check the input file {file_path}")
+        exit()
+    return names_row, epsilons
+
+
+def read_custom_c12_parameters(file):
+    return pd.read_csv(file, names=["name", "at.num", "c12"], usecols=[0, 1, 6], header=0)

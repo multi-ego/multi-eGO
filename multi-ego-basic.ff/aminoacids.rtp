@@ -2,6 +2,12 @@
 ; bonds  angles  dihedrals  impropers
     1       1          1          2
 
+[ Ca+2 ]
+  [ atoms ]
+    Cal       C0          0.000     0
+  [ bonds ]
+  [ impropers ]
+
 [ ACE ]
  [ atoms ]
     CA   CH3   0.000     0

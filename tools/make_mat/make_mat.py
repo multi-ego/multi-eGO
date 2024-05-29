@@ -5,6 +5,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from multiego.resources import type_definitions
 from multiego.util import masking
+from multiego import io
 
 import argparse
 import itertools
@@ -25,8 +26,28 @@ d = {
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
-def write_mat(df, output_file):
-    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
+def write_mat(df, output_file, indices=np.array([]), topologies=()):
+    out_df = df.copy()
+    if indices.size != 0:
+        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
+        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
+        filter_i = out_df["ai"].isin(topologies[0]["ref_ai"].values.astype(int))
+        filter_j = out_df["aj"].isin(topologies[1]["ref_ai"].values.astype(int))
+        out_df = out_df[filter_i & filter_j]
+        out_df = out_df[indices]
+        i = 1
+        j = 1
+        # size_i = out_df["ai"].unique().size
+        size_j = out_df["aj"].unique().size
+        for index, row in out_df.iterrows():
+            out_df.at[index, "ai"] = i
+            out_df.at[index, "aj"] = j
+            j += 1
+            if j > size_j:
+                j = 1
+                i += 1
+
+    out_content = out_df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
@@ -508,6 +529,11 @@ def calculate_intra_probabilities(args):
         topology_df["type"] = topology_df["mego_type"]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df["c12"] = topology_df["mego_type"].map(d)
         first_aminoacid = topology_mego.residues[0].name
         if first_aminoacid in type_definitions.aminoacids_list:
@@ -521,7 +547,11 @@ def calculate_intra_probabilities(args):
 
         if molecule_type == "other":
             # read user pairs
-            user_pairs = [(pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184) for pair in topology_mego.adjusts]
+            molecule_keys = list(topology_mego.molecules.keys())
+            user_pairs = [
+                (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
+                for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts
+            ]
             user_pairs = [
                 (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
                 for ai, aj, c12 in user_pairs
@@ -549,6 +579,10 @@ def calculate_intra_probabilities(args):
                 if c12 > 0.0:
                     c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+
+        mismatched = topology_df.loc[topology_df["ref_type"].str[0] != topology_df["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
 
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
@@ -750,6 +784,11 @@ def calculate_inter_probabilities(args):
         topology_df_i["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_i.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
 
         # preparing topology of molecule j
@@ -762,6 +801,11 @@ def calculate_inter_probabilities(args):
         topology_df_j["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
         # need to sort back otherwise c12_cutoff are all wrong
         topology_df_j.sort_values(by="ref_ai", inplace=True)
+        if args.custom_c12 is not None:
+            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+            d.update(d_appo)
+
         topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
 
         oxygen_mask = masking.create_matrix_mask(
@@ -783,6 +827,16 @@ def calculate_inter_probabilities(args):
                 1.0 / 12.0,
             ),
         )
+
+        mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+        mismatched = topology_df_j.loc[topology_df_j["ref_type"].str[0] != topology_df_j["mego_name"].str[0]]
+        if not mismatched.empty:
+            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+
+        if args.residue:
+            c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
         if np.any(c12_cutoff > args.cutoff):
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
         if np.isnan(c12_cutoff.astype(float)).any():
@@ -842,7 +896,15 @@ def calculate_inter_probabilities(args):
         out_name = args.out_name + "_" if args.out_name else ""
         output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
         print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-        write_mat(df, output_file)
+        if args.residue:
+            indices = (topology_df_j["mego_name"].to_numpy() == "CA") * (
+                topology_df_i["mego_name"].to_numpy()[:, np.newaxis] == "CA"
+            )
+            indices = indices.flatten()
+
+            write_mat(df, output_file, indices, (topology_df_i, topology_df_j))
+        else:
+            write_mat(df, output_file)
 
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -911,6 +973,15 @@ if __name__ == "__main__":
         "--tar",
         action="store_true",
         help="Read from tar file instead of directory",
+    )
+    parser.add_argument(
+        "--custom_c12",
+        type=str,
+        help="Custom dictionary of c12 for special molecules",
+    )
+    parser.add_argument(
+        "--residue",
+        action="store_true",
     )
     args = parser.parse_args()
 

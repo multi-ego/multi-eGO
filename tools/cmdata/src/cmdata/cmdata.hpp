@@ -51,7 +51,7 @@ private:
 
   // molecule number fields
   int nindex_;
-  std::vector<uint> selection_;
+  // std::vector<uint> selection_;
   gmx::RangePartitioning mols_;
   std::vector<int> natmol2_;
   std::vector<int> mol_id_;
@@ -67,6 +67,7 @@ private:
   // pbc fields
   bool no_pbc_;
   t_pbc *pbc_;
+  PbcType pbcType_;
 
   // frame fields
   cmdata::xtc::Frame *frame_;
@@ -93,9 +94,12 @@ private:
 
   // parallelization fields
   int num_threads_;
+  int num_mol_threads_;
   std::vector<std::thread> threads_;
   std::vector<std::thread> mol_threads_;
   cmdata::parallel::Semaphore semaphore_;
+  std::vector<cmdata::indexing::SameThreadIndices> same_thread_indices_;
+  std::vector<cmdata::indexing::CrossThreadIndices> cross_thread_indices_;
 
   // mode selection, booleans and functions
   std::string mode_;
@@ -122,6 +126,7 @@ private:
     const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight
   )
   {
+    semaphore_.acquire();
     const char * atomname;
     int tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
@@ -133,7 +138,6 @@ private:
     }
     if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
     int molb = 0;
-    semaphore_.acquire();
     /* Loop over molecules  */
     for (int j = 0; j < nindex_; j++)
     {
@@ -230,15 +234,14 @@ private:
 public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
-    double cutoff, double mol_cutoff, int nskip, int num_threads,
+    double cutoff, double mol_cutoff, int nskip, int num_threads, int num_mol_threads,
     int dt, const std::string &mode, const std::string &weights_path, 
     bool no_pbc, float t_begin, float t_end
-  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads),
+  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads), num_mol_threads_(num_mol_threads),
       mode_(mode), weights_path_(weights_path),
       no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
   {
     bool bTop_;
-    PbcType pbcType_;
     matrix boxtop_;
     mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
     TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
@@ -294,6 +297,7 @@ public:
     {
       int natm_per_mol = mtop_->moltype[molb.type].atoms.nr;
       for (int i = 0; i < molb.nmol; i++) mols_.appendBlock(natm_per_mol);
+      num_mol_unique_.push_back(molb.nmol);
     }
     // number of molecules
     nindex_ = mols_.numBlocks();
@@ -303,10 +307,20 @@ public:
       num_threads_ = std::thread::hardware_concurrency();
       std::cout << "Maximum thread number surpassed. Scaling num_threads down to " << num_threads_ << std::endl;
     }
+    if (num_mol_threads_ > std::thread::hardware_concurrency())
+    {
+      num_mol_threads_ = std::thread::hardware_concurrency();
+      std::cout << "Maximum thread number surpassed. Scaling num_mol_threads down to " << num_mol_threads_ << std::endl;
+    }
+    if (num_mol_threads_ > nindex_)
+    {
+      num_mol_threads_ = nindex_;
+      std::cout << "Number of molecule threads surpassed number of molecules. Setting num_mol_threads to " << num_mol_threads_ << std::endl;
+    }
     threads_.resize(num_threads_);
     mol_threads_.resize(nindex_);
-    semaphore_.set_counter(std::min(num_threads_, nindex_));
-    std::cout << "Using " << num_threads_ << " threads" << std::endl;
+    semaphore_.set_counter(num_mol_threads_);
+    std::cout << "Using " << num_threads_ << " threads and " << num_mol_threads_ << " molecule threads" << std::endl;
 
     // set up mode selection
     f_intra_mol_ = cmdata::ftypes::do_nothing<ftype_intra_>();
@@ -335,56 +349,29 @@ public:
         printf("Wrong mode: %s\nMode must be one from: intra, same, cross. Use + to concatenate more than one, i.e. intra+cross\n", tmp_mode.c_str());
         exit(1);
       }
-      printf(" - found %s", tmp_mode.c_str());
+      printf(" - found %s\n", tmp_mode.c_str());
     }
 
-    std::vector<int> num_mol;
-    num_mol.push_back(1);
-    int num_unique_molecules = 0;
-    // number of atoms per molecule, assuming them identical when consecutive molecules have the same number of atoms
-    natmol2_.push_back(mols_.block(0).end());
-    for (int i = 1; i < nindex_; i++)
+    int mol_id = 0;
+    int molb_index = 0;
+    for ( auto i : num_mol_unique_ )
     {
-      natmol2_.push_back(mols_.block(i).end() - mols_.block(i - 1).end());
-      if (natmol2_[i] == natmol2_[i - 1]) num_mol[num_unique_molecules]++;
-      else
+      natmol2_.push_back(mols_.block(molb_index).end() - mols_.block(molb_index).begin());
+      inv_num_mol_unique_.push_back(1. / static_cast<double>(i));
+      for ( int j = 0; j < i; j++ )
       {
-        num_mol.push_back(1);
-        num_unique_molecules++;
+        mol_id_.push_back(mol_id);
+        inv_num_mol_.push_back(1. / static_cast<double>(i));
       }
-    }
-    std::vector<int>::iterator it = std::unique(natmol2_.begin(), natmol2_.end());
-    natmol2_.resize(std::distance(natmol2_.begin(), it));
-
-    std::vector<int> start_index;
-    mol_id_.push_back(0);
-    start_index.push_back(0);
-    num_unique_molecules = 0;
-    inv_num_mol_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
-    num_mol_unique_.push_back(num_mol[num_unique_molecules]);
-    inv_num_mol_unique_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
-    for (int i = 1; i < nindex_; i++)
-    {
-      if (mols_.block(i).end() - mols_.block(i - 1).end() == natmol2_[num_unique_molecules])
-      {
-        start_index.push_back(start_index[i - 1]);
-      }
-      else
-      {
-        start_index.push_back(natmol2_[num_unique_molecules]);
-        num_unique_molecules++;
-        inv_num_mol_unique_.push_back(1. / (static_cast<double>(num_mol[num_unique_molecules])));
-        num_mol_unique_.push_back(num_mol[num_unique_molecules]);
-      }
-      mol_id_.push_back(num_unique_molecules);
-      inv_num_mol_.push_back(1. / static_cast<double>(num_mol[num_unique_molecules]));
+      mol_id++;
+      molb_index += i;
     }
 
-    printf("number of different molecules %lu\n", natmol2_.size());
+    printf("Number of different molecules %lu\n", natmol2_.size());
     bool check_same = false;
     for(std::size_t i=0; i<natmol2_.size();i++) {
-      printf("mol %lu num %u size %u\n", i, num_mol[i], natmol2_[i]);
-      if(num_mol[i]>1) check_same = true;
+      printf("mol %lu num %u size %u\n", i, num_mol_unique_[i], natmol2_[i]);
+      if(num_mol_unique_[i]>1) check_same = true;
     }
     if(!check_same && same_) same_ = false;
     if(natmol2_.size()<2) cross_ = false; 
@@ -392,21 +379,21 @@ public:
     if (same_)
     {
       f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
-      std::cout << " :: activating intermat same calculations" << std::endl;
+      std::cout << ":: activating intermat same calculations" << std::endl;
       interm_same_mat_density_.resize(natmol2_.size());
       interm_same_maxcdf_mol_.resize(natmol2_.size());
     }
     if (cross_)
     {
       f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
-      std::cout << " :: activating intermat cross calculations" << std::endl;
+      std::cout << ":: activating intermat cross calculations" << std::endl;
       interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
       interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
     }
     if (intra_) 
     {
       f_intra_mol_ = cmdata::density::intra_mol_routine;
-      std::cout << ":: activating intramat calculations" << std::endl;
+      std::cout << " :: activating intramat calculations" << std::endl;
       intram_mat_density_.resize(natmol2_.size());
     }
 
@@ -426,8 +413,8 @@ public:
       if (intra_) intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
       for ( std::size_t j = i + 1; j < natmol2_.size() && cross_; j++ )
       {
-        interm_cross_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
-        interm_cross_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_cross_mat_density_[cross_count].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_cross_maxcdf_mol_[cross_count].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
         cross_index_[i][j] = cross_count;
         cross_count++;
       }
@@ -438,7 +425,7 @@ public:
 
     mcut2_ = mol_cutoff_ * mol_cutoff_;
     cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
-    if (same_ || cross_) xcm_ = (rvec*)malloc(nindex_ * sizeof(rvec));
+    xcm_ = (rvec*)malloc(nindex_ * sizeof(rvec));
 
     if (same_) frame_same_mat_.resize(natmol2_.size());
     if (intra_ || same_) frame_same_mutex_.resize(natmol2_.size());
@@ -466,6 +453,151 @@ public:
       weights_sum_ = 0.;
     }
 
+    std::cout << "Calculating threading indices" << std::endl;
+    /* calculate the mindist accumulation indices */
+    std::size_t num_ops_same = 0;
+    for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
+    int n_per_thread_same = (same_) ? num_ops_same / num_threads_  : 0;
+    int n_threads_same_uneven = (same_) ? num_ops_same % num_threads_ : 0;
+    std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
+    std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
+    int num_ops_cross = 0;
+    for ( std::size_t im = 0; im < natmol2_.size(); im++ )
+    {
+      for ( std::size_t jm = im + 1; jm < natmol2_.size(); jm++ )
+      {
+        num_ops_cross += num_mol_unique_[im] * natmol2_[im] * num_mol_unique_[jm] * natmol2_[jm];
+      }
+    }
+    int n_per_thread_cross = (cross_) ? num_ops_cross / num_threads_ : 0;
+    int n_threads_cross_uneven = (cross_) ? num_ops_cross % num_threads_ : 0;
+
+    std::size_t start_mti_cross = 0, start_mtj_cross = 1, start_im_cross = 0, start_jm_cross = 0, start_i_cross = 0, start_j_cross = 0;
+    std::size_t end_mti_cross = 1, end_mtj_cross = 2, end_im_cross = 1, end_jm_cross = 1, end_i_cross = 0, end_j_cross = 0;
+
+    for ( int tid = 0; tid < num_threads_; tid++ )
+    {
+      /* calculate same indices */
+      int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
+      long int n_loop_operations_total_same = n_loop_operations_same;
+      while ( natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same) <= n_loop_operations_same )
+      {
+        int sub_same = natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same);
+        n_loop_operations_same -= sub_same;
+        end_i_same++;
+        end_j_same = end_i_same;
+        if (static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1])
+        {
+          end_im_same++;
+          end_i_same = 0;
+          end_j_same = 0;
+        }
+        if (static_cast<int>(end_im_same) -1 == num_mol_unique_[end_mti_same - 1])
+        {
+          end_mti_same++;
+          end_im_same = 1;
+          end_i_same = 0;
+          end_j_same = 0;
+        }
+        if (n_loop_operations_same == 0) break;
+      }
+      end_j_same += n_loop_operations_same;  
+      /* calculate cross indices */
+      int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
+      if (natmol2_.size() > 1)
+      {
+        int n_loop_operations_cross = n_loop_operations_total_cross;
+        while ( natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
+        {
+          int sub_cross = natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross));
+          n_loop_operations_cross -= sub_cross;
+
+          end_jm_cross++;
+          end_i_cross = 0;
+          end_j_cross = 0;
+
+          // case jm is above max
+          if (end_jm_cross > num_mol_unique_[end_mtj_cross - 1])
+          {
+            // end_im_cross++;
+            end_mtj_cross++;
+            end_jm_cross = 1;
+            end_i_cross = 0;
+            end_j_cross = 0;
+          }
+          if (end_mtj_cross > natmol2_.size())
+          {
+            end_im_cross++;
+            end_mtj_cross = end_mti_cross + 1;
+            end_jm_cross = 1;
+            end_i_cross = 0;
+            end_j_cross = 0;
+          }
+          if (end_im_cross > num_mol_unique_[end_mti_cross - 1])
+          {
+            end_mti_cross++;
+            end_mtj_cross = end_mti_cross + 1;
+            end_im_cross = 1;
+            end_jm_cross = 1;
+            end_i_cross = 0;
+            end_j_cross = 0;
+          }
+          if (end_mti_cross == natmol2_.size()) break;
+          if (n_loop_operations_cross == 0) break;
+        }
+
+        // calculate overhangs and add them
+        if (end_mti_cross < natmol2_.size())
+        {
+          end_i_cross += n_loop_operations_cross / natmol2_[end_mtj_cross-1];
+          end_j_cross += n_loop_operations_cross % natmol2_[end_mtj_cross-1];
+          end_i_cross += end_j_cross / natmol2_[end_mtj_cross-1];
+          end_j_cross %= natmol2_[end_mtj_cross-1];
+        }
+      }
+
+      if (same_)
+      {
+        same_thread_indices_.push_back({
+          start_mti_same, start_im_same, start_i_same, start_j_same, end_mti_same,
+          end_im_same, end_i_same, end_j_same, n_loop_operations_total_same
+        });
+      }
+      else
+      {
+        same_thread_indices_.push_back({
+          0, 0, 0, 0, 0, 0, 0, 0, 0
+        });
+      }
+      if (cross_ && natmol2_.size() > 1)
+      {
+        cross_thread_indices_.push_back({
+          start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross,
+          start_j_cross, end_mti_cross, end_mtj_cross, end_im_cross, end_jm_cross, end_i_cross,
+          end_j_cross, n_loop_operations_total_cross
+        });
+      }
+      else
+      {
+        cross_thread_indices_.push_back({
+          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        });
+      }
+
+      /* set new starts */
+      start_mti_same = end_mti_same - 1;
+      start_im_same = end_im_same - 1;
+      start_i_same = end_i_same;
+      start_j_same = end_j_same;
+
+      start_mti_cross = end_mti_cross - 1;
+      start_mtj_cross = end_mtj_cross - 1;
+      start_im_cross = end_im_cross - 1;
+      start_jm_cross = end_jm_cross - 1;
+      start_i_cross = end_i_cross;
+      start_j_cross = end_j_cross;
+    }
+
     printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
   }
 
@@ -475,7 +607,7 @@ public:
     int frnr = 0;
     float progress = 0.0, new_progress = 0.0;
     cmdata::io::print_progress_bar(progress);
-    while (frame_->read_next_frame(trj_) == exdrOK)
+    while (frame_->read_next_frame(trj_, no_pbc_, pbcType_, pbc_) == exdrOK)
     {
       new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
       if (new_progress - progress > 0.01)
@@ -503,25 +635,22 @@ public:
           #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
           for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
         }
-        if (same_ || cross_)
+        #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
+        for (int i = 0; i < nindex_; i++)
         {
-          #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
-          for (int i = 0; i < nindex_; i++)
+          clear_rvec(xcm_[i]);
+          double tm = 0.;
+          for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
           {
-            clear_rvec(xcm_[i]);
-            double tm = 0.;
-            for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
-            {
-              for (int m = 0; (m < DIM); m++)
-              {
-                xcm_[i][m] += frame_->x[ii][m];
-              }
-              tm += 1.0;
-            }
             for (int m = 0; (m < DIM); m++)
             {
-              xcm_[i][m] /= tm;
+              xcm_[i][m] += frame_->x[ii][m];
             }
+            tm += 1.0;
+          }
+          for (int m = 0; (m < DIM); m++)
+          {
+            xcm_[i][m] /= tm;
           }
         }
         /* start loop for each molecule */
@@ -540,127 +669,14 @@ public:
         for ( auto &thread : mol_threads_ ) thread.join();
 
         /* calculate the mindist accumulation indices */
-        std::size_t num_ops_same = 0;
-        for ( std::size_t im = 0; im < natmol2_.size(); im++ ) num_ops_same += num_mol_unique_[im] * ( natmol2_[im] * ( natmol2_[im] + 1 ) ) / 2;
-        int n_per_thread_same = (same_) ? num_ops_same / num_threads_  : 0;
-        int n_threads_same_uneven = (same_) ? num_ops_same % num_threads_ : 0;
-        std::size_t start_mti_same = 0, start_im_same = 0, end_mti_same = 1, end_im_same = 1; 
-        std::size_t start_i_same = 0, start_j_same = 0, end_i_same = 0, end_j_same = 0;
-        int num_ops_cross = 0;
-        for ( std::size_t im = 0; im < natmol2_.size(); im++ )
-        {
-          for ( std::size_t jm = im + 1; jm < natmol2_.size(); jm++ )
-          {
-            num_ops_cross += num_mol_unique_[im] * natmol2_[im] * num_mol_unique_[jm] * natmol2_[jm];
-          }
-        }
-        int n_per_thread_cross = (cross_) ? num_ops_cross / num_threads_ : 0;
-        int n_threads_cross_uneven = (cross_) ? num_ops_cross % num_threads_ : 0;
-
-        std::size_t start_mti_cross = 0, start_mtj_cross = 1, start_im_cross = 0, start_jm_cross = 0, start_i_cross = 0, start_j_cross = 0;
-        std::size_t end_mti_cross = 1, end_mtj_cross = 2, end_im_cross = 1, end_jm_cross = 1, end_i_cross = 0, end_j_cross = 0;
-
         for ( int tid = 0; tid < num_threads_; tid++ )
         {
-          /* calculate same indices */
-          int n_loop_operations_same = n_per_thread_same + (tid < n_threads_same_uneven ? 1 : 0);
-          long int n_loop_operations_total_same = n_loop_operations_same;
-          while ( natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same) <= n_loop_operations_same )
-          {
-            int sub_same = natmol2_[end_mti_same - 1] - static_cast<int>(end_j_same);
-            n_loop_operations_same -= sub_same;
-            end_i_same++;
-            end_j_same = end_i_same;
-            if (static_cast<int>(end_j_same) == natmol2_[end_mti_same - 1])
-            {
-              end_im_same++;
-              end_i_same = 0;
-              end_j_same = 0;
-            }
-            if (static_cast<int>(end_im_same) -1 == num_mol_unique_[end_mti_same - 1])
-            {
-              end_mti_same++;
-              end_im_same = 1;
-              end_i_same = 0;
-              end_j_same = 0;
-            }
-            if (n_loop_operations_same == 0) break;
-          }
-          end_j_same += n_loop_operations_same;  
-          /* calculate cross indices */
-          int n_loop_operations_total_cross = n_per_thread_cross + ( tid < n_threads_cross_uneven ? 1 : 0 );
-          if (natmol2_.size() > 1 && cross_)
-          {
-            int n_loop_operations_cross = n_loop_operations_total_cross;
-            while ( natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross)) <= n_loop_operations_cross )
-            {
-              int sub_cross = natmol2_[end_mti_cross-1] * natmol2_[end_mtj_cross-1] - (natmol2_[end_mtj_cross-1] * static_cast<int>(end_i_cross) + static_cast<int>(end_j_cross));
-              n_loop_operations_cross -= sub_cross;
-
-              end_jm_cross++;
-              end_i_cross = 0;
-              end_j_cross = 0;
-
-              // case jm is above max
-              if (end_jm_cross > num_mol_unique_[end_mtj_cross - 1])
-              {
-                end_im_cross++;
-                end_jm_cross = 1;
-                end_i_cross = 0;
-                end_j_cross = 0;
-              }
-              // case im is above max
-              if (end_im_cross > num_mol_unique_[end_mti_cross - 1])
-              {
-                end_mtj_cross++;
-                end_im_cross = 1;
-                end_jm_cross = 1;
-                end_i_cross = 0;
-                end_j_cross = 0;
-              }
-              // case mtj is above max
-              if (end_mtj_cross > natmol2_.size())
-              {
-                end_mti_cross++;
-                end_mtj_cross = end_mti_cross + 1;
-                end_im_cross = 1;
-                end_jm_cross = 1;
-                end_i_cross = 0;
-                end_j_cross = 0;
-              }
-              if (n_loop_operations_cross == 0) break;
-              if (end_mti_cross == natmol2_.size() - 1) break;
-            }
-
-            // calculate overhangs and add them
-            end_i_cross += n_loop_operations_cross / natmol2_[end_mtj_cross-1];
-            end_j_cross += n_loop_operations_cross % natmol2_[end_mtj_cross-1];
-            end_i_cross += end_j_cross / natmol2_[end_mtj_cross-1];
-            end_j_cross %= natmol2_[end_mtj_cross-1];
-          }
-          /* start thread */
           threads_[tid] = std::thread(
-            cmdata::mindist::mindist_kernel, weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_), 
-            start_mti_same, start_im_same, start_i_same, start_j_same, n_loop_operations_total_same,
+            cmdata::mindist::mindist_kernel, std::cref(same_thread_indices_[tid]), std::cref(cross_thread_indices_[tid]),
+            weight, std::cref(natmol2_), std::cref(density_bins_), std::cref(num_mol_unique_),
             std::cref(frame_same_mat_), std::ref(frame_same_mutex_), std::ref(interm_same_maxcdf_mol_),
-            start_mti_cross, start_mtj_cross, start_im_cross, start_jm_cross, start_i_cross, start_j_cross,
-            n_loop_operations_total_cross, std::cref(cross_index_), std::cref(frame_cross_mat_), 
-            std::ref(frame_cross_mutex_), std::ref(interm_cross_maxcdf_mol_)
+            std::cref(cross_index_), std::cref(frame_cross_mat_), std::ref(frame_cross_mutex_), std::ref(interm_cross_maxcdf_mol_)
           );
-          /* end thread */
-
-          /* set new starts */
-          start_mti_same = end_mti_same - 1;
-          start_im_same = end_im_same - 1;
-          start_i_same = end_i_same;
-          start_j_same = end_j_same;
-
-          start_mti_cross = end_mti_cross - 1;
-          start_mtj_cross = end_mtj_cross - 1;
-          start_im_cross = end_im_cross - 1;
-          start_jm_cross = end_jm_cross - 1;
-          start_i_cross = end_i_cross;
-          start_j_cross = end_j_cross;
         }
         for ( auto &thread : threads_ ) thread.join();
         ++n_x_;
