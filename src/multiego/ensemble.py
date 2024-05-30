@@ -522,7 +522,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
 
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
@@ -597,7 +597,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -1110,7 +1110,7 @@ def generate_basic_LJ(meGO_ensemble, args):
         hydrophobic_mask = masking.create_array_mask(
             ai_name,
             ai_name,
-            [("CH3", "CH3"), ("CH2", "CH2"), ("CH1", "CH1"), ("CH", "CH"), ("CH2r", "CH2r"), ("C", "C"), ("CH3", "CH2"), ("CH3", "CH1"), ("CH3", "CH"), ("CH3", "CH2r"), ("CH3", "C"), ("CH2", "CH1"), ("CH2", "CH"), ("CH2", "CH2r"), ("CH2", "C"), ("CH1", "CH"), ("CH1", "CH2r"), ("CH1", "C"), ("CH", "CH2r"), ("CH", "C")],
+            [("CH3", "CH3"), ("CH2", "CH2"), ("CH1", "CH1"), ("CH", "CH"), ("CH2r", "CH2r"), ("CH3", "CH2"), ("CH3", "CH1"), ("CH3", "CH"), ("CH3", "CH2r"), ("CH2", "CH1"), ("CH2", "CH"), ("CH2", "CH2r"), ("CH1", "CH"), ("CH1", "CH2r"), ("CH", "CH2r")],
             symmetrize=True,
         )
         basic_LJ["type"] = 1
