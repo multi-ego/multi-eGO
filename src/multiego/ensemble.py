@@ -1123,12 +1123,12 @@ def generate_basic_LJ(meGO_ensemble, args):
         oxygen_LJ["c12"] *= 11.4
         oxygen_LJ["c6"] = 0.0
         hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
-        hydrophobic_LJ["c12"] = 0.2 * hydrophobic_LJ["rep"]
-        hydrophobic_LJ["c6"] = 0.2 * hydrophobic_LJ["att"]
+        hydrophobic_LJ["c12"] = 0.22 * hydrophobic_LJ["rep"]
+        hydrophobic_LJ["c6"] = 0.22 * hydrophobic_LJ["att"]
         hydrophobic_LJ = hydrophobic_LJ.loc[((hydrophobic_LJ["c6"]**2/(4.*hydrophobic_LJ["c12"]))>args.epsilon_min)]
         hbond_LJ = basic_LJ[hbond_mask].copy()
-        hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
-        hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
+        hbond_LJ["c12"] = 0.22 * hbond_LJ["rep"]
+        hbond_LJ["c6"] = 0.22 * hbond_LJ["att"]
         catpi_LJ = basic_LJ[catpi_mask].copy()
         catpi_LJ["c12"] = 0.25 * catpi_LJ["rep"]
         catpi_LJ["c6"] = 0.25 * catpi_LJ["att"]
