@@ -1061,6 +1061,21 @@ def generate_basic_LJ(meGO_ensemble, args):
         oxygen_mask = masking.create_array_mask(
             ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
         )
+        bb_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH1", "CH1"),
+                ("CH1", "CH2"),
+                ("CH1", "CH3"),
+                ("CH1", "CH2r"),
+                ("CH1", "CH"),
+                ("CH1", "C"),
+                ("CH1", "N"),
+                ("C", "C"),
+            ],
+            symmetrize=True,
+        )
         catpi_mask = masking.create_array_mask(
             ai_name,
             ai_name,
@@ -1110,7 +1125,7 @@ def generate_basic_LJ(meGO_ensemble, args):
         hydrophobic_mask = masking.create_array_mask(
             ai_name,
             ai_name,
-            [("CH3", "CH3"), ("CH2", "CH2"), ("CH1", "CH1"), ("CH", "CH"), ("CH2r", "CH2r"), ("CH3", "CH2"), ("CH3", "CH1"), ("CH3", "CH"), ("CH3", "CH2r"), ("CH2", "CH1"), ("CH2", "CH"), ("CH2", "CH2r"), ("CH1", "CH"), ("CH1", "CH2r"), ("CH", "CH2r")],
+            [("CH3", "CH3"), ("CH2", "CH2"), ("CH", "CH"), ("CH2r", "CH2r"), ("CH3", "CH2"), ("CH3", "CH"), ("CH3", "CH2r"), ("CH2", "CH"), ("CH2", "CH2r"), ("CH", "CH2r")],
             symmetrize=True,
         )
         basic_LJ["type"] = 1
@@ -1123,16 +1138,18 @@ def generate_basic_LJ(meGO_ensemble, args):
         oxygen_LJ["c12"] *= 11.4
         oxygen_LJ["c6"] = 0.0
         hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
-        hydrophobic_LJ["c12"] = 0.22 * hydrophobic_LJ["rep"]
-        hydrophobic_LJ["c6"] = 0.22 * hydrophobic_LJ["att"]
-        hydrophobic_LJ = hydrophobic_LJ.loc[((hydrophobic_LJ["c6"]**2/(4.*hydrophobic_LJ["c12"]))>args.epsilon_min)]
+        hydrophobic_LJ["c12"] = 0.20 * hydrophobic_LJ["rep"]
+        hydrophobic_LJ["c6"] = 0.20 * hydrophobic_LJ["att"]
+        bb_LJ = basic_LJ[bb_mask].copy()
+        bb_LJ["c12"] = 0.25 * bb_LJ["rep"]
+        bb_LJ["c6"] = 0.25 * bb_LJ["att"]
         hbond_LJ = basic_LJ[hbond_mask].copy()
-        hbond_LJ["c12"] = 0.22 * hbond_LJ["rep"]
-        hbond_LJ["c6"] = 0.22 * hbond_LJ["att"]
+        hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
+        hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
         catpi_LJ = basic_LJ[catpi_mask].copy()
-        catpi_LJ["c12"] = 0.25 * catpi_LJ["rep"]
-        catpi_LJ["c6"] = 0.25 * catpi_LJ["att"]
-        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ])
+        catpi_LJ["c12"] = 0.22 * catpi_LJ["rep"]
+        catpi_LJ["c6"] = 0.22 * catpi_LJ["att"]
+        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
         basic_LJ["rep"] = basic_LJ["c12"]
         basic_LJ = basic_LJ.loc[(basic_LJ["c6"]==0.)|((basic_LJ["c6"]**2/(4.*basic_LJ["c12"]))>args.epsilon_min)]
