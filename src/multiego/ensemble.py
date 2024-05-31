@@ -112,14 +112,14 @@ def initialize_topology(topology, custom_dict, args):
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
     atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["bare_c12"])}
-    #atp_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c6"])}
+    # atp_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c6"])}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         atp_c12_map.update(name_to_c12_appo)
 
     ensemble_topology_dataframe["charge"] = 0.0
-    ensemble_topology_dataframe["c6"] = 0.0 
+    ensemble_topology_dataframe["c6"] = 0.0
     ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
     ensemble_topology_dataframe["molecule_type"] = ensemble_topology_dataframe["molecule_name"].map(molecule_type_dict)
 
@@ -1058,9 +1058,7 @@ def generate_basic_LJ(meGO_ensemble, args):
         c12_list = ai_name.map(name_to_c12).to_numpy()
         c6_list = ai_name.map(name_to_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(
-            ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True
-        )
+        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
         bb_mask = masking.create_array_mask(
             ai_name,
             ai_name,
@@ -1126,7 +1124,18 @@ def generate_basic_LJ(meGO_ensemble, args):
         hydrophobic_mask = masking.create_array_mask(
             ai_name,
             ai_name,
-            [("CH3", "CH3"), ("CH2", "CH2"), ("CH", "CH"), ("CH2r", "CH2r"), ("CH3", "CH2"), ("CH3", "CH"), ("CH3", "CH2r"), ("CH2", "CH"), ("CH2", "CH2r"), ("CH", "CH2r")],
+            [
+                ("CH3", "CH3"),
+                ("CH2", "CH2"),
+                ("CH", "CH"),
+                ("CH2r", "CH2r"),
+                ("CH3", "CH2"),
+                ("CH3", "CH"),
+                ("CH3", "CH2r"),
+                ("CH2", "CH"),
+                ("CH2", "CH2r"),
+                ("CH", "CH2r"),
+            ],
             symmetrize=True,
         )
         basic_LJ["type"] = 1
@@ -1153,7 +1162,7 @@ def generate_basic_LJ(meGO_ensemble, args):
         basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
         basic_LJ["rep"] = basic_LJ["c12"]
-        basic_LJ = basic_LJ.loc[(basic_LJ["c6"]==0.)|((basic_LJ["c6"]**2/(4.*basic_LJ["c12"]))>args.epsilon_min)]
+        basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
         basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
             ["index_ai", "index_aj"]
         ].max(axis=1)
@@ -1198,10 +1207,10 @@ def generate_basic_LJ(meGO_ensemble, args):
     basic_LJ["rc_threshold"] = 1.0
     basic_LJ["md_threshold"] = 1.0
     basic_LJ["epsilon"] = -basic_LJ["c12"]
-    basic_LJ.loc[basic_LJ["c6"]>0, "epsilon"] = basic_LJ["c6"]**2/(4.*basic_LJ["c12"])
+    basic_LJ.loc[basic_LJ["c6"] > 0, "epsilon"] = basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])
     basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
     basic_LJ["sigma"] = basic_LJ["cutoff"] / (2.0 ** (1.0 / 6.0))
-    basic_LJ.loc[basic_LJ["c6"]>0, "sigma"] = (basic_LJ["c12"]/basic_LJ["c6"])**(1/6)
+    basic_LJ.loc[basic_LJ["c6"] > 0, "sigma"] = (basic_LJ["c12"] / basic_LJ["c6"]) ** (1 / 6)
     basic_LJ["distance"] = basic_LJ["cutoff"]
     basic_LJ["learned"] = 0
     basic_LJ["1-4"] = "1>4"
