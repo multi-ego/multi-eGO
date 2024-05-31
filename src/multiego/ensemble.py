@@ -1085,6 +1085,7 @@ def generate_basic_LJ(meGO_ensemble, args):
                 ("NE", "CH"),
                 ("NT", "CH"),
                 ("NR", "CH"),
+                ("C", "CH"),
             ],
             symmetrize=True,
         )
@@ -1147,8 +1148,8 @@ def generate_basic_LJ(meGO_ensemble, args):
         hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
         hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
         catpi_LJ = basic_LJ[catpi_mask].copy()
-        catpi_LJ["c12"] = 0.22 * catpi_LJ["rep"]
-        catpi_LJ["c6"] = 0.22 * catpi_LJ["att"]
+        catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
+        catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
         basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
         basic_LJ["rep"] = basic_LJ["c12"]
