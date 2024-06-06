@@ -111,7 +111,8 @@ def initialize_topology(topology, custom_dict, args):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
-    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c12"])}
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["bare_c12"])}
+    # atp_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c6"])}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -128,6 +129,7 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
 
     sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "c12"]].set_index("sb_type")["c12"].to_dict()
+    sbtype_c6_dict = ensemble_topology_dataframe[["sb_type", "c6"]].set_index("sb_type")["c6"].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[["sb_type", "name"]].set_index("sb_type")["name"].to_dict()
     sbtype_moltype_dict = (
         ensemble_topology_dataframe[["sb_type", "molecule_type"]].set_index("sb_type")["molecule_type"].to_dict()
@@ -137,6 +139,7 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_topology_dataframe,
         ensemble_molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -425,6 +428,7 @@ def init_meGO_ensemble(args):
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -473,6 +477,7 @@ def init_meGO_ensemble(args):
     ensemble["topology_dataframe"] = topology_dataframe
     ensemble["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
     ensemble["sbtype_c12_dict"] = sbtype_c12_dict
+    ensemble["sbtype_c6_dict"] = sbtype_c6_dict
     ensemble["sbtype_name_dict"] = sbtype_name_dict
     ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict
     ensemble["sbtype_number_dict"] = (
@@ -488,6 +493,7 @@ def init_meGO_ensemble(args):
         return ensemble
 
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
+    unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
 
     # now we process the train contact matrices
     train_contact_matrices = {}
@@ -512,7 +518,12 @@ def init_meGO_ensemble(args):
             _,
             _,
             _,
+            _,
         ) = initialize_topology(topology, custom_dict, args)
+        # check that the molecules defined have a reference
+        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -584,6 +595,9 @@ def init_meGO_ensemble(args):
             _,
             _,
         ) = initialize_topology(topology, custom_dict, args)
+        # check that the molecules defined have a reference
+        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -1005,12 +1019,16 @@ def generate_basic_LJ(meGO_ensemble, args):
         "number_ai",
         "number_aj",
         "cutoff",
+        "rep",
+        "att",
     ]
 
     basic_LJ = pd.DataFrame()
 
     topol_df = meGO_ensemble["topology_dataframe"]
+    name_to_bare_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.bare_c12)}
     name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    name_to_c6 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c6)}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -1036,17 +1054,115 @@ def generate_basic_LJ(meGO_ensemble, args):
         ]
 
         ai_name = topol_df["type"]
+        bare_c12_list = ai_name.map(name_to_bare_c12).to_numpy()
         c12_list = ai_name.map(name_to_c12).to_numpy()
+        c6_list = ai_name.map(name_to_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
+        bb_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH1", "CH1"),
+                ("CH1", "CH2"),
+                ("CH1", "CH3"),
+                ("CH1", "CH2r"),
+                ("CH1", "CH"),
+                ("CH1", "C"),
+                ("CH1", "N"),
+                ("C", "C"),
+            ],
+            symmetrize=True,
+        )
+        catpi_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("NL", "CH"),
+                ("NZ", "CH"),
+                ("NE", "CH"),
+                ("NT", "CH"),
+                ("NR", "CH"),
+                ("C", "CH"),
+            ],
+            symmetrize=True,
+        )
+        hbond_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("N", "O"),
+                ("N", "C"),
+                ("N", "OM"),
+                ("N", "OA"),
+                ("NL", "O"),
+                ("NL", "C"),
+                ("NL", "OM"),
+                ("NL", "OA"),
+                ("NZ", "O"),
+                ("NZ", "OM"),
+                ("NZ", "OA"),
+                ("NE", "O"),
+                ("NE", "C"),
+                ("NE", "OM"),
+                ("NE", "OA"),
+                ("NR", "O"),
+                ("NR", "C"),
+                ("NR", "OM"),
+                ("NR", "OA"),
+                ("NT", "O"),
+                ("NT", "C"),
+                ("NT", "OM"),
+                ("NT", "OA"),
+                ("OA", "C"),
+                ("OA", "O"),
+                ("OA", "OM"),
+                ("OA", "OA"),
+            ],
+            symmetrize=True,
+        )
+        hydrophobic_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH3", "CH3"),
+                ("CH2", "CH2"),
+                ("CH", "CH"),
+                ("CH2r", "CH2r"),
+                ("CH3", "CH2"),
+                ("CH3", "CH"),
+                ("CH3", "CH2r"),
+                ("CH2", "CH"),
+                ("CH2", "CH2r"),
+                ("CH", "CH2r"),
+            ],
+            symmetrize=True,
+        )
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
         basic_LJ["same_chain"] = True
+        basic_LJ.c12 = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
+        basic_LJ.rep = np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
+        basic_LJ.att = np.sqrt(c6_list * c6_list[:, np.newaxis]).flatten()
+        oxygen_LJ = basic_LJ[oxygen_mask].copy()
+        oxygen_LJ["c12"] *= 11.4
+        oxygen_LJ["c6"] = 0.0
+        hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
+        hydrophobic_LJ["c12"] = 0.20 * hydrophobic_LJ["rep"]
+        hydrophobic_LJ["c6"] = 0.20 * hydrophobic_LJ["att"]
+        bb_LJ = basic_LJ[bb_mask].copy()
+        bb_LJ["c12"] = 0.25 * bb_LJ["rep"]
+        bb_LJ["c6"] = 0.25 * bb_LJ["att"]
+        hbond_LJ = basic_LJ[hbond_mask].copy()
+        hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
+        hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
+        catpi_LJ = basic_LJ[catpi_mask].copy()
+        catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
+        catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
+        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
-        basic_LJ["c6"] = 0.0
-        basic_LJ["c12"] = 11.4 * np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
         basic_LJ["rep"] = basic_LJ["c12"]
-        basic_LJ = basic_LJ[oxygen_mask]
+        basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
         basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
             ["index_ai", "index_aj"]
         ].max(axis=1)
@@ -1091,8 +1207,10 @@ def generate_basic_LJ(meGO_ensemble, args):
     basic_LJ["rc_threshold"] = 1.0
     basic_LJ["md_threshold"] = 1.0
     basic_LJ["epsilon"] = -basic_LJ["c12"]
+    basic_LJ.loc[basic_LJ["c6"] > 0, "epsilon"] = basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])
     basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
     basic_LJ["sigma"] = basic_LJ["cutoff"] / (2.0 ** (1.0 / 6.0))
+    basic_LJ.loc[basic_LJ["c6"] > 0, "sigma"] = (basic_LJ["c12"] / basic_LJ["c6"]) ** (1 / 6)
     basic_LJ["distance"] = basic_LJ["cutoff"]
     basic_LJ["learned"] = 0
     basic_LJ["1-4"] = "1>4"
@@ -1321,6 +1439,16 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, symmetries, para
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
     return meGO_LJ
+
+
+def check_molecule_names(ref_list, tmp_list):
+    # Check if all unique entries in temp_topology_dataframe are in other_dataframe
+    missing_molecules = [molecule for molecule in tmp_list if molecule not in ref_list]
+
+    if missing_molecules:
+        raise ValueError(
+            f"The following molecule(s) from a train dataset {missing_molecules} are not found in the reference dataset  {ref_list}"
+        )
 
 
 def consistency_checks(meGO_LJ):
