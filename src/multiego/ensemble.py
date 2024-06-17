@@ -979,6 +979,10 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args):
     return train_dataset, check_dataset
 
 
+def get_residue_number(s):
+    return int(s.split('_')[-1])
+
+
 def generate_basic_LJ(meGO_ensemble, args):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
@@ -1064,10 +1068,6 @@ def generate_basic_LJ(meGO_ensemble, args):
             ai_name,
             [
                 ("CH1", "CH1"),
-                ("CH1", "CH2"),
-                ("CH1", "CH3"),
-                ("CH1", "CH2r"),
-                ("CH1", "CH"),
                 ("CH1", "C"),
                 ("CH1", "N"),
                 ("C", "C"),
@@ -1135,6 +1135,21 @@ def generate_basic_LJ(meGO_ensemble, args):
                 ("CH2", "CH"),
                 ("CH2", "CH2r"),
                 ("CH", "CH2r"),
+                # ("CH1", "CH2"),
+                # ("CH1", "CH3"),
+                # ("CH1", "CH2r"),
+                # ("CH1", "CH"),
+            ],
+            symmetrize=True,
+        )
+        hydrophobic_w_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH1", "CH2"),
+                ("CH1", "CH3"),
+                ("CH1", "CH2r"),
+                ("CH1", "CH"),
             ],
             symmetrize=True,
         )
@@ -1150,23 +1165,30 @@ def generate_basic_LJ(meGO_ensemble, args):
         hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
         hydrophobic_LJ["c12"] = 0.20 * hydrophobic_LJ["rep"]
         hydrophobic_LJ["c6"] = 0.20 * hydrophobic_LJ["att"]
+        hydrophobic_w_LJ = basic_LJ[hydrophobic_w_mask].copy()
+        hydrophobic_w_LJ["c12"] = 0.10 * hydrophobic_w_LJ["rep"]
+        hydrophobic_w_LJ["c6"] = 0.10 * hydrophobic_w_LJ["att"]
         bb_LJ = basic_LJ[bb_mask].copy()
-        bb_LJ["c12"] = 0.25 * bb_LJ["rep"]
-        bb_LJ["c6"] = 0.25 * bb_LJ["att"]
+        bb_LJ["c12"] = 0.275 * bb_LJ["rep"]
+        bb_LJ["c6"] = 0.275 * bb_LJ["att"]
         hbond_LJ = basic_LJ[hbond_mask].copy()
-        hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
-        hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
+        hbond_LJ["c12"] = 0.275 * hbond_LJ["rep"]
+        hbond_LJ["c6"] = 0.275 * hbond_LJ["att"]
         catpi_LJ = basic_LJ[catpi_mask].copy()
         catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
         catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
-        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
+        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, hydrophobic_w_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
         basic_LJ["rep"] = basic_LJ["c12"]
+        basic_LJ["residue_ai"] = basic_LJ["ai"].apply(get_residue_number)
+        basic_LJ["residue_aj"] = basic_LJ["aj"].apply(get_residue_number)
+        basic_LJ = basic_LJ.loc[(basic_LJ["same_chain"]) & ((basic_LJ["residue_ai"] - basic_LJ["residue_aj"]).abs()>2)]
         basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
         basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
             ["index_ai", "index_aj"]
         ].max(axis=1)
         basic_LJ = basic_LJ.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
+        basic_LJ.sort_values(by=["index_ai", "index_aj"], inplace=True)
         basic_LJ = basic_LJ.drop(["index_ai", "index_aj"], axis=1)
 
     for name in meGO_ensemble["reference_matrices"].keys():
@@ -1218,6 +1240,7 @@ def generate_basic_LJ(meGO_ensemble, args):
     basic_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
     # Cleaning the duplicates
     basic_LJ = basic_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
+
 
     return basic_LJ
 
