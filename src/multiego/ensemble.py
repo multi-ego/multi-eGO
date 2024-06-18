@@ -1135,10 +1135,6 @@ def generate_basic_LJ(meGO_ensemble, args):
                 ("CH2", "CH"),
                 ("CH2", "CH2r"),
                 ("CH", "CH2r"),
-                # ("CH1", "CH2"),
-                # ("CH1", "CH3"),
-                # ("CH1", "CH2r"),
-                # ("CH1", "CH"),
             ],
             symmetrize=True,
         )
@@ -1163,11 +1159,11 @@ def generate_basic_LJ(meGO_ensemble, args):
         oxygen_LJ["c12"] *= 11.4
         oxygen_LJ["c6"] = 0.0
         hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
-        hydrophobic_LJ["c12"] = 0.20 * hydrophobic_LJ["rep"]
-        hydrophobic_LJ["c6"] = 0.20 * hydrophobic_LJ["att"]
+        hydrophobic_LJ["c12"] = 0.25 * hydrophobic_LJ["rep"]
+        hydrophobic_LJ["c6"] = 0.25 * hydrophobic_LJ["att"]
         hydrophobic_w_LJ = basic_LJ[hydrophobic_w_mask].copy()
-        hydrophobic_w_LJ["c12"] = 0.10 * hydrophobic_w_LJ["rep"]
-        hydrophobic_w_LJ["c6"] = 0.10 * hydrophobic_w_LJ["att"]
+        hydrophobic_w_LJ["c12"] = 0.12 * hydrophobic_w_LJ["rep"]
+        hydrophobic_w_LJ["c6"] = 0.12 * hydrophobic_w_LJ["att"]
         bb_LJ = basic_LJ[bb_mask].copy()
         bb_LJ["c12"] = 0.275 * bb_LJ["rep"]
         bb_LJ["c6"] = 0.275 * bb_LJ["att"]
