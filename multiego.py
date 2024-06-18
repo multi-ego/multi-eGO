@@ -7,7 +7,7 @@ from src.multiego import ensemble
 from src.multiego import io
 from tools.face_generator import generate_face
 from src.multiego.resources.type_definitions import parse_json
-
+from src.multiego.arguments import args_dict
 
 def meGO_parsing():
     """
@@ -37,145 +37,24 @@ for a contact pair.
   2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
      interaction energy is set to 0.3 kJ/mol
      > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
-""",
+"""
     )
-    # Required arguments
-    required_args = parser.add_argument_group("Required arguments")
-    required_args.add_argument(
-        "--system",
-        type=str,
-        required=True,
-        help="Name of the system corresponding to system input folder.",
-    )
-    required_args.add_argument(
-        "--egos",
-        choices=["rc", "production"],
-        required=True,
-        help="""\
-            rc: creates a force-field for random coil simulations.
-            production: creates a force-field combining random coil simulations and training simulations.
-        """,
-    )
-
-    # Optional arguments
-    optional_args = parser.add_argument_group("Optional arguments")
-    optional_args.add_argument(
-        "--epsilon",
-        type=float,
-        help="Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--reference",
-        type=str,
-        default="reference",
-        help="""\
-            The folder including all the reference information needed to setup multi-eGO,
-            corresponding to the subfolder to process.
-        """,
-    )
-    optional_args.add_argument(
-        "--train",
-        nargs="+",
-        type=str,
-        default=[],
-        help="""\
-            A list of the training simulations to be included in multi-eGO,
-            corresponding to the subfolders to process and where the contacts are learned.
-        """,
-    )
-    optional_args.add_argument(
-        "--check",
-        nargs="+",
-        type=str,
-        default=[],
-        help="""\
-            A list of the simulations corresponding to the subfolders used to check
-            whether the contacts learned are compatible with those provided in here.
-        """,
-    )
-    optional_args.add_argument("--out", type=str, default="", help="Suffix for the output directory name.")
-    optional_args.add_argument(
-        "--inter_epsilon",
-        type=float,
-        help="Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--inter_domain_epsilon",
-        type=float,
-        help="Maximum interaction energy per interdomain contacts. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--p_to_learn",
-        type=float,
-        default=0.9995,
-        help="Fraction of training simulations to learn.",
-    )
-    optional_args.add_argument(
-        "--epsilon_min",
-        type=float,
-        default=0.07,
-        help="The minimum meaningful epsilon value.",
-    )
-    optional_args.add_argument(
-        "--force_split",
-        default=False,
-        action="store_true",
-        help="Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
-    )
-    optional_args.add_argument(
-        "--single_molecule",
-        default=False,
-        action="store_true",
-        help="Enable optimisations valid if you are simulating a single molecule.",
-    )
-    optional_args.add_argument(
-        "--custom_dict",
-        type=str,
-        help="Custom dictionary for special molecules",
-    )
-    optional_args.add_argument(
-        "--custom_c12",
-        type=str,
-        help="Custom dictionary of c12 for special molecules",
-    )
-    optional_args.add_argument(
-        "--no_header",
-        action="store_true",
-        help="Removes headers from the output files when set",
-    )
-    parser.add_argument("--multi_epsi_intra", type=str, help="Path to the input file specifying the intra epsilons")
-    parser.add_argument("--multi_epsi_inter_domain", type=str, help="Path to the input file specifying the intra epsilons")
-    parser.add_argument("--multi_epsi_inter", type=str, help="Path to the input file specifying the inter epsilons")
-    optional_args.add_argument(
-        "--symmetry",
-        default="",
-        type=str,
-        help="Symmetry file for the system",
-    )
-    optional_args.add_argument(
-        "--f",
-        default=1,
-        type=float,
-        help="partition function normalization",
-    )
-    optional_args.add_argument(
-        "--inter_f",
-        default=1,
-        type=float,
-        help="partition function normalization inter-molecular",
-    )
-    optional_args.add_argument(
-        "--inter_domain_f",
-        default=1,
-        type=float,
-        help="partition function normalization inter_domain",
-    )
-    optional_args.add_argument(
-        "--relative_c12d", default=0.001, type=float, help="Relative deviation from default to set new replulsive c12"
-    )
+    
+    for arg, arg_dict in args_dict.items():
+        # necessary for the boolean flags
+        if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
+            arg_dict.pop("type")
+        parser.add_argument(arg, **arg_dict)
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
+
+    if args.config:
+        config_yaml = io.read_config(args.config, args_dict)
+        # check if yaml file is empty
+        if config_yaml == None:
+            print("WARNING: Configuration file was parsed, but the dictionary is empty")
+        args = io.combine_configurations(config_yaml, args, args_dict)
 
     # Set inter_epsilon default to epsilon if epsilon is provided
     if args.epsilon is not None and args.inter_epsilon is None:

@@ -3,6 +3,69 @@ import pandas as pd
 import time
 import glob
 import os
+import yaml
+import git
+
+
+def read_config(file, args_dict):
+    """
+    Reads a YAML file and returns its content as a dictionary.
+
+    Parameters
+    ----------
+    file : str
+        The path to the YAML file
+
+    Returns
+    -------
+    args_dict : dict
+        The content of the YAML file as a dictionary
+    """
+    with open(file, "r") as f:
+        yml = yaml.safe_load(f)
+    # check if the keys in the yaml file are valid
+    for element in yml:
+        print(f"Checking {element} from YAML configuration.")
+        key = list(element.keys())[0]
+        if f"--{key}" not in args_dict:
+            print(f"ERROR: {key} in {file} is not a valid argument.")
+            exit()
+        if type(element[key]) != args_dict[f"--{key}"]['type']:
+            print(f"ERROR: {key} in {file} has an invalid type ({type(element[key])} instead of {args_dict[f'--{key}']['type']}).")
+            exit()
+    
+    return yml
+
+
+def combine_configurations(yml, args, args_dict):
+    """
+    Combines the configuration from a YAML file with the command-line arguments. By overwriting
+    files from the YAML configuration with the command-line arguments, the function ensures that
+    the command-line arguments take precedence over the configuration file. Overwriting is done
+    directly on the args dictionary.
+
+    Parameters
+    ----------
+    yml : dict
+        The configuration from the YAML file
+    args : dict
+        The command-line arguments
+
+    Returns
+    -------
+    dict
+        The combined configuration
+    """
+    for element in yml:
+        key, value = list(element.items())[0]
+        print(f"Checking {key} from YAML configuration.")
+        parse_key = f'--{key}'
+        default_value = args_dict[parse_key]['default'] if 'default' in args_dict[parse_key] else None
+        if hasattr(args, key) and getattr(args, key) is default_value:
+            print(f"Overwriting {key} from YAML configuration with command-line argument.")
+            setattr(args, key, value)
+
+    return args
 
 
 def strip_gz_suffix(filename):
@@ -237,7 +300,8 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     parameters : dict
         A dictionaty of the command-line parsed parameters
     """
-    output_dir = create_output_directories(parameters)
+    output_dir = get_outdir_name(f'{parameters.root_dir}/outputs/{parameters.system}', parameters.explicit_name)
+    create_output_directories(parameters, output_dir)
     write_topology(
         meGO_ensemble["topology_dataframe"],
         meGO_ensemble["molecule_type_dict"],
@@ -247,10 +311,62 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
         output_dir,
     )
     write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
+    write_output_readme(parameters, output_dir)
+    print(f"Output files written in {output_dir}")
 
-    print(f"{output_dir}")
+def write_output_readme(parameters, output_dir):
+    """
+    Writes a README file with the parameters used to generate the multi-eGO topology.
 
+    Parameters
+    ----------
+    parameters : dict
+        Contains the command-line parsed parameters
+    """
+    repo = git.Repo(search_parent_directories=True)
+    commit_hash = repo.head.object.hexsha
+    with open(f'{output_dir}/info.txt', 'w') as f:
+        f.write(f"multi-eGO topology generated on {time.strftime('%d-%m-%Y %H:%M', time.localtime())} using commit {commit_hash}\n")
+        f.write(f"Parameters used to generate the topology:\n")
+        for key, value in vars(parameters).items():
+            f.write(f"\t- {key}: {value}\n")
 
+        # write contents of the symmetry file
+        if parameters.symmetry:
+            f.write("\nSymmetry file contents:\n")
+            symmetry = read_symmetry_file(parameters.symmetry)
+            for line in symmetry:
+                f.write(f"\t- {' '.join(line)}\n")
+
+        # write contents 
+
+def get_outdir_name(output_dir, explicit_name):
+    """
+    Returns the output directory name.
+
+    Parameters
+    ----------
+    output_dir : str
+        The path to the output directory
+    explicit_name : str
+        The name of the output directory
+
+    Returns
+    -------
+    output_dir : str
+        The path to the output directory
+    """
+    index = 1
+    output_dir = f'{output_dir}/{explicit_name + "_" if explicit_name != "" else ""}'
+    while os.path.exists(f"{output_dir}{index}"):
+        index += 1
+        if index > 100:
+            print(f"ERROR: too many directories in {output_dir}")
+            exit()
+    output_dir = f"{output_dir}{index}"
+
+    return output_dir
+    
 def dataframe_to_write(df):
     """
     Returns a stringified and formated dataframe and a message if the dataframe is empty.
@@ -432,7 +548,7 @@ def get_name(parameters):
     return name
 
 
-def create_output_directories(parameters):
+def create_output_directories(parameters, out_dir):
     """
     Creates the output directory
 
@@ -446,36 +562,12 @@ def create_output_directories(parameters):
     output_folder : str
         The path to the output directory
     """
-    if not os.path.exists(f"{parameters.root_dir}/outputs"):
+    if not os.path.exists(f"{parameters.root_dir}/outputs") and not os.path.isdir(f"{parameters.root_dir}/outputs"):
         os.mkdir(f"{parameters.root_dir}/outputs")
-
-    if parameters.egos == "rc":
-        name = f"{parameters.system}_{parameters.egos}"
-        if parameters.out:
-            name = f"{parameters.system}_{parameters.egos}_{parameters.out}"
-    else:
-        if parameters.multi_epsi_intra is not None:
-            name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}"
-            if parameters.out:
-                name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}_{parameters.out}"
-            output_folder = f"{parameters.root_dir}/outputs/{name}"
-        else:
-            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
-            if parameters.out:
-                name = (
-                    f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
-                )
-    output_folder = f"{parameters.root_dir}/outputs/{name}"
-
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
-    if os.path.isfile(f"{parameters.root_dir}/{output_folder}/ffnonbonded.itp"):
-        os.remove(f"{parameters.root_dir}/{output_folder}/ffnonbonded.itp")
-    if os.path.isfile(f"{parameters.root_dir}/{output_folder}/topol_GRETA.top"):
-        os.remove(f"{parameters.root_dir}/{output_folder}/topol_GRETA.top")
-
-    return output_folder
-
+    if not os.path.exists(f"{parameters.root_dir}/outputs/{parameters.system}") and not os.path.isdir(f"{parameters.root_dir}/outputs/{parameters.system}"):
+        os.mkdir(f"{parameters.root_dir}/outputs/{parameters.system}")
+    if not os.path.isdir(out_dir) and not os.path.exists(out_dir):
+        os.mkdir(out_dir)
 
 def check_files_existence(args):
     """
