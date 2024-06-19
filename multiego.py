@@ -9,6 +9,7 @@ from tools.face_generator import generate_face
 from src.multiego.resources.type_definitions import parse_json
 from src.multiego.arguments import args_dict
 
+
 def meGO_parsing():
     """
     Parses command-line arguments for the multi-eGO model generation.
@@ -37,9 +38,9 @@ for a contact pair.
   2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
      interaction energy is set to 0.3 kJ/mol
      > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
-"""
+""",
     )
-    
+
     for arg, arg_dict in args_dict.items():
         # necessary for the boolean flags
         if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
@@ -240,38 +241,8 @@ Please set also the inter molecular interaction using one of the following optio
     return args
 
 
-def init_meGO_ensembles(args):
-    """
-    Initializes a multi-eGO ensemble based on the provided arguments.
-
-    Args:
-    args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-    meGO_ensemble: Initialized multi-eGO ensemble.
-
-    This function initializes a multi-eGO ensemble by utilizing the provided arguments.
-    It uses these arguments to create and configure the initial ensemble,
-    generating bonded interactions within the ensemble.
-    The resulting meGO_ensemble is returned for further processing.
-    """
-    meGO_ensemble = ensemble.init_meGO_ensemble(args)
-    meGO_ensemble = ensemble.generate_bonded_interactions(meGO_ensemble)
-
-    return meGO_ensemble
-
-
 def get_meGO_LJ(meGO_ensemble, args):
     """
-    Generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble and arguments.
-
-    Args:
-    meGO_ensemble: Initialized multi-eGO ensemble.
-    args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-    tuple: A tuple containing two dataframes - meGO_LJ and meGO_LJ_14.
-
     This function generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble
     and command-line arguments.
 
@@ -282,6 +253,20 @@ def get_meGO_LJ(meGO_ensemble, args):
     The resulting LJ parameters for 1-4 interactions are manipulated to get epsilon values,
     and a topology for exclusion pairs is created within the multi-eGO ensemble.
     The function returns two dataframes - meGO_LJ (LJ parameters) and meGO_LJ_14 (LJ parameters for 1-4 interactions).
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        A dictionary containing the initialized multi-eGO ensemble.
+    args : argparse.Namespace
+        An object containing parsed arguments.
+
+    Returns
+    -------
+    meGO_LJ : pandas.DataFrame
+        A dataframe containing LJ parameters for the multi-eGO ensemble.
+    meGO_LJ_14 : pandas.DataFrame
+        A dataframe containing LJ parameters for 1-4 interactions in the multi-eGO ensemble.
     """
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
     if args.egos == "rc":
@@ -299,25 +284,8 @@ def get_meGO_LJ(meGO_ensemble, args):
 
 def main():
     """
-    Main function that processes command-line arguments and generates a multi-eGO model.
-
     Parses command-line arguments and generates a multi-eGO model by invoking various functions
     related to ensemble generation, LJ parameter computation, and writing the output.
-
-    Command-line Arguments:
-    --system: Name of the system corresponding to the system input folder.
-    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
-            'production' for creating a force-field combining random coil simulations and training simulations.
-    --epsilon: Maximum interaction energy per contact.
-    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
-    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
-    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
-    --out: Suffix for the output directory name.
-    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
-    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
-    --p_to_learn: Amount of the simulation to learn.
-    --epsilon_min: The minimum meaningful epsilon value.
-    --no_header: Removes headers from output when set.
     """
 
     args = meGO_parsing()
@@ -329,7 +297,8 @@ def main():
     io.check_files_existence(args)
 
     print("- Initializing Multi-eGO model")
-    meGO_ensembles = init_meGO_ensembles(args)
+    meGO_ensembles = ensemble.init_meGO_ensemble(args)
+    meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
 
     print("- Generating Multi-eGO model")
     meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)

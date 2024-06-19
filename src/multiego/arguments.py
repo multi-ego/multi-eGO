@@ -7,7 +7,7 @@ args_dict = {
         "type": str,
         "choices": ["rc", "production"],
         "help": "rc: creates a force-field for random coil simulations. "
-                "production: creates a force-field combining random coil simulations and training simulations.",
+        "production: creates a force-field combining random coil simulations and training simulations.",
     },
     "--epsilon": {
         "type": float,
@@ -17,26 +17,19 @@ args_dict = {
         "type": str,
         "default": "reference",
         "help": "The folder including all the reference information needed to setup multi-eGO, "
-                "corresponding to the subfolder to process.",
+        "corresponding to the subfolder to process.",
     },
     "--train": {
-        "nargs": "+",
-        "type": list,
+        "type": lambda x: x.split(","),
         "default": [],
         "help": "A list of the training simulations to be included in multi-eGO, "
-                "corresponding to the subfolders to process and where the contacts are learned.",
+        "corresponding to the subfolders to process and where the contacts are learned.",
     },
     "--check": {
-        "nargs": "+",
-        "type": list,
+        "type": lambda x: [*x.split(",")],
         "default": [],
         "help": "A list of the simulations corresponding to the subfolders used to check "
-                "whether the contacts learned are compatible with those provided in here.",
-    },
-    "--out": {
-        "type": str,
-        "default": "",
-        "help": "Suffix for the output directory name.",
+        "whether the contacts learned are compatible with those provided in here.",
     },
     "--inter_epsilon": {
         "type": float,

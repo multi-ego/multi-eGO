@@ -1488,90 +1488,6 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetries):
     return tmp_df
 
 
-def print_stats(meGO_LJ):
-    # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
-    intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"])])
-    interd_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"])])
-    interm_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"])])
-    intrad_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
-    interd_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
-    interm_a_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
-    intrad_r_contacts = intrad_contacts - intrad_a_contacts
-    interd_r_contacts = interd_contacts - interd_a_contacts
-    interm_r_contacts = interm_contacts - interm_a_contacts
-    intrad_a_ave_contacts = 0.000
-    intrad_a_min_contacts = 0.000
-    intrad_a_max_contacts = 0.000
-    intrad_a_s_min_contacts = 0.000
-    intrad_a_s_max_contacts = 0.000
-    interd_a_ave_contacts = 0.000
-    interd_a_min_contacts = 0.000
-    interd_a_max_contacts = 0.000
-    interd_a_s_min_contacts = 0.000
-    interd_a_s_max_contacts = 0.000
-    interm_a_ave_contacts = 0.000
-    interm_a_min_contacts = 0.000
-    interm_a_max_contacts = 0.000
-    interm_a_s_min_contacts = 0.000
-    interm_a_s_max_contacts = 0.000
-
-    if intrad_a_contacts > 0:
-        intrad_a_ave_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        )
-        intrad_a_min_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        intrad_a_max_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-        intrad_a_s_min_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        intrad_a_s_max_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-
-    if interd_a_contacts > 0:
-        interd_a_ave_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        )
-        interd_a_min_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        interd_a_max_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-        interd_a_s_min_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        interd_a_s_max_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-
-    if interm_a_contacts > 0:
-        interm_a_ave_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        interm_a_min_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        interm_a_max_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        interm_a_s_min_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        interm_a_s_max_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-
-    print(
-        f"""
-    - LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
-    - Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
-    - Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
-    - The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
-    - Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interd_a_min_contacts:5.3f}:{interd_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
-    - Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interd_a_s_min_contacts:5.3f}:{interd_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
-
-    RELEVANT MDP PARAMETERS:
-    - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm
-    - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm
-    """
-    )
-
-
 def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     """
     Generates LJ (Lennard-Jones) interactions and associated atomic contacts within a molecular ensemble.
@@ -1727,7 +1643,7 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
-    print_stats(meGO_LJ)
+    io.print_stats(meGO_LJ)
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     meGO_LJ_14 = meGO_LJ.copy()
@@ -1830,30 +1746,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"])
     meGO_LJ["number_ai"] = meGO_LJ["number_ai"].astype(int)
     meGO_LJ["number_aj"] = meGO_LJ["number_aj"].astype(int)
-
-    # final_fields
-    final_fields = [
-        "ai",
-        "aj",
-        "type",
-        "c6",
-        "c12",
-        "sigma",
-        "epsilon",
-        "probability",
-        "rc_probability",
-        "md_threshold",
-        "rc_threshold",
-        "rep",
-        "cutoff",
-        "molecule_name_ai",
-        "molecule_name_aj",
-        "same_chain",
-        "source",
-        "number_ai",
-        "number_aj",
-    ]
-    meGO_LJ = meGO_LJ[final_fields]
 
     # Here we want to sort so that ai is smaller than aj
     meGO_LJ = meGO_LJ[(meGO_LJ["ai"] <= meGO_LJ["aj"])]
