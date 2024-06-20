@@ -50,6 +50,17 @@ for a contact pair.
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
 
+    # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
+    if (
+        not args.config
+        and not (args.system and args.egos == "rc")
+        and not (args.system and args.egos == "production" and args.train and args.epsilon)
+    ):
+        print(
+            "Please provide a configuration file or the system and egos equal to rc or production with the required arguments"
+        )
+        sys.exit()
+
     if args.config:
         config_yaml = io.read_config(args.config, args_dict)
         # check if yaml file is empty
@@ -184,27 +195,17 @@ Please set also the inter molecular interaction using one of the following optio
     # CHECK all epsilons are greater than epsilon_min
     if args.epsilon is not None:
         if args.egos != "rc" and args.epsilon <= args.epsilon_min:
-            print("--epsilon (" + str(args.epsilon) + ") must be greater than --epsilon_min (" + str(args.epsilon_min) + ")")
+            print(f"--epsilon ({args.epsilon}) must be greater than --epsilon_min ({args.epsilon_min})")
             sys.exit()
 
         if args.egos != "rc" and args.inter_domain_epsilon <= args.epsilon_min:
             print(
-                "--inter_domain_epsilon ("
-                + str(args.inter_domain_epsilon)
-                + ") must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
+                f"--inter_domain_epsilon ({args.inter_domain_epsilon}) must be greater than --epsilon_min ({args.epsilon_min})"
             )
             sys.exit()
 
         if args.egos != "rc" and args.inter_epsilon <= args.epsilon_min:
-            print(
-                "--inter_epsilon ("
-                + str(args.inter_epsilon)
-                + ") must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
-            )
+            print(f"--inter_epsilon ({args.inter_epsilon}) must be greater than --epsilon_min ({args.epsilon_min})")
             sys.exit()
 
     elif args.multi_mode is not None:
@@ -215,11 +216,7 @@ Please set also the inter molecular interaction using one of the following optio
             sys.exit()
 
         if args.egos != "rc" and np.min(args.multi_epsilon_inter_domain) <= args.epsilon_min:
-            print(
-                f"all epsilons in {args.multi_epsi_inter_domain} must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
-            )
+            print(f"all epsilons in {args.multi_epsi_inter_domain} must be greater than --epsilon_min ({args.epsilon_min})")
             sys.exit()
 
         if args.egos != "rc" and np.min(args.multi_epsilon_inter) <= args.epsilon_min:
