@@ -488,7 +488,7 @@ def init_meGO_ensemble(args):
         return ensemble
 
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
-    unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
+    # unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
 
     # now we process the train contact matrices
     train_contact_matrices = {}
