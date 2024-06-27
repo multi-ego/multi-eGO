@@ -516,7 +516,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        #check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
 
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
@@ -591,7 +591,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        #check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
@@ -1694,6 +1694,21 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     )
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
+
+    # Merging of intramolecular/intermolecular duplicates
+    # This can be done only if prc<prcthreshold
+    duplicated = meGO_LJ[
+        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"])
+    ].copy()
+    duplicated.sort_values(
+        by=["ai", "aj", "type", "sigma", "epsilon"], ascending=[True, True, False, True, False], inplace=True
+    )
+    cleaned_duplicated = duplicated.drop_duplicates(subset=["ai", "aj"], keep="first")
+    # Drop the original duplicated rows from the original DataFrame
+    meGO_LJ.drop(duplicated.index, inplace=True)
+    # Append the cleaned duplicated rows back to the original DataFrame
+    meGO_LJ = pd.concat([meGO_LJ, cleaned_duplicated]).sort_index()
+    meGO_LJ.reset_index(drop=True, inplace=True)
     meGO_LJ.drop(columns=["type"], inplace=True)
 
     # process check_dataset
