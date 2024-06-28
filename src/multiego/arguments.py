@@ -75,16 +75,19 @@ args_dict = {
         "action": "store_true",
         "help": "Removes headers from the output files when set",
     },
-    "--multi_epsi_intra": {
-        "type": str,
+    "--multi_epsilon_intra": {
+        "default": {},
+        "type": dict,
         "help": "Path to the input file specifying the intra epsilons",
     },
-    "--multi_epsi_inter_domain": {
-        "type": str,
+    "--multi_epsilon_inter_domain": {
+        "default": {},
+        "type": dict,
         "help": "Path to the input file specifying the intra epsilons",
     },
-    "--multi_epsi_inter": {
-        "type": str,
+    "--multi_epsilon_inter": {
+        "default": {},
+        "type": dict,
         "help": "Path to the input file specifying the inter epsilons",
     },
     "--symmetry": {

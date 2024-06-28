@@ -83,7 +83,7 @@ def combine_configurations(yml, args, args_dict):
         parse_key = f"--{key}"
         default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
         if hasattr(args, key) and getattr(args, key) is default_value:
-            print(f"Overwriting {key} from YAML configuration with command-line argument.")
+            print(f"Setting {key} from YAML configuration.")
             setattr(args, key, value)
 
     return args
@@ -321,7 +321,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     parameters : dict
         A dictionaty of the command-line parsed parameters
     """
-    output_dir = get_outdir_name(f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name)
+    output_dir = get_outdir_name(f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos)
     create_output_directories(parameters, output_dir)
     meGO_LJ_out = meGO_LJ[final_fields].copy()
     write_topology(
@@ -348,7 +348,7 @@ def write_output_readme(meGO_LJ, parameters, output_dir):
     """
     repo = git.Repo(search_parent_directories=True)
     commit_hash = repo.head.object.hexsha
-    with open(f"{output_dir}/info.txt", "w") as f:
+    with open(f"{output_dir}/meGO.log", "w") as f:
         f.write(
             f"multi-eGO topology generated on {time.strftime('%d-%m-%Y %H:%M', time.localtime())} using commit {commit_hash}\n"
         )
@@ -497,7 +497,7 @@ def print_stats(meGO_LJ):
     )
 
 
-def get_outdir_name(output_dir, explicit_name):
+def get_outdir_name(output_dir, explicit_name, egos):
     """
     Returns the output directory name.
 
@@ -513,16 +513,17 @@ def get_outdir_name(output_dir, explicit_name):
     output_dir : str
         The path to the output directory
     """
-    if explicit_name == "":
-        index = 1
-        while os.path.exists(f"{output_dir}_{index}"):
-            index += 1
-            if index > 100:
-                print(f"ERROR: too many directories in {output_dir}")
-                exit()
-        output_dir = f"{output_dir}_{index}"
-    else:
-        output_dir = f"{output_dir}/{explicit_name}"
+    out = explicit_name
+    if out == "": out = egos
+
+    index = 1
+    while os.path.exists(f"{output_dir}/{out}_{index}"):
+        index += 1
+        if index > 100:
+            print(f"ERROR: too many directories in {output_dir}")
+            exit()
+    output_dir = f"{output_dir}/{out}_{index}"
+
     return output_dir
 
 

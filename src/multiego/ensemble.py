@@ -256,55 +256,71 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "zf"] = args.inter_domain_f
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
+
         if args.multi_mode:
-            # for intra-domain
-            if args.multi_epsilon is not None:
-                temp_epsi_intra = args.multi_epsilon[contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1]
-                contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
-                    temp_epsi_intra
+            # make unique list from molecule_name_ai and molecule_name_aj
+            molecules = np.unique(
+                np.concatenate(
+                    [
+                        contact_matrix["molecule_name_ai"].str.split("_").str[1].unique(),
+                        contact_matrix["molecule_name_aj"].str.split("_").str[1].unique(),
+                    ]
                 )
-                if name[0] == "intramat":
-                    print(f"		-Intra-domain epsilon {temp_epsi_intra}")
-            else:
-                print("intra multi modality violated: this should never happend")
-            # for inter-domain
-            if args.multi_epsilon_inter_domain is not None:
-                temp_epsi_inter_dom = args.multi_epsilon_inter_domain[
-                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1
-                ]
-                contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-                    temp_epsi_inter_dom
-                )
-                if name[0] == "intramat":
-                    print(f"		-Inter-domain epsilon {temp_epsi_inter_dom}")
-            else:
-                print("inter domain multi modality violated: this should never happend")
-            # for inter-molecular
-            if args.multi_epsilon_inter is not None:
-                temp_epsi_inter = args.multi_epsilon_inter[
-                    contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1,
-                    contact_matrix["molecule_idx_aj_temp"].to_numpy(dtype=int)[0] - 1,
-                ]
-                contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = temp_epsi_inter
-                if name[0] == "intermat":
-                    print(f"		-Inter-molecular epsilon {temp_epsi_inter}")
-            else:
-                print("inter multi modality violated: this should never happend")
-        else:
-            # for intra-domain
-            contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
-            if name[0] == "intramat":
-                print(f"		-Intra-domain epsilon {args.epsilon}")
-            # for inter-domain
-            contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-                args.inter_domain_epsilon
             )
-            if name[0] == "intramat":
-                print(f"		-Inter-domain epsilon {args.inter_domain_epsilon}")
-            # for inter-molecular
-            contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
-            if name[0] == "intermat":
-                print(f"		-Inter-molecular epsilon {args.inter_epsilon}")
+            tmp_intra_epsilon = args.multi_epsilon_intra[molecules][0]
+            contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
+                tmp_intra_epsilon
+            )
+            
+        # if args.multi_mode:
+        #     # for intra-domain
+        #     if args.multi_epsilon is not None:
+        #         temp_epsi_intra = args.multi_epsilon[contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1]
+        #         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
+        #             temp_epsi_intra
+        #         )
+        #         if name[0] == "intramat":
+        #             print(f"		-Intra-domain epsilon {temp_epsi_intra}")
+        #     else:
+        #         print("intra multi modality violated: this should never happend")
+        #     # for inter-domain
+        #     if args.multi_epsilon_inter_domain is not None:
+        #         temp_epsi_inter_dom = args.multi_epsilon_inter_domain[
+        #             contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1
+        #         ]
+        #         contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+        #             temp_epsi_inter_dom
+        #         )
+        #         if name[0] == "intramat":
+        #             print(f"		-Inter-domain epsilon {temp_epsi_inter_dom}")
+        #     else:
+        #         print("inter domain multi modality violated: this should never happend")
+        #     # for inter-molecular
+        #     if args.multi_epsilon_inter is not None:
+        #         temp_epsi_inter = args.multi_epsilon_inter[
+        #             contact_matrix["molecule_idx_ai_temp"].to_numpy(dtype=int)[0] - 1,
+        #             contact_matrix["molecule_idx_aj_temp"].to_numpy(dtype=int)[0] - 1,
+        #         ]
+        #         contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = temp_epsi_inter
+        #         if name[0] == "intermat":
+        #             print(f"		-Inter-molecular epsilon {temp_epsi_inter}")
+        #     else:
+        #         print("inter multi modality violated: this should never happend")
+        # else:
+        #     # for intra-domain
+        #     contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
+        #     if name[0] == "intramat":
+        #         print(f"		-Intra-domain epsilon {args.epsilon}")
+        #     # for inter-domain
+        #     contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+        #         args.inter_domain_epsilon
+        #     )
+        #     if name[0] == "intramat":
+        #         print(f"		-Inter-domain epsilon {args.inter_domain_epsilon}")
+        #     # for inter-molecular
+        #     contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
+        #     if name[0] == "intermat":
+        #         print(f"		-Inter-molecular epsilon {args.inter_epsilon}")
 
         # add the columns for rc, md threshold
         contact_matrix = contact_matrix.assign(md_threshold=md_threshold)
@@ -437,15 +453,6 @@ def init_meGO_ensemble(args):
         if len(mol_check) != len(args.names):
             print("Error the number of molecules in the input file is different from that in the topology")
             exit()
-        for i, mol_appo in enumerate(mol_check):
-            if mol_appo != args.names[i]:
-                print(
-                    f"""ERROR: the name of the molecule from topology is different from that of the input file.
-                    The names must be chosen in the same way to avoid further errors in the association to the specific epsilon.
-                    File: {args.names[i]} ---- mego_topology: {mol_appo}
-                    """
-                )
-                exit()
 
     reference_contact_matrices = {}
     io.check_matrix_format(args)
