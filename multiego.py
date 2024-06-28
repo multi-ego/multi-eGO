@@ -42,146 +42,45 @@ for a contact pair.
 """,
     )
 
-    # TODO all parsing to do here
     for arg, arg_dict in args_dict.items():
         # necessary for the boolean flags
         if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
-            arg_dict.pop("type")
+            arg_dict.pop("type") # necessary for boolean flags
         parser.add_argument(arg, **arg_dict)
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
     multi_flag = False
 
-    # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
-    if (
-        not args.config
-        and not (args.system and args.egos == "rc")
-        and not (args.system and args.egos == "production" and args.train and args.epsilon)
-    ):
-        print(
-            "Please provide a configuration file or the system and egos equal to rc or production with the required arguments"
-        )
-        sys.exit()
-
     if args.config:
         config_yaml = io.read_config(args.config, args_dict)
         # check if yaml file is empty
-        if config_yaml == None:
+        if not config_yaml:
             print("WARNING: Configuration file was parsed, but the dictionary is empty")
-        args = io.combine_configurations(config_yaml, args, args_dict)
+        else:
+            args = io.combine_configurations(config_yaml, args, args_dict)
 
-    # checking the options provided in the commandline
-    if args.egos != "rc" and not args.train:
-        print("--egos=production requires the list of folders containing the training simulations using the --train flag")
+    # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
+    if not args.system:
+        print("ERROR: No system name found! Please provide a system name.")
         sys.exit()
-
-    if (args.epsilon is None and args.multi_epsilon_intra is None) and args.egos != "rc":
-        print(
-            "--epsilon or --multi_epsilon_intra is required when using --egos=production. The typical range is between 0.2 and 0.4 kJ/mol"
-        )
+    if not args.egos:
+        print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
-
+    if args.egos == "production" and not args.train:
+        print("ERROR: No training simulations found! Please provide a list of training simulations.")
+        sys.exit()
+    if args.egos == "production" and not (args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon):
+        print("ERROR: No epsilon value found! Please provide an epsilon value.")
+        sys.exit()
     if args.p_to_learn < 0.9:
         print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-
-    if args.egos != "rc" and args.epsilon_min <= 0.0:
+    if args.epsilon_min <= 0.0:
         print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
         sys.exit()
 
-    # MULTI EPSILON CASES
-    # TODO add the option to write in the multi epsi inter file Nones in order to remove interaction between systems
-    # CHECK if either the single option or the multi option are provided. If both break
-    if args.epsilon and args.multi_epsilon_intra:
-        print("""Choose either a single intra epsilon for the system or the multi-epsilon inter. Cannot choose both""")
-        sys.exit()
-    if args.inter_domain_epsilon and args.multi_epsilon_inter_domain:
-        print(
-            "Choose either a single inter domain epsilon for the system or the multi-epsilon inter domain. Cannot choose both"
-        )
-        sys.exit()
-    if args.inter_epsilon and args.multi_epsilon_inter:
-        print("Choose either a single inter epsilon for the system or the multi-epsilon inter. Cannot choose both")
-        sys.exit()
-
-    # CHECK if multi_epsilon_inter_domain or multi_epsilon_intra are parsed but not the multi_epsilon_intra break
-    if args.multi_epsilon_intra is None and (args.multi_epsilon_inter_domain is not None or args.multi_epsilon_inter is not None):
-        print(
-            """--multi_epsilon_inter_domain or --multi_epsilon_inter where used, but --multi_epsilon_intra was not parsed.
-        In order to use the multi-epsilon option --multi_epsilon_intra must be parsed. Please provide one or use the single epsslon case with:
-            --epsilon
-            --inter_domain_epsilon
-            --inter_epsilon"""
-        )
-        exit()
-
-    # if multi-epsi intra is parsed start overwrite other parameters
     if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
-        # args.names, args.multi_epsilon = io.read_intra_file(args.multi_epsilon_intra)
-
-        # INTER-DOMAIN
-        # multi_epsi inter domain
-        # if args.multi_epsilon_inter_domain is not None:
-            # args.names_inter_domain, args.multi_epsilon_inter_domain = io.read_intra_file(args.multi_epsilon_inter_domain)
-
-        # multi_inter domain None but inter domain parsed --> ERROR
-        if args.multi_epsilon_inter_domain is None and args.inter_domain_epsilon is not None:
-            print(
-                """Inter domain option should be parsed with --multi_epsilon_inter_domain if --multi_epsilon_intra is used and not with --inter_domain_epsilon
-            Choose either multiple epsilon options:
-                   --multi_epsilon_intra PATH_TO_FILE
-                   --multi_epsilon_inter_domain PATH_TO_FILE
-            Or the single epsilon options:
-                   --epsilon VALUE
-                   --inter_domain_epsilon VALUE
-                   """
-            )
-            exit()
-
-        # CASE: multi intra but no multi inter domain --> set multi_inter_domain as multi_intra
-        if args.multi_epsilon_inter_domain is None and args.inter_domain_epsilon is None and args.multi_epsilon_intra is not None:
-            pass
-            # setattr(args, "names_inter_domain", args.names)
-            # multi_flag = 
-            # setattr(args, "multi_epsilon_inter_domain", args.multi_epsilon)
-
-
-        # INTER
-        # if args.multi_epsilon_inter:
-            # args.names_inter, args.multi_epsilon_inter = io.read_inter_file(args.multi_epsilon_inter)
-
-        # No multi_epsilon_inter, no inter_epsilon --> set multi_epsilon_inter as one of the multi_epsilon_intra (should not be needed if it's not defined explicetily)
-        if args.multi_epsilon_inter is None and args.inter_epsilon is None and args.multi_epsilon_intra is not None:
-            print(
-                """--multi intra mode activated, but no information for inter epsilon was set.
-Please set also the inter molecular interaction using one of the following options:
-                  -inter_epsilon VALUE
-                  -multi_epsilon_inter PATH_TO_FILE """
-            )
-            exit()
-
-        # No multi_epsilon_inter, inter_epsilon --> set multi_epsilon_inter as inter_epsilon
-        if args.multi_epsilon_inter is None and args.inter_epsilon is not None:
-            setattr(args, "names_inter", np.array(args.names))
-            setattr(
-                args, "multi_epsilon_inter", np.zeros((len(args.multi_epsilon), len(args.multi_epsilon))) + args.inter_epsilon
-            )
-
-    # CHECK all epsilons are greater than epsilon_min
-    # if args.epsilon is not None:
-    #     if args.egos != "rc" and args.epsilon <= args.epsilon_min:
-    #         print(f"--epsilon ({args.epsilon}) must be greater than --epsilon_min ({args.epsilon_min})")
-    #         sys.exit()
-
-    #     if args.egos != "rc" and args.inter_domain_epsilon <= args.epsilon_min:
-    #         print(
-    #             f"--inter_domain_epsilon ({args.inter_domain_epsilon}) must be greater than --epsilon_min ({args.epsilon_min})"
-    #         )
-    #         sys.exit()
-
-    #     if args.egos != "rc" and args.inter_epsilon <= args.epsilon_min:
-    #         print(f"--inter_epsilon ({args.inter_epsilon}) must be greater than --epsilon_min ({args.epsilon_min})")
-    #         sys.exit()
+        multi_flag = True
 
     ####################################
     # PRELIMINARY SOLUTION TO TOPOLOGY #
@@ -190,7 +89,6 @@ Please set also the inter molecular interaction using one of the following optio
     topol_names = [m for m in r_topol.molecules]
 
     args.names = []
-    print(args.multi_epsilon_inter)
     for name in args.multi_epsilon_intra.keys():
         args.names.append(name)
     for name in args.multi_epsilon_inter_domain.keys():
@@ -212,9 +110,20 @@ Please set also the inter molecular interaction using one of the following optio
     if not args.multi_epsilon_inter_domain: args.multi_epsilon_inter_domain = { k: v for k, v in zip(args.names, [args.inter_domain_epsilon]*len(args.names)) }
     if not args.multi_epsilon_inter: args.multi_epsilon_inter = { k1: { k2: args.inter_epsilon for k2 in args.names } for k1 in args.names }
 
-    print(args.multi_epsilon_intra)
-    print(args.multi_epsilon_inter_domain)
-    print(args.multi_epsilon_inter)
+    # check all epsilons are set and greater than epsilon_min
+    for k, v in args.multi_epsilon_intra.items():
+        if v < args.epsilon_min:
+            print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+            sys.exit()
+    for k, v in args.multi_epsilon_inter_domain.items():
+        if v < args.epsilon_min:
+            print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+            sys.exit()
+    for k1, v1 in args.multi_epsilon_inter.items():
+        for k2, v2 in v1.items():
+            if v2 < args.epsilon_min:
+                print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
+                sys.exit()
 
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)

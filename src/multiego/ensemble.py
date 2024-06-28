@@ -257,11 +257,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
 
-        # contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.epsilon
-        # contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = args.inter_domain_epsilon
-        # contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.inter_epsilon
-
-        # if args.multi_mode:
         molecules = list(np.unique(
             np.concatenate(
                 [
@@ -399,15 +394,6 @@ def init_meGO_ensemble(args):
         sbtype_moltype_dict,
         molecule_type_dict,
     ) = initialize_topology(reference_topology, custom_dict, args)
-
-    mol_check = []
-    for mol in reference_topology.molecules:
-        mol_check.append(mol)
-    print(mol_check)
-    print(args.names)
-    if len(mol_check) != len(args.names):
-        print("Error the number of molecules in the input file is different from that in the topology")
-        exit()
 
     reference_contact_matrices = {}
     io.check_matrix_format(args)
@@ -1093,8 +1079,6 @@ def set_epsilon(meGO_LJ):
     # This is always correct becasue distance is always well defined by either training data
     # or using default C12 values
     # negative epsilon are used to identify non-attractive interactions
-    print("Setting epsilon")
-    print(meGO_LJ[meGO_LJ['rc_distance']==0].to_string())
     meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
 
     # Attractive interactions
