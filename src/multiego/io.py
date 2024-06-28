@@ -562,12 +562,8 @@ def make_header(parameters):
 ; With the following parameters:
 """
     for parameter, value in parameters.items():
+        print(f"making header output for {parameter} with value {value}")
         if parameter == "no_header":
-            continue
-        if parameter == "multi_epsilon_inter":
-            values_list = np.array(value[np.triu_indices_from(value)], dtype=str)
-            # values_list = np.array(values_list, dtype=str)
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(values_list))
             continue
         if parameter == "names_inter":
             n = value.size
@@ -581,6 +577,9 @@ def make_header(parameters):
         elif type(value) is np.ndarray:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+        elif type(value) is dict:
+            for key, val in value.items():
+                header += f";\t- {key} = {val}\n"
         elif not value:
             value = ""
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
