@@ -49,8 +49,10 @@ def read_config(file, args_dict):
     # check if the keys in the yaml file are valid
     for element in yml:
         print(f"Checking {element} from YAML configuration.")
-        if type(element) is not dict: key = element
-        else: key = list(element.keys())[0]
+        if type(element) is not dict:
+            key = element
+        else:
+            key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
             print(f"ERROR: {key} in {file} is not a valid argument.")
             exit()
@@ -83,7 +85,7 @@ def combine_configurations(yml, args, args_dict):
             key, value = list(element.items())[0]
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
-            default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None            
+            default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
             if hasattr(args, key) and getattr(args, key) is default_value:
                 print(f"Setting {key} from YAML configuration.")
                 setattr(args, key, value)
@@ -241,6 +243,7 @@ def parse_symmetry_list(symmetry_list):
             symmetry.append(line.split())
     return symmetry
 
+
 def read_molecular_contacts(path):
     """
     Reads intra-/intermat files to determine molecular contact statistics.
@@ -353,7 +356,9 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     parameters : dict
         A dictionaty of the command-line parsed parameters
     """
-    output_dir = get_outdir_name(f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos)
+    output_dir = get_outdir_name(
+        f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos
+    )
     create_output_directories(parameters, output_dir)
     meGO_LJ_out = meGO_LJ[final_fields].copy()
     write_topology(
@@ -546,7 +551,8 @@ def get_outdir_name(output_dir, explicit_name, egos):
         The path to the output directory
     """
     out = explicit_name
-    if out == "": out = egos
+    if out == "":
+        out = egos
 
     index = 1
     while os.path.exists(f"{output_dir}/{out}_{index}"):

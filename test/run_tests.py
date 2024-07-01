@@ -11,6 +11,7 @@ MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
 sys.path.append(MEGO_ROOT)
 from src.multiego import io
 
+
 def read_infile(path):
     """
     Reads a test-case input file and parses the system name the multi-eGO
@@ -123,8 +124,7 @@ def create_test_cases(test_case):
     idx = 1
     while hasattr(TestOutputs, f"{function_name_prefix}{idx}"):
         idx += 1
-    function_name = f"{function_name_prefix}{idx}"        
-
+    function_name = f"{function_name_prefix}{idx}"
 
     def function_template(self):
         name = system_name

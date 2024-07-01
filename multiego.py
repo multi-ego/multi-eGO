@@ -45,7 +45,7 @@ for a contact pair.
     for arg, arg_dict in args_dict.items():
         # necessary for the boolean flags
         if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
-            arg_dict.pop("type") # necessary for boolean flags
+            arg_dict.pop("type")  # necessary for boolean flags
         parser.add_argument(arg, **arg_dict)
 
     args, remaining = parser.parse_known_args()
@@ -70,7 +70,9 @@ for a contact pair.
     if args.egos == "production" and not args.train:
         print("ERROR: No training simulations found! Please provide a list of training simulations.")
         sys.exit()
-    if args.egos == "production" and not (args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon):
+    if args.egos == "production" and not (
+        args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon
+    ):
         print("ERROR: No epsilon value found! Please provide an epsilon value.")
         sys.exit()
     if args.p_to_learn < 0.9:
@@ -85,9 +87,9 @@ for a contact pair.
     ####################################
     # PRELIMINARY SOLUTION TO TOPOLOGY #
     ####################################
-    r_topol = pmd.load_file(f'{args.root_dir}/inputs/{args.system}/{args.reference}/topol.top')
+    r_topol = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/{args.reference}/topol.top")
     topol_names = [m for m in r_topol.molecules]
-    print(f'topol_names: {topol_names}')
+    print(f"topol_names: {topol_names}")
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -99,21 +101,26 @@ for a contact pair.
         for name in args.multi_epsilon_inter[name].keys():
             args.names.append(name)
     args.names = list(set(args.names))
-    print(f'args.names: {args.names}')
+    print(f"args.names: {args.names}")
     if sorted(args.names) != sorted(topol_names) and multi_flag:
         print("ERROR: The names of the molecules in the topology and the multi-epsilon files are different")
         sys.exit()
     elif not multi_flag:
         args.names = topol_names
 
-    if args.epsilon and not args.inter_epsilon: args.inter_epsilon = args.epsilon
-    if args.epsilon and not args.inter_domain_epsilon: args.inter_domain_epsilon = args.epsilon
-    if not args.multi_epsilon_intra: args.multi_epsilon_intra = { k: v for k, v in zip(args.names, [args.epsilon]*len(args.names)) }
-    if not args.multi_epsilon_inter_domain: args.multi_epsilon_inter_domain = { k: v for k, v in zip(args.names, [args.inter_domain_epsilon]*len(args.names)) }
-    if not args.multi_epsilon_inter: args.multi_epsilon_inter = { k1: { k2: args.inter_epsilon for k2 in args.names } for k1 in args.names }
-    print(f'multi_epsilon_intra: {args.multi_epsilon_intra}')
-    print(f'multi_epsilon_inter_domain: {args.multi_epsilon_inter_domain}')
-    print(f'multi_epsilon_inter: {args.multi_epsilon_inter}')
+    if args.epsilon and not args.inter_epsilon:
+        args.inter_epsilon = args.epsilon
+    if args.epsilon and not args.inter_domain_epsilon:
+        args.inter_domain_epsilon = args.epsilon
+    if not args.multi_epsilon_intra:
+        args.multi_epsilon_intra = {k: v for k, v in zip(args.names, [args.epsilon] * len(args.names))}
+    if not args.multi_epsilon_inter_domain:
+        args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
+    if not args.multi_epsilon_inter:
+        args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
+    print(f"multi_epsilon_intra: {args.multi_epsilon_intra}")
+    print(f"multi_epsilon_inter_domain: {args.multi_epsilon_inter_domain}")
+    print(f"multi_epsilon_inter: {args.multi_epsilon_inter}")
 
     # check all epsilons are set and greater than epsilon_min
     if args.egos != "rc":
@@ -131,8 +138,7 @@ for a contact pair.
                     print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
                     sys.exit()
 
-    print(f'args: {args}')
-
+    print(f"args: {args}")
 
     if args.symmetry_file and args.symmetry:
         print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")

@@ -259,19 +259,25 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
 
         # print(contact_matrix["molecule_name_ai"].str.extract(r'[0-9]_(.+)'))
         print(contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1])
-        
-        molecules = list(np.unique(
-            np.concatenate(
-                [
-                    contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1],
-                    contact_matrix["molecule_name_aj"].str.split("_", expand=True, n=1)[1],
-                ]
+
+        molecules = list(
+            np.unique(
+                np.concatenate(
+                    [
+                        contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1],
+                        contact_matrix["molecule_name_aj"].str.split("_", expand=True, n=1)[1],
+                    ]
+                )
             )
-        ))
+        )
         mol_1 = molecules[0]
         mol_2 = mol_1 if len(molecules) == 1 else molecules[1]
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = args.multi_epsilon_intra[molecules[0]]
-        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = args.multi_epsilon_inter_domain[molecules[0]]
+        contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
+            args.multi_epsilon_intra[molecules[0]]
+        )
+        contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
+            args.multi_epsilon_inter_domain[molecules[0]]
+        )
         contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.multi_epsilon_inter[mol_1][mol_2]
 
         # add the columns for rc, md threshold
