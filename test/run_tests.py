@@ -65,7 +65,7 @@ def read_outfile(path):
     return out_string
 
 
-def prep_system_data(name, test_case):
+def prep_system_data(name, index):
     """
     Prepares system data to be compared and tested by reading all necessary files.
 
@@ -90,10 +90,10 @@ def prep_system_data(name, test_case):
     ffnonbonded_test : str
         The contents of the newly created ffnonbonded which needs to match ffnonbonded_ref
     """
-    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{test_case}/topol_GRETA.top")
-    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{test_case}/topol_GRETA.top")
-    ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{test_case}/ffnonbonded.itp")
-    ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{test_case}/ffnonbonded.itp")
+    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/topol_GRETA.top")
+    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/topol_GRETA.top")
+    ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/ffnonbonded.itp")
+    ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/ffnonbonded.itp")
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
 
 
@@ -129,7 +129,7 @@ def create_test_cases(test_case):
     def function_template(self):
         name = system_name
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, test_case=test_case)
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, index=idx)
         self.assertEqual(topol_ref, topol_test, f"{name} :: {function_name} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {function_name} nonbonded not equal")
 

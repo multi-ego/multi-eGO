@@ -1,5 +1,5 @@
 ---
--system: ttrref
+- system: ttrref
 - egos: production
 - epsilon: 0.33
 - train: native_MD,fibril_MD
