@@ -87,6 +87,7 @@ for a contact pair.
     ####################################
     r_topol = pmd.load_file(f'{args.root_dir}/inputs/{args.system}/{args.reference}/topol.top')
     topol_names = [m for m in r_topol.molecules]
+    print(f'topol_names: {topol_names}')
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -98,6 +99,7 @@ for a contact pair.
         for name in args.multi_epsilon_inter[name].keys():
             args.names.append(name)
     args.names = list(set(args.names))
+    print(f'args.names: {args.names}')
     if sorted(args.names) != sorted(topol_names) and multi_flag:
         print("ERROR: The names of the molecules in the topology and the multi-epsilon files are different")
         sys.exit()
@@ -109,21 +111,36 @@ for a contact pair.
     if not args.multi_epsilon_intra: args.multi_epsilon_intra = { k: v for k, v in zip(args.names, [args.epsilon]*len(args.names)) }
     if not args.multi_epsilon_inter_domain: args.multi_epsilon_inter_domain = { k: v for k, v in zip(args.names, [args.inter_domain_epsilon]*len(args.names)) }
     if not args.multi_epsilon_inter: args.multi_epsilon_inter = { k1: { k2: args.inter_epsilon for k2 in args.names } for k1 in args.names }
+    print(f'multi_epsilon_intra: {args.multi_epsilon_intra}')
+    print(f'multi_epsilon_inter_domain: {args.multi_epsilon_inter_domain}')
+    print(f'multi_epsilon_inter: {args.multi_epsilon_inter}')
 
     # check all epsilons are set and greater than epsilon_min
-    for k, v in args.multi_epsilon_intra.items():
-        if v < args.epsilon_min:
-            print("ERROR: epsilon value for " + k + " is less than epsilon_min")
-            sys.exit()
-    for k, v in args.multi_epsilon_inter_domain.items():
-        if v < args.epsilon_min:
-            print("ERROR: epsilon value for " + k + " is less than epsilon_min")
-            sys.exit()
-    for k1, v1 in args.multi_epsilon_inter.items():
-        for k2, v2 in v1.items():
-            if v2 < args.epsilon_min:
-                print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
+    if args.egos != "rc":
+        for k, v in args.multi_epsilon_intra.items():
+            if v < args.epsilon_min:
+                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
                 sys.exit()
+        for k, v in args.multi_epsilon_inter_domain.items():
+            if v < args.epsilon_min:
+                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+                sys.exit()
+        for k1, v1 in args.multi_epsilon_inter.items():
+            for k2, v2 in v1.items():
+                if v2 < args.epsilon_min:
+                    print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
+                    sys.exit()
+
+    print(f'args: {args}')
+
+
+    if args.symmetry_file and args.symmetry:
+        print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
+        sys.exit()
+    if args.symmetry_file:
+        args.symmetry = io.read_symmetry_file(args.symmetry_file)
+    if args.symmetry:
+        args.symmetry = io.parse_symmetry_list(args.symmetry)
 
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)
@@ -134,6 +151,9 @@ for a contact pair.
         print("Unknown arguments provided: " + str(remaining))
         parser.print_usage()
         sys.exit()
+
+    print("FINAL ARGS")
+    print(args)
 
     return args
 

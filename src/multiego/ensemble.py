@@ -257,11 +257,14 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
 
+        # print(contact_matrix["molecule_name_ai"].str.extract(r'[0-9]_(.+)'))
+        print(contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1])
+        
         molecules = list(np.unique(
             np.concatenate(
                 [
-                    contact_matrix["molecule_name_ai"].str.split("_").str[1].unique(),
-                    contact_matrix["molecule_name_aj"].str.split("_").str[1].unique(),
+                    contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1],
+                    contact_matrix["molecule_name_aj"].str.split("_", expand=True, n=1)[1],
                 ]
             )
         ))
@@ -1495,8 +1498,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # apply symmetries for equivalent atoms
     if parameters.symmetry:
-        symmetries = io.read_symmetry_file(parameters.symmetry)
-        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, symmetries)
+        # symmetries = io.read_symmetry_file(parameters.symmetry)
+        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
 

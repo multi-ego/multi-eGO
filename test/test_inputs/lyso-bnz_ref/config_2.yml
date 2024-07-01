@@ -1,0 +1,34 @@
+---
+- system: lyso-bnz_ref
+- egos: production
+# - epsilon: 0.34 
+- train: md_ensemble 
+# - inter_epsilon: 0.53
+# - inter_domain_epsilon: 1.5 
+- single_molecule
+- multi_epsilon_intra:
+    Lyso: 0.34
+    BNZ: 0.34
+- multi_epsilon_inter_domain:
+    Lyso: 1.5
+    BNZ: 1.5
+- multi_epsilon_inter:
+    Lyso:
+        Lyso: 2.0
+        BNZ: 0.53
+    BNZ:
+        Lyso: 0.53
+        BNZ: 10.0
+- symmetry:
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - LEU CD1 CD2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ARG NH1 NH2
+  - VAL CG1 CG2
+  - LYS O1 O2
+  - BNZ CD1 CD2 CE1 CE2 CZ CG
+- no_header

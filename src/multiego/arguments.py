@@ -91,6 +91,11 @@ args_dict = {
         "help": "Path to the input file specifying the inter epsilons",
     },
     "--symmetry": {
+        "default": [],
+        "type": list,
+        "help": "Symmetry list for the system",
+    },
+    "--symmetry_file": {
         "default": "",
         "type": str,
         "help": "Symmetry file for the system",

@@ -49,7 +49,8 @@ def read_config(file, args_dict):
     # check if the keys in the yaml file are valid
     for element in yml:
         print(f"Checking {element} from YAML configuration.")
-        key = list(element.keys())[0]
+        if type(element) is not dict: key = element
+        else: key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
             print(f"ERROR: {key} in {file} is not a valid argument.")
             exit()
@@ -77,14 +78,20 @@ def combine_configurations(yml, args, args_dict):
         The combined configuration
     """
     for element in yml:
-        key, value = list(element.items())[0]
-        value = args_dict[f"--{key}"]["type"](value)
-        print(f"Checking {key} from YAML configuration.")
-        parse_key = f"--{key}"
-        default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
-        if hasattr(args, key) and getattr(args, key) is default_value:
-            print(f"Setting {key} from YAML configuration.")
-            setattr(args, key, value)
+        if type(element) is dict:
+            print(f"Checking {element} from YAML configuration.")
+            key, value = list(element.items())[0]
+            value = args_dict[f"--{key}"]["type"](value)
+            parse_key = f"--{key}"
+            default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None            
+            if hasattr(args, key) and getattr(args, key) is default_value:
+                print(f"Setting {key} from YAML configuration.")
+                setattr(args, key, value)
+        else:
+            print(f"Checking {element} from YAML configuration.")
+            if hasattr(args, element):
+                print(f"Setting {element} from YAML configuration.")
+                setattr(args, element, True)
 
     return args
 
@@ -195,19 +202,44 @@ def read_symmetry_file(path):
     print("\t-", f"Reading symmetry file {path}")
     with open(path, "r") as file:
         lines = file.readlines()
-    symmetry = []
-    for i, line in enumerate(lines):
-        if "#" in line:
-            lines[i] = line.split("#")[0]
-        lines[i] = lines[i].strip()
+    symmetry = parse_symmetry_list(lines)
+    return symmetry
 
-    for line in lines:
+
+def parse_symmetry_list(symmetry_list):
+    """
+    Parse a symmetry string into a list of tuples.
+
+    This function takes a string containing symmetry information and parses it into a list of tuples.
+    Each tuple contains the symmetry information for a single interaction. The input string is expected
+    to be formatted as a series of space-separated values, with each line representing a separate interaction.
+    The values in each line are expected to be in the following order:
+    - Name of the residue or molecule type
+    - Name of the first atom
+    - Name of the second atom
+
+    Parameters
+    ----------
+    - symmetry_string : str
+        A string containing symmetry information for interactions.
+
+    Returns
+    -------
+    symmetry : list of tuple
+        A list of tuples, with each tuple containing the symmetry information for a single interaction.
+    """
+    symmetry = []
+    for i, line in enumerate(symmetry_list):
+        if "#" in line:
+            symmetry_list[i] = line.split("#")[0]
+        symmetry_list[i] = symmetry_list[i].strip()
+
+    for line in symmetry_list:
         if line.startswith("\n"):
             continue
         else:
             symmetry.append(line.split())
     return symmetry
-
 
 def read_molecular_contacts(path):
     """
@@ -359,8 +391,8 @@ def write_output_readme(meGO_LJ, parameters, output_dir):
         # write contents of the symmetry file
         if parameters.symmetry:
             f.write("\nSymmetry file contents:\n")
-            symmetry = read_symmetry_file(parameters.symmetry)
-            for line in symmetry:
+            # symmetry = read_symmetry_file(parameters.symmetry)
+            for line in parameters.symmetry:
                 f.write(f" - {' '.join(line)}\n")
 
         f.write("\nContact parameters:\n")
@@ -565,13 +597,17 @@ def make_header(parameters):
         print(f"making header output for {parameter} with value {value}")
         if parameter == "no_header":
             continue
-        if parameter == "names_inter":
+        elif parameter == "symmetry":
+            header += ";\t- {:<26}:\n".format(parameter)
+            for line in value:
+                header += f";\t  - {' '.join(line)}\n"
+        elif parameter == "names_inter":
             n = value.size
             # indices_upper_tri = np.triu_indices(n)
             tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
             continue
-        if type(value) is list:
+        elif type(value) is list:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif type(value) is np.ndarray:
