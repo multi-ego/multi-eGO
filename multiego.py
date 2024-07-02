@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-import numpy as np
 import parmed as pmd
 
 from src.multiego import ensemble

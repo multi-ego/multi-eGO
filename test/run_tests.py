@@ -2,15 +2,11 @@ import unittest
 import subprocess
 import shutil
 import os
-import numpy as np
 import sys
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
-
-sys.path.append(MEGO_ROOT)
-from src.multiego import io
-
+# sys.path.append(MEGO_ROOT)
 
 def read_infile(path):
     """
