@@ -48,7 +48,6 @@ def read_config(file, args_dict):
         yml = yaml.safe_load(f)
     # check if the keys in the yaml file are valid
     for element in yml:
-        print(f"Checking {element} from YAML configuration.")
         if type(element) is not dict:
             key = element
         else:
@@ -81,18 +80,14 @@ def combine_configurations(yml, args, args_dict):
     """
     for element in yml:
         if type(element) is dict:
-            print(f"Checking {element} from YAML configuration.")
             key, value = list(element.items())[0]
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
             if hasattr(args, key) and getattr(args, key) is default_value:
-                print(f"Setting {key} from YAML configuration.")
                 setattr(args, key, value)
         else:
-            print(f"Checking {element} from YAML configuration.")
             if hasattr(args, element):
-                print(f"Setting {element} from YAML configuration.")
                 setattr(args, element, True)
 
     return args
@@ -371,7 +366,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     )
     write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_out, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir)
-    print(f"Output files written in {output_dir}")
+    print(f"Output files written to {output_dir}")
 
 
 def write_output_readme(meGO_LJ, parameters, output_dir):
@@ -600,7 +595,6 @@ def make_header(parameters):
 ; With the following parameters:
 """
     for parameter, value in parameters.items():
-        print(f"making header output for {parameter} with value {value}")
         if parameter == "no_header":
             continue
         elif parameter == "symmetry":

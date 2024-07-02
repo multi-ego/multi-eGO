@@ -257,9 +257,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
 
-        # print(contact_matrix["molecule_name_ai"].str.extract(r'[0-9]_(.+)'))
-        print(contact_matrix["molecule_name_ai"].str.split("_", expand=True, n=1)[1])
-
         molecules = list(
             np.unique(
                 np.concatenate(

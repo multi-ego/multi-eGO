@@ -26,7 +26,7 @@ rm -rf ${TEST_DIR}/test_outputs/lyso-bnz_ref
 
 echo "Generating data for examples from ${TEST_CASES}..."
 while read case; do
-    out_dir=$(python ${MEGO_ROOT}/multiego.py $case | grep "Output files written in" | awk '{print $5}')
+    out_dir=$(python ${MEGO_ROOT}/multiego.py $case | grep "Output files written to" | awk '{print $5}')
     out_dir=$(realpath $out_dir)
     system=$(dirname $out_dir)
     system=$(basename $system)
