@@ -2,11 +2,11 @@ import unittest
 import subprocess
 import shutil
 import os
-import sys
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
 # sys.path.append(MEGO_ROOT)
+
 
 def read_infile(path):
     """
@@ -138,6 +138,8 @@ class TestOutputs(unittest.TestCase):
         test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
         # remake test_commands with only what comes before # if present
         test_commands = [[arg for arg in command if arg != "#"] for command in test_commands]
+        # replace instances of TEST_ROOT in the commands with the actual path if TEST_ROOT is present
+        test_commands = [[arg.replace("TEST_ROOT", TEST_ROOT) for arg in command] for command in test_commands]
         for system in test_systems:
             inputs_path = f"{MEGO_ROOT}/inputs/{system}"
             outputs_path = f"{MEGO_ROOT}/outputs/{system}"
