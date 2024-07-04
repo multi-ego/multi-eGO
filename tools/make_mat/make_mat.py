@@ -270,8 +270,6 @@ def run_residue_inter_(arguments):
                     lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
                     axis=0,
                 ).to_numpy()
-                print(index_ai_to_ri_j)
-                print(new_p)
                 ridx = np.array([index_ai_to_ri_j[aj] for aj in range(len(new_p))])
                 new_p = np.array([np.max(new_p[ridx == i]) for i in set(ridx)])
                 greater_p = new_p > p
