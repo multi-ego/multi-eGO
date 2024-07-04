@@ -26,28 +26,8 @@ d = {
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
-def write_mat(df, output_file, indices=np.array([]), topologies=()):
-    out_df = df.copy()
-    if indices.size != 0:
-        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
-        out_df = out_df.astype({"ai": "int32", "aj": "int32"})
-        filter_i = out_df["ai"].isin(topologies[0]["ref_ai"].values.astype(int))
-        filter_j = out_df["aj"].isin(topologies[1]["ref_ai"].values.astype(int))
-        out_df = out_df[filter_i & filter_j]
-        out_df = out_df[indices]
-        i = 1
-        j = 1
-        # size_i = out_df["ai"].unique().size
-        size_j = out_df["aj"].unique().size
-        for index, row in out_df.iterrows():
-            out_df.at[index, "ai"] = i
-            out_df.at[index, "aj"] = j
-            j += 1
-            if j > size_j:
-                j = 1
-                i += 1
-
-    out_content = out_df.to_string(index=False, header=False, columns=COLUMNS)
+def write_mat(df, output_file):
+    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
@@ -211,6 +191,97 @@ def run_inter_(arguments):
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
+
+        df = pd.concat([df, results_df])
+
+        df = df.sort_values(by=["p", "c12dist"], ascending=True)
+
+    df.fillna(0)
+    out_path = f"mat_{process.pid}_t{time.time()}.part"
+    df.to_csv(out_path, index=False)
+
+    return out_path
+
+
+def run_residue_inter_(arguments):
+    """
+    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
+    Is used in combination with multiprocessing to speed up the calculations.
+
+    Parameters
+    ----------
+    arguments : dict
+        Contains all the command-line parsed arguments
+
+    Returns
+    -------
+    out_path : str
+        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data
+    """
+    (
+        args,
+        protein_ref_indices_i,
+        protein_ref_indices_j,
+        num_res_j,
+        c12_cutoff,
+        mi,
+        mj,
+        (ref_ai_to_ri_i, index_ai_to_ri_j),
+        frac_target_list
+    ) = arguments
+    process = multiprocessing.current_process()
+    df = pd.DataFrame()
+    # We do not consider old histograms
+    for res in frac_target_list:
+        p = 0.0
+        c12dist = 0.0
+
+        for ref_f in res:
+            results_df = pd.DataFrame()
+            ai = int(ref_f.split(".")[-2].split("_")[-1])
+            ri = ref_ai_to_ri_i[ai]
+
+            all_ai = [ri for _ in range(1, num_res_j + 1)]
+            range_list = [str(x) for x in range(1, num_res_j + 1)]
+
+            results_df["ai"] = np.array(all_ai).astype(int)
+            results_df["aj"] = np.array(range_list).astype(int)
+
+            results_df["mi"] = mi
+            results_df["mj"] = mj
+            results_df["c12dist"] = 0.0
+            results_df["p"] = 0.0
+            results_df["cutoff"] = 0.0
+
+            if np.isin(int(ai), protein_ref_indices_i):
+                cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
+
+                # column mapping
+                ref_df = read_mat(ref_f, protein_ref_indices_j, args)
+                ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
+
+                # repeat for cumulative
+                c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
+                c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
+                c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
+
+                # calculate data
+                new_p = c_ref_df.apply(
+                    lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
+                    axis=0,
+                ).to_numpy()
+                print(index_ai_to_ri_j)
+                print(new_p)
+                ridx = np.array([index_ai_to_ri_j[aj] for aj in range(len(new_p))])
+                new_p = np.array([np.max(new_p[ridx == i]) for i in set(ridx)])
+                greater_p = new_p > p
+                p = np.where(greater_p, new_p, p)
+                new_c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).to_numpy()
+                new_c12dist = np.array([np.mean(new_c12dist[ridx == i]) for i in set(ridx)])
+                c12dist = np.where(greater_p, new_c12dist, c12dist)
+
+            results_df["c12dist"] = c12dist
+            results_df["p"] = p
 
         df = pd.concat([df, results_df])
 
@@ -842,28 +913,85 @@ def calculate_inter_probabilities(args):
         if np.isnan(c12_cutoff.astype(float)).any():
             warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
+        # create dictionary with ref_ai to ri
+        ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
+        ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
+        index_ai_to_ri_i = { k: v for k, v in enumerate(topology_df_i["ref_ri"])}
+        index_ai_to_ri_j = { k: v for k, v in enumerate(topology_df_j["ref_ri"])}
+        # create a dictionary with ref_ri to ai as a list of ai
+        ref_ri_to_ai_i = {f'{mol_i}_{ri}': [] for ri in topology_df_i["ref_ri"]}
+        ref_ri_to_ai_j = {f'{mol_j}_{ri}': [] for ri in topology_df_j["ref_ri"]}
+        for ai, ri in ref_ai_to_ri_i.items():
+            ref_ri_to_ai_i[f'{mol_i}_{ri}'].append(ai)
+        for ai, ri in ref_ai_to_ri_j.items():
+            ref_ri_to_ai_j[f'{mol_j}_{ri}'].append(ai)
+
+        dict_m_m_r = {}
+        for target in target_list:
+            target_fields = target.replace(".dat", '').split("_")
+            mi = int(target_fields[-4])
+            mj = int(target_fields[-3])
+            ai = int(target_fields[-1])
+            if ai not in protein_ref_indices_i: continue
+            ri = ref_ai_to_ri_i[ai]
+            if (mi, mj, ri) in dict_m_m_r: dict_m_m_r[(mi, mj, ri)].append(target)
+            else: dict_m_m_r[(mi, mj, ri)] = [target]
+
         ########################
         # PARALLEL PROCESS START
         ########################
 
-        chunks = np.array_split(target_list, args.proc)
+        if not args.residue:
+            chunks = np.array_split(target_list, args.proc)
+        else:
+            chunks = []
+            n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.proc
+            chunk = []
+            n = 0
+            for k, v in dict_m_m_r.items():
+                chunk.append(v)
+                n += len(v)
+                if n > n_threshold:
+                    chunks.append(chunk)
+                    chunk = []
+                    n = 0
+            chunks.append(chunk)
         pool = multiprocessing.Pool(args.proc)
-        results = pool.map(
-            run_inter_,
-            [
-                (
-                    args,
-                    protein_ref_indices_i,
-                    protein_ref_indices_j,
-                    original_size_j,
-                    c12_cutoff,
-                    mol_i,
-                    mol_j,
-                    x,
-                )
-                for x in chunks
-            ],
-        )
+        if args.residue:
+            results = pool.map(
+                run_residue_inter_,
+                [
+                    (
+                        args,
+                        protein_ref_indices_i,
+                        protein_ref_indices_j,
+                        len(ref_ri_to_ai_j),
+                        c12_cutoff,
+                        mol_i,
+                        mol_j,
+                        (ref_ai_to_ri_i, index_ai_to_ri_j),
+                        x,
+                    )
+                    for x in chunks
+                ],
+            )
+        else:
+            results = pool.map(
+                run_inter_,
+                [
+                    (
+                        args,
+                        protein_ref_indices_i,
+                        protein_ref_indices_j,
+                        original_size_j,
+                        c12_cutoff,
+                        mol_i,
+                        mol_j,
+                        x,
+                    )
+                    for x in chunks
+                ],
+            )
         pool.close()
         pool.join()
 
@@ -896,15 +1024,7 @@ def calculate_inter_probabilities(args):
         out_name = args.out_name + "_" if args.out_name else ""
         output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
         print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-        if args.residue:
-            indices = (topology_df_j["mego_name"].to_numpy() == "CA") * (
-                topology_df_i["mego_name"].to_numpy()[:, np.newaxis] == "CA"
-            )
-            indices = indices.flatten()
-
-            write_mat(df, output_file, indices, (topology_df_i, topology_df_j))
-        else:
-            write_mat(df, output_file)
+        write_mat(df, output_file)
 
 
 def calculate_probability(values, weights, callback=allfunction):
@@ -996,6 +1116,10 @@ if __name__ == "__main__":
 
     if args.tar and not tarfile.is_tarfile(args.histo):
         print(f"The path '{args.histo}' is not a tar file.")
+        sys.exit()
+
+    if args.residue and not args.inter:
+        print("Residue calculation is only possible for intermolecular calculations (not implemented yet for intramolecular).")
         sys.exit()
 
     N_BINS = args.cutoff / (0.01 / 4)
