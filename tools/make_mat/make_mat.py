@@ -227,7 +227,7 @@ def run_residue_inter_(arguments):
         mi,
         mj,
         (ref_ai_to_ri_i, index_ai_to_ri_j),
-        frac_target_list
+        frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
     df = pd.DataFrame()
@@ -916,26 +916,29 @@ def calculate_inter_probabilities(args):
         # create dictionary with ref_ai to ri
         ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
         ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-        index_ai_to_ri_i = { k: v for k, v in enumerate(topology_df_i["ref_ri"])}
-        index_ai_to_ri_j = { k: v for k, v in enumerate(topology_df_j["ref_ri"])}
+        # index_ai_to_ri_i = {k: v for k, v in enumerate(topology_df_i["ref_ri"])}
+        index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
         # create a dictionary with ref_ri to ai as a list of ai
-        ref_ri_to_ai_i = {f'{mol_i}_{ri}': [] for ri in topology_df_i["ref_ri"]}
-        ref_ri_to_ai_j = {f'{mol_j}_{ri}': [] for ri in topology_df_j["ref_ri"]}
+        ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
+        ref_ri_to_ai_j = {f"{mol_j}_{ri}": [] for ri in topology_df_j["ref_ri"]}
         for ai, ri in ref_ai_to_ri_i.items():
-            ref_ri_to_ai_i[f'{mol_i}_{ri}'].append(ai)
+            ref_ri_to_ai_i[f"{mol_i}_{ri}"].append(ai)
         for ai, ri in ref_ai_to_ri_j.items():
-            ref_ri_to_ai_j[f'{mol_j}_{ri}'].append(ai)
+            ref_ri_to_ai_j[f"{mol_j}_{ri}"].append(ai)
 
         dict_m_m_r = {}
         for target in target_list:
-            target_fields = target.replace(".dat", '').split("_")
+            target_fields = target.replace(".dat", "").split("_")
             mi = int(target_fields[-4])
             mj = int(target_fields[-3])
             ai = int(target_fields[-1])
-            if ai not in protein_ref_indices_i: continue
+            if ai not in protein_ref_indices_i:
+                continue
             ri = ref_ai_to_ri_i[ai]
-            if (mi, mj, ri) in dict_m_m_r: dict_m_m_r[(mi, mj, ri)].append(target)
-            else: dict_m_m_r[(mi, mj, ri)] = [target]
+            if (mi, mj, ri) in dict_m_m_r:
+                dict_m_m_r[(mi, mj, ri)].append(target)
+            else:
+                dict_m_m_r[(mi, mj, ri)] = [target]
 
         ########################
         # PARALLEL PROCESS START
