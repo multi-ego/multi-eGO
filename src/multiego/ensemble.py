@@ -516,7 +516,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        #check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
 
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
@@ -591,7 +591,7 @@ def init_meGO_ensemble(args):
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
         unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
-        #check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
+        # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
             axis=0,
