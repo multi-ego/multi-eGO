@@ -1,12 +1,13 @@
 import argparse
 import sys
 import os
-import numpy as np
+import parmed as pmd
 
 from src.multiego import ensemble
 from src.multiego import io
 from tools.face_generator import generate_face
 from src.multiego.resources.type_definitions import parse_json
+from src.multiego.arguments import args_dict
 
 
 def meGO_parsing():
@@ -39,314 +40,105 @@ for a contact pair.
      > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
 """,
     )
-    # Required arguments
-    required_args = parser.add_argument_group("Required arguments")
-    required_args.add_argument(
-        "--system",
-        type=str,
-        required=True,
-        help="Name of the system corresponding to system input folder.",
-    )
-    required_args.add_argument(
-        "--egos",
-        choices=["rc", "production"],
-        required=True,
-        help="""\
-            rc: creates a force-field for random coil simulations.
-            production: creates a force-field combining random coil simulations and training simulations.
-        """,
-    )
 
-    # Optional arguments
-    optional_args = parser.add_argument_group("Optional arguments")
-    optional_args.add_argument(
-        "--epsilon",
-        type=float,
-        help="Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--reference",
-        type=str,
-        default="reference",
-        help="""\
-            The folder including all the reference information needed to setup multi-eGO,
-            corresponding to the subfolder to process.
-        """,
-    )
-    optional_args.add_argument(
-        "--train",
-        nargs="+",
-        type=str,
-        default=[],
-        help="""\
-            A list of the training simulations to be included in multi-eGO,
-            corresponding to the subfolders to process and where the contacts are learned.
-        """,
-    )
-    optional_args.add_argument(
-        "--check",
-        nargs="+",
-        type=str,
-        default=[],
-        help="""\
-            A list of the simulations corresponding to the subfolders used to check
-            whether the contacts learned are compatible with those provided in here.
-        """,
-    )
-    optional_args.add_argument("--out", type=str, default="", help="Suffix for the output directory name.")
-    optional_args.add_argument(
-        "--inter_epsilon",
-        type=float,
-        help="Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--inter_domain_epsilon",
-        type=float,
-        help="Maximum interaction energy per interdomain contacts. The typical range is 0.2-0.4 kJ/mol",
-    )
-    optional_args.add_argument(
-        "--p_to_learn",
-        type=float,
-        default=0.9995,
-        help="Fraction of training simulations to learn.",
-    )
-    optional_args.add_argument(
-        "--epsilon_min",
-        type=float,
-        default=0.07,
-        help="The minimum meaningful epsilon value.",
-    )
-    optional_args.add_argument(
-        "--force_split",
-        default=False,
-        action="store_true",
-        help="Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
-    )
-    optional_args.add_argument(
-        "--single_molecule",
-        default=False,
-        action="store_true",
-        help="Enable optimisations valid if you are simulating a single molecule.",
-    )
-    optional_args.add_argument(
-        "--custom_dict",
-        type=str,
-        help="Custom dictionary for special molecules",
-    )
-    optional_args.add_argument(
-        "--custom_c12",
-        type=str,
-        help="Custom dictionary of c12 for special molecules",
-    )
-    optional_args.add_argument(
-        "--no_header",
-        action="store_true",
-        help="Removes headers from the output files when set",
-    )
-    parser.add_argument("--multi_epsi_intra", type=str, help="Path to the input file specifying the intra epsilons")
-    parser.add_argument("--multi_epsi_inter_domain", type=str, help="Path to the input file specifying the intra epsilons")
-    parser.add_argument("--multi_epsi_inter", type=str, help="Path to the input file specifying the inter epsilons")
-    optional_args.add_argument(
-        "--symmetry",
-        default="",
-        type=str,
-        help="Symmetry file for the system",
-    )
-    optional_args.add_argument(
-        "--f",
-        default=1,
-        type=float,
-        help="partition function normalization",
-    )
-    optional_args.add_argument(
-        "--inter_f",
-        default=1,
-        type=float,
-        help="partition function normalization inter-molecular",
-    )
-    optional_args.add_argument(
-        "--inter_domain_f",
-        default=1,
-        type=float,
-        help="partition function normalization inter_domain",
-    )
-    optional_args.add_argument(
-        "--relative_c12d", default=0.001, type=float, help="Relative deviation from default to set new replulsive c12"
-    )
+    for arg, arg_dict in args_dict.items():
+        # necessary for the boolean flags
+        if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
+            arg_dict.pop("type")  # necessary for boolean flags
+        parser.add_argument(arg, **arg_dict)
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
+    multi_flag = False
 
-    # Set inter_epsilon default to epsilon if epsilon is provided
-    if args.epsilon is not None and args.inter_epsilon is None:
-        setattr(args, "inter_epsilon", args.epsilon)
-    # Set inter_domain_epsilon default to epsilon if epsilon is provided
-    if args.epsilon is not None and args.inter_domain_epsilon is None:
-        setattr(args, "inter_domain_epsilon", args.epsilon)
+    if args.config:
+        config_yaml = io.read_config(args.config, args_dict)
+        # check if yaml file is empty
+        if not config_yaml:
+            print("WARNING: Configuration file was parsed, but the dictionary is empty")
+        else:
+            args = io.combine_configurations(config_yaml, args, args_dict)
 
-    # checking the options provided in the commandline
-    if args.egos != "rc" and not args.train:
-        print("--egos=production requires the list of folders containing the training simulations using the --train flag")
+    # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
+    if not args.system:
+        print("ERROR: No system name found! Please provide a system name.")
         sys.exit()
-
-    if (args.epsilon is None and args.multi_epsi_intra is None) and args.egos != "rc":
-        print(
-            "--epsilon or --multi_epsi_intra is required when using --egos=production. The typical range is between 0.2 and 0.4 kJ/mol"
-        )
+    if not args.egos:
+        print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
-
+    if args.egos == "production" and not args.train:
+        print("ERROR: No training simulations found! Please provide a list of training simulations.")
+        sys.exit()
+    if args.egos == "production" and not (
+        args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon
+    ):
+        print("ERROR: No epsilon value found! Please provide an epsilon value.")
+        sys.exit()
     if args.p_to_learn < 0.9:
         print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-
-    if args.egos != "rc" and args.epsilon_min <= 0.0:
+    if args.epsilon_min <= 0.0:
         print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
         sys.exit()
 
-    # MULTI EPSILON CASES
-    # TODO add the option to write in the multi epsi inter file Nones in order to remove interaction between systems
-    # CHECK if either the single option or the multi option are provided. If both break
-    if args.epsilon is not None and args.multi_epsi_intra is not None:
-        print("""Choose either a single intra epsilon for the system or the multi-epsilon inter. Cannot choose both""")
+    if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
+        multi_flag = True
+
+    ####################################
+    # PRELIMINARY SOLUTION TO TOPOLOGY #
+    ####################################
+    r_topol = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/{args.reference}/topol.top")
+    topol_names = [m for m in r_topol.molecules]
+
+    args.names = []
+    for name in args.multi_epsilon_intra.keys():
+        args.names.append(name)
+    for name in args.multi_epsilon_inter_domain.keys():
+        args.names.append(name)
+    for name in args.multi_epsilon_inter.keys():
+        args.names.append(name)
+        for name in args.multi_epsilon_inter[name].keys():
+            args.names.append(name)
+    args.names = list(set(args.names))
+    if sorted(args.names) != sorted(topol_names) and multi_flag:
+        print("ERROR: The names of the molecules in the topology and the multi-epsilon files are different")
         sys.exit()
-    if args.inter_domain_epsilon is not None and args.multi_epsi_inter_domain is not None:
-        print(
-            "Choose either a single inter domain epsilon for the system or the multi-epsilon inter domain. Cannot choose both"
-        )
+    elif not multi_flag:
+        args.names = topol_names
+
+    if args.epsilon and not args.inter_epsilon:
+        args.inter_epsilon = args.epsilon
+    if args.epsilon and not args.inter_domain_epsilon:
+        args.inter_domain_epsilon = args.epsilon
+    if not args.multi_epsilon_intra:
+        args.multi_epsilon_intra = {k: v for k, v in zip(args.names, [args.epsilon] * len(args.names))}
+    if not args.multi_epsilon_inter_domain:
+        args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
+    if not args.multi_epsilon_inter:
+        args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
+
+    # check all epsilons are set and greater than epsilon_min
+    if args.egos != "rc":
+        for k, v in args.multi_epsilon_intra.items():
+            if v < args.epsilon_min:
+                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+                sys.exit()
+        for k, v in args.multi_epsilon_inter_domain.items():
+            if v < args.epsilon_min:
+                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+                sys.exit()
+        for k1, v1 in args.multi_epsilon_inter.items():
+            for k2, v2 in v1.items():
+                if v2 < args.epsilon_min:
+                    print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
+                    sys.exit()
+
+    if args.symmetry_file and args.symmetry:
+        print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
         sys.exit()
-    if args.inter_epsilon is not None and args.multi_epsi_inter is not None:
-        print("Choose either a single inter epsilon for the system or the multi-epsilon inter. Cannot choose both")
-        sys.exit()
-
-    # CHECK if multi_epsi_inter_domain or multi_epsi_intra are parsed but not the multi_epsi_intra break
-    if args.multi_epsi_intra is None and (args.multi_epsi_inter_domain is not None or args.multi_epsi_inter is not None):
-        print(
-            """--multi_epsi_inter_domain or --multi_epsi_inter where used, but --multi_epsi_intra was not parsed.
-        In order to use the multi-epsilon option --multi_epsi_intra must be parsed. Please provide one or use the single epsslon case with:
-            --epsilon
-            --inter_domain_epsilon
-            --inter_epsilon"""
-        )
-        exit()
-
-    # if multi-epsi intra is parsed start overwrite other parameters
-    if args.multi_epsi_intra is not None:
-        setattr(args, "multi_mode", True)
-        args.names, args.multi_epsilon = io.read_intra_file(args.multi_epsi_intra)
-
-        # INTER-DOMAIN
-        # multi_epsi inter domain
-        if args.multi_epsi_inter_domain is not None:
-            args.names_inter_domain, args.multi_epsilon_inter_domain = io.read_intra_file(args.multi_epsi_inter_domain)
-
-        # multi_inter domain None but inter domain parsed --> ERROR
-        if args.multi_epsi_inter_domain is None and args.inter_domain_epsilon is not None:
-            print(
-                """Inter domain option should be parsed with --multi_epsi_inter_domain if --multi_epsi_intra is used and not with --inter_domain_epsilon
-            Choose either multiple epsilon options:
-                   --multi_epsi_intra PATH_TO_FILE
-                   --multi_epsi_inter_domain PATH_TO_FILE
-            Or the single epsilon options:
-                   --epsilon VALUE
-                   --inter_domain_epsilon VALUE
-                   """
-            )
-            exit()
-
-        # CASE: multi intra but no multi inter domain --> set multi_inter_domain as multi_intra
-        if args.multi_epsi_inter_domain is None and args.inter_domain_epsilon is None and args.multi_epsi_intra is not None:
-            setattr(args, "names_inter_domain", args.names)
-            setattr(args, "multi_epsilon_inter_domain", args.multi_epsilon)
-
-        # INTER
-        if args.multi_epsi_inter:
-            args.names_inter, args.multi_epsilon_inter = io.read_inter_file(args.multi_epsi_inter)
-
-        # No multi_epsilon_inter, no inter_epsilon --> set multi_epsilon_inter as one of the multi_epsi_intra (should not be needed if it's not defined explicetily)
-        if args.multi_epsi_inter is None and args.inter_epsilon is None and args.multi_epsi_intra is not None:
-            print(
-                """--multi intra mode activated, but no information for inter epsilon was set.
-Please set also the inter molecular interaction using one of the following options:
-                  -inter_epsilon VALUE
-                  -multi_epsi_inter PATH_TO_FILE """
-            )
-            exit()
-
-        # No multi_epsilon_inter, inter_epsilon --> set multi_epsilon_inter as inter_epsilon
-        if args.multi_epsi_inter is None and args.inter_epsilon is not None:
-            setattr(args, "names_inter", np.array(args.names))
-            setattr(
-                args, "multi_epsilon_inter", np.zeros((len(args.multi_epsilon), len(args.multi_epsilon))) + args.inter_epsilon
-            )
-
-        # Multi-case checks:
-        if args.multi_epsi_inter is not None and args.multi_epsi_intra is not None:
-            if np.any(np.array(args.names) != np.array(args.names_inter)):
-                print(
-                    f"""ERROR: the names of the molecules in the files {args.multi_epsi_intra} and {args.multi_epsi_inter} are different.
-                    The names of the molecules must be consistent with each other and with those in the topology"""
-                )
-                exit()
-
-        # if multi_inter and no multi intra break
-        if args.multi_epsi_inter is not None and args.multi_epsi_intra is None:
-            print(
-                """if multi_epsi_inter is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
-            )
-
-        # if multi_inter_domain and no multi intra break
-        if args.multi_epsi_inter_domain is not None and args.multi_epsi_intra is None:
-            print(
-                """--if multi_epsi_inter_domain is used, also multi_epsi must be used. define also the set of epsilons via --multi_epsi_intra """
-            )
-    else:
-        setattr(args, "multi_mode", False)
-
-    # CHECK all epsilons are greater than epsilon_min
-    if args.epsilon is not None:
-        if args.egos != "rc" and args.epsilon <= args.epsilon_min:
-            print("--epsilon (" + str(args.epsilon) + ") must be greater than --epsilon_min (" + str(args.epsilon_min) + ")")
-            sys.exit()
-
-        if args.egos != "rc" and args.inter_domain_epsilon <= args.epsilon_min:
-            print(
-                "--inter_domain_epsilon ("
-                + str(args.inter_domain_epsilon)
-                + ") must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
-            )
-            sys.exit()
-
-        if args.egos != "rc" and args.inter_epsilon <= args.epsilon_min:
-            print(
-                "--inter_epsilon ("
-                + str(args.inter_epsilon)
-                + ") must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
-            )
-            sys.exit()
-
-    elif args.multi_mode is not None:
-        if args.egos != "rc" and np.min(args.multi_epsilon) <= args.epsilon_min:
-            print(
-                f"all epsilons in {args.multi_epsi_intra} must be greater than --epsilon_min (" + str(args.epsilon_min) + ")"
-            )
-            sys.exit()
-
-        if args.egos != "rc" and np.min(args.multi_epsilon_inter_domain) <= args.epsilon_min:
-            print(
-                f"all epsilons in {args.multi_epsi_inter_domain} must be greater than --epsilon_min ("
-                + str(args.epsilon_min)
-                + ")"
-            )
-            sys.exit()
-
-        if args.egos != "rc" and np.min(args.multi_epsilon_inter) <= args.epsilon_min:
-            print(
-                f"all epsilons in {args.multi_epsi_inter} must be greater than --epsilon_min (" + str(args.epsilon_min) + ")"
-            )
-            sys.exit()
+    if args.symmetry_file:
+        args.symmetry = io.read_symmetry_file(args.symmetry_file)
+    if args.symmetry:
+        args.symmetry = io.parse_symmetry_list(args.symmetry)
 
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)
@@ -361,38 +153,8 @@ Please set also the inter molecular interaction using one of the following optio
     return args
 
 
-def init_meGO_ensembles(args):
-    """
-    Initializes a multi-eGO ensemble based on the provided arguments.
-
-    Args:
-    args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-    meGO_ensemble: Initialized multi-eGO ensemble.
-
-    This function initializes a multi-eGO ensemble by utilizing the provided arguments.
-    It uses these arguments to create and configure the initial ensemble,
-    generating bonded interactions within the ensemble.
-    The resulting meGO_ensemble is returned for further processing.
-    """
-    meGO_ensemble = ensemble.init_meGO_ensemble(args)
-    meGO_ensemble = ensemble.generate_bonded_interactions(meGO_ensemble)
-
-    return meGO_ensemble
-
-
 def get_meGO_LJ(meGO_ensemble, args):
     """
-    Generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble and arguments.
-
-    Args:
-    meGO_ensemble: Initialized multi-eGO ensemble.
-    args (argparse.Namespace): Parsed command-line arguments.
-
-    Returns:
-    tuple: A tuple containing two dataframes - meGO_LJ and meGO_LJ_14.
-
     This function generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble
     and command-line arguments.
 
@@ -403,6 +165,20 @@ def get_meGO_LJ(meGO_ensemble, args):
     The resulting LJ parameters for 1-4 interactions are manipulated to get epsilon values,
     and a topology for exclusion pairs is created within the multi-eGO ensemble.
     The function returns two dataframes - meGO_LJ (LJ parameters) and meGO_LJ_14 (LJ parameters for 1-4 interactions).
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        A dictionary containing the initialized multi-eGO ensemble.
+    args : argparse.Namespace
+        An object containing parsed arguments.
+
+    Returns
+    -------
+    meGO_LJ : pandas.DataFrame
+        A dataframe containing LJ parameters for the multi-eGO ensemble.
+    meGO_LJ_14 : pandas.DataFrame
+        A dataframe containing LJ parameters for 1-4 interactions in the multi-eGO ensemble.
     """
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
     if args.egos == "rc":
@@ -420,25 +196,8 @@ def get_meGO_LJ(meGO_ensemble, args):
 
 def main():
     """
-    Main function that processes command-line arguments and generates a multi-eGO model.
-
     Parses command-line arguments and generates a multi-eGO model by invoking various functions
     related to ensemble generation, LJ parameter computation, and writing the output.
-
-    Command-line Arguments:
-    --system: Name of the system corresponding to the system input folder.
-    --egos: Type of EGO. 'rc' for creating a force-field for random coil simulations,
-            'production' for creating a force-field combining random coil simulations and training simulations.
-    --epsilon: Maximum interaction energy per contact.
-    --reference: The folder including all the reference information needed to setup multi-eGO, corresponding to the subfolder to process.
-    --train: A list of the simulations to be included in multi-eGO, corresponding to the subfolders to process and where the contacts are learned.
-    --check: Contacts from a simulation or a structure used to check whether the contacts learned are compatible with the structures provided.
-    --out: Suffix for the output directory name.
-    --inter_epsilon: Maximum interaction energy per intermolecular contacts.
-    --inter_domain_epsilon: Maximum interaction energy per interdomain contacts.
-    --p_to_learn: Amount of the simulation to learn.
-    --epsilon_min: The minimum meaningful epsilon value.
-    --no_header: Removes headers from output when set.
     """
 
     args = meGO_parsing()
@@ -450,7 +209,8 @@ def main():
     io.check_files_existence(args)
 
     print("- Initializing Multi-eGO model")
-    meGO_ensembles = init_meGO_ensembles(args)
+    meGO_ensembles = ensemble.init_meGO_ensemble(args)
+    meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
 
     print("- Generating Multi-eGO model")
     meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)

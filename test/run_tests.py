@@ -2,14 +2,10 @@ import unittest
 import subprocess
 import shutil
 import os
-import numpy as np
-import sys
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
-
-sys.path.append(MEGO_ROOT)
-from src.multiego import io
+# sys.path.append(MEGO_ROOT)
 
 
 def read_infile(path):
@@ -65,7 +61,7 @@ def read_outfile(path):
     return out_string
 
 
-def prep_system_data(name, egos, test_case):
+def prep_system_data(name, index):
     """
     Prepares system data to be compared and tested by reading all necessary files.
 
@@ -90,27 +86,10 @@ def prep_system_data(name, egos, test_case):
     ffnonbonded_test : str
         The contents of the newly created ffnonbonded which needs to match ffnonbonded_ref
     """
-    if egos == "rc":
-        out_egos = egos
-    elif "--epsilon" in test_case:
-        out_egos = f"production_e{egos[0]}_{egos[1]}"
-    elif "--multi_epsi_intra" in test_case:
-        name_appo, multi_epsilon = io.read_intra_file(egos[0])
-        name_appo, multi_epsilon_inter_domain = io.read_intra_file(egos[1])
-        name_appo, multi_epsilon_inter = io.read_inter_file(egos[2])
-        out_egos = (
-            "production_epsis_intra"
-            + "-".join(np.array(multi_epsilon, dtype=str))
-            + "_interdomain"
-            + "-".join(np.array(multi_epsilon_inter_domain, dtype=str))
-            + "_inter"
-            + "-".join(np.array(multi_epsilon_inter, dtype=str).flatten())
-        )
-
-    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/topol_GRETA.top")
-    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}_{out_egos}/topol_GRETA.top")
-    ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}_{out_egos}/ffnonbonded.itp")
-    ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}_{out_egos}/ffnonbonded.itp")
+    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/topol_GRETA.top")
+    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/topol_GRETA.top")
+    ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/ffnonbonded.itp")
+    ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/ffnonbonded.itp")
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
 
 
@@ -127,7 +106,7 @@ def create_test_cases(test_case):
     Returns
     -------
     function_name : str
-        The name of the function in format 'test_<system_name>_<egos>'
+        The name of the function in format 'test_<system_name>/case_<index>'
     function_template : function(self)
         A function taking only self as a parameter intended to be used as a unittest test case.
     """
@@ -135,66 +114,20 @@ def create_test_cases(test_case):
     system_index = test_case.index("--system") + 1
     system_name = test_case[system_index]
 
-    # get egos type
-    egos_index = test_case.index("--egos") + 1
-    egos = test_case[egos_index]
+    function_name_prefix = f"test_{system_name}/case_"
 
-    if egos == "rc":
-        name_suffix = "rc"
-    else:
-        # figure out the name suffix and epsilons
-        name_suffix = "production"
-        if "--epsilon" in test_case:
-            intra_epsilon_index = test_case.index("--epsilon") + 1
-            intra_epsilon = test_case[intra_epsilon_index]
-            if "--inter_epsilon" not in test_case:
-                inter_epsilon = intra_epsilon
-            else:
-                inter_epsilon_index = (
-                    egos_index if "--inter_epsilon" not in test_case else test_case.index("--inter_epsilon") + 1
-                )
-                inter_epsilon = test_case[inter_epsilon_index]
-        elif "--multi_epsi_intra" in test_case:
-            intra_epsilon_index = test_case.index("--multi_epsi_intra") + 1
-            intra_epsilon = test_case[intra_epsilon_index]
-            if "--multi_epsi_inter_domain" not in test_case:
-                inter_domain_epsilon = intra_epsilon
-            else:
-                inter_domain_epsilon_index = (
-                    egos_index
-                    if "--multi_epsi_inter_domain" not in test_case
-                    else test_case.index("--multi_epsi_inter_domain") + 1
-                )
-                inter_domain_epsilon = test_case[inter_domain_epsilon_index]
-
-            if "--multi_epsi_inter" not in test_case:
-                inter_epsilon = None
-            else:
-                inter_epsilon_index = (
-                    egos_index if "--multi_epsi_inter" not in test_case else test_case.index("--multi_epsi_inter") + 1
-                )
-                inter_epsilon = test_case[inter_epsilon_index]
-
-        else:
-            print("ERROR: test cases are impossible: either --epsilon or --multi_epsi_intra ")
-            exit()
-
-    function_name = f"test_{system_name}_{name_suffix}"
-    if egos == "rc":
-        system_egos = "rc"
-    elif "--epsilon" in test_case:
-        system_egos = [intra_epsilon, inter_epsilon]
-
-    elif "--multi_epsi_intra" in test_case:
-        system_egos = [intra_epsilon, inter_domain_epsilon, inter_epsilon]
+    # check if self alread has the function function_name
+    idx = 1
+    while hasattr(TestOutputs, f"{function_name_prefix}{idx}"):
+        idx += 1
+    function_name = f"{function_name_prefix}{idx}"
 
     def function_template(self):
         name = system_name
-        egos = system_egos
 
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, egos=egos, test_case=test_case)
-        self.assertEqual(topol_ref, topol_test, f"{name} :: {egos} topology not equal")
-        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {egos} nonbonded not equal")
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, index=idx)
+        self.assertEqual(topol_ref, topol_test, f"{name} :: {function_name} topology not equal")
+        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {function_name} nonbonded not equal")
 
     return function_name, function_template
 
@@ -203,10 +136,17 @@ class TestOutputs(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
+        # remake test_commands with only what comes before # if present
+        test_commands = [[arg for arg in command if arg != "#"] for command in test_commands]
+        # replace instances of TEST_ROOT in the commands with the actual path if TEST_ROOT is present
+        test_commands = [[arg.replace("TEST_ROOT", TEST_ROOT) for arg in command] for command in test_commands]
         for system in test_systems:
             inputs_path = f"{MEGO_ROOT}/inputs/{system}"
+            outputs_path = f"{MEGO_ROOT}/outputs/{system}"
             if os.path.exists(inputs_path):
                 shutil.rmtree(inputs_path)
+            if os.path.exists(outputs_path):
+                shutil.rmtree(outputs_path)
             shutil.copytree(f"{TEST_ROOT}/test_inputs/{system}", inputs_path)
 
         error_codes = [subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands]
