@@ -1,5 +1,7 @@
 import os
+import re
 import sys
+import tempfile
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
@@ -227,7 +229,9 @@ def read_topologies(mego_top, target_top):
     """
     Reads the input topologies using parmed. Ignores warnings to prevent printing
     of GromacsWarnings regarding 1-4 interactions commonly seen when using
-    parmed in combination with multi-eGO topologies.
+    parmed in combination with multi-eGO topologies. In the case of the reference
+    topology, the last atom number is changed to 1 to prevent parmed from allocating
+    unnecessary memory.
 
     Parameters
     ----------
@@ -244,7 +248,17 @@ def read_topologies(mego_top, target_top):
             print(f"ERROR {e} in read_topologies while reading {mego_top}")
             exit(1)
         try:
-            topology_ref = pmd.load_file(target_top)
+            dirname, basename = os.path.split(target_top)
+            temp_ref = tempfile.NamedTemporaryFile(prefix=basename, dir=dirname)
+            temp_ref.write(open(target_top, "rb").read())
+            temp_ref.seek(0)
+            with open(temp_ref.name, "r") as f:
+                lines = f.readlines()
+                lines = [x for x in lines if x.strip()]
+                lines[-1] = re.sub(r"\d+$", "1", lines[-1])
+            with open(temp_ref.name, "w") as f:
+                f.writelines(lines)
+            topology_ref = pmd.load_file(temp_ref.name)
         except Exception as e:
             print(f"ERROR {e} in read_topologies while reading {target_top}")
             exit(2)
