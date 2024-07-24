@@ -321,13 +321,25 @@ def read_topologies(mego_top, target_top):
             temp_ref = tempfile.NamedTemporaryFile(prefix=basename, dir=dirname)
             temp_ref.write(open(target_top, "rb").read())
             temp_ref.seek(0)
+            molecules_tag = False
             with open(temp_ref.name, "r") as f:
                 lines = f.readlines()
                 lines = [x for x in lines if x.strip()]
-                lines[-1] = re.sub(r"\d+$", "1", lines[-1])
+
+            for i, line in enumerate(lines):
+                if line.strip() == "" or line[0] == ";": continue
+                if line.strip() == "[ molecules ]":
+                    molecules_tag = True
+                    continue
+                if line.strip().startswith("["): molecules_tag = False
+                if molecules_tag and re.match(r"\s*.+\s+\d+", lines[i]):
+                    print(f"Changing molecule number in line {i} that is {lines[i].strip()} to 1")
+                    lines[i] = re.sub(r"(\s*.+\s+)(\d+)", r"\g<1>1", lines[i])
+
             with open(temp_ref.name, "w") as f:
                 f.writelines(lines)
             topology_ref = pmd.load_file(temp_ref.name)
+
         except Exception as e:
             print(f"ERROR {e} in read_topologies while reading {target_top}")
             exit(2)
