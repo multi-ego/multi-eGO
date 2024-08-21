@@ -322,6 +322,14 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
     with open(f"{output_folder}/ffnonbonded.itp", "w") as file:
         if write_header:
             file.write(header)
+
+        # write the defaults section
+        file.write("\n[ defaults ]\n")
+        file.write("; Include forcefield parameters\n")
+        file.write("#define _FF_MAGROS\n\n")
+        file.write("; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ\n")
+        file.write("  1             1               no              1.0     1.0\n\n")
+
         file.write("[ atomtypes ]\n")
         atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
         atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
@@ -662,7 +670,7 @@ def write_topology(
     with open(f"{output_folder}/topol_GRETA.top", "w") as file:
         header += """
 ; Include forcefield parameters
-#include "multi-ego-basic.ff/forcefield.itp"
+#include "ffnonbonded.itp"
 """
 
         file.write(header)
@@ -675,7 +683,7 @@ def write_topology(
                 pairs["c12"] = pairs["c12"].map(lambda x: "{:.6e}".format(x))
                 bonded_interactions_dict[molecule]["pairs"] = pairs
                 exclusions = pairs[["ai", "aj"]].copy()
-
+F
             molecule_footer.append(molecule)
             molecule_header = f"""\n[ moleculetype ]
 ; Name\tnrexcl
