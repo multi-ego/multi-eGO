@@ -683,7 +683,7 @@ def write_topology(
                 pairs["c12"] = pairs["c12"].map(lambda x: "{:.6e}".format(x))
                 bonded_interactions_dict[molecule]["pairs"] = pairs
                 exclusions = pairs[["ai", "aj"]].copy()
-F
+
             molecule_footer.append(molecule)
             molecule_header = f"""\n[ moleculetype ]
 ; Name\tnrexcl
