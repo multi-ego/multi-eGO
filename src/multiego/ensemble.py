@@ -375,23 +375,23 @@ def init_meGO_ensemble(args):
     """
 
     # we initialize the reference topology
-    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference}"
-    ensemble_type = reference_path.split("/")[-1]
-    print("\t-", f"Initializing {ensemble_type} ensemble topology")
-    topology_path = f"{reference_path}/topol.top"
+    # reference_paths = [ f"{args.root_dir}/inputs/{args.system}/{reference}" for reference in args.reference ]
+    # ensemble_type = reference_path.split("/")[-1]
+    # print("\t-", f"Initializing {ensemble_type} ensemble topology")
+    base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
 
-    if not os.path.isfile(topology_path):
-        raise FileNotFoundError(f"{topology_path} not found.")
+    if not os.path.isfile(base_topology_path):
+        raise FileNotFoundError(f"{base_topology_path} not found.")
 
     # reading the custom dictionary for trainging to multi-eGO translation of atom names
     custom_dict = type_definitions.parse_json(args.custom_dict)
 
-    print("\t-", f"Reading {topology_path}")
+    print("\t-", f"Reading {base_topology_path}")
     # ignore the dihedral type overriding in parmed
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         defines = {"DISULFIDE": 1}
-        reference_topology = parmed.load_file(topology_path, defines)
+        base_reference_topology = parmed.load_file(base_topology_path, defines)
     (
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
@@ -399,31 +399,49 @@ def init_meGO_ensemble(args):
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
-    ) = initialize_topology(reference_topology, custom_dict, args)
+    ) = initialize_topology(base_reference_topology, custom_dict, args)
 
+    # prior = {}
+    # prior["topology"] = reference_topology
+    # prior["topology_dataframe"] = topology_dataframe
+    # prior["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
+    # prior["sbtype_c12_dict"] = sbtype_c12_dict
+    # prior["sbtype_name_dict"] = sbtype_name_dict
+    # prior["sbtype_moltype_dict"] = sbtype_moltype_dict
+    # prior["sbtype_number_dict"] = (
+    #     topology_dataframe[["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
+    # )
+    # prior["sbtype_type_dict"] = {key: name for key, name in topology_dataframe[["sb_type", "type"]].values}
+    # prior["molecule_type_dict"] = molecule_type_dict
     reference_contact_matrices = {}
+
     io.check_matrix_format(args)
-    if args.egos != "rc":
-        matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
-        matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
-        if matrix_paths == []:
-            raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
-        for path in matrix_paths:
-            name = path.replace(f"{args.root_dir}/inputs/", "")
-            name = name.replace("/", "_")
-            name = name.replace(".ndx", "")
-            name = name.replace(".gz", "")
-            reference_contact_matrices[name] = initialize_molecular_contacts(
-                io.read_molecular_contacts(path),
-                path,
-                molecules_idx_sbtype_dictionary,
-                args.reference,
-                args,
-            )
-            reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
+    for reference in args.reference: # reference_paths:
+        reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
+        if args.egos != "rc":
+            # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
+            topology_path = f"{reference_path}/topol.top"
+            print(f'reading in {reference_path}')
+            matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
+            matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
+            if matrix_paths == []:
+                raise FileNotFoundError("Contact matrix .ndx file(s) must be named as intramat_X_X.ndx or intermat_X_Y.ndx")
+            for path in matrix_paths:
+                name = path.replace(f"{args.root_dir}/inputs/", "")
+                name = name.replace("/", "_")
+                name = name.replace(".ndx", "")
+                name = name.replace(".gz", "")
+                reference_contact_matrices[name] = initialize_molecular_contacts(
+                    io.read_molecular_contacts(path),
+                    path,
+                    molecules_idx_sbtype_dictionary,
+                    reference,
+                    args,
+                )
+                reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
 
     ensemble = {}
-    ensemble["topology"] = reference_topology
+    ensemble["topology"] = base_reference_topology
     ensemble["topology_dataframe"] = topology_dataframe
     ensemble["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
     ensemble["sbtype_c12_dict"] = sbtype_c12_dict
@@ -1225,6 +1243,8 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
     meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
     # apply symmetries to the check contacts
     if parameters.symmetry:
+        print('symmetriiiiii')
+        print(parameters.symmetry)
         meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, parameters.symmetry)
         meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
     # check contacts are all repulsive so among duplicates we keep the one with shortest distance
@@ -1399,6 +1419,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
 
     # Step 2: Loop through symmetries and permutations
     for sym in symmetry:
+        print(f'From symmetry {symmetry}: {sym}')
         if not sym:
             continue
         # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
@@ -1406,6 +1427,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
         mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
         mgf_resn_aj = meGO_filtered["aj"].map(dict_sbtype_to_resname)
         for atypes in itertools.permutations(sym[1:]):
+            print(f"Applying symmetry {sym} to {atypes}")
             t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & (mgf_resn_ai == sym[0])]
             t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & (mgf_resn_aj == sym[0])]
             t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)

@@ -53,8 +53,7 @@ def read_config(file, args_dict):
         else:
             key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
-            print(f"ERROR: {key} in {file} is not a valid argument.")
-            exit()
+            raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
 
     return yml
 
@@ -88,7 +87,7 @@ def combine_configurations(yml, args, args_dict):
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
-                setattr(args, element, True)
+                setattr(args, element, yml[element])
 
     return args
 
@@ -196,7 +195,6 @@ def read_symmetry_file(path):
         symmetry : dict
             The symmetry parameters as a dictionary
     """
-    print("\t-", f"Reading symmetry file {path}")
     with open(path, "r") as file:
         lines = file.readlines()
     symmetry = parse_symmetry_list(lines)
@@ -226,16 +224,19 @@ def parse_symmetry_list(symmetry_list):
         A list of tuples, with each tuple containing the symmetry information for a single interaction.
     """
     symmetry = []
-    for i, line in enumerate(symmetry_list):
-        if "#" in line:
-            symmetry_list[i] = line.split("#")[0]
-        symmetry_list[i] = symmetry_list[i].strip()
 
     for line in symmetry_list:
-        if line.startswith("\n"):
-            continue
-        else:
-            symmetry.append(line.split())
+        if '#' in line:
+            line = line[:line.index('#')]
+        line = line.replace('\n', '')
+        line = line.strip()
+        if not line: continue
+        line = line.split(' ')
+        line = [ x for x in line if x ]
+        if len(line) < 3: continue
+
+        symmetry.append(line)
+        
     return symmetry
 
 
@@ -785,7 +786,7 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = [args.reference] + args.train + args.check
+    md_ensembles = args.reference + args.train + args.check
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
