@@ -416,12 +416,12 @@ def init_meGO_ensemble(args):
     reference_contact_matrices = {}
 
     io.check_matrix_format(args)
-    for reference in args.reference: # reference_paths:
+    for reference in args.reference:  # reference_paths:
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
         if args.egos != "rc":
             # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
             topology_path = f"{reference_path}/topol.top"
-            print(f'reading in {reference_path}')
+            print(f"reading in {reference_path}")
             matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
             matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
             if matrix_paths == []:
@@ -1243,8 +1243,6 @@ def do_apply_check_rules(meGO_ensemble, meGO_LJ, check_dataset, parameters):
     meGO_check_contacts["epsilon"] = -meGO_check_contacts["rep"]
     # apply symmetries to the check contacts
     if parameters.symmetry:
-        print('symmetriiiiii')
-        print(parameters.symmetry)
         meGO_check_sym = apply_symmetries(meGO_ensemble, meGO_check_contacts, parameters.symmetry)
         meGO_check_contacts = pd.concat([meGO_check_contacts, meGO_check_sym])
     # check contacts are all repulsive so among duplicates we keep the one with shortest distance
@@ -1419,7 +1417,6 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
 
     # Step 2: Loop through symmetries and permutations
     for sym in symmetry:
-        print(f'From symmetry {symmetry}: {sym}')
         if not sym:
             continue
         # Pre-filter the DataFrame to speed up when there are multiple equivalent atoms
@@ -1427,7 +1424,6 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
         mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
         mgf_resn_aj = meGO_filtered["aj"].map(dict_sbtype_to_resname)
         for atypes in itertools.permutations(sym[1:]):
-            print(f"Applying symmetry {sym} to {atypes}")
             t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & (mgf_resn_ai == sym[0])]
             t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & (mgf_resn_aj == sym[0])]
             t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)

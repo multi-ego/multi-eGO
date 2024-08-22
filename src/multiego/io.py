@@ -226,17 +226,19 @@ def parse_symmetry_list(symmetry_list):
     symmetry = []
 
     for line in symmetry_list:
-        if '#' in line:
-            line = line[:line.index('#')]
-        line = line.replace('\n', '')
+        if "#" in line:
+            line = line[: line.index("#")]
+        line = line.replace("\n", "")
         line = line.strip()
-        if not line: continue
-        line = line.split(' ')
-        line = [ x for x in line if x ]
-        if len(line) < 3: continue
+        if not line:
+            continue
+        line = line.split(" ")
+        line = [x for x in line if x]
+        if len(line) < 3:
+            continue
 
         symmetry.append(line)
-        
+
     return symmetry
 
 
