@@ -40,7 +40,7 @@ int main(int argc, const char** argv)
     {"mol_cutoff",  '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &mol_cutoff,      0, "Molecule cutoff distance",    "DOUBLE"},
     {"nskip",       '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &nskip,           0, "Number of frames to skip",    "INT"},
     {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",           "INT"},
-    {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &mol_threads,     0, "Number of molecule threads",  "INT"},
+    {"mol_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &mol_threads,     0, "Number of molecule threads",  "INT"},
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
