@@ -493,7 +493,7 @@ def init_meGO_ensemble(args):
         return ensemble
 
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
-    unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
+    # unique_ref_molecule_names = topology_dataframe["molecule_name"].unique()
 
     # now we process the train contact matrices
     train_contact_matrices = {}
@@ -521,7 +521,7 @@ def init_meGO_ensemble(args):
             _,
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
-        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        # unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
         # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
 
         train_topology_dataframe = pd.concat(
@@ -596,7 +596,7 @@ def init_meGO_ensemble(args):
             _,
         ) = initialize_topology(topology, custom_dict, args)
         # check that the molecules defined have a reference
-        unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
+        # unique_temp_molecule_names = temp_topology_dataframe["molecule_name"].unique()
         # check_molecule_names(unique_ref_molecule_names, unique_temp_molecule_names)
         check_topology_dataframe = pd.concat(
             [check_topology_dataframe, temp_topology_dataframe],
@@ -762,6 +762,7 @@ def generate_14_data(meGO_ensemble):
             pairs["aj"] = pairs["aj"].map(type_atnum_dict)
             pairs["rep"] = pairs["c12"]
             pairs["same_chain"] = True
+            pairs["1-4"] = "1_4"
         else:
             pairs["ai"] = meGO_ensemble["user_pairs"][molecule].ai.astype(str)
             pairs["aj"] = meGO_ensemble["user_pairs"][molecule].aj.astype(str)
@@ -979,6 +980,10 @@ def init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args):
     return train_dataset, check_dataset
 
 
+def get_residue_number(s):
+    return int(s.split("_")[-1])
+
+
 def generate_basic_LJ(meGO_ensemble, args):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
@@ -1021,6 +1026,7 @@ def generate_basic_LJ(meGO_ensemble, args):
         "cutoff",
         "rep",
         "att",
+        "bare",
     ]
 
     basic_LJ = pd.DataFrame()
@@ -1059,15 +1065,37 @@ def generate_basic_LJ(meGO_ensemble, args):
         c6_list = ai_name.map(name_to_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
+        ca_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH1", "CH1"),
+                ("CH1", "C"),
+                ("CH1", "N"),
+                ("CH1", "S"),
+                ("CH1", "CH"),
+                ("CH1", "CH2"),
+                ("CH1", "CH2r"),
+                ("CH1", "CH3"),
+                ("CH1", "OA"),
+                ("NL", "CH1"),
+                ("NZ", "CH1"),
+                ("NE", "CH1"),
+                ("NT", "CH1"),
+                ("NR", "CH1"),
+                ("N", "N"),
+                ("N", "NT"),
+                ("NT", "NT"),
+                ("C", "C"),
+                ("S", "S"),
+            ],
+            symmetrize=True,
+        )
         bb_mask = masking.create_array_mask(
             ai_name,
             ai_name,
             [
                 ("CH1", "CH1"),
-                ("CH1", "CH2"),
-                ("CH1", "CH3"),
-                ("CH1", "CH2r"),
-                ("CH1", "CH"),
                 ("CH1", "C"),
                 ("CH1", "N"),
                 ("C", "C"),
@@ -1138,36 +1166,74 @@ def generate_basic_LJ(meGO_ensemble, args):
             ],
             symmetrize=True,
         )
+        hydrophobic_w_mask = masking.create_array_mask(
+            ai_name,
+            ai_name,
+            [
+                ("CH1", "CH2"),
+                ("CH1", "CH3"),
+                ("CH1", "CH2r"),
+                ("CH1", "CH"),
+            ],
+            symmetrize=True,
+        )
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
         basic_LJ["same_chain"] = True
+        basic_LJ.c6 = 0.0
         basic_LJ.c12 = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
+        basic_LJ.bare = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
         basic_LJ.rep = np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
         basic_LJ.att = np.sqrt(c6_list * c6_list[:, np.newaxis]).flatten()
-        oxygen_LJ = basic_LJ[oxygen_mask].copy()
-        oxygen_LJ["c12"] *= 11.4
-        oxygen_LJ["c6"] = 0.0
-        hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
-        hydrophobic_LJ["c12"] = 0.20 * hydrophobic_LJ["rep"]
-        hydrophobic_LJ["c6"] = 0.20 * hydrophobic_LJ["att"]
-        bb_LJ = basic_LJ[bb_mask].copy()
-        bb_LJ["c12"] = 0.25 * bb_LJ["rep"]
-        bb_LJ["c6"] = 0.25 * bb_LJ["att"]
-        hbond_LJ = basic_LJ[hbond_mask].copy()
-        hbond_LJ["c12"] = 0.25 * hbond_LJ["rep"]
-        hbond_LJ["c6"] = 0.25 * hbond_LJ["att"]
-        catpi_LJ = basic_LJ[catpi_mask].copy()
-        catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
-        catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
-        basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, catpi_LJ, bb_LJ])
+        # oxygen_LJ = basic_LJ[oxygen_mask].copy()
+        # oxygen_LJ["c12"] *= 11.4
+        # oxygen_LJ["c6"] = 0.0
+        # hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
+        # hydrophobic_LJ["c12"] = 0.25 * hydrophobic_LJ["rep"]
+        # hydrophobic_LJ["c6"] = 0.25 * hydrophobic_LJ["att"]
+        # hydrophobic_w_LJ = basic_LJ[hydrophobic_w_mask].copy()
+        # hydrophobic_w_LJ["c12"] = 0.12 * hydrophobic_w_LJ["rep"]
+        # hydrophobic_w_LJ["c6"] = 0.12 * hydrophobic_w_LJ["att"]
+        # bb_LJ = basic_LJ[bb_mask].copy()
+        # bb_LJ["c12"] = 0.275 * bb_LJ["rep"]
+        # bb_LJ["c6"] = 0.275 * bb_LJ["att"]
+        # hbond_LJ = basic_LJ[hbond_mask].copy()
+        # hbond_LJ["c12"] = 0.275 * hbond_LJ["rep"]
+        # hbond_LJ["c6"] = 0.275 * hbond_LJ["att"]
+        # catpi_LJ = basic_LJ[catpi_mask].copy()
+        # catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
+        # catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
+        # basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, hydrophobic_w_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
-        basic_LJ["rep"] = basic_LJ["c12"]
-        basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
+        basic_LJ["residue_ai"] = basic_LJ["ai"].apply(get_residue_number)
+        basic_LJ["residue_aj"] = basic_LJ["aj"].apply(get_residue_number)
+        basic_LJ.loc[oxygen_mask, "c12"] *= 11.4
+        basic_LJ.loc[oxygen_mask, "c6"] = 0.0
+        basic_LJ.loc[~oxygen_mask, "c12"] = 0.195 * basic_LJ["rep"]
+        basic_LJ.loc[~oxygen_mask, "c6"] = 0.195 * basic_LJ["att"]
+        basic_LJ_14 = basic_LJ.copy()
+        basic_LJ_14 = basic_LJ_14[(~oxygen_mask & ~ca_mask)]
+        basic_LJ_14 = basic_LJ_14.loc[
+            (basic_LJ["same_chain"]) & ((basic_LJ["residue_ai"] - basic_LJ["residue_aj"]).abs() <= 2)
+        ]
+        basic_LJ = basic_LJ[~ca_mask]
+        basic_LJ["rep"] = basic_LJ["bare"]
+        basic_LJ_14["c12"] = basic_LJ_14["bare"]
+        basic_LJ_14["c6"] = 0.0
+        basic_LJ_14["rep"] = basic_LJ_14["c12"]
+        # basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
         basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
             ["index_ai", "index_aj"]
         ].max(axis=1)
         basic_LJ = basic_LJ.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
+        basic_LJ.sort_values(by=["index_ai", "index_aj"], inplace=True)
         basic_LJ = basic_LJ.drop(["index_ai", "index_aj"], axis=1)
+        basic_LJ_14["index_ai"], basic_LJ_14["index_aj"] = basic_LJ_14[["index_ai", "index_aj"]].min(axis=1), basic_LJ_14[
+            ["index_ai", "index_aj"]
+        ].max(axis=1)
+        basic_LJ_14 = basic_LJ_14.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
+        basic_LJ_14.sort_values(by=["index_ai", "index_aj"], inplace=True)
+        basic_LJ_14 = basic_LJ_14.drop(["index_ai", "index_aj"], axis=1)
 
     for name in meGO_ensemble["reference_matrices"].keys():
         temp_basic_LJ = pd.DataFrame(columns=columns)
@@ -1218,8 +1284,24 @@ def generate_basic_LJ(meGO_ensemble, args):
     basic_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
     # Cleaning the duplicates
     basic_LJ = basic_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
+    basic_LJ_14["probability"] = 1.0
+    basic_LJ_14["rc_probability"] = 1.0
+    basic_LJ_14["rc_threshold"] = 1.0
+    basic_LJ_14["md_threshold"] = 1.0
+    basic_LJ_14["epsilon"] = -basic_LJ_14["c12"]
+    basic_LJ_14.loc[basic_LJ_14["c6"] > 0, "epsilon"] = basic_LJ_14["c6"] ** 2 / (4.0 * basic_LJ_14["c12"])
+    basic_LJ_14["cutoff"] = 1.45 * basic_LJ_14["c12"] ** (1.0 / 12.0)
+    basic_LJ_14["sigma"] = basic_LJ_14["cutoff"] / (2.0 ** (1.0 / 6.0))
+    basic_LJ_14.loc[basic_LJ_14["c6"] > 0, "sigma"] = (basic_LJ_14["c12"] / basic_LJ_14["c6"]) ** (1 / 6)
+    basic_LJ_14["distance"] = basic_LJ_14["cutoff"]
+    basic_LJ_14["learned"] = 0
+    basic_LJ_14["1-4"] = "1>4"
+    # Sorting the pairs prioritising intermolecular interactions
+    basic_LJ_14.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
+    # Cleaning the duplicates
+    basic_LJ_14 = basic_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-    return basic_LJ
+    return basic_LJ, basic_LJ_14
 
 
 def set_epsilon(meGO_LJ):
