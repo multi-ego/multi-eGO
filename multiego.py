@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 import numpy as np
+import pandas as pd
 
 from src.multiego import ensemble
 from src.multiego import io
@@ -406,9 +407,38 @@ def get_meGO_LJ(meGO_ensemble, args):
     """
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
     if args.egos == "rc":
-        meGO_LJ = ensemble.generate_basic_LJ(meGO_ensemble, args)
-        meGO_LJ_14 = pairs14
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_basic_LJ(meGO_ensemble, args)
+        # meGO_LJ_14 = pairs14
+        meGO_LJ_14 = pd.concat([meGO_LJ_14, pairs14])
+        needed_fields = [
+            "ai",
+            "aj",
+            "type",
+            "c6",
+            "c12",
+            "sigma",
+            "epsilon",
+            "probability",
+            "rc_probability",
+            "md_threshold",
+            "rc_threshold",
+            "rep",
+            "cutoff",
+            "molecule_name_ai",
+            "molecule_name_aj",
+            "same_chain",
+            "source",
+            "number_ai",
+            "number_aj",
+        ]
+        meGO_LJ_14 = meGO_LJ_14[needed_fields]
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
+        meGO_LJ_14.reset_index(inplace=True)
+        # Sorting the pairs prioritising intermolecular interactions
+        meGO_LJ_14.sort_values(by=["ai", "aj", "c12"], ascending=[True, True, True], inplace=True)
+        # Cleaning the duplicates
+        meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
+        print(meGO_LJ_14)
     else:
         train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args)
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
