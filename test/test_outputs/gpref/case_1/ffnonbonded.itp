@@ -1,3 +1,11 @@
+
+[ defaults ]
+; Include forcefield parameters
+#define _FF_MAGROS
+
+; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ
+  1             1               no              1.0     1.0
+
 [ atomtypes ]
           ; sb_type  atomic_number    mass  charge ptype           c6          c12
    N_GB_1_Protein_1              7 15.0067     0.0     A 0.000000e+00 8.752940e-07

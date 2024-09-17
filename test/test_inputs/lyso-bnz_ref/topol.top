@@ -21,8 +21,8 @@
 #include "../../multi-ego-basic.ff/forcefield.itp"
 
 ; Include chain topologies
-#include "reference/topol_Lyso.itp"
-#include "reference/topol_BNZ.itp"
+#include "topol_Lyso.itp"
+#include "topol_BNZ.itp"
 
 [ system ]
 ; Name
