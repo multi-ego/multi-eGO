@@ -103,7 +103,7 @@ for a contact pair.
         args.names = topol_names
 
     if args.egos != "rc" and not args.reference:
-        args.reference = ['reference']
+        args.reference = ["reference"]
 
     if args.epsilon and not args.inter_epsilon:
         args.inter_epsilon = args.epsilon
