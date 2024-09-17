@@ -102,6 +102,9 @@ for a contact pair.
     elif not multi_flag:
         args.names = topol_names
 
+    if args.egos != "rc" and not args.reference:
+        args.reference = ['reference']
+
     if args.epsilon and not args.inter_epsilon:
         args.inter_epsilon = args.epsilon
     if args.epsilon and not args.inter_domain_epsilon:

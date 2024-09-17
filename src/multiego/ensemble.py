@@ -421,7 +421,6 @@ def init_meGO_ensemble(args):
         if args.egos != "rc":
             # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
             topology_path = f"{reference_path}/topol.top"
-            print(f"reading in {reference_path}")
             matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
             matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
             if matrix_paths == []:
@@ -506,11 +505,14 @@ def init_meGO_ensemble(args):
                 simulation,
                 args,
             )
-            ref_name = reference_path + "_" + path.split("/")[-1]
-            ref_name = ref_name.replace(f"{args.root_dir}/inputs/", "")
-            ref_name = ref_name.replace("/", "_")
-            ref_name = ref_name.replace(".ndx", "")
-            ref_name = ref_name.replace(".gz", "")
+            # ref_name = reference_path + "_" + path.split("/")[-1]
+            # find corresponding reference matrix (given by the number_number at the end of the name)
+            # using reference contact matrices
+            identifier = f'_{("_").join(path.split("/")[-1].replace(".ndx", "").replace(".gz", "").split("_")[-3:])}'
+            ref_name = [key for key in reference_contact_matrices.keys() if key.endswith(identifier)]
+            if ref_name == []:
+                raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
+            ref_name = ref_name[0]
             ensemble["train_matrix_tuples"].append((name, ref_name))
 
     ensemble["train_matrices"] = train_contact_matrices

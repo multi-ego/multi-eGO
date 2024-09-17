@@ -87,7 +87,8 @@ def combine_configurations(yml, args, args_dict):
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
-                setattr(args, element, yml[element])
+                print(element, yml)
+                setattr(args, element, True)
 
     return args
 
