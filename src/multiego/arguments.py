@@ -14,8 +14,8 @@ args_dict = {
         "help": "Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
     },
     "--reference": {
-        "type": str,
-        "default": "reference",
+        "type": lambda x: x.split(","),
+        "default": [],
         "help": "The folder including all the reference information needed to setup multi-eGO, "
         "corresponding to the subfolder to process.",
     },
@@ -26,7 +26,7 @@ args_dict = {
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
     "--check": {
-        "type": lambda x: [*x.split(",")],
+        "type": lambda x: x.split(","),
         "default": [],
         "help": "A list of the simulations corresponding to the subfolders used to check "
         "whether the contacts learned are compatible with those provided in here.",

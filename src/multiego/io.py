@@ -53,8 +53,7 @@ def read_config(file, args_dict):
         else:
             key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
-            print(f"ERROR: {key} in {file} is not a valid argument.")
-            exit()
+            raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
 
     return yml
 
@@ -88,6 +87,7 @@ def combine_configurations(yml, args, args_dict):
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
+                print(element, yml)
                 setattr(args, element, True)
 
     return args
@@ -196,7 +196,6 @@ def read_symmetry_file(path):
         symmetry : dict
             The symmetry parameters as a dictionary
     """
-    print("\t-", f"Reading symmetry file {path}")
     with open(path, "r") as file:
         lines = file.readlines()
     symmetry = parse_symmetry_list(lines)
@@ -226,16 +225,21 @@ def parse_symmetry_list(symmetry_list):
         A list of tuples, with each tuple containing the symmetry information for a single interaction.
     """
     symmetry = []
-    for i, line in enumerate(symmetry_list):
-        if "#" in line:
-            symmetry_list[i] = line.split("#")[0]
-        symmetry_list[i] = symmetry_list[i].strip()
 
     for line in symmetry_list:
-        if line.startswith("\n"):
+        if "#" in line:
+            line = line[: line.index("#")]
+        line = line.replace("\n", "")
+        line = line.strip()
+        if not line:
             continue
-        else:
-            symmetry.append(line.split())
+        line = line.split(" ")
+        line = [x for x in line if x]
+        if len(line) < 3:
+            continue
+
+        symmetry.append(line)
+
     return symmetry
 
 
@@ -321,6 +325,14 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
     with open(f"{output_folder}/ffnonbonded.itp", "w") as file:
         if write_header:
             file.write(header)
+
+        # write the defaults section
+        file.write("\n[ defaults ]\n")
+        file.write("; Include forcefield parameters\n")
+        file.write("#define _FF_MAGROS\n\n")
+        file.write("; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ\n")
+        file.write("  1             1               no              1.0     1.0\n\n")
+
         file.write("[ atomtypes ]\n")
         atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
         atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
@@ -661,7 +673,7 @@ def write_topology(
     with open(f"{output_folder}/topol_GRETA.top", "w") as file:
         header += """
 ; Include forcefield parameters
-#include "multi-ego-basic.ff/forcefield.itp"
+#include "ffnonbonded.itp"
 """
 
         file.write(header)
@@ -785,7 +797,7 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = [args.reference] + args.train + args.check
+    md_ensembles = args.reference + args.train + args.check
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"

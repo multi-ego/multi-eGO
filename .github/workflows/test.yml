@@ -30,9 +30,9 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
-        conda install -y python=3.11
-        conda env update --file conda/environment.yml --name base
-        conda install flake8
+        conda install --solver=classic -y python=3.11
+        conda env update --solver=classic --file conda/environment.yml --name base
+        conda install --solver=classic flake8
     - name: Run flake8 
       run: |
         # Flake8 exit on most issues

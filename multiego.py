@@ -83,11 +83,8 @@ for a contact pair.
     if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
         multi_flag = True
 
-    ####################################
-    # PRELIMINARY SOLUTION TO TOPOLOGY #
-    ####################################
-    r_topol = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/{args.reference}/topol.top")
-    topol_names = [m for m in r_topol.molecules]
+    mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
+    topol_names = [m for m in mego_topology.molecules]
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -104,6 +101,9 @@ for a contact pair.
         sys.exit()
     elif not multi_flag:
         args.names = topol_names
+
+    if args.egos != "rc" and not args.reference:
+        args.reference = ["reference"]
 
     if args.epsilon and not args.inter_epsilon:
         args.inter_epsilon = args.epsilon
@@ -137,7 +137,7 @@ for a contact pair.
         sys.exit()
     if args.symmetry_file:
         args.symmetry = io.read_symmetry_file(args.symmetry_file)
-    if args.symmetry:
+    elif args.symmetry:
         args.symmetry = io.parse_symmetry_list(args.symmetry)
 
     if args.custom_dict:
