@@ -1,0 +1,34 @@
+;
+;	File 'topol.top' was generated
+;	By user: brunost (505)
+;	On host: dhcp-161-103.celoria26-16000022-smfn_biodip.unimi.it
+;	At date: Thu Apr 20 14:33:45 2023
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	            :-) GROMACS - gmx pdb2gmx, 2021.5-plumed-2.9.0-dev (-:
+;	
+;	Executable:   /Users/brunost/software/gromacs/bin/gmx_mpi
+;	Data prefix:  /Users/brunost/software/gromacs
+;	Working dir:  /Users/brunost/Desktop/multi-ego/inputs/1l84_5BNZ/reference
+;	Command line:
+;	  gmx_mpi pdb2gmx -f starting.pdb -ignh
+;	Force field was read from current directory or a relative path - path added.
+;
+
+; Include forcefield parameters
+#include "../../multi-ego-basic.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Lyso.itp"
+#include "topol_BNZ.itp"
+
+[ system ]
+; Name
+2 BURIED BENZENE in water
+
+[ molecules ]
+; Compound        #mols
+Lyso     1
+BNZ       5

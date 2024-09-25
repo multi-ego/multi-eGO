@@ -3,6 +3,94 @@ import pandas as pd
 import time
 import glob
 import os
+import yaml
+import git
+
+
+final_fields = [
+    "ai",
+    "aj",
+    "type",
+    "c6",
+    "c12",
+    "sigma",
+    "epsilon",
+    "probability",
+    "rc_probability",
+    "md_threshold",
+    "rc_threshold",
+    "rep",
+    "cutoff",
+    "molecule_name_ai",
+    "molecule_name_aj",
+    "same_chain",
+    "source",
+    "number_ai",
+    "number_aj",
+]
+
+
+def read_config(file, args_dict):
+    """
+    Reads a YAML file and returns its content as a dictionary.
+
+    Parameters
+    ----------
+    file : str
+        The path to the YAML file
+
+    Returns
+    -------
+    args_dict : dict
+        The content of the YAML file as a dictionary
+    """
+    with open(file, "r") as f:
+        yml = yaml.safe_load(f)
+    # check if the keys in the yaml file are valid
+    for element in yml:
+        if type(element) is not dict:
+            key = element
+        else:
+            key = list(element.keys())[0]
+        if f"--{key}" not in args_dict:
+            raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
+
+    return yml
+
+
+def combine_configurations(yml, args, args_dict):
+    """
+    Combines the configuration from a YAML file with the command-line arguments. By overwriting
+    files from the YAML configuration with the command-line arguments, the function ensures that
+    the command-line arguments take precedence over the configuration file. Overwriting is done
+    directly on the args dictionary.
+
+    Parameters
+    ----------
+    yml : dict
+        The configuration from the YAML file
+    args : dict
+        The command-line arguments
+
+    Returns
+    -------
+    dict
+        The combined configuration
+    """
+    for element in yml:
+        if type(element) is dict:
+            key, value = list(element.items())[0]
+            value = args_dict[f"--{key}"]["type"](value)
+            parse_key = f"--{key}"
+            default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
+            if hasattr(args, key) and getattr(args, key) is default_value:
+                setattr(args, key, value)
+        else:
+            if hasattr(args, element):
+                print(element, yml)
+                setattr(args, element, True)
+
+    return args
 
 
 def strip_gz_suffix(filename):
@@ -108,20 +196,50 @@ def read_symmetry_file(path):
         symmetry : dict
             The symmetry parameters as a dictionary
     """
-    print("\t-", f"Reading symmetry file {path}")
     with open(path, "r") as file:
         lines = file.readlines()
-    symmetry = []
-    for i, line in enumerate(lines):
-        if "#" in line:
-            lines[i] = line.split("#")[0]
-        lines[i] = lines[i].strip()
+    symmetry = parse_symmetry_list(lines)
+    return symmetry
 
-    for line in lines:
-        if line.startswith("\n"):
+
+def parse_symmetry_list(symmetry_list):
+    """
+    Parse a symmetry string into a list of tuples.
+
+    This function takes a string containing symmetry information and parses it into a list of tuples.
+    Each tuple contains the symmetry information for a single interaction. The input string is expected
+    to be formatted as a series of space-separated values, with each line representing a separate interaction.
+    The values in each line are expected to be in the following order:
+    - Name of the residue or molecule type
+    - Name of the first atom
+    - Name of the second atom
+
+    Parameters
+    ----------
+    - symmetry_string : str
+        A string containing symmetry information for interactions.
+
+    Returns
+    -------
+    symmetry : list of tuple
+        A list of tuples, with each tuple containing the symmetry information for a single interaction.
+    """
+    symmetry = []
+
+    for line in symmetry_list:
+        if "#" in line:
+            line = line[: line.index("#")]
+        line = line.replace("\n", "")
+        line = line.strip()
+        if not line:
             continue
-        else:
-            symmetry.append(line.split())
+        line = line.split(" ")
+        line = [x for x in line if x]
+        if len(line) < 3:
+            continue
+
+        symmetry.append(line)
+
     return symmetry
 
 
@@ -207,6 +325,14 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
     with open(f"{output_folder}/ffnonbonded.itp", "w") as file:
         if write_header:
             file.write(header)
+
+        # write the defaults section
+        file.write("\n[ defaults ]\n")
+        file.write("; Include forcefield parameters\n")
+        file.write("#define _FF_MAGROS\n\n")
+        file.write("; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ\n")
+        file.write("  1             1               no              1.0     1.0\n\n")
+
         file.write("[ atomtypes ]\n")
         atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
         atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
@@ -237,7 +363,11 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     parameters : dict
         A dictionaty of the command-line parsed parameters
     """
-    output_dir = create_output_directories(parameters)
+    output_dir = get_outdir_name(
+        f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos
+    )
+    create_output_directories(parameters, output_dir)
+    meGO_LJ_out = meGO_LJ[final_fields].copy()
     write_topology(
         meGO_ensemble["topology_dataframe"],
         meGO_ensemble["molecule_type_dict"],
@@ -246,9 +376,200 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
         parameters,
         output_dir,
     )
-    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
+    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_out, parameters, output_dir)
+    write_output_readme(meGO_LJ, parameters, output_dir)
+    print(f"Output files written to {output_dir}")
 
-    print(f"{output_dir}")
+
+def write_output_readme(meGO_LJ, parameters, output_dir):
+    """
+    Writes a README file with the parameters used to generate the multi-eGO topology.
+
+    Parameters
+    ----------
+    parameters : dict
+        Contains the command-line parsed parameters
+    """
+    repo = git.Repo(search_parent_directories=True)
+    commit_hash = repo.head.object.hexsha
+    with open(f"{output_dir}/meGO.log", "w") as f:
+        f.write(
+            f"multi-eGO topology generated on {time.strftime('%d-%m-%Y %H:%M', time.localtime())} using commit {commit_hash}\n"
+        )
+        f.write("Parameters used to generate the topology:\n")
+        for key, value in vars(parameters).items():
+            f.write(f" - {key}: {value}\n")
+
+        # write contents of the symmetry file
+        if parameters.symmetry:
+            f.write("\nSymmetry file contents:\n")
+            # symmetry = read_symmetry_file(parameters.symmetry)
+            for line in parameters.symmetry:
+                f.write(f" - {' '.join(line)}\n")
+
+        f.write("\nContact parameters:\n")
+        # write average data intra
+        f.write("\n - Intermolecular contacts:\n")
+        f.write(
+            f"   - epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+        )
+        f.write(
+            f"   - sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n"
+        )
+        f.write(
+            f"   - number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+        )
+        f.write(
+            f"   - number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
+        )
+
+        # write average data interdomain
+        f.write("\n - Interdomain contacts:\n")
+        f.write(
+            f"   - epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+        )
+        f.write(
+            f"   - sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n"
+        )
+        f.write(
+            f"   - number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+        )
+        f.write(
+            f"   - number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
+        )
+
+        # write average data inter
+        f.write("\n - Intermolecular contacts:\n")
+        f.write(
+            f"   - epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+        )
+        f.write(f"   - sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
+        f.write(
+            f"   - number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+        )
+        f.write(
+            f"   - number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
+        )
+
+        # mdp parameters
+        f.write("\nCutoff MDP parameters:\n")
+        f.write(f" - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+        f.write(f" - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+
+
+def print_stats(meGO_LJ):
+    # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
+    intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"])])
+    interd_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"])])
+    interm_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"])])
+    intrad_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
+    interd_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
+    interm_a_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
+    intrad_r_contacts = intrad_contacts - intrad_a_contacts
+    interd_r_contacts = interd_contacts - interd_a_contacts
+    interm_r_contacts = interm_contacts - interm_a_contacts
+    intrad_a_ave_contacts = 0.000
+    intrad_a_min_contacts = 0.000
+    intrad_a_max_contacts = 0.000
+    intrad_a_s_min_contacts = 0.000
+    intrad_a_s_max_contacts = 0.000
+    interd_a_ave_contacts = 0.000
+    interd_a_min_contacts = 0.000
+    interd_a_max_contacts = 0.000
+    interd_a_s_min_contacts = 0.000
+    interd_a_s_max_contacts = 0.000
+    interm_a_ave_contacts = 0.000
+    interm_a_min_contacts = 0.000
+    interm_a_max_contacts = 0.000
+    interm_a_s_min_contacts = 0.000
+    interm_a_s_max_contacts = 0.000
+
+    if intrad_a_contacts > 0:
+        intrad_a_ave_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
+        )
+        intrad_a_min_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        )
+        intrad_a_max_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        )
+        intrad_a_s_min_contacts = (
+            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        )
+        intrad_a_s_max_contacts = (
+            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        )
+
+    if interd_a_contacts > 0:
+        interd_a_ave_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
+        )
+        interd_a_min_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        )
+        interd_a_max_contacts = (
+            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        )
+        interd_a_s_min_contacts = (
+            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        )
+        interd_a_s_max_contacts = (
+            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        )
+
+    if interm_a_contacts > 0:
+        interm_a_ave_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
+        interm_a_min_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        interm_a_max_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        interm_a_s_min_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        interm_a_s_max_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+
+    print(
+        f"""
+    - LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
+    - Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
+    - Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
+    - The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
+    - Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interd_a_min_contacts:5.3f}:{interd_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
+    - Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interd_a_s_min_contacts:5.3f}:{interd_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
+
+    RELEVANT MDP PARAMETERS:
+    - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm
+    - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm
+    """
+    )
+
+
+def get_outdir_name(output_dir, explicit_name, egos):
+    """
+    Returns the output directory name.
+
+    Parameters
+    ----------
+    output_dir : str
+        The path to the output directory
+    explicit_name : str
+        The name of the output directory
+
+    Returns
+    -------
+    output_dir : str
+        The path to the output directory
+    """
+    out = explicit_name
+    if out == "":
+        out = egos
+
+    index = 1
+    while os.path.exists(f"{output_dir}/{out}_{index}"):
+        index += 1
+        if index > 100:
+            print(f"ERROR: too many directories in {output_dir}")
+            exit()
+    output_dir = f"{output_dir}/{out}_{index}"
+
+    return output_dir
 
 
 def dataframe_to_write(df):
@@ -288,23 +609,25 @@ def make_header(parameters):
     for parameter, value in parameters.items():
         if parameter == "no_header":
             continue
-        if parameter == "multi_epsilon_inter":
-            values_list = np.array(value[np.triu_indices_from(value)], dtype=str)
-            # values_list = np.array(values_list, dtype=str)
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(values_list))
-            continue
-        if parameter == "names_inter":
+        elif parameter == "symmetry":
+            header += ";\t- {:<26}:\n".format(parameter)
+            for line in value:
+                header += f";\t  - {' '.join(line)}\n"
+        elif parameter == "names_inter":
             n = value.size
             # indices_upper_tri = np.triu_indices(n)
             tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
             continue
-        if type(value) is list:
+        elif type(value) is list:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif type(value) is np.ndarray:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+        elif type(value) is dict:
+            for key, val in value.items():
+                header += f";\t- {key} = {val}\n"
         elif not value:
             value = ""
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
@@ -350,7 +673,7 @@ def write_topology(
     with open(f"{output_folder}/topol_GRETA.top", "w") as file:
         header += """
 ; Include forcefield parameters
-#include "multi-ego-basic.ff/forcefield.itp"
+#include "ffnonbonded.itp"
 """
 
         file.write(header)
@@ -432,7 +755,7 @@ def get_name(parameters):
     return name
 
 
-def create_output_directories(parameters):
+def create_output_directories(parameters, out_dir):
     """
     Creates the output directory
 
@@ -446,35 +769,14 @@ def create_output_directories(parameters):
     output_folder : str
         The path to the output directory
     """
-    if not os.path.exists(f"{parameters.root_dir}/outputs"):
+    if not os.path.exists(f"{parameters.root_dir}/outputs") and not os.path.isdir(f"{parameters.root_dir}/outputs"):
         os.mkdir(f"{parameters.root_dir}/outputs")
-
-    if parameters.egos == "rc":
-        name = f"{parameters.system}_{parameters.egos}"
-        if parameters.out:
-            name = f"{parameters.system}_{parameters.egos}_{parameters.out}"
-    else:
-        if parameters.multi_epsi_intra is not None:
-            name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}"
-            if parameters.out:
-                name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_interdomain{ '-'.join(np.array(parameters.multi_epsilon_inter_domain, dtype=str)) }_inter{'-'.join(np.array(parameters.multi_epsilon_inter, dtype=str).flatten())}_{parameters.out}"
-            output_folder = f"{parameters.root_dir}/outputs/{name}"
-        else:
-            name = f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}"
-            if parameters.out:
-                name = (
-                    f"{parameters.system}_{parameters.egos}_e{parameters.epsilon}_{parameters.inter_epsilon}_{parameters.out}"
-                )
-    output_folder = f"{parameters.root_dir}/outputs/{name}"
-
-    if not os.path.exists(output_folder):
-        os.mkdir(output_folder)
-    if os.path.isfile(f"{parameters.root_dir}/{output_folder}/ffnonbonded.itp"):
-        os.remove(f"{parameters.root_dir}/{output_folder}/ffnonbonded.itp")
-    if os.path.isfile(f"{parameters.root_dir}/{output_folder}/topol_GRETA.top"):
-        os.remove(f"{parameters.root_dir}/{output_folder}/topol_GRETA.top")
-
-    return output_folder
+    if not os.path.exists(f"{parameters.root_dir}/outputs/{parameters.system}") and not os.path.isdir(
+        f"{parameters.root_dir}/outputs/{parameters.system}"
+    ):
+        os.mkdir(f"{parameters.root_dir}/outputs/{parameters.system}")
+    if not os.path.isdir(out_dir) and not os.path.exists(out_dir):
+        os.mkdir(out_dir)
 
 
 def check_files_existence(args):
@@ -495,7 +797,7 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = [args.reference] + args.train + args.check
+    md_ensembles = args.reference + args.train + args.check
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
