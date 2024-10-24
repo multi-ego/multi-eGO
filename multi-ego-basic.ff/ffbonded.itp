@@ -242,6 +242,9 @@
 #define gi_2      35.26439   334.84617
 ; tetrahedral centres   80      
 ;
+#define gi_2d    -35.26439   334.84617
+; tetrahedral for d amino acids centres   80      
+;
 #define gi_3           0.0   669.69235
 ; heme iron     160     
 ;

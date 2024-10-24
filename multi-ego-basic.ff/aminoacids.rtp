@@ -1109,7 +1109,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1162,7 +1162,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CZ   NH1   NH2    NE     gi_1    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1212,7 +1212,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   OD1   ND2    CB     gi_1    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1259,7 +1259,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   OD1   OD2    CB     gi_1    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1299,7 +1299,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1337,7 +1337,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1385,7 +1385,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CD   OE1   NE2    CG     gi_1    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1493,7 +1493,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   ND1   CD2    CB     gi_1    
    CG   ND1   CE1   NE2     gi_1    
    CG   CD2   NE2   CE1     gi_1    
@@ -1545,7 +1545,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CB   CG1   CG2    CA     gi_2    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1592,7 +1592,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CB   CD1   CD2    CG     gi_2    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -1641,7 +1641,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1688,7 +1688,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1747,7 +1747,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   CD1   CD2    CB     gi_1    
    CG   CD1   CE1    CZ     gi_1    
    CG   CD2   CE2    CZ     gi_1    
@@ -1801,7 +1801,7 @@
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
     N    -C    CA    CD     gi_1    
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1842,7 +1842,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1885,7 +1885,7 @@
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
    CA     N     C    CB     gi_2    
-   CB   OG1   CG2    CA     gi_2    
+   CB   OG1   CG2    CA     gi_2d    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
@@ -1956,7 +1956,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   CD1   CD2    CB     gi_1    
    CG   CD1   NE1   CE2     gi_1    
    CG   CD2   CE2   NE1     gi_1    
@@ -2032,7 +2032,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CG   CD1   CD2    CB     gi_1    
    CG   CD1   CE1    CZ     gi_1    
    CG   CD2   CE2    CZ     gi_1    
@@ -2083,7 +2083,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
-   CA     N     C    CB     gi_2    
+   CA     N     C    CB     gi_2d    
    CA   CG1   CG2    CB     gi_2    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
