@@ -2,6 +2,7 @@ import argparse
 import sys
 import os
 import parmed as pmd
+import time
 
 from src.multiego import ensemble
 from src.multiego import io
@@ -180,16 +181,41 @@ def get_meGO_LJ(meGO_ensemble, args):
     meGO_LJ_14 : pandas.DataFrame
         A dataframe containing LJ parameters for 1-4 interactions in the multi-eGO ensemble.
     """
+    st = time.time()
+    print("\t- Generating 1-4 data")
     pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
+    # get the end time
+    et = time.time()
+    # get the execution time
+    elapsed_time = et - st
+    st = et
+    print("\t- Done in:", elapsed_time, "seconds")
     if args.egos == "rc":
         meGO_LJ = ensemble.generate_basic_LJ(meGO_ensemble, args)
         meGO_LJ_14 = pairs14
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
     else:
+        print("\t- Initializing LJ dataset")
         train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args)
+        # get the end time
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+        print("\t- Generate LJ dataset")
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
+        # get the end time
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
 
+    print("\t- Finalize pairs and exclusions")
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("\t- Done in:", elapsed_time, "seconds")
 
     return meGO_LJ, meGO_LJ_14
 
@@ -209,14 +235,32 @@ def main():
     io.check_files_existence(args)
 
     print("- Initializing Multi-eGO model")
+    st = time.time()
     meGO_ensembles = ensemble.init_meGO_ensemble(args)
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("- Done in:", elapsed_time, "seconds")
+    print("- Generate bonded interactions")
     meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("- Done in:", elapsed_time, "seconds")
 
     print("- Generating Multi-eGO model")
     meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("- Done in:", elapsed_time, "seconds")
 
     generate_face.print_goodbye()
 

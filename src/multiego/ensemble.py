@@ -10,6 +10,7 @@ import parmed
 import os
 import warnings
 import itertools
+import time
 
 
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
@@ -245,11 +246,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             p_sort_normalized = np.cumsum(p_sort_id) / norm_id
             md_threshold_id = p_sort_id[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
-        # needed to obtain the correct epsilon
-        contact_matrix["molecule_idx_ai_temp"] = contact_matrix["molecule_name_ai"].str.split("_").str[0]
-        contact_matrix["molecule_idx_aj_temp"] = contact_matrix["molecule_name_aj"].str.split("_").str[0]
-
-        # set the epsilon_0 this simplify a lot of the following code
+        # set zf this simplify a lot of the following code
         # for intra-domain
         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "zf"] = args.f
         # for inter-domain
@@ -257,6 +254,7 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         # for inter-molecular
         contact_matrix.loc[(~contact_matrix["same_chain"]), "zf"] = args.inter_f
 
+        # set the epsilon_0 this simplify a lot of the following code
         molecules = list(
             np.unique(
                 np.concatenate(
@@ -269,16 +267,18 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
         )
         mol_1 = molecules[0]
         mol_2 = mol_1 if len(molecules) == 1 else molecules[1]
+
         contact_matrix.loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"]), "epsilon_0"] = (
-            args.multi_epsilon_intra[molecules[0]]
+            args.multi_epsilon_intra[mol_1]
         )
         contact_matrix.loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"]), "epsilon_0"] = (
-            args.multi_epsilon_inter_domain[molecules[0]]
+            args.multi_epsilon_inter_domain[mol_1]
         )
         contact_matrix.loc[(~contact_matrix["same_chain"]), "epsilon_0"] = args.multi_epsilon_inter[mol_1][mol_2]
 
         # add the columns for rc, md threshold
-        contact_matrix = contact_matrix.assign(md_threshold=md_threshold)
+        # contact_matrix = contact_matrix.assign(md_threshold=md_threshold)
+        contact_matrix["md_threshold"] = md_threshold
         contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
         contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
             1.0 / (1.0 - (args.epsilon_min / contact_matrix["epsilon_0"]))
@@ -296,13 +296,6 @@ def initialize_molecular_contacts(contact_matrix, path, ensemble_molecules_idx_s
             tmp_f_max = contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (contact_matrix["intra_domain"])]
             if not tmp_f_max.empty:
                 f_max = 1.0 / tmp_f_max.iloc[0]
-                print(
-                    f"""------------------
-Partition function correction selected for intra-molecular interaction.
-Minimum value for f={f_min}
-Maximum value for f={f_max}
-----------------------"""
-                )
                 if args.f > f_max:
                     print(
                         f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value"
@@ -313,13 +306,6 @@ Maximum value for f={f_max}
             tmp_f_max = contact_matrix["rc_threshold"].loc[(~contact_matrix["same_chain"])]
             if not tmp_f_max.empty:
                 f_max = 1.0 / tmp_f_max.iloc[0]
-                print(
-                    f"""------------------
-Partition function correction selected for inter-molecular interaction.
-Minimum value for f={f_min}
-Maximum value for f={f_max}
-----------------------"""
-                )
                 if args.inter_f > f_max:
                     print(
                         f"f is not in the correct range:\n f_max={f_max} > f={args.inter_f} > f_min={f_min}. Choose a proper value"
@@ -330,14 +316,6 @@ Maximum value for f={f_max}
             tmp_f_max = contact_matrix["rc_threshold"].loc[(contact_matrix["same_chain"]) & (~contact_matrix["intra_domain"])]
             if not tmp_f_max.empty:
                 f_max = 1.0 / tmp_f_max.iloc[0]
-
-                print(
-                    f"""------------------
-Partition function correction selected for inter-domain interaction.
-Minimum value for f={f_min}
-Maximum value for f={f_max}
-----------------------"""
-                )
                 if args.inter_domain_f > f_max:
                     print(
                         f"f is not in the correct range:\n f_max={f_max} > f={args.inter_domain_f} > f_min={f_min}. Choose a proper value"
@@ -374,10 +352,8 @@ def init_meGO_ensemble(args):
     - The returned 'ensemble' dictionary encapsulates crucial details of the initialized ensemble for further analysis or processing.
     """
 
-    # we initialize the reference topology
-    # reference_paths = [ f"{args.root_dir}/inputs/{args.system}/{reference}" for reference in args.reference ]
-    # ensemble_type = reference_path.split("/")[-1]
-    # print("\t-", f"Initializing {ensemble_type} ensemble topology")
+    st = time.time()
+    print("\t-", f"Initializing system topology")
     base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
 
     if not os.path.isfile(base_topology_path):
@@ -386,7 +362,7 @@ def init_meGO_ensemble(args):
     # reading the custom dictionary for trainging to multi-eGO translation of atom names
     custom_dict = type_definitions.parse_json(args.custom_dict)
 
-    print("\t-", f"Reading {base_topology_path}")
+    print("\t\t-", f"Reading {base_topology_path}")
     # ignore the dihedral type overriding in parmed
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -455,6 +431,11 @@ def init_meGO_ensemble(args):
     ensemble["train_matrix_tuples"] = []
     ensemble["check_matrix_tuples"] = []
 
+    et = time.time()
+    elapsed_time = et - st
+    st = et
+    print("\t- Done in:", elapsed_time, "seconds")
+
     if args.egos == "rc":
         return ensemble
 
@@ -471,7 +452,7 @@ def init_meGO_ensemble(args):
         if not os.path.isfile(topology_path):
             raise FileNotFoundError(f"{topology_path} not found.")
 
-        print("\t-", f"Reading {topology_path}")
+        print("\t\t-", f"Reading {topology_path}")
         # ignore the dihedral type overriding in parmed
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -520,6 +501,11 @@ def init_meGO_ensemble(args):
             ref_name = ref_name[0]
             ensemble["train_matrix_tuples"].append((name, ref_name))
 
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+
     ensemble["train_matrices"] = train_contact_matrices
 
     comparison_set = set()
@@ -549,7 +535,7 @@ def init_meGO_ensemble(args):
         topology_path = f"{simulation_path}/topol.top"
         if not os.path.isfile(topology_path):
             raise FileNotFoundError(f"{topology_path} not found.")
-        print("\t-", f"Reading {topology_path}")
+        print("\t\t-", f"Reading {topology_path}")
         # ignore the dihedral type overriding in parmed
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -594,6 +580,11 @@ def init_meGO_ensemble(args):
             ref_name = ref_name.replace(".ndx", "")
             ref_name = ref_name.replace(".gz", "")
             ensemble["check_matrix_tuples"].append((name, ref_name))
+
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
 
     ensemble["check_matrices"] = check_contact_matrices
 
@@ -1429,6 +1420,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     pd.DataFrame
         A pandas DataFrame containing the molecular ensemble data with applied symmetries.
     """
+
     # Step 1: Initialize variables
     dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
@@ -1502,13 +1494,8 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     meGO_LJ_14 : pd.DataFrame
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
-    # This keep only significant attractive/repulsive interactions
-    meGO_LJ = train_dataset.copy()
-    # remove intramolecular excluded interactions
-    meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_2_3") & (meGO_LJ["1-4"] != "0")]
-
-    # The index has been reset as here I have issues with multiple index duplicates. The same contact is kept twice: one for intra and one for inter.
-    # The following pandas functions cannot handle multiple rows with the same index although it has been defined the "same_chain" filter.
+    # copy but remove intramolecular excluded interactions
+    meGO_LJ = train_dataset.loc[(train_dataset["1-4"] != "1_2_3") & (train_dataset["1-4"] != "0")].copy()
     meGO_LJ.reset_index(inplace=True)
 
     # when distance estimates are poor we use the cutoff value
@@ -1536,17 +1523,6 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
 
     # add a flag to identify learned contacts
     meGO_LJ["learned"] = 1
-
-    # apply symmetries for equivalent atoms
-    if parameters.symmetry:
-        # symmetries = io.read_symmetry_file(parameters.symmetry)
-        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
-        meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
-        meGO_LJ.reset_index(inplace=True)
-
-    # meGO consistency checks
-    consistency_checks(meGO_LJ)
-
     # meGO needed fields
     needed_fields = [
         "molecule_name_ai",
@@ -1571,7 +1547,17 @@ def generate_LJ(meGO_ensemble, train_dataset, check_dataset, parameters):
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
 
-    print("\t- Merging multiple states (training, symmetries, inter/intra, check)")
+    # apply symmetries for equivalent atoms
+    if parameters.symmetry:
+        # symmetries = io.read_symmetry_file(parameters.symmetry)
+        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
+        meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
+        meGO_LJ.reset_index(inplace=True)
+
+    # meGO consistency checks
+    consistency_checks(meGO_LJ)
+
+    print("\t\t- Merging multiple states (training, symmetries, inter/intra, check)")
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.

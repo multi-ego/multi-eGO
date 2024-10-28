@@ -246,61 +246,39 @@ def parse_symmetry_list(symmetry_list):
 def read_molecular_contacts(path):
     """
     Reads intra-/intermat files to determine molecular contact statistics.
-
-    Parameters
-    ----------
-    path : str
-        The path to the file
-
-    Returns
-    -------
-    contact_matrix : pd.DataFrame
-        The content of the intra-/intermat file returned as a dataframe with columns
-        ['molecule_number_ai', 'ai', 'molecule_number_aj', 'aj', 'distance', 'probability', 'cutoff']
     """
+    print("\t\t-", f"Reading {path}")
 
-    print("\t-", f"Reading {path}")
-    contact_matrix = pd.read_csv(path, header=None, sep="\s+")
-    if contact_matrix.shape[1] == 7:
-        contact_matrix.insert(7, 7, 1)
-    contact_matrix.columns = [
-        "molecule_number_ai",
-        "ai",
-        "molecule_number_aj",
-        "aj",
-        "distance",
-        "probability",
-        "cutoff",
-        "intra_domain",
-    ]
-    contact_matrix["molecule_number_ai"] = contact_matrix["molecule_number_ai"].astype(str)
-    contact_matrix["ai"] = contact_matrix["ai"].astype(str)
-    contact_matrix["molecule_number_aj"] = contact_matrix["molecule_number_aj"].astype(str)
-    contact_matrix["aj"] = contact_matrix["aj"].astype(str)
-    contact_matrix["intra_domain"] = contact_matrix["intra_domain"].astype(bool)
+    # Define column names and data types directly during read
+    col_names = ["molecule_number_ai", "ai", "molecule_number_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
+    col_types = {
+        "molecule_number_ai": str,
+        "ai": str,
+        "molecule_number_aj": str,
+        "aj": str,
+        "distance": np.float64,
+        "probability": np.float64,
+        "cutoff": np.float64,
+    }
+    contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
+    contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
 
-    if len(contact_matrix.loc[(contact_matrix["probability"] < 0) | (contact_matrix["probability"] > 1)].values) > 0:
-        print("ERROR: check your matrix, probabilities should be between 0 and 1.")
-        exit()
-    if (
-        len(
-            contact_matrix.loc[
-                (contact_matrix["distance"] < 0) | (contact_matrix["distance"] > contact_matrix["cutoff"])
-            ].values
-        )
-        > 0
-    ):
-        print("ERROR: check your matrix, distances should be between 0 and cutoff (last column)")
-        exit()
-    if len(contact_matrix.loc[(contact_matrix["cutoff"] < 0)].values) > 0:
-        print("ERROR: check your matrix, cutoff values cannot be negative")
-        exit()
-    if contact_matrix.isnull().values.any():
-        print("ERROR: check your matrix, it contains NAN values")
-        exit()
-    if np.isinf(contact_matrix[["probability", "distance", "cutoff"]]).values.any():
-        print("ERROR: check your matrix, it contains INF values")
-        exit()
+    # Validation checks using `query` for more efficient conditional filtering
+    if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
+        raise ValueError("ERROR: Probabilities should be between 0 and 1.")
+
+    if contact_matrix.query("distance < 0 or distance > cutoff").shape[0] > 0:
+        raise ValueError("ERROR: Distances should be between 0 and cutoff.")
+
+    if contact_matrix.query("cutoff < 0").shape[0] > 0:
+        raise ValueError("ERROR: Cutoff values cannot be negative.")
+
+    # Check for NaN or infinite values in critical columns
+    if contact_matrix[["probability", "distance", "cutoff"]].isnull().any().any():
+        raise ValueError("ERROR: The matrix contains NaN values.")
+
+    if np.isinf(contact_matrix[["probability", "distance", "cutoff"]].values).any():
+        raise ValueError("ERROR: The matrix contains INF values.")
 
     return contact_matrix
 
