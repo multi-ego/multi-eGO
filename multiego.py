@@ -117,7 +117,7 @@ for a contact pair.
     if not args.multi_epsilon_inter_domain and args.inter_domain_epsilon:
         args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
     if not args.multi_epsilon_inter_domain and not args.inter_domain_epsilon:
-        args.multi_epsilon_inter_domain = args.multi_epsilon_intra 
+        args.multi_epsilon_inter_domain = args.multi_epsilon_intra
     if not args.multi_epsilon_inter and args.inter_epsilon:
         args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
     if not args.multi_epsilon_inter and not args.inter_epsilon:
@@ -154,7 +154,7 @@ for a contact pair.
             print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
             sys.exit()
 
-    custom_c12_dict = pd.DataFrame() 
+    custom_c12_dict = pd.DataFrame()
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         if custom_c12_dict is None or custom_c12_dict.empty:

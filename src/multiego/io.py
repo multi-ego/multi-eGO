@@ -261,7 +261,7 @@ def parse_symmetry_list(symmetry_list):
     return symmetry
 
 
-def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simulation, h5 = False):
+def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simulation, h5=False):
     """
     Reads intra-/intermat files to determine molecular contact statistics.
     """
@@ -277,7 +277,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         "distance": np.float64,
         "probability": np.float64,
         "cutoff": np.float64,
-        "intra_domain": "Int64"  # Allows for integer with NaNs, which can be cast later
+        "intra_domain": "Int64",  # Allows for integer with NaNs, which can be cast later
     }
 
     contact_matrix = pd.DataFrame()
@@ -285,15 +285,15 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
         contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
     else:
-        contact_matrix = pd.read_hdf(path, key='data', dtype=col_types)
+        contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)
 
     t1 = time.time()
-    print("\t\t\t- Read in:", t1-st)
+    print("\t\t\t- Read in:", t1 - st)
 
-    contact_matrix['molecule_name_ai'] = contact_matrix['molecule_name_ai'].astype('category')
-    contact_matrix['ai'] = contact_matrix['ai'].astype('category')
-    contact_matrix['molecule_name_aj'] = contact_matrix['molecule_name_aj'].astype('category')
-    contact_matrix['aj'] = contact_matrix['aj'].astype('category')
+    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].astype("category")
+    contact_matrix["ai"] = contact_matrix["ai"].astype("category")
+    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].astype("category")
+    contact_matrix["aj"] = contact_matrix["aj"].astype("category")
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -312,19 +312,21 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if np.isinf(contact_matrix[["probability", "distance", "cutoff"]].values).any():
         raise ValueError("ERROR: The matrix contains INF values.")
 
-    molecule_names_dictionary = {name.split("_", 1)[0]: name.split("_", 1)[1] for name in ensemble_molecules_idx_sbtype_dictionary}
+    molecule_names_dictionary = {
+        name.split("_", 1)[0]: name.split("_", 1)[1] for name in ensemble_molecules_idx_sbtype_dictionary
+    }
 
     # Concatenate with mapped values and convert to category in one step
-    contact_matrix['molecule_name_ai'] = (
-        contact_matrix['molecule_name_ai']
-        .str.cat(contact_matrix['molecule_name_ai'].map(molecule_names_dictionary), sep='_')
-        .astype('category')  # Convert to category after concatenation
+    contact_matrix["molecule_name_ai"] = (
+        contact_matrix["molecule_name_ai"]
+        .str.cat(contact_matrix["molecule_name_ai"].map(molecule_names_dictionary), sep="_")
+        .astype("category")  # Convert to category after concatenation
     )
 
-    contact_matrix['molecule_name_aj'] = (
-        contact_matrix['molecule_name_aj']
-        .str.cat(contact_matrix['molecule_name_aj'].map(molecule_names_dictionary), sep='_')
-        .astype('category')  # Convert to category after concatenation
+    contact_matrix["molecule_name_aj"] = (
+        contact_matrix["molecule_name_aj"]
+        .str.cat(contact_matrix["molecule_name_aj"].map(molecule_names_dictionary), sep="_")
+        .astype("category")  # Convert to category after concatenation
     )
 
     contact_matrix["ai"] = contact_matrix["ai"].map(
@@ -341,21 +343,20 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
     contact_matrix = contact_matrix.drop(
-    contact_matrix[(contact_matrix["ai"].str.startswith("H")) | 
-                   (contact_matrix["aj"].str.startswith("H"))].index
+        contact_matrix[(contact_matrix["ai"].str.startswith("H")) | (contact_matrix["aj"].str.startswith("H"))].index
     )
 
     contact_matrix = contact_matrix.assign(
         same_chain=name[0] == "intramat",
         source=pd.Categorical([simulation] * len(contact_matrix)),  # Convert to category
-        file=pd.Categorical(["_".join(name)] * len(contact_matrix))
+        file=pd.Categorical(["_".join(name)] * len(contact_matrix)),
     )
 
     contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
     t2 = time.time()
-    print("\t\t\t- Processesed in:", t2-t1)
+    print("\t\t\t- Processesed in:", t2 - t1)
 
     return contact_matrix
 

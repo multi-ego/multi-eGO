@@ -26,7 +26,7 @@ col_types = {
     "distance": np.float32,
     "probability": np.float32,
     "cutoff": np.float32,
-    "intra_domain": "Int64"  # Allows for integer with NaNs, which can be cast later
+    "intra_domain": "Int64",  # Allows for integer with NaNs, which can be cast later
 }
 
 # Read the input file with specified column names and data types
@@ -34,12 +34,6 @@ contact_matrix = pd.read_csv(args.input_file, header=None, sep="\s+", names=col_
 contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
 
 # Save the data as HDF5 with compression
-contact_matrix.to_hdf(
-    output_file,
-    key='data',
-    mode='w',
-    complib='blosc:lz4',
-    complevel=9
-)
+contact_matrix.to_hdf(output_file, key="data", mode="w", complib="blosc:lz4", complevel=9)
 
 print(f"Data successfully saved to {output_file}")

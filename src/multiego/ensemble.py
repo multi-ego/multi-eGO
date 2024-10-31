@@ -235,9 +235,7 @@ def initialize_molecular_contacts(contact_matrix, args):
         if not tmp_f_max.empty:
             f_max = 1.0 / tmp_f_max.iloc[0]
             if args.f > f_max:
-                print(
-                    f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value"
-                )
+                print(f"f is not in the correct range:\n f_max={f_max} > f={args.f} > f_min={f_min}. Choose a proper value")
                 exit()
 
     if args.inter_f != 1:
@@ -354,14 +352,18 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.h5")
         if matrix_paths == []:
-            raise FileNotFoundError("Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)")
+            raise FileNotFoundError(
+                "Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+            )
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
             name = name.replace(".ndx", "")
             name = name.replace(".gz", "")
             name = name.replace(".h5", "")
-            reference_contact_matrices[name] = io.read_molecular_contacts(path, ensemble["molecules_idx_sbtype_dictionary"], reference, path.endswith('.h5')) 
+            reference_contact_matrices[name] = io.read_molecular_contacts(
+                path, ensemble["molecules_idx_sbtype_dictionary"], reference, path.endswith(".h5")
+            )
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
 
         et = time.time()
@@ -406,14 +408,18 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.gz")
         matrix_paths = matrix_paths + glob.glob(f"{simulation_path}/int??mat_?_?.ndx.h5")
         if matrix_paths == []:
-            raise FileNotFoundError("Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)")
+            raise FileNotFoundError(
+                "Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+            )
         for path in matrix_paths:
             name = path.replace(f"{args.root_dir}/inputs/", "")
             name = name.replace("/", "_")
             name = name.replace(".ndx", "")
             name = name.replace(".gz", "")
             name = name.replace(".h5", "")
-            train_contact_matrices[name] = io.read_molecular_contacts(path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith('.h5')) 
+            train_contact_matrices[name] = io.read_molecular_contacts(
+                path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
+            )
             train_contact_matrices[name] = initialize_molecular_contacts(
                 train_contact_matrices[name],
                 args,
@@ -421,7 +427,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             # ref_name = reference_path + "_" + path.split("/")[-1]
             # find corresponding reference matrix (given by the number_number at the end of the name)
             # using reference contact matrices
-            identifier = f'_{("_").join(path.split("/")[-1].replace(".ndx", "").replace(".gz", "").replace(".h5", "").split("_")[-3:])}'
+            identifier = (
+                f'_{("_").join(path.split("/")[-1].replace(".ndx", "").replace(".gz", "").replace(".h5", "").split("_")[-3:])}'
+            )
             ref_name = [key for key in reference_contact_matrices.keys() if key.endswith(identifier)]
             if ref_name == []:
                 raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
@@ -439,9 +447,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
-            comparison_set = set(
-                comparison_dataframe[~comparison_dataframe["name"].str.startswith("H")]["name"].to_list()
-            )
+            comparison_set = set(comparison_dataframe[~comparison_dataframe["name"].str.startswith("H")]["name"].to_list())
         else:
             raise RuntimeError("the molecule names in the training topologies do not match those in the reference")
 
@@ -681,7 +687,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     return train_dataset
 
 
-def generate_basic_LJ(meGO_ensemble, args, matrices = None):
+def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
 
@@ -785,7 +791,7 @@ def generate_basic_LJ(meGO_ensemble, args, matrices = None):
             temp_basic_LJ["molecule_name_ai"] = ensemble["rc_molecule_name_ai"]
             temp_basic_LJ["molecule_name_aj"] = ensemble["rc_molecule_name_aj"]
             temp_basic_LJ["source"] = "basic"
- 
+
             atom_set_i = topol_df[topol_df["molecule_number"] == mol_num_i]["type"]
             atom_set_j = topol_df[topol_df["molecule_number"] == mol_num_j]["type"]
             c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float32)
@@ -796,12 +802,12 @@ def generate_basic_LJ(meGO_ensemble, args, matrices = None):
             temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
             temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
             temp_basic_LJ = temp_basic_LJ[oxygen_mask]
-            #temp_basic_LJ["ai"], temp_basic_LJ["aj"] = temp_basic_LJ[["ai", "aj"]].min(axis=1), temp_basic_LJ[["ai", "aj"]].max(
+            # temp_basic_LJ["ai"], temp_basic_LJ["aj"] = temp_basic_LJ[["ai", "aj"]].min(axis=1), temp_basic_LJ[["ai", "aj"]].max(
             #    axis=1
-            #)
+            # )
             temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
             temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
- 
+
             basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
 
     basic_LJ["probability"] = 1.0
@@ -1131,7 +1137,7 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
         elapsed_time = et - st
         st = et
         print("\t\t- Done in:", elapsed_time, "seconds")
-        
+
     # meGO consistency checks
     consistency_checks(meGO_LJ)
 
