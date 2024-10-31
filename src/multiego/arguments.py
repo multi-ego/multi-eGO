@@ -25,12 +25,6 @@ args_dict = {
         "help": "A list of the training simulations to be included in multi-eGO, "
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
-    "--check": {
-        "type": lambda x: x.split(","),
-        "default": [],
-        "help": "A list of the simulations corresponding to the subfolders used to check "
-        "whether the contacts learned are compatible with those provided in here.",
-    },
     "--inter_epsilon": {
         "type": float,
         "help": "Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",

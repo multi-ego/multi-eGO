@@ -2,7 +2,9 @@ import argparse
 import sys
 import os
 import parmed as pmd
+import pandas as pd
 import time
+import gc
 
 from src.multiego import ensemble
 from src.multiego import io
@@ -112,10 +114,14 @@ for a contact pair.
         args.inter_domain_epsilon = args.epsilon
     if not args.multi_epsilon_intra:
         args.multi_epsilon_intra = {k: v for k, v in zip(args.names, [args.epsilon] * len(args.names))}
-    if not args.multi_epsilon_inter_domain:
+    if not args.multi_epsilon_inter_domain and args.inter_domain_epsilon:
         args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
-    if not args.multi_epsilon_inter:
+    if not args.multi_epsilon_inter_domain and not args.inter_domain_epsilon:
+        args.multi_epsilon_inter_domain = args.multi_epsilon_intra 
+    if not args.multi_epsilon_inter and args.inter_epsilon:
         args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
+    if not args.multi_epsilon_inter and not args.inter_epsilon:
+        args.multi_epsilon_inter = args.multi_epsilon_intra
 
     # check all epsilons are set and greater than epsilon_min
     if args.egos != "rc":
@@ -141,83 +147,26 @@ for a contact pair.
     elif args.symmetry:
         args.symmetry = io.parse_symmetry_list(args.symmetry)
 
+    custom_dict = {}
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)
         if custom_dict == None:
-            print("WARNING: Custom dictionary was parsed, but the dictionary is empty")
+            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
+            sys.exit()
+
+    custom_c12_dict = pd.DataFrame() 
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        if custom_c12_dict is None or custom_c12_dict.empty:
+            print("ERROR: Custom c12 paramter file was parsed, but the dictionary is empty")
+            sys.exit()
 
     if remaining:
         print("Unknown arguments provided: " + str(remaining))
         parser.print_usage()
         sys.exit()
 
-    return args
-
-
-def get_meGO_LJ(meGO_ensemble, args):
-    """
-    This function generates Lennard-Jones (LJ) parameters for the multi-eGO ensemble based on the provided ensemble
-    and command-line arguments.
-
-    If the argument 'egos' is 'rc' (random coil), it generates basic LJ parameters for the ensemble.
-    If 'egos' is 'production' or any other mode, it initializes LJ datasets, trains LJ parameters,
-    and creates LJ pairs for 1-4 interactions.
-
-    The resulting LJ parameters for 1-4 interactions are manipulated to get epsilon values,
-    and a topology for exclusion pairs is created within the multi-eGO ensemble.
-    The function returns two dataframes - meGO_LJ (LJ parameters) and meGO_LJ_14 (LJ parameters for 1-4 interactions).
-
-    Parameters
-    ----------
-    meGO_ensemble : dict
-        A dictionary containing the initialized multi-eGO ensemble.
-    args : argparse.Namespace
-        An object containing parsed arguments.
-
-    Returns
-    -------
-    meGO_LJ : pandas.DataFrame
-        A dataframe containing LJ parameters for the multi-eGO ensemble.
-    meGO_LJ_14 : pandas.DataFrame
-        A dataframe containing LJ parameters for 1-4 interactions in the multi-eGO ensemble.
-    """
-    st = time.time()
-    print("\t- Generating 1-4 data")
-    pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensemble)
-    # get the end time
-    et = time.time()
-    # get the execution time
-    elapsed_time = et - st
-    st = et
-    print("\t- Done in:", elapsed_time, "seconds")
-    if args.egos == "rc":
-        meGO_LJ = ensemble.generate_basic_LJ(meGO_ensemble, args)
-        meGO_LJ_14 = pairs14
-        meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
-    else:
-        print("\t- Initializing LJ dataset")
-        train_dataset, check_dataset = ensemble.init_LJ_datasets(meGO_ensemble, pairs14, exclusion_bonds14, args)
-        # get the end time
-        et = time.time()
-        elapsed_time = et - st
-        st = et
-        print("\t- Done in:", elapsed_time, "seconds")
-        print("\t- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensemble, train_dataset, check_dataset, args)
-        # get the end time
-        et = time.time()
-        elapsed_time = et - st
-        st = et
-        print("\t- Done in:", elapsed_time, "seconds")
-
-    print("\t- Finalize pairs and exclusions")
-    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14)
-    et = time.time()
-    elapsed_time = et - st
-    st = et
-    print("\t- Done in:", elapsed_time, "seconds")
-
-    return meGO_LJ, meGO_LJ_14
+    return args, custom_dict
 
 
 def main():
@@ -226,34 +175,72 @@ def main():
     related to ensemble generation, LJ parameter computation, and writing the output.
     """
 
-    args = meGO_parsing()
+    print("Multi-eGO")
+    args, custom_dict = meGO_parsing()
 
     if not args.no_header:
         generate_face.print_welcome()
 
     print("- Checking for input files and folders")
     io.check_files_existence(args)
+    if args.egos != "rc":
+        io.check_matrix_format(args)
 
-    print("- Initializing Multi-eGO model")
+    print("- Processing Multi-eGO topology")
     st = time.time()
-    meGO_ensembles = ensemble.init_meGO_ensemble(args)
-    et = time.time()
-    elapsed_time = et - st
-    st = et
-    print("- Done in:", elapsed_time, "seconds")
-    print("- Generate bonded interactions")
+    meGO_ensembles = ensemble.init_meGO_ensemble(args, custom_dict)
+    print("\t- Generating bonded interactions")
     meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
+    print("\t- Generating 1-4 data")
+    pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensembles)
     et = time.time()
     elapsed_time = et - st
     st = et
     print("- Done in:", elapsed_time, "seconds")
 
     print("- Generating Multi-eGO model")
-    meGO_LJ, meGO_LJ_14 = get_meGO_LJ(meGO_ensembles, args)
+    if args.egos != "rc":
+        print("\t- Processing Multi-eGO contact matrices")
+        meGO_ensembles, matrices = ensemble.init_meGO_matrices(meGO_ensembles, args, custom_dict)
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+        print("\t- Initializing LJ dataset")
+        train_dataset = ensemble.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
+        basic_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args, matrices)
+        # force memory cleaning to decrease footprint in case of large dataset
+        del matrices
+        gc.collect()
+        # get the end time
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+        print("\t- Generate LJ dataset")
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, basic_LJ, args)
+        # get the end time
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+    else:
+        print("\t- Generate LJ dataset")
+        meGO_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args)
+        meGO_LJ_14 = pairs14
+        meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
+        # get the end time
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("\t- Done in:", elapsed_time, "seconds")
+
+    print("\t- Finalize pairs and exclusions")
+    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14)
     et = time.time()
     elapsed_time = et - st
     st = et
-    print("- Done in:", elapsed_time, "seconds")
+    print("\t- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)

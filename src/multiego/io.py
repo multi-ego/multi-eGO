@@ -1,11 +1,10 @@
 import numpy as np
 import pandas as pd
-import time
 import glob
 import os
 import yaml
 import git
-
+import time
 
 final_fields = [
     "ai",
@@ -93,7 +92,7 @@ def combine_configurations(yml, args, args_dict):
     return args
 
 
-def strip_gz_suffix(filename):
+def strip_gz_h5_suffix(filename):
     """
     Remove the '.gz' suffix from a filename if it ends with '.gz'.
 
@@ -110,6 +109,10 @@ def strip_gz_suffix(filename):
     """
     if filename.endswith(".gz"):
         return filename[:-3]
+
+    if filename.endswith(".h5"):
+        return filename[:-3]
+
     return filename
 
 
@@ -136,14 +139,31 @@ def check_matrix_compatibility(input_path):
     """
     matrix_paths = glob.glob(f"{input_path}/int??mat_?_?.ndx")
     matrix_paths_gz = glob.glob(f"{input_path}/int??mat_?_?.ndx.gz")
-    stripped_matrix_paths_gz_set = set(map(strip_gz_suffix, matrix_paths_gz))
+    matrix_paths_h5 = glob.glob(f"{input_path}/int??mat_?_?.ndx.h5")
+    stripped_matrix_paths_gz_set = set(map(strip_gz_h5_suffix, matrix_paths_gz))
+    stripped_matrix_paths_h5_set = set(map(strip_gz_h5_suffix, matrix_paths_h5))
     matrix_paths_set = set(matrix_paths)
+
     # Find intersection of the two sets
     common_files = matrix_paths_set.intersection(stripped_matrix_paths_gz_set)
 
     # Check if there are any common elements and raise an error if there are
     if common_files:
-        raise ValueError(f"Error: Some files have both non-gz and gz versions: {common_files}")
+        raise ValueError(f"Error: Some files have both text and gz versions: {common_files}")
+
+    # Find intersection of the two sets
+    common_files = matrix_paths_set.intersection(stripped_matrix_paths_h5_set)
+
+    # Check if there are any common elements and raise an error if there are
+    if common_files:
+        raise ValueError(f"Error: Some files have both text and hdf5 versions: {common_files}")
+
+    # Find intersection of the two sets
+    common_files = stripped_matrix_paths_gz_set.intersection(stripped_matrix_paths_h5_set)
+
+    # Check if there are any common elements and raise an error if there are
+    if common_files:
+        raise ValueError(f"Error: Some files have both gz and hdf5 versions: {common_files}")
 
 
 def check_matrix_format(args):
@@ -172,12 +192,10 @@ def check_matrix_format(args):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found in any directory.
     """
-    reference_path = f"{args.root_dir}/inputs/{args.system}/{args.reference}"
-    check_matrix_compatibility(reference_path)
-    for simulation in args.train:
+    for simulation in args.reference:
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         check_matrix_compatibility(simulation_path)
-    for simulation in args.check:
+    for simulation in args.train:
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         check_matrix_compatibility(simulation_path)
 
@@ -243,25 +261,39 @@ def parse_symmetry_list(symmetry_list):
     return symmetry
 
 
-def read_molecular_contacts(path):
+def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simulation, h5 = False):
     """
     Reads intra-/intermat files to determine molecular contact statistics.
     """
-    print("\t\t-", f"Reading {path}")
-
+    print("\t\t\t-", f"Reading {path}")
+    st = time.time()
     # Define column names and data types directly during read
-    col_names = ["molecule_number_ai", "ai", "molecule_number_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
+    col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
     col_types = {
-        "molecule_number_ai": str,
+        "molecule_name_ai": str,
         "ai": str,
-        "molecule_number_aj": str,
+        "molecule_name_aj": str,
         "aj": str,
         "distance": np.float64,
         "probability": np.float64,
         "cutoff": np.float64,
+        "intra_domain": "Int64"  # Allows for integer with NaNs, which can be cast later
     }
-    contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
-    contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
+
+    contact_matrix = pd.DataFrame()
+    if not h5:
+        contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
+        contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
+    else:
+        contact_matrix = pd.read_hdf(path, key='data', dtype=col_types)
+
+    t1 = time.time()
+    print("\t\t\t- Read in:", t1-st)
+
+    contact_matrix['molecule_name_ai'] = contact_matrix['molecule_name_ai'].astype('category')
+    contact_matrix['ai'] = contact_matrix['ai'].astype('category')
+    contact_matrix['molecule_name_aj'] = contact_matrix['molecule_name_aj'].astype('category')
+    contact_matrix['aj'] = contact_matrix['aj'].astype('category')
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -279,6 +311,51 @@ def read_molecular_contacts(path):
 
     if np.isinf(contact_matrix[["probability", "distance", "cutoff"]].values).any():
         raise ValueError("ERROR: The matrix contains INF values.")
+
+    molecule_names_dictionary = {name.split("_", 1)[0]: name.split("_", 1)[1] for name in ensemble_molecules_idx_sbtype_dictionary}
+
+    # Concatenate with mapped values and convert to category in one step
+    contact_matrix['molecule_name_ai'] = (
+        contact_matrix['molecule_name_ai']
+        .str.cat(contact_matrix['molecule_name_ai'].map(molecule_names_dictionary), sep='_')
+        .astype('category')  # Convert to category after concatenation
+    )
+
+    contact_matrix['molecule_name_aj'] = (
+        contact_matrix['molecule_name_aj']
+        .str.cat(contact_matrix['molecule_name_aj'].map(molecule_names_dictionary), sep='_')
+        .astype('category')  # Convert to category after concatenation
+    )
+
+    contact_matrix["ai"] = contact_matrix["ai"].map(
+        ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_ai"][0]]
+    )
+    contact_matrix["aj"] = contact_matrix["aj"].map(
+        ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_aj"][0]]
+    )
+
+    name = path.split("/")[-1].split("_")
+    len_ai = len(ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_ai"][0]])
+    len_aj = len(ensemble_molecules_idx_sbtype_dictionary[contact_matrix["molecule_name_aj"][0]])
+    if len_ai * len_aj != len(contact_matrix):
+        raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
+
+    contact_matrix = contact_matrix.drop(
+    contact_matrix[(contact_matrix["ai"].str.startswith("H")) | 
+                   (contact_matrix["aj"].str.startswith("H"))].index
+    )
+
+    contact_matrix = contact_matrix.assign(
+        same_chain=name[0] == "intramat",
+        source=pd.Categorical([simulation] * len(contact_matrix)),  # Convert to category
+        file=pd.Categorical(["_".join(name)] * len(contact_matrix))
+    )
+
+    contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
+    contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
+
+    t2 = time.time()
+    print("\t\t\t- Processesed in:", t2-t1)
 
     return contact_matrix
 
@@ -775,7 +852,7 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = args.reference + args.train + args.check
+    md_ensembles = args.reference + args.train
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
@@ -787,6 +864,7 @@ def check_files_existence(args):
                 raise FileNotFoundError(f"No .top files found in {ensemble}/")
             ndx_files = glob.glob(f"{ensemble}/*.ndx")
             ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
+            ndx_files += glob.glob(f"{ensemble}/*.h5")
             if not ndx_files and not args.egos == "rc":
                 raise FileNotFoundError(
                     f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
