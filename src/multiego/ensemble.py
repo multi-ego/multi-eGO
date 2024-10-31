@@ -262,7 +262,7 @@ def initialize_molecular_contacts(contact_matrix, args):
 
 
 def init_meGO_ensemble(args, custom_dict):
-    print("\t-", f"Initializing system topology")
+    print("\t-", "Initializing system topology")
     base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
 
     if not os.path.isfile(base_topology_path):
@@ -794,8 +794,8 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
 
             atom_set_i = topol_df[topol_df["molecule_number"] == mol_num_i]["type"]
             atom_set_j = topol_df[topol_df["molecule_number"] == mol_num_j]["type"]
-            c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float32)
-            c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float32)
+            c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
+            c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
             ai_name = atom_set_i.to_numpy(dtype=str)
             aj_name = atom_set_j.to_numpy(dtype=str)
             oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)

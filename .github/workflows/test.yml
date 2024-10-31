@@ -74,8 +74,10 @@ jobs:
       with:
         python-version: '3.11'
     - name: Add conda to system path
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment:
       run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
