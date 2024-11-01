@@ -265,7 +265,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     """
     Reads intra-/intermat files to determine molecular contact statistics.
     """
-    print("\t\t\t-", f"Reading {path}")
+    print("\t\t-", f"Reading {path}")
     st = time.time()
     # Define column names and data types directly during read
     col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
@@ -288,7 +288,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)
 
     t1 = time.time()
-    print("\t\t\t- Read in:", t1 - st)
+    print("\t\t- Read in:", t1 - st)
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -337,9 +337,10 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if len_ai * len_aj != len(contact_matrix):
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
-    contact_matrix = contact_matrix.drop(
-        contact_matrix[(contact_matrix["ai"].str.startswith("H")) | (contact_matrix["aj"].str.startswith("H"))].index
-    )
+    mask = np.logical_or(contact_matrix["ai"].str.startswith("H"), contact_matrix["aj"].str.startswith("H"))
+    if mask.any():
+        # Drop rows based on the mask
+        contact_matrix = contact_matrix[~mask]
 
     contact_matrix = contact_matrix.assign(
         same_chain=name[0] == "intramat",
@@ -351,7 +352,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
     t2 = time.time()
-    print("\t\t\t- Processesed in:", t2 - t1)
+    print("\t\t- Processesed in:", t2 - t1)
 
     return contact_matrix
 
@@ -380,7 +381,6 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
         # write the defaults section
         file.write("\n[ defaults ]\n")
         file.write("; Include forcefield parameters\n")
-        file.write("#define _FF_MAGROS\n\n")
         file.write("; nbfunc        comb-rule       gen-pairs       fudgeLJ fudgeQQ\n")
         file.write("  1             1               no              1.0     1.0\n\n")
 
@@ -429,7 +429,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
     )
     write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_out, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir)
-    print(f"Output files written to {output_dir}")
+    print("\t- " f"Output files written to {output_dir}")
 
 
 def write_output_readme(meGO_LJ, parameters, output_dir):
@@ -578,16 +578,16 @@ def print_stats(meGO_LJ):
 
     print(
         f"""
-    - LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
-    - Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
-    - Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
-    - The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
-    - Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interd_a_min_contacts:5.3f}:{interd_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
-    - Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interd_a_s_min_contacts:5.3f}:{interd_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
+\t- LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
+\t- Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
+\t- Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
+\t- The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
+\t- Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interd_a_min_contacts:5.3f}:{interd_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
+\t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interd_a_s_min_contacts:5.3f}:{interd_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
 
-    RELEVANT MDP PARAMETERS:
-    - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm
-    - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm
+\t- RELEVANT MDP PARAMETERS:
+\t- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm
+\t- Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm
     """
     )
 
@@ -638,7 +638,7 @@ def dataframe_to_write(df):
     """
     if df.empty:
         # TODO insert and improve the following warning
-        print("A topology parameter is empty. Check the reference topology.")
+        print("\t- WARNING: A topology parameter is empty. Check the reference topology.")
         return "; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology."
     else:
         df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace=True)
@@ -649,7 +649,7 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f"""
-; Multi-eGO force field version beta.1
+; Multi-eGO force field version beta.4
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
@@ -698,7 +698,7 @@ def write_topology(
     output_folder,
 ):
     """
-    Writes the topology output content into GRETA_topol.top
+    Writes the topology output content into topol_mego.top
 
     Parameters
     ----------
@@ -721,7 +721,7 @@ def write_topology(
     if write_header:
         header = make_header(vars(parameters))
 
-    with open(f"{output_folder}/topol_GRETA.top", "w") as file:
+    with open(f"{output_folder}/topol_mego.top", "w") as file:
         header += """
 ; Include forcefield parameters
 #include "ffnonbonded.itp"

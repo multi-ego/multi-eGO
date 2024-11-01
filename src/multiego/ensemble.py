@@ -344,7 +344,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     reference_contact_matrices = {}
     matrices = {}
     for reference in args.reference:  # reference_paths:
-        print("\t\t-", f"Initializing {reference} ensemble data")
+        print("\t-", f"Initializing {reference} ensemble data")
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
         # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
         topology_path = f"{reference_path}/topol.top"
@@ -369,7 +369,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     matrices["reference_matrices"] = reference_contact_matrices
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
@@ -378,13 +378,13 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     train_contact_matrices = {}
     train_topology_dataframe = pd.DataFrame()
     for simulation in args.train:
-        print("\t\t-", f"Initializing {simulation} ensemble data")
+        print("\t-", f"Initializing {simulation} ensemble data")
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         topology_path = f"{simulation_path}/topol.top"
         if not os.path.isfile(topology_path):
             raise FileNotFoundError(f"{topology_path} not found.")
 
-        print("\t\t\t-", f"Reading {topology_path}")
+        print("\t\t-", f"Reading {topology_path}")
         # ignore the dihedral type overriding in parmed
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -439,7 +439,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     matrices["train_matrices"] = train_contact_matrices
 
@@ -590,20 +590,21 @@ def generate_14_data(meGO_ensemble):
                     print("       user provided 1-4 pairs need to define also the C6/C12\n")
                     exit()
                 nonprotein_c12.append(float(test.epsilon) * 4.184)
-            pairs["c12"] = nonprotein_c12
-            pairs["c6"] = 0.0
             pairs["func"] = 1
-            pairs["rep"] = pairs["c12"]
-            pairs["same_chain"] = True
-            pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
+            pairs["c6"] = 0.0
+            pairs["c12"] = nonprotein_c12
             pairs["probability"] = 1.0
             pairs["rc_probability"] = 1.0
+            pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
+            pairs["rep"] = pairs["c12"]
+            pairs["same_chain"] = True
             # copy and symmetrize
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
             pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
 
-        pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
+        if not pairs.empty:
+            pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
     return pairs14, exclusion_bonds14
 
@@ -627,6 +628,38 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             how="outer",
         )
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
+
+    # This is a debug check to avoid data inconsistencies
+    if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
+        print(
+            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
+            .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
+            .to_string()
+        )
+        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
+
+    needed_fields = [
+        "molecule_name_ai",
+        "ai",
+        "molecule_name_aj",
+        "aj",
+        "distance",
+        "probability",
+        "cutoff",
+        "intra_domain",
+        "same_chain",
+        "source",
+        "file",
+        "zf",
+        "epsilon_0",
+        "md_threshold",
+        "rc_threshold",
+        "limit_rc",
+        "rc_distance",
+        "rc_probability",
+    ]
+    train_dataset = train_dataset[needed_fields]
+
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(
         train_dataset,
@@ -684,14 +717,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         ),
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    # This is a debug check to avoid data inconsistencies
-    if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
-        print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
-            .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
-            .to_string()
-        )
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
 
     return train_dataset
 
@@ -811,9 +836,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
             temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
             temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
             temp_basic_LJ = temp_basic_LJ[oxygen_mask]
-            # temp_basic_LJ["ai"], temp_basic_LJ["aj"] = temp_basic_LJ[["ai", "aj"]].min(axis=1), temp_basic_LJ[["ai", "aj"]].max(
-            #    axis=1
-            # )
             temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
             temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
 
@@ -1082,6 +1104,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     meGO_LJ_14 : pd.DataFrame
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
+
+    st = time.time()
+    print("\t- Set sigma and epsilon")
     # copy but remove intramolecular excluded interactions
     meGO_LJ = train_dataset.loc[(train_dataset["1-4"] != "1_2_3") & (train_dataset["1-4"] != "0")].copy()
     meGO_LJ.reset_index(inplace=True)
@@ -1134,23 +1159,26 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     ]
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
+    et = time.time()
+    elapsed_time = et - st
+    print("\t- Done in:", elapsed_time, "seconds")
 
     # apply symmetries for equivalent atoms
     if parameters.symmetry:
         st = time.time()
-        print("\t\t- Apply the defined atomic symmetries")
+        print("\t- Apply the defined atomic symmetries")
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
 
-    print("\t\t- Merging multiple states (training, symmetries, inter/intra)")
+    print("\t- Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.

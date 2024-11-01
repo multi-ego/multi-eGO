@@ -54,6 +54,11 @@ for a contact pair.
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
     multi_flag = False
 
+    # Check if no arguments are provided
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     if args.config:
         config_yaml = io.read_config(args.config, args_dict)
         # check if yaml file is empty
@@ -196,15 +201,14 @@ def main():
     st = et
     print("- Done in:", elapsed_time, "seconds")
 
-    print("- Generating Multi-eGO model")
     if args.egos != "rc":
-        print("\t- Processing Multi-eGO contact matrices")
+        print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = ensemble.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t- Done in:", elapsed_time, "seconds")
-        print("\t- Initializing LJ dataset")
+        print("- Done in:", elapsed_time, "seconds")
+        print("- Initializing LJ dataset")
         train_dataset = ensemble.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
         basic_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args, matrices)
         # force memory cleaning to decrease footprint in case of large dataset
@@ -214,8 +218,8 @@ def main():
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t- Done in:", elapsed_time, "seconds")
-        print("\t- Generate LJ dataset")
+        print("- Done in:", elapsed_time, "seconds")
+        print("- Generate LJ dataset")
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, basic_LJ, args)
         del train_dataset
         del basic_LJ
@@ -224,9 +228,9 @@ def main():
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t- Done in:", elapsed_time, "seconds")
+        print("- Done in:", elapsed_time, "seconds")
     else:
-        print("\t- Generate LJ dataset")
+        print("- Generate LJ dataset")
         meGO_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args)
         meGO_LJ_14 = pairs14
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
@@ -234,14 +238,14 @@ def main():
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t- Done in:", elapsed_time, "seconds")
+        print("- Done in:", elapsed_time, "seconds")
 
-    print("\t- Finalize pairs and exclusions")
+    print("- Finalize pairs and exclusions")
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14)
     et = time.time()
     elapsed_time = et - st
     st = et
-    print("\t- Done in:", elapsed_time, "seconds")
+    print("- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
