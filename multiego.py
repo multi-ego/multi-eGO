@@ -120,8 +120,6 @@ for a contact pair.
         args.multi_epsilon_inter_domain = args.multi_epsilon_intra
     if not args.multi_epsilon_inter and args.inter_epsilon:
         args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
-    if not args.multi_epsilon_inter and not args.inter_epsilon:
-        args.multi_epsilon_inter = args.multi_epsilon_intra
 
     # check all epsilons are set and greater than epsilon_min
     if args.egos != "rc":
@@ -219,6 +217,9 @@ def main():
         print("\t- Done in:", elapsed_time, "seconds")
         print("\t- Generate LJ dataset")
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, basic_LJ, args)
+        del train_dataset
+        del basic_LJ
+        gc.collect()
         # get the end time
         et = time.time()
         elapsed_time = et - st

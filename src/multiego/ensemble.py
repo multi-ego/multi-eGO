@@ -555,13 +555,14 @@ def generate_14_data(meGO_ensemble):
         exclusion_bonds, tmp_p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
         # split->convert->remerge:
         tmp_ex = pd.DataFrame(columns=["ai", "aj", "exclusion_bonds"])
-        tmp_ex["exclusion_bonds"] = exclusion_bonds
+        tmp_ex["exclusion_bonds"] = pd.Series(exclusion_bonds).astype("category")
         tmp_ex[["ai", "aj"]] = tmp_ex["exclusion_bonds"].str.split("_", expand=True)
-        tmp_ex["ai"] = tmp_ex["ai"].map(type_atnum_dict)
-        tmp_ex["aj"] = tmp_ex["aj"].map(type_atnum_dict)
-        tmp_ex["1-4"] = "1_2_3"
+        tmp_ex["ai"] = tmp_ex["ai"].map(type_atnum_dict).astype("category")
+        tmp_ex["aj"] = tmp_ex["aj"].map(type_atnum_dict).astype("category")
         tmp_ex["same_chain"] = True
+        tmp_ex["1-4"] = "1_2_3"
         tmp_ex.loc[(tmp_ex["exclusion_bonds"].isin(tmp_p14)), "1-4"] = "1_4"
+        tmp_ex["1-4"] = tmp_ex["1-4"].astype("category")
         exclusion_bonds14 = pd.concat([exclusion_bonds14, tmp_ex], axis=0, sort=False, ignore_index=True)
 
         # Adding the c12 for 1-4 interactions
@@ -570,15 +571,16 @@ def generate_14_data(meGO_ensemble):
         pairs = pd.DataFrame()
         if meGO_ensemble["molecule_type_dict"][molecule] == "protein":
             pairs = topology.protein_LJ14(reduced_topology)
-            pairs["ai"] = pairs["ai"].map(type_atnum_dict)
-            pairs["aj"] = pairs["aj"].map(type_atnum_dict)
+            pairs["ai"] = pairs["ai"].map(type_atnum_dict).astype("category")
+            pairs["aj"] = pairs["aj"].map(type_atnum_dict).astype("category")
             pairs["rep"] = pairs["c12"]
+            pairs["source"] = pairs["source"].astype("category")
             pairs["same_chain"] = True
         else:
             pairs["ai"] = meGO_ensemble["user_pairs"][molecule].ai.astype(str)
             pairs["aj"] = meGO_ensemble["user_pairs"][molecule].aj.astype(str)
-            pairs["ai"] = pairs["ai"].map(type_atnum_dict)
-            pairs["aj"] = pairs["aj"].map(type_atnum_dict)
+            pairs["ai"] = pairs["ai"].map(type_atnum_dict).astype("category")
+            pairs["aj"] = pairs["aj"].map(type_atnum_dict).astype("category")
             nonprotein_c12 = []
             for test in meGO_ensemble["user_pairs"][molecule].type:
                 if test is None:
@@ -593,7 +595,7 @@ def generate_14_data(meGO_ensemble):
             pairs["func"] = 1
             pairs["rep"] = pairs["c12"]
             pairs["same_chain"] = True
-            pairs["source"] = "1-4"
+            pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
             pairs["probability"] = 1.0
             pairs["rc_probability"] = 1.0
             # copy and symmetrize
@@ -607,7 +609,6 @@ def generate_14_data(meGO_ensemble):
 
 
 def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
-
     # we cycle over train matrices to pair them with reference matrices and
     # then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
@@ -626,7 +627,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             how="outer",
         )
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
-
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(
         train_dataset,
@@ -634,11 +634,16 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         how="left",
         on=["ai", "aj", "same_chain"],
     )
+    # Add the new category "0" to the column's categories
+    train_dataset["1-4"] = train_dataset["1-4"].cat.add_categories(["0"])
     train_dataset.loc[
         (train_dataset["ai"] == train_dataset["aj"]) & (train_dataset["same_chain"]),
         "1-4",
     ] = "0"
-    train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4")
+
+    train_dataset["1-4"] = train_dataset["1-4"].cat.add_categories(["1>4"])
+    train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4").astype("category")
+
     # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
     train_dataset = pd.merge(
         train_dataset,
@@ -646,29 +651,33 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         how="left",
         on=["ai", "aj", "same_chain"],
     )
+
+    train_dataset["ai"] = train_dataset["ai"].astype("category")
+    train_dataset["aj"] = train_dataset["aj"].astype("category")
+
     train_dataset.loc[(train_dataset["1-4"] == "0"), "rep"] = 0.0
     train_dataset.loc[(train_dataset["1-4"] == "1_2_3"), "rep"] = 0.0
     train_dataset.loc[(train_dataset["1-4"] == "1_4") & (train_dataset["rep"].isnull()), "rep"] = 0.0
 
-    # update for special cases
-    train_dataset["type_ai"] = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
-    train_dataset["type_aj"] = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
-
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         type_to_c12.update(type_to_c12_appo)
 
+    type_ai_mapped = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
+    type_aj_mapped = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
+
     oxygen_mask = masking.create_linearized_mask(
-        train_dataset["type_ai"].to_numpy(),
-        train_dataset["type_aj"].to_numpy(),
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
         [("O", "O"), ("OM", "OM"), ("O", "OM")],
         symmetrize=True,
     )
+
     pairwise_c12 = np.where(
         oxygen_mask,
-        11.4 * np.sqrt(train_dataset["type_ai"].map(type_to_c12) * train_dataset["type_aj"].map(type_to_c12)),
+        11.4 * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
         np.sqrt(
             train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"])
             * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
@@ -1186,12 +1195,11 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
     # Identify rows where both are attractive or repulsive
     duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "sign"], keep=False)
-    # Identify rows where an attractive contact is trivial
-    # trivial_attractive = meGO_LJ["trivial"] & meGO_LJ["sign"] > 0
     # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
     remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
     # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive
     meGO_LJ = meGO_LJ[~remove_duplicates_mask]
+    meGO_LJ = meGO_LJ[needed_fields]
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
@@ -1274,6 +1282,11 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     # Here we have a fully symmetric matrix for both intra/intersame/intercross
     meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
+    meGO_LJ["ai"] = meGO_LJ["ai"].astype("category")
+    meGO_LJ["aj"] = meGO_LJ["aj"].astype("category")
+    meGO_LJ["molecule_name_ai"] = meGO_LJ["molecule_name_ai"].astype("category")
+    meGO_LJ["molecule_name_aj"] = meGO_LJ["molecule_name_aj"].astype("category")
+
     # Sorting the pairs prioritising learned interactions
     meGO_LJ.sort_values(by=["ai", "aj", "same_chain", "learned"], ascending=[True, True, True, False], inplace=True)
     # Cleaning the duplicates, that is that we retained a not learned interaction only if it is unique
@@ -1282,24 +1295,36 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)) | (meGO_LJ["learned"] == 1))]
 
     # we are ready to finalize the setup
-    meGO_LJ["c6"] = 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6)
-    meGO_LJ["c12"] = abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c6"] = 0.0
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c12"] = -meGO_LJ["epsilon"]
+    # meGO_LJ["c6"] = 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6)
+    # meGO_LJ["c12"] = abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
+    # meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c6"] = 0.0
+    # meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c12"] = -meGO_LJ["epsilon"]
 
-    meGO_LJ_14["c6"] = 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
-    meGO_LJ_14["c12"] = abs(4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12))
-    meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c6"] = 0.0
-    meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c12"] = -meGO_LJ_14["epsilon"]
+    # meGO_LJ_14["c6"] = 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
+    # meGO_LJ_14["c12"] = abs(4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12))
+    # meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c6"] = 0.0
+    # meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c12"] = -meGO_LJ_14["epsilon"]
+
+    # Calculate c6 and c12 for meGO_LJ
+    meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
+
+    meGO_LJ["c12"] = np.where(
+        meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
+    )
+
+    # Calculate c6 and c12 for meGO_LJ_14
+    meGO_LJ_14["c6"] = np.where(meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6))
+
+    meGO_LJ_14["c12"] = np.where(
+        meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], abs(4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12))
+    )
 
     meGO_LJ["type"] = 1
-    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble["sbtype_number_dict"])
-    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"])
-    meGO_LJ["number_ai"] = meGO_LJ["number_ai"].astype(int)
-    meGO_LJ["number_aj"] = meGO_LJ["number_aj"].astype(int)
+    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
+    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
 
     # Here we want to sort so that ai is smaller than aj
-    meGO_LJ = meGO_LJ[(meGO_LJ["ai"] <= meGO_LJ["aj"])]
+    meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)]
     (
         meGO_LJ["ai"],
         meGO_LJ["aj"],
@@ -1376,7 +1401,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
         exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
-            # pairs from greta does not have duplicates because these have been cleaned before
+            # pairs do not have duplicates because these have been cleaned before
             pairs = meGO_LJ_14[
                 [
                     "ai",
@@ -1395,7 +1420,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             # The exclusion list was made based on the atom number
             pairs["ai"] = pairs["ai"].map(atnum_type_dict)
             pairs["aj"] = pairs["aj"].map(atnum_type_dict)
-            pairs["check"] = pairs["ai"] + "_" + pairs["aj"]
+            pairs["check"] = pairs["ai"].astype(str) + "_" + pairs["aj"].astype(str)
             # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_pairs
             pairs["remove"] = ""
             pairs.loc[(pairs["check"].isin(exclusion_bonds)), "remove"] = "Yes"

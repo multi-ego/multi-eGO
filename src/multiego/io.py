@@ -270,10 +270,10 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     # Define column names and data types directly during read
     col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
     col_types = {
-        "molecule_name_ai": str,
-        "ai": str,
-        "molecule_name_aj": str,
-        "aj": str,
+        "molecule_name_ai": "category",
+        "ai": "category",
+        "molecule_name_aj": "category",
+        "aj": "category",
         "distance": np.float64,
         "probability": np.float64,
         "cutoff": np.float64,
@@ -289,11 +289,6 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
 
     t1 = time.time()
     print("\t\t\t- Read in:", t1 - st)
-
-    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].astype("category")
-    contact_matrix["ai"] = contact_matrix["ai"].astype("category")
-    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].astype("category")
-    contact_matrix["aj"] = contact_matrix["aj"].astype("category")
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
