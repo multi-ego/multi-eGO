@@ -627,6 +627,38 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             how="outer",
         )
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
+
+    # This is a debug check to avoid data inconsistencies
+    if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
+        print(
+            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
+            .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
+            .to_string()
+        )
+        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
+
+    needed_fields = [
+        "molecule_name_ai",
+        "ai",
+        "molecule_name_aj",
+        "aj",
+        "distance",
+        "probability",
+        "cutoff",
+        "intra_domain",
+        "same_chain",
+        "source",
+        "file",
+        "zf",
+        "epsilon_0",
+        "md_threshold",
+        "rc_threshold",
+        "limit_rc",
+        "rc_distance",
+        "rc_probability",
+    ]
+    train_dataset = train_dataset[needed_fields]
+
     # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(
         train_dataset,
@@ -684,14 +716,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         ),
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    # This is a debug check to avoid data inconsistencies
-    if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
-        print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
-            .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
-            .to_string()
-        )
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
 
     return train_dataset
 
@@ -811,9 +835,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
             temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
             temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
             temp_basic_LJ = temp_basic_LJ[oxygen_mask]
-            # temp_basic_LJ["ai"], temp_basic_LJ["aj"] = temp_basic_LJ[["ai", "aj"]].min(axis=1), temp_basic_LJ[["ai", "aj"]].max(
-            #    axis=1
-            # )
             temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
             temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
 
