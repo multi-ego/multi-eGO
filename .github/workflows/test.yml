@@ -60,7 +60,7 @@ jobs:
         cd test; bash run_make_mat.sh; cd ..
 
   build-macos-conda:
-    runs-on: macos-12
+    runs-on: macos-13
 
     steps:
     - uses: actions/checkout@v4
@@ -74,11 +74,12 @@ jobs:
       with:
         python-version: '3.11'
     - name: Add conda to system path
-      run: |
-        # $CONDA is an environment variable pointing to the root of the miniconda directory
-        echo $CONDA/bin >> $GITHUB_PATH
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        activate-environment:
     - name: Install dependencies with conda
       run: |
+        echo $CONDA/bin >> $GITHUB_PATH
         conda install -y python=3.11
         conda env update --file conda/environment.yml --name base
     - name: Run tests

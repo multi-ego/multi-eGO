@@ -3,7 +3,6 @@
 - egos: production
 - epsilon: 0.33
 - train: native_MD,fibril_MD
-- check: fibril_check
 - inter_epsilon: 0.275
 - no_header
 - symmetry:
