@@ -590,20 +590,21 @@ def generate_14_data(meGO_ensemble):
                     print("       user provided 1-4 pairs need to define also the C6/C12\n")
                     exit()
                 nonprotein_c12.append(float(test.epsilon) * 4.184)
-            pairs["c12"] = nonprotein_c12
-            pairs["c6"] = 0.0
             pairs["func"] = 1
-            pairs["rep"] = pairs["c12"]
-            pairs["same_chain"] = True
-            pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
+            pairs["c6"] = 0.0
+            pairs["c12"] = nonprotein_c12
             pairs["probability"] = 1.0
             pairs["rc_probability"] = 1.0
+            pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
+            pairs["rep"] = pairs["c12"]
+            pairs["same_chain"] = True
             # copy and symmetrize
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
             pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
 
-        pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
+        if not pairs.empty:
+            pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
     return pairs14, exclusion_bonds14
 
