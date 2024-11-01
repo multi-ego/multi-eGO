@@ -54,6 +54,11 @@ for a contact pair.
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
     multi_flag = False
 
+    # Check if no arguments are provided
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
     if args.config:
         config_yaml = io.read_config(args.config, args_dict)
         # check if yaml file is empty

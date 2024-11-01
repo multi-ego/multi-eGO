@@ -649,7 +649,7 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f"""
-; Multi-eGO force field version beta.1
+; Multi-eGO force field version beta.4
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
@@ -698,7 +698,7 @@ def write_topology(
     output_folder,
 ):
     """
-    Writes the topology output content into GRETA_topol.top
+    Writes the topology output content into topol_mego.top
 
     Parameters
     ----------
@@ -721,7 +721,7 @@ def write_topology(
     if write_header:
         header = make_header(vars(parameters))
 
-    with open(f"{output_folder}/topol_GRETA.top", "w") as file:
+    with open(f"{output_folder}/topol_mego.top", "w") as file:
         header += """
 ; Include forcefield parameters
 #include "ffnonbonded.itp"
