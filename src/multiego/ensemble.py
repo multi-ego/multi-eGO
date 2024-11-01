@@ -344,7 +344,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     reference_contact_matrices = {}
     matrices = {}
     for reference in args.reference:  # reference_paths:
-        print("\t\t-", f"Initializing {reference} ensemble data")
+        print("\t-", f"Initializing {reference} ensemble data")
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
         # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
         topology_path = f"{reference_path}/topol.top"
@@ -369,7 +369,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     matrices["reference_matrices"] = reference_contact_matrices
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
@@ -378,13 +378,13 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     train_contact_matrices = {}
     train_topology_dataframe = pd.DataFrame()
     for simulation in args.train:
-        print("\t\t-", f"Initializing {simulation} ensemble data")
+        print("\t-", f"Initializing {simulation} ensemble data")
         simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
         topology_path = f"{simulation_path}/topol.top"
         if not os.path.isfile(topology_path):
             raise FileNotFoundError(f"{topology_path} not found.")
 
-        print("\t\t\t-", f"Reading {topology_path}")
+        print("\t\t-", f"Reading {topology_path}")
         # ignore the dihedral type overriding in parmed
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -439,7 +439,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     matrices["train_matrices"] = train_contact_matrices
 
@@ -1104,6 +1104,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     meGO_LJ_14 : pd.DataFrame
         Contains 1-4 atomic contacts associated with LJ parameters and statistics.
     """
+
+    st = time.time()
+    print("\t- Set sigma and epsilon")
     # copy but remove intramolecular excluded interactions
     meGO_LJ = train_dataset.loc[(train_dataset["1-4"] != "1_2_3") & (train_dataset["1-4"] != "0")].copy()
     meGO_LJ.reset_index(inplace=True)
@@ -1156,23 +1159,26 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     ]
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
+    et = time.time()
+    elapsed_time = et - st
+    print("\t- Done in:", elapsed_time, "seconds")
 
     # apply symmetries for equivalent atoms
     if parameters.symmetry:
         st = time.time()
-        print("\t\t- Apply the defined atomic symmetries")
+        print("\t- Apply the defined atomic symmetries")
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
         elapsed_time = et - st
         st = et
-        print("\t\t- Done in:", elapsed_time, "seconds")
+        print("\t- Done in:", elapsed_time, "seconds")
 
     # meGO consistency checks
     consistency_checks(meGO_LJ)
 
-    print("\t\t- Merging multiple states (training, symmetries, inter/intra)")
+    print("\t- Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.
