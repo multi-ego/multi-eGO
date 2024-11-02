@@ -311,17 +311,15 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         name.split("_", 1)[0]: name.split("_", 1)[1] for name in ensemble_molecules_idx_sbtype_dictionary
     }
 
-    # Concatenate with mapped values and convert to category in one step
-    contact_matrix["molecule_name_ai"] = (
-        contact_matrix["molecule_name_ai"]
-        .str.cat(contact_matrix["molecule_name_ai"].map(molecule_names_dictionary), sep="_")
-        .astype("category")  # Convert to category after concatenation
+    # Access the first element and use it as a key in the dictionary
+    name_mol_ai = "_" + molecule_names_dictionary[contact_matrix["molecule_name_ai"].iloc[0]]
+    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].cat.rename_categories(
+        [category + name_mol_ai for category in contact_matrix["molecule_name_ai"].cat.categories]
     )
 
-    contact_matrix["molecule_name_aj"] = (
-        contact_matrix["molecule_name_aj"]
-        .str.cat(contact_matrix["molecule_name_aj"].map(molecule_names_dictionary), sep="_")
-        .astype("category")  # Convert to category after concatenation
+    name_mol_aj = "_" + molecule_names_dictionary[contact_matrix["molecule_name_aj"].iloc[0]]
+    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].cat.rename_categories(
+        [category + name_mol_aj for category in contact_matrix["molecule_name_aj"].cat.categories]
     )
 
     contact_matrix["ai"] = contact_matrix["ai"].map(
