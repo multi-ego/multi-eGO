@@ -98,7 +98,8 @@ def initialize_topology(topology, custom_dict, args):
     ensemble_topology_dataframe["cgnr"] = ensemble_topology_dataframe["resnum"]
     ensemble_topology_dataframe["ptype"] = "A"
 
-    # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules (if none is present the extended dictionary is equivalent to the standard one)
+    # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules
+    # (if none is present the extended dictionary is equivalent to the standard one)
     from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego
     from_ff_to_multiego_extended.update(custom_dict)
 
@@ -640,7 +641,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     # This is a debug check to avoid data inconsistencies
     if not train_dataset["rc_same_chain"].equals(train_dataset["rc_same_chain"]):
-        diff_indices = train_dataset.index[df["same_chain"] != train_dataset["rc_same_chain"]].tolist()
+        diff_indices = train_dataset.index[train_dataset["same_chain"] != train_dataset["rc_same_chain"]].tolist()
         print(f"Difference found at indices: {diff_indices}")
         exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
 
