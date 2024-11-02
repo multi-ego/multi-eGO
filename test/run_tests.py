@@ -86,8 +86,8 @@ def prep_system_data(name, index):
     ffnonbonded_test : str
         The contents of the newly created ffnonbonded which needs to match ffnonbonded_ref
     """
-    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/topol_GRETA.top")
-    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/topol_GRETA.top")
+    topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/topol_mego.top")
+    topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/topol_mego.top")
     ffnonbonded_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/ffnonbonded.itp")
     ffnonbonded_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/ffnonbonded.itp")
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
