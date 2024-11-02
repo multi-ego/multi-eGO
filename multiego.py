@@ -178,7 +178,8 @@ def main():
     related to ensemble generation, LJ parameter computation, and writing the output.
     """
 
-    print("Multi-eGO")
+    bt = time.time()
+    print("Multi-eGO\n")
     args, custom_dict = meGO_parsing()
 
     if not args.no_header:
@@ -214,17 +215,16 @@ def main():
         # force memory cleaning to decrease footprint in case of large dataset
         del matrices
         gc.collect()
-        # get the end time
         et = time.time()
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
         print("- Generate LJ dataset")
         meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, basic_LJ, args)
+        # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
         del basic_LJ
         gc.collect()
-        # get the end time
         et = time.time()
         elapsed_time = et - st
         st = et
@@ -234,7 +234,6 @@ def main():
         meGO_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args)
         meGO_LJ_14 = pairs14
         meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
-        # get the end time
         et = time.time()
         elapsed_time = et - st
         st = et
@@ -251,8 +250,8 @@ def main():
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
     et = time.time()
     elapsed_time = et - st
-    st = et
     print("- Done in:", elapsed_time, "seconds")
+    print("- Ran in:", et - bt, "seconds")
 
     generate_face.print_goodbye()
 

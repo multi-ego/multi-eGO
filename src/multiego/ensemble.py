@@ -98,7 +98,8 @@ def initialize_topology(topology, custom_dict, args):
     ensemble_topology_dataframe["cgnr"] = ensemble_topology_dataframe["resnum"]
     ensemble_topology_dataframe["ptype"] = "A"
 
-    # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules (if none is present the extended dictionary is equivalent to the standard one)
+    # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules
+    # (if none is present the extended dictionary is equivalent to the standard one)
     from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego
     from_ff_to_multiego_extended.update(custom_dict)
 
@@ -638,6 +639,12 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         )
         exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
 
+    # This is a debug check to avoid data inconsistencies
+    if not train_dataset["rc_same_chain"].equals(train_dataset["rc_same_chain"]):
+        diff_indices = train_dataset.index[train_dataset["same_chain"] != train_dataset["rc_same_chain"]].tolist()
+        print(f"Difference found at indices: {diff_indices}")
+        exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
+
     needed_fields = [
         "molecule_name_ai",
         "ai",
@@ -657,6 +664,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "limit_rc",
         "rc_distance",
         "rc_probability",
+        "rc_source",
     ]
     train_dataset = train_dataset[needed_fields]
 
@@ -1005,7 +1013,7 @@ def consistency_checks(meGO_LJ):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(
-            meGO_LJ[["source", "file", "rc_source", "rc_file", "rep", "cutoff"]]
+            meGO_LJ[["source", "file", "rc_source", "rep", "cutoff"]]
             .loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)]
             .to_string()
         )
@@ -1161,11 +1169,11 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     meGO_LJ = meGO_LJ[needed_fields]
     et = time.time()
     elapsed_time = et - st
+    st = et
     print("\t- Done in:", elapsed_time, "seconds")
 
     # apply symmetries for equivalent atoms
     if parameters.symmetry:
-        st = time.time()
         print("\t- Apply the defined atomic symmetries")
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
@@ -1175,10 +1183,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
         st = et
         print("\t- Done in:", elapsed_time, "seconds")
 
+    print("\t- Merging multiple states (training, symmetries, inter/intra)")
     # meGO consistency checks
     consistency_checks(meGO_LJ)
-
-    print("\t- Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.
@@ -1323,16 +1330,6 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     meGO_LJ = meGO_LJ.loc[(~(meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)) | (meGO_LJ["learned"] == 1))]
 
     # we are ready to finalize the setup
-    # meGO_LJ["c6"] = 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6)
-    # meGO_LJ["c12"] = abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
-    # meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c6"] = 0.0
-    # meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "c12"] = -meGO_LJ["epsilon"]
-
-    # meGO_LJ_14["c6"] = 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
-    # meGO_LJ_14["c12"] = abs(4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12))
-    # meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c6"] = 0.0
-    # meGO_LJ_14.loc[(meGO_LJ_14["epsilon"] < 0.0), "c12"] = -meGO_LJ_14["epsilon"]
-
     # Calculate c6 and c12 for meGO_LJ
     meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
 
@@ -1381,6 +1378,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     )
 
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
+    et = time.time()
+    elapsed_time = et - st
+    print("\t- Done in:", elapsed_time, "seconds")
 
     return meGO_LJ, meGO_LJ_14
 
