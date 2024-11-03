@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser(description="Read a HDF5 molecular contact matr
 parser.add_argument(
     "-i",
     "--input_file",
+    required=True,
     type=str,
     help="Path to the input contact matrix file (e.g., 'intramat_1_1.ndx.h5')",
 )
