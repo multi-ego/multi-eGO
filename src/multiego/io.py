@@ -311,17 +311,15 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         name.split("_", 1)[0]: name.split("_", 1)[1] for name in ensemble_molecules_idx_sbtype_dictionary
     }
 
-    # Concatenate with mapped values and convert to category in one step
-    contact_matrix["molecule_name_ai"] = (
-        contact_matrix["molecule_name_ai"]
-        .str.cat(contact_matrix["molecule_name_ai"].map(molecule_names_dictionary), sep="_")
-        .astype("category")  # Convert to category after concatenation
+    # Access the first element and use it as a key in the dictionary
+    name_mol_ai = "_" + molecule_names_dictionary[contact_matrix["molecule_name_ai"].iloc[0]]
+    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].cat.rename_categories(
+        [category + name_mol_ai for category in contact_matrix["molecule_name_ai"].cat.categories]
     )
 
-    contact_matrix["molecule_name_aj"] = (
-        contact_matrix["molecule_name_aj"]
-        .str.cat(contact_matrix["molecule_name_aj"].map(molecule_names_dictionary), sep="_")
-        .astype("category")  # Convert to category after concatenation
+    name_mol_aj = "_" + molecule_names_dictionary[contact_matrix["molecule_name_aj"].iloc[0]]
+    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].cat.rename_categories(
+        [category + name_mol_aj for category in contact_matrix["molecule_name_aj"].cat.categories]
     )
 
     contact_matrix["ai"] = contact_matrix["ai"].map(
@@ -345,7 +343,6 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix = contact_matrix.assign(
         same_chain=name[0] == "intramat",
         source=pd.Categorical([simulation] * len(contact_matrix)),  # Convert to category
-        file=pd.Categorical(["_".join(name)] * len(contact_matrix)),
     )
 
     contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
@@ -460,75 +457,44 @@ def write_output_readme(meGO_LJ, parameters, output_dir):
 
         f.write("\nContact parameters:\n")
         # write average data intra
-        f.write("\n - Intermolecular contacts:\n")
+        f.write("- Intramolecular contacts:\n")
         f.write(
-            f"   - epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+            f"- epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
         )
-        f.write(
-            f"   - sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n"
-        )
-        f.write(
-            f"   - number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
-        )
-        f.write(
-            f"   - number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
-        )
-
-        # write average data interdomain
-        f.write("\n - Interdomain contacts:\n")
-        f.write(
-            f"   - epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
-        )
-        f.write(
-            f"   - sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n"
-        )
-        f.write(
-            f"   - number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
-        )
-        f.write(
-            f"   - number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (~meGO_LJ['intra_domain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
-        )
+        f.write(f"- sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
+        f.write(f"- number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n")
+        f.write(f"- number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n")
 
         # write average data inter
-        f.write("\n - Intermolecular contacts:\n")
+        f.write("- Intermolecular contacts:\n")
         f.write(
-            f"   - epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+            f"- epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
         )
-        f.write(f"   - sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
+        f.write(f"- sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
         f.write(
-            f"   - number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+            f"- number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
         )
-        f.write(
-            f"   - number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
-        )
+        f.write(f"- number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n")
 
         # mdp parameters
-        f.write("\nCutoff MDP parameters:\n")
-        f.write(f" - Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
-        f.write(f" - Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+        f.write("Cutoff MDP parameters:\n")
+        f.write(f"- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+        f.write(f"- Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
 
 
 def print_stats(meGO_LJ):
     # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
-    intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"])])
-    interd_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"])])
+    intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"])])
     interm_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"])])
-    intrad_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
-    interd_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)])
+    intrad_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
     interm_a_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
     intrad_r_contacts = intrad_contacts - intrad_a_contacts
-    interd_r_contacts = interd_contacts - interd_a_contacts
     interm_r_contacts = interm_contacts - interm_a_contacts
     intrad_a_ave_contacts = 0.000
     intrad_a_min_contacts = 0.000
     intrad_a_max_contacts = 0.000
     intrad_a_s_min_contacts = 0.000
     intrad_a_s_max_contacts = 0.000
-    interd_a_ave_contacts = 0.000
-    interd_a_min_contacts = 0.000
-    interd_a_max_contacts = 0.000
-    interd_a_s_min_contacts = 0.000
-    interd_a_s_max_contacts = 0.000
     interm_a_ave_contacts = 0.000
     interm_a_min_contacts = 0.000
     interm_a_max_contacts = 0.000
@@ -536,38 +502,11 @@ def print_stats(meGO_LJ):
     interm_a_s_max_contacts = 0.000
 
     if intrad_a_contacts > 0:
-        intrad_a_ave_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        )
-        intrad_a_min_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        intrad_a_max_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-        intrad_a_s_min_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        intrad_a_s_max_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-
-    if interd_a_contacts > 0:
-        interd_a_ave_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        )
-        interd_a_min_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        interd_a_max_contacts = (
-            meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
-        interd_a_s_min_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        )
-        interd_a_s_max_contacts = (
-            meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (~meGO_LJ["intra_domain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        )
+        intrad_a_ave_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
+        intrad_a_min_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        intrad_a_max_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        intrad_a_s_min_contacts = meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
+        intrad_a_s_max_contacts = meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
 
     if interm_a_contacts > 0:
         interm_a_ave_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
@@ -579,11 +518,11 @@ def print_stats(meGO_LJ):
     print(
         f"""
 \t- LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
-\t- Attractive: intra-domain: {intrad_a_contacts}, inter-domain: {interd_a_contacts}, inter-molecular: {interm_a_contacts}
-\t- Repulsive: intra-domain: {intrad_r_contacts}, inter-domain: {interd_r_contacts}, inter-molecular: {interm_r_contacts}
-\t- The average epsilon is: {intrad_a_ave_contacts:5.3f} {interd_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
-\t- Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interd_a_min_contacts:5.3f}:{interd_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
-\t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interd_a_s_min_contacts:5.3f}:{interd_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
+\t- Attractive: intra-domain: {intrad_a_contacts}, inter-molecular: {interm_a_contacts}
+\t- Repulsive: intra-domain: {intrad_r_contacts}, inter-molecular: {interm_r_contacts}
+\t- The average epsilon is: {intrad_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
+\t- Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
+\t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
 
 \t- RELEVANT MDP PARAMETERS:
 \t- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm
