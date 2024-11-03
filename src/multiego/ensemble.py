@@ -862,7 +862,7 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     return basic_LJ
 
 
-def set_epsilon(meGO_LJ):
+def set_sig_epsilon(meGO_LJ, needed_fields):
     """
     Set the epsilon parameter for LJ interactions based on probability and distance.
 
@@ -885,6 +885,14 @@ def set_epsilon(meGO_LJ):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
+    # when distance estimates are poor we use the cutoff value
+    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (meGO_LJ["rep"] / meGO_LJ["epsilon_0"]) ** (
+        1.0 / 12.0
+    )
+    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = (
+        meGO_LJ["rep"] / meGO_LJ["epsilon_0"]
+    ) ** (1.0 / 12.0)
+
     # Epsilon is initialised to a rescaled C12
     # This is always correct becasue distance is always well defined by either training data
     # or using default C12 values
@@ -928,32 +936,6 @@ def set_epsilon(meGO_LJ):
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
-    return meGO_LJ
-
-
-def repulsions_in_range(meGO_LJ):
-    """
-    Adjust repulsion values within specific ranges to maintain consistency.
-
-    This function adjusts repulsion values within specific ranges to maintain consistency and prevent unrealistic
-    or extreme repulsion values. It ensures that repulsion values are within acceptable bounds based on the LJ parameters.
-
-    Parameters
-    ----------
-    meGO_LJ : pd.DataFrame
-        DataFrame containing LJ parameters.
-
-    Returns
-    -------
-    pd.DataFrame
-        DataFrame containing LJ parameters with adjusted repulsion values within specified ranges.
-
-    Notes
-    -----
-    This function is crucial for maintaining the integrity of LJ parameters by ensuring that repulsion values are within
-    reasonable bounds. Extreme or unrealistic repulsion values can lead to inaccuracies or anomalies in simulations
-    or calculations.
-    """
     # lower value for repulsion
     meGO_LJ.loc[
         (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
@@ -981,6 +963,20 @@ def repulsions_in_range(meGO_LJ):
         (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > meGO_LJ["rep"]),
         "epsilon",
     ] = -meGO_LJ["rep"]
+
+    # Sigma is set from the estimated interaction length
+    meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / (2.0 ** (1.0 / 6.0)))
+
+    # for repulsive interaction we reset sigma to its effective value
+    # this because when merging repulsive contacts from different sources what will matters
+    # will be the repulsive strength
+    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
+
+    # add a flag to identify learned contacts
+    meGO_LJ.loc[:, "learned"] = 1
+
+    # keep only needed fields
+    meGO_LJ = meGO_LJ[needed_fields]
 
     return meGO_LJ
 
@@ -1110,34 +1106,7 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
 
     st = time.time()
     print("\t- Set sigma and epsilon")
-    # copy but remove intramolecular excluded interactions
     meGO_LJ = train_dataset.copy()
-
-    # when distance estimates are poor we use the cutoff value
-    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (meGO_LJ["rep"] / meGO_LJ["epsilon_0"]) ** (
-        1.0 / 12.0
-    )
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = (
-        meGO_LJ["rep"] / meGO_LJ["epsilon_0"]
-    ) ** (1.0 / 12.0)
-
-    # at this point meGO_LJ is symmetric in ai/aj for interaction between identical molecules
-    # while it is not symmetric for cross interactions
-
-    # generate attractive and repulsive interactions
-    meGO_LJ = set_epsilon(meGO_LJ)
-    # fix for too small/too large repulsion
-    meGO_LJ = repulsions_in_range(meGO_LJ)
-
-    # Sigma is set from the estimated interaction length
-    meGO_LJ["sigma"] = (meGO_LJ["distance"]) / (2.0 ** (1.0 / 6.0))
-    # for repulsive interaction we reset sigma to its effective value
-    # this because when merging repulsive contacts from different sources what will matters
-    # will be the repulsive strength
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
-
-    # add a flag to identify learned contacts
-    meGO_LJ["learned"] = 1
     # meGO needed fields
     needed_fields = [
         "molecule_name_ai",
@@ -1158,8 +1127,10 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
         "rc_threshold",
         "learned",
     ]
-    # keep only needed fields
-    meGO_LJ = meGO_LJ[needed_fields]
+
+    # generate attractive and repulsive interactions
+    meGO_LJ = set_sig_epsilon(meGO_LJ, needed_fields)
+
     et = time.time()
     elapsed_time = et - st
     st = et
@@ -1191,10 +1162,6 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     )
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
-    meGO_LJ.drop(columns=["type"], inplace=True)
-
-    # keep only needed fields
-    meGO_LJ = meGO_LJ[needed_fields]
 
     # now we can remove all repulsive contacts with default (i.e., rep) c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
@@ -1212,17 +1179,16 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     # 2) attractive contacts that can be transferd are those non affected by their random coil (prc <= rc_threshold)
     # 3) an attractive contacts can only take the place of a trivial repulsive contact (i.e. a repulsive contact with prc <= rc_threshold)
     meGO_LJ["trivial"] = False
-    meGO_LJ["sign"] = np.sign(meGO_LJ["epsilon"])
     meGO_LJ.loc[(meGO_LJ["epsilon"] > 0) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]), "trivial"] = True
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0) & (meGO_LJ["rc_probability"] <= meGO_LJ["rc_threshold"]), "trivial"] = True
     # Identify rows where "trivial repulsive" is True and there exists another duplicate row
     duplicated_at_least_one_trivial = (
-        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["sign"] == -1)
+        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["type"] == -1)
     )
     # Identify rows where both are trivial/not trivial
     duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
     # Identify rows where both are attractive or repulsive
-    duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "sign"], keep=False)
+    duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "type"], keep=False)
     # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
     remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
     # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive

@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser(description="Read a molecular contact matrix an
 parser.add_argument(
     "-i",
     "--input_file",
+    required=True,
     type=str,
     help="Path to the input contact matrix file (e.g., 'intramat_1_1.ndx.gz')",
 )
