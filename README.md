@@ -1,5 +1,5 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-[![Version](https://img.shields.io/badge/Version-beta.3-blue)](https://github.com/multi-ego/multi-eGO/releases)
+[![Version](https://img.shields.io/badge/Version-beta.4-blue)](https://github.com/multi-ego/multi-eGO/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Multi-eGO test](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml)
