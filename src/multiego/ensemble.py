@@ -614,6 +614,26 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # we cycle over train matrices to pair them with reference matrices and
     # then we add 1-4 assignments and defaults c12s and concatenate everything
     train_dataset = pd.DataFrame()
+
+    td_fields = [
+        "molecule_name_ai",
+        "ai",
+        "molecule_name_aj",
+        "aj",
+        "distance",
+        "probability",
+        "cutoff",
+        "same_chain",
+        "source",
+        "zf",
+        "epsilon_0",
+        "md_threshold",
+        "rc_threshold",
+        "limit_rc",
+        "rc_distance",
+        "rc_probability",
+    ]
+
     for name, ref_name in meGO_ensemble["train_matrix_tuples"]:
         # sysname_train_intramat_1_1 <-> sysname_reference_intramat_1_1
         if ref_name not in matrices["reference_matrices"].keys():
@@ -628,67 +648,39 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             right_index=True,
             how="outer",
         )
+
+        # This is a debug check to avoid data inconsistencies
+        if (np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"])).max() > 0:
+            print(
+                temp_merged[["ai", "aj", "rc_ai", "rc_aj", "source", "rc_source", "cutoff", "rc_cutoff"]]
+                .loc[(np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"]) > 0)]
+                .to_string()
+            )
+            exit(
+                "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data"
+            )
+
+        # This is a debug check to avoid data inconsistencies
+        if not temp_merged["rc_same_chain"].equals(temp_merged["rc_same_chain"]):
+            diff_indices = temp_merged.index[temp_merged["same_chain"] != temp_merged["rc_same_chain"]].tolist()
+            print(f"Difference found at indices: {diff_indices}")
+            exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
+
+        temp_merged = temp_merged[td_fields]
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
 
-    # This is a debug check to avoid data inconsistencies
-    if (np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"])).max() > 0:
-        print(
-            train_dataset[["source", "file", "rc_source", "rc_file", "cutoff", "rc_cutoff"]]
-            .loc[(np.abs(train_dataset["rc_cutoff"] - train_dataset["cutoff"]) > 0)]
-            .to_string()
-        )
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data")
+    train_dataset["molecule_name_ai"] = train_dataset["molecule_name_ai"].astype("category")
+    train_dataset["molecule_name_aj"] = train_dataset["molecule_name_aj"].astype("category")
+    train_dataset["source"] = train_dataset["source"].astype("category")
 
-    # This is a debug check to avoid data inconsistencies
-    if not train_dataset["rc_same_chain"].equals(train_dataset["rc_same_chain"]):
-        diff_indices = train_dataset.index[train_dataset["same_chain"] != train_dataset["rc_same_chain"]].tolist()
-        print(f"Difference found at indices: {diff_indices}")
-        exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
-
-    needed_fields = [
-        "molecule_name_ai",
-        "ai",
-        "molecule_name_aj",
-        "aj",
-        "distance",
-        "probability",
-        "cutoff",
-        "intra_domain",
-        "same_chain",
-        "source",
-        "file",
-        "zf",
-        "epsilon_0",
-        "md_threshold",
-        "rc_threshold",
-        "limit_rc",
-        "rc_distance",
-        "rc_probability",
-        "rc_source",
-    ]
-    train_dataset = train_dataset[needed_fields]
-
-    # This is to FLAG 1-1, 1-2, 1-3, 1-4 cases:
     train_dataset = pd.merge(
-        train_dataset,
+        pd.merge(
+            train_dataset,
+            pairs14[["ai", "aj", "same_chain", "rep"]],
+            how="left",
+            on=["ai", "aj", "same_chain"],
+        ),
         exclusion_bonds14[["ai", "aj", "same_chain", "1-4"]],
-        how="left",
-        on=["ai", "aj", "same_chain"],
-    )
-    # Add the new category "0" to the column's categories
-    train_dataset["1-4"] = train_dataset["1-4"].cat.add_categories(["0"])
-    train_dataset.loc[
-        (train_dataset["ai"] == train_dataset["aj"]) & (train_dataset["same_chain"]),
-        "1-4",
-    ] = "0"
-
-    train_dataset["1-4"] = train_dataset["1-4"].cat.add_categories(["1>4"])
-    train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4").astype("category")
-
-    # This is to set the correct default C12 values taking into account specialised 1-4 values (including the special 1-5 O-O)
-    train_dataset = pd.merge(
-        train_dataset,
-        pairs14[["ai", "aj", "same_chain", "rep"]],
         how="left",
         on=["ai", "aj", "same_chain"],
     )
@@ -696,8 +688,14 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset["ai"] = train_dataset["ai"].astype("category")
     train_dataset["aj"] = train_dataset["aj"].astype("category")
 
-    train_dataset.loc[(train_dataset["1-4"] == "0"), "rep"] = 0.0
-    train_dataset.loc[(train_dataset["1-4"] == "1_2_3"), "rep"] = 0.0
+    # We remove from train the 0_1_2_3 intramolecolar interactions
+    train_dataset = train_dataset[
+        ~(((train_dataset["ai"] == train_dataset["aj"]) & train_dataset["same_chain"]) | (train_dataset["1-4"] == "1_2_3"))
+    ]
+    train_dataset.reset_index(inplace=True)
+
+    train_dataset["1-4"] = train_dataset["1-4"].cat.add_categories(["1>4"])
+    train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4").astype("category")
     train_dataset.loc[(train_dataset["1-4"] == "1_4") & (train_dataset["rep"].isnull()), "rep"] = 0.0
 
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
@@ -762,7 +760,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         "molecule_name_ai",
         "molecule_name_aj",
         "same_chain",
-        "intra_domain",
         "source",
         "md_threshold",
         "rc_threshold",
@@ -806,7 +803,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         basic_LJ["type"] = 1
         basic_LJ["source"] = "basic"
         basic_LJ["same_chain"] = True
-        basic_LJ["intra_domain"] = True
         basic_LJ["c6"] = 0.0
         basic_LJ["c12"] = 11.4 * np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
         basic_LJ["rep"] = basic_LJ["c12"]
@@ -829,7 +825,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
             temp_basic_LJ["c6"] = 0.0
             temp_basic_LJ["c12"] = 0.0
             temp_basic_LJ["same_chain"] = ensemble["rc_same_chain"]
-            temp_basic_LJ["intra_domain"] = ensemble["rc_intra_domain"]
             temp_basic_LJ["molecule_name_ai"] = ensemble["rc_molecule_name_ai"]
             temp_basic_LJ["molecule_name_aj"] = ensemble["rc_molecule_name_aj"]
             temp_basic_LJ["source"] = "basic"
@@ -1013,7 +1008,7 @@ def consistency_checks(meGO_LJ):
     # This is a debug check to avoid data inconsistencies
     if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
         print(
-            meGO_LJ[["source", "file", "rc_source", "rep", "cutoff"]]
+            meGO_LJ[["ai", "aj", "same_chain", "source", "rep", "cutoff"]]
             .loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)]
             .to_string()
         )
@@ -1116,8 +1111,7 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     st = time.time()
     print("\t- Set sigma and epsilon")
     # copy but remove intramolecular excluded interactions
-    meGO_LJ = train_dataset.loc[(train_dataset["1-4"] != "1_2_3") & (train_dataset["1-4"] != "0")].copy()
-    meGO_LJ.reset_index(inplace=True)
+    meGO_LJ = train_dataset.copy()
 
     # when distance estimates are poor we use the cutoff value
     meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (meGO_LJ["rep"] / meGO_LJ["epsilon_0"]) ** (
@@ -1152,7 +1146,6 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
         "aj",
         "probability",
         "same_chain",
-        "intra_domain",
         "source",
         "rc_probability",
         "sigma",
@@ -1378,6 +1371,11 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     )
 
     meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
+
+    # meGO consistency checks
+    consistency_checks(meGO_LJ)
+    consistency_checks(meGO_LJ_14)
+
     et = time.time()
     elapsed_time = et - st
     print("\t- Done in:", elapsed_time, "seconds")
