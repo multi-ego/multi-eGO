@@ -518,8 +518,8 @@ def print_stats(meGO_LJ):
     print(
         f"""
 \t- LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
-\t- Attractive: intra-domain: {intrad_a_contacts}, inter-molecular: {interm_a_contacts}
-\t- Repulsive: intra-domain: {intrad_r_contacts}, inter-molecular: {interm_r_contacts}
+\t- Attractive: intra-molecular: {intrad_a_contacts}, inter-molecular: {interm_a_contacts}
+\t- Repulsive: intra-molecular: {intrad_r_contacts}, inter-molecular: {interm_r_contacts}
 \t- The average epsilon is: {intrad_a_ave_contacts:5.3f} {interm_a_ave_contacts:5.3f} kJ/mol
 \t- Epsilon range is: [{intrad_a_min_contacts:5.3f}:{intrad_a_max_contacts:5.3f}] [{interm_a_min_contacts:5.3f}:{interm_a_max_contacts:5.3f}] kJ/mol
 \t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
