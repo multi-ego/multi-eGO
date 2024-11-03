@@ -1,4 +1,6 @@
-# make_mat.py
+# Interatomic contact matrices tools
+
+## make_mat.py
 
 This script calculates probabilities from histograms based on specified parameters.
 
@@ -26,3 +28,10 @@ Parameters:
     
 `--cutoff`: The maximum cutoff used for the accumulation of the histograms.
 
+## ndx2HDF5.py
+
+This scripts convert a text or a text.gz matrix in HDF5 format, this is usefull for large system because it is much faster to process.
+
+## HDF52ndx.py 
+
+This scripts convert a HDF5 matrix into text file.
