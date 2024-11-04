@@ -1,5 +1,5 @@
 # Multi-*e*GO: a multi-ensemble Gō model
-[![Version](https://img.shields.io/badge/Version-beta.3-blue)](https://github.com/multi-ego/multi-eGO/releases)
+[![Version](https://img.shields.io/badge/Version-beta.4-blue)](https://github.com/multi-ego/multi-eGO/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Multi-eGO test](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml)
@@ -99,7 +99,7 @@ Create a folder in which you want to run the random coil simulation. Copy the ``
 python multiego.py --system $SYSTEM_NAME --egos rc
 ```
 ```multiego.py``` will then create an output directory in ```multi-eGO/outputs/${SYSTEM_NAME}_rc``` which provides the inputs for the random coil simulation.
-The contents of the output folder are ```ffnonbonded.itp``` and ```topol_GRETA.top```. The former is the non-bonded interaction file and needs to be copied into the ```multi-ego-basic.ff/``` folder. The latter needs to be placed in the simulation root directory. We provide ```mdps``` simulation setup files tested with various multi-*e*GO setups in the ```multi-eGO/mdps``` folder. The order in which the simulations are run is as follows:
+The contents of the output folder are ```ffnonbonded.itp``` and ```topol_mego.top```. The former is the non-bonded interaction file and needs to be copied into the ```multi-ego-basic.ff/``` folder. The latter needs to be placed in the simulation root directory. We provide ```mdps``` simulation setup files tested with various multi-*e*GO setups in the ```multi-eGO/mdps``` folder. The order in which the simulations are run is as follows:
 
 ```
     1. ff_em.mdp
@@ -138,7 +138,7 @@ To setup a multi-*e*GO production simulation, you need to run ```multiego.py``` 
 ```
 python multiego.py --system $SYSTEM_NAME --egos production --epsilon 0.3 --train md_ensemble
 ```
-Here one sets the energy scale &#949; to 0.3 kJ/mol and trains the model from the ```md_ensemble``` data. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_GRETA.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The ```mdps``` files are the same except for the last step which is now ```ff_aa.mdp```.
+Here one sets the energy scale &#949; to 0.3 kJ/mol and trains the model from the ```md_ensemble``` data. The output directory will be ```multi-eGO/outputs/${SYSTEM_NAME}_production_e0.3_0.3``` and will contain the inputs for the production simulation. Again, the contents of the output directory are ```ffnonbonded.itp``` and ```topol_mego.top``` and need to be copied to the ```multi-ego-basic.ff/``` folder and the simulation root directory. The ```mdps``` files are the same except for the last step which is now ```ff_aa.mdp```.
 
 Happy simulating :)
 
