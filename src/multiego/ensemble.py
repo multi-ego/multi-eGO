@@ -113,7 +113,7 @@ def initialize_topology(topology, custom_dict, args):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
-    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["bare_c12"])}
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["rc_c12"])}
     # atp_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c6"])}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
@@ -785,9 +785,9 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     basic_LJ = pd.DataFrame()
 
     topol_df = meGO_ensemble["topology_dataframe"]
-    name_to_bare_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.bare_c12)}
-    name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
-    name_to_c6 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c6)}
+    name_to_rc_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
+    name_to_mg_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.mg_c12)}
+    name_to_mg_c6 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.mg_c6)}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -813,9 +813,9 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         ]
 
         ai_name = topol_df["type"]
-        bare_c12_list = ai_name.map(name_to_bare_c12).to_numpy()
-        c12_list = ai_name.map(name_to_c12).to_numpy()
-        c6_list = ai_name.map(name_to_c6).to_numpy()
+        bare_c12_list = ai_name.map(name_to_rc_c12).to_numpy()
+        c12_list = ai_name.map(name_to_mg_c12).to_numpy()
+        c6_list = ai_name.map(name_to_mg_c6).to_numpy()
         ai_name = ai_name.to_numpy(dtype=str)
         oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
         ca_mask = masking.create_array_mask(
