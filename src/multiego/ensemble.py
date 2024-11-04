@@ -1069,111 +1069,21 @@ def generate_basic_LJ(meGO_ensemble, args):
             ai_name,
             ai_name,
             [
-                ("CH1", "CH1"),
-                ("CH1", "C"),
-                ("CH1", "N"),
-                ("CH1", "S"),
-                ("CH1", "CH"),
-                ("CH1", "CH2"),
-                ("CH1", "CH2r"),
-                ("CH1", "CH3"),
-                ("CH1", "OA"),
-                ("NL", "CH1"),
-                ("NZ", "CH1"),
-                ("NE", "CH1"),
-                ("NT", "CH1"),
-                ("NR", "CH1"),
-                ("N", "N"),
-                ("N", "NT"),
-                ("NT", "NT"),
-                ("C", "C"),
-                ("S", "S"),
-            ],
-            symmetrize=True,
-        )
-        bb_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("CH1", "CH1"),
-                ("CH1", "C"),
-                ("CH1", "N"),
-                ("C", "C"),
-            ],
-            symmetrize=True,
-        )
-        catpi_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("NL", "CH"),
-                ("NZ", "CH"),
-                ("NE", "CH"),
-                ("NT", "CH"),
-                ("NR", "CH"),
-                ("C", "CH"),
-            ],
-            symmetrize=True,
-        )
-        hbond_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("N", "O"),
-                ("N", "C"),
-                ("N", "OM"),
-                ("N", "OA"),
-                ("NL", "O"),
-                ("NL", "C"),
-                ("NL", "OM"),
-                ("NL", "OA"),
-                ("NZ", "O"),
-                ("NZ", "OM"),
-                ("NZ", "OA"),
-                ("NE", "O"),
-                ("NE", "C"),
-                ("NE", "OM"),
-                ("NE", "OA"),
-                ("NR", "O"),
-                ("NR", "C"),
-                ("NR", "OM"),
-                ("NR", "OA"),
-                ("NT", "O"),
-                ("NT", "C"),
-                ("NT", "OM"),
-                ("NT", "OA"),
-                ("OA", "C"),
-                ("OA", "O"),
-                ("OA", "OM"),
-                ("OA", "OA"),
-            ],
-            symmetrize=True,
-        )
-        hydrophobic_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("CH3", "CH3"),
-                ("CH2", "CH2"),
-                ("CH", "CH"),
-                ("CH2r", "CH2r"),
-                ("CH3", "CH2"),
-                ("CH3", "CH"),
-                ("CH3", "CH2r"),
-                ("CH2", "CH"),
-                ("CH2", "CH2r"),
-                ("CH", "CH2r"),
-            ],
-            symmetrize=True,
-        )
-        hydrophobic_w_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("CH1", "CH2"),
-                ("CH1", "CH3"),
-                ("CH1", "CH2r"),
-                ("CH1", "CH"),
+                ("CH1a", "CH1a"),
+                ("CH1a", "C"),
+                ("CH1a", "N"),
+                ("CH1a", "S"),
+                ("CH1a", "CH"),
+                ("CH1a", "CH1"),
+                ("CH1a", "CH2"),
+                ("CH1a", "CH2r"),
+                ("CH1a", "CH3"),
+                ("CH1a", "OA"),
+                ("NL", "CH1a"),
+                ("NZ", "CH1a"),
+                ("NE", "CH1a"),
+                ("NT", "CH1a"),
+                ("NR", "CH1a"),
             ],
             symmetrize=True,
         )
@@ -1185,32 +1095,13 @@ def generate_basic_LJ(meGO_ensemble, args):
         basic_LJ.bare = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
         basic_LJ.rep = np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
         basic_LJ.att = np.sqrt(c6_list * c6_list[:, np.newaxis]).flatten()
-        # oxygen_LJ = basic_LJ[oxygen_mask].copy()
-        # oxygen_LJ["c12"] *= 11.4
-        # oxygen_LJ["c6"] = 0.0
-        # hydrophobic_LJ = basic_LJ[hydrophobic_mask].copy()
-        # hydrophobic_LJ["c12"] = 0.25 * hydrophobic_LJ["rep"]
-        # hydrophobic_LJ["c6"] = 0.25 * hydrophobic_LJ["att"]
-        # hydrophobic_w_LJ = basic_LJ[hydrophobic_w_mask].copy()
-        # hydrophobic_w_LJ["c12"] = 0.12 * hydrophobic_w_LJ["rep"]
-        # hydrophobic_w_LJ["c6"] = 0.12 * hydrophobic_w_LJ["att"]
-        # bb_LJ = basic_LJ[bb_mask].copy()
-        # bb_LJ["c12"] = 0.275 * bb_LJ["rep"]
-        # bb_LJ["c6"] = 0.275 * bb_LJ["att"]
-        # hbond_LJ = basic_LJ[hbond_mask].copy()
-        # hbond_LJ["c12"] = 0.275 * hbond_LJ["rep"]
-        # hbond_LJ["c6"] = 0.275 * hbond_LJ["att"]
-        # catpi_LJ = basic_LJ[catpi_mask].copy()
-        # catpi_LJ["c12"] = 0.20 * catpi_LJ["rep"]
-        # catpi_LJ["c6"] = 0.20 * catpi_LJ["att"]
-        # basic_LJ = pd.concat([oxygen_LJ, hbond_LJ, hydrophobic_LJ, hydrophobic_w_LJ, catpi_LJ, bb_LJ])
         basic_LJ["intra_domain"] = True
         basic_LJ["residue_ai"] = basic_LJ["ai"].apply(get_residue_number)
         basic_LJ["residue_aj"] = basic_LJ["aj"].apply(get_residue_number)
         basic_LJ.loc[oxygen_mask, "c12"] *= 11.4
         basic_LJ.loc[oxygen_mask, "c6"] = 0.0
-        basic_LJ.loc[~oxygen_mask, "c12"] = 0.195 * basic_LJ["rep"]
-        basic_LJ.loc[~oxygen_mask, "c6"] = 0.195 * basic_LJ["att"]
+        basic_LJ.loc[~oxygen_mask, "c12"] = 0.155 * basic_LJ["rep"]
+        basic_LJ.loc[~oxygen_mask, "c6"] = 0.155 * basic_LJ["att"]
         basic_LJ_14 = basic_LJ.copy()
         basic_LJ_14 = basic_LJ_14[(~oxygen_mask & ~ca_mask)]
         basic_LJ_14 = basic_LJ_14.loc[
