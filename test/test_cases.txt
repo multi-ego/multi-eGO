@@ -1,6 +1,6 @@
---system gpref --egos rc --no_header
---system gpref --egos production --epsilon 0.235 --train md_ensemble --single_molecule --no_header
---system abetaref --egos production --epsilon 0.33 --train native_MD --reference ref --single_molecule --symmetry inputs/abetaref/aa_sym --no_header
---system ttrref --egos production --epsilon 0.33 --train native_MD fibril_MD --check fibril_check --inter_epsilon 0.275 --no_header --symmetry inputs/ttrref/aa_sym
---system lyso-bnz_ref --egos production --epsilon 0.34 --train md_ensemble --inter_epsilon 0.53 --inter_domain_epsilon 1.5 --single_molecule --sym inputs/lyso-bnz_ref/aa_sym --no_header
---system lyso-bnz_ref --train md_ensemble --egos production --multi_epsi_intra inputs/lyso-bnz_ref/epsilon_file.txt --multi_epsi_inter_domain inputs/lyso-bnz_ref/epsilon_inter_domain_file.txt --multi_epsi_inter inputs/lyso-bnz_ref/epsilon_inter_file.txt --single_molecule --sym inputs/lyso-bnz_ref/aa_sym --no_header
+--system gpref --egos rc --no_header --explicit_name case
+--system gpref --egos production --epsilon 0.235 --train md_ensemble --single_molecule --no_header --explicit_name case
+--config TEST_ROOT/test_inputs/abetaref/config.yml --explicit_name case # --system abetaref --egos production
+--config TEST_ROOT/test_inputs/ttrref/config.yml --explicit_name case # --system ttrref --egos production
+--config TEST_ROOT/test_inputs/lyso-bnz_ref/config_1.yml --explicit_name case # --system lyso-bnz_ref --egos production
+--config TEST_ROOT/test_inputs/lyso-bnz_ref/config_2.yml --explicit_name case # --system lyso-bnz_ref --egos production

@@ -1,0 +1,19 @@
+---
+- system: abetaref
+- egos: production 
+- epsilon: 0.33 
+- train: native_MD 
+- reference: ref
+- single_molecule
+- symmetry: 
+  - ARG NH1 NH2
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - LEU CD1 CD2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - VAL CG1 CG2
+  - ALA O1 O2
+- no_header
