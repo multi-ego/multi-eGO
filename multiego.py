@@ -232,7 +232,7 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
     else:
         print("- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_basic_LJ(meGO_ensemble, args)
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_basic_LJ(meGO_ensembles, args)
         # meGO_LJ_14 = pairs14
         meGO_LJ_14 = pd.concat([meGO_LJ_14, pairs14])
         needed_fields = [

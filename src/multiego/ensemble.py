@@ -282,6 +282,7 @@ def init_meGO_ensemble(args, custom_dict):
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -305,6 +306,7 @@ def init_meGO_ensemble(args, custom_dict):
     ensemble["topology_dataframe"] = topology_dataframe
     ensemble["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
     ensemble["sbtype_c12_dict"] = sbtype_c12_dict
+    ensemble["sbtype_c6_dict"] = sbtype_c6_dict
     ensemble["sbtype_name_dict"] = sbtype_name_dict
     ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict
     ensemble["sbtype_number_dict"] = (
