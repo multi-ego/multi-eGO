@@ -1409,9 +1409,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             sbtype_with_residue = [
                 (sbtype, resnum_type_dict[sbtype])
                 for sbtype in reduced_topology["sb_type"]
-                if meGO_ensemble["sbtype_type_dict"][sbtype] != "O"
-                and meGO_ensemble["sbtype_type_dict"][sbtype] != "OM"
-                and meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
+                if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
             ]
             # Sort the list by residue numbers
             sbtype_with_residue.sort(key=lambda x: x[1])
