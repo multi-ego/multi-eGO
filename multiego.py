@@ -110,7 +110,7 @@ for a contact pair.
     elif not multi_flag:
         args.names = topol_names
 
-    if args.egos != "rc" and not args.reference:
+    if args.egos == "production" and not args.reference:
         args.reference = ["reference"]
 
     if args.epsilon and not args.inter_epsilon:
@@ -127,7 +127,7 @@ for a contact pair.
         args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
 
     # check all epsilons are set and greater than epsilon_min
-    if args.egos != "rc":
+    if args.egos == "production":
         for k, v in args.multi_epsilon_intra.items():
             if v < args.epsilon_min:
                 print("ERROR: epsilon value for " + k + " is less than epsilon_min")
@@ -179,15 +179,16 @@ def main():
     """
 
     bt = time.time()
-    print("Multi-eGO\n")
     args, custom_dict = meGO_parsing()
 
     if not args.no_header:
         generate_face.print_welcome()
 
+    print(f"Multi-eGO: {args.egos}\n")
+
     print("- Checking for input files and folders")
     io.check_files_existence(args)
-    if args.egos != "rc":
+    if args.egos == "production":
         io.check_matrix_format(args)
 
     print("- Processing Multi-eGO topology")
@@ -202,7 +203,7 @@ def main():
     st = et
     print("- Done in:", elapsed_time, "seconds")
 
-    if args.egos != "rc":
+    if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = ensemble.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
@@ -230,45 +231,16 @@ def main():
         st = et
         print("- Done in:", elapsed_time, "seconds")
     else:
-        print("- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_basic_LJ(meGO_ensembles, args)
-        # meGO_LJ_14 = pairs14
-        meGO_LJ_14 = pd.concat([meGO_LJ_14, pairs14])
-        needed_fields = [
-            "ai",
-            "aj",
-            "type",
-            "c6",
-            "c12",
-            "sigma",
-            "epsilon",
-            "probability",
-            "rc_probability",
-            "md_threshold",
-            "rc_threshold",
-            "rep",
-            "cutoff",
-            "molecule_name_ai",
-            "molecule_name_aj",
-            "same_chain",
-            "source",
-            "number_ai",
-            "number_aj",
-        ]
-        meGO_LJ_14 = meGO_LJ_14[needed_fields]
-        meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
-        meGO_LJ_14.reset_index(inplace=True)
-        # Sorting the pairs prioritising intermolecular interactions
-        meGO_LJ_14.sort_values(by=["ai", "aj", "c12"], ascending=[True, True, True], inplace=True)
-        # Cleaning the duplicates
-        meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
+        print("- Generate the LJ dataset")
+        meGO_LJ = ensemble.generate_rc_LJ(meGO_ensembles)
+        meGO_LJ_14 = pairs14
         et = time.time()
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
 
     print("- Finalize pairs and exclusions")
-    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14)
+    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
     elapsed_time = et - st
     st = et

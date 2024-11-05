@@ -5,7 +5,7 @@ args_dict = {
     },
     "--egos": {
         "type": str,
-        "choices": ["rc", "production"],
+        "choices": ["rc", "mg", "production"],
         "help": "rc: creates a force-field for random coil simulations. "
         "mg: creates a force-field for molten globule simulations."
         "production: creates a force-field combining random coil simulations and training simulations.",
