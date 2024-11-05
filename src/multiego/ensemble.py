@@ -742,11 +742,11 @@ def generate_rc_LJ(meGO_ensemble):
 
     # Create a DataFrame from the combinations
     rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    rc_LJ["type"] = 1
     rc_LJ["c6"] = 0.0
     rc_LJ["c12"] = 11.4 * np.sqrt(
         rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
-    rc_LJ["type"] = 1
 
     return rc_LJ
 
