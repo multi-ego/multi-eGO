@@ -751,6 +751,45 @@ def generate_rc_LJ(meGO_ensemble):
     return rc_LJ
 
 
+def generate_mg_LJ(meGO_ensemble):
+    """
+    The multi-eGO random coil force-field includes special repulsive interaction for oxygen-oxygen pairs and for the
+    ch1a with all other atoms, these are generate in the following
+    """
+    O_OM_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
+    ]
+
+    # Generate all possible combinations
+    combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+
+    # Create a DataFrame from the combinations
+    rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    rc_LJ["type"] = 1
+    rc_LJ["c6"] = 0.0
+    rc_LJ["c12"] = 11.4 * np.sqrt(
+        rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+    )
+
+    CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
+
+    all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
+    # Step 3: Create a list for 'aj' by excluding 'CH1a_sbtype'
+    aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
+    # Step 4: Build the DataFrame with all combinations of 'ai' and 'aj'
+    ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
+    # Create the DataFrame
+    df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
+
+    df["type"] = 1
+    df["c6"] = 0.0
+    df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
+
+    mg_LJ = pd.concat([rc_LJ, df])
+
+    return mg_LJ
+
+
 def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
