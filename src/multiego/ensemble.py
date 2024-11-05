@@ -113,16 +113,20 @@ def initialize_topology(topology, custom_dict, args):
     )
     ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
-    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["bare_c12"])}
-    # atp_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c6"])}
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["rc_c12"])}
+    atp_mg_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c6"])}
+    atp_mg_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c12"])}
+    # TODO: we will need to extend this to mg c6/c12 stuff?
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         atp_c12_map.update(name_to_c12_appo)
 
     ensemble_topology_dataframe["charge"] = 0.0
-    ensemble_topology_dataframe["c6"] = 0.0
-    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
+    ensemble_topology_dataframe["rc_c6"] = 0.0
+    ensemble_topology_dataframe["rc_c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
+    ensemble_topology_dataframe["c6"] = ensemble_topology_dataframe["type"].map(atp_mg_c6_map)
+    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_mg_c12_map)
     ensemble_topology_dataframe["molecule_type"] = ensemble_topology_dataframe["molecule_name"].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -130,8 +134,7 @@ def initialize_topology(topology, custom_dict, args):
         number_sbtype_dict = temp_topology_dataframe[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
 
-    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "c12"]].set_index("sb_type")["c12"].to_dict()
-    sbtype_c6_dict = ensemble_topology_dataframe[["sb_type", "c6"]].set_index("sb_type")["c6"].to_dict()
+    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "rc_c12"]].set_index("sb_type")["rc_c12"].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[["sb_type", "name"]].set_index("sb_type")["name"].to_dict()
     sbtype_moltype_dict = (
         ensemble_topology_dataframe[["sb_type", "molecule_type"]].set_index("sb_type")["molecule_type"].to_dict()
@@ -141,7 +144,6 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_topology_dataframe,
         ensemble_molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
-        sbtype_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -282,37 +284,26 @@ def init_meGO_ensemble(args, custom_dict):
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
-        sbtype_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
     ) = initialize_topology(base_reference_topology, custom_dict, args)
 
-    # prior = {}
-    # prior["topology"] = reference_topology
-    # prior["topology_dataframe"] = topology_dataframe
-    # prior["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
-    # prior["sbtype_c12_dict"] = sbtype_c12_dict
-    # prior["sbtype_name_dict"] = sbtype_name_dict
-    # prior["sbtype_moltype_dict"] = sbtype_moltype_dict
-    # prior["sbtype_number_dict"] = (
-    #     topology_dataframe[["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    # )
-    # prior["sbtype_type_dict"] = {key: name for key, name in topology_dataframe[["sb_type", "type"]].values}
-    # prior["molecule_type_dict"] = molecule_type_dict
-
     ensemble = {}
     ensemble["topology"] = base_reference_topology
     ensemble["topology_dataframe"] = topology_dataframe
-    ensemble["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
-    ensemble["sbtype_c12_dict"] = sbtype_c12_dict
-    ensemble["sbtype_c6_dict"] = sbtype_c6_dict
-    ensemble["sbtype_name_dict"] = sbtype_name_dict
-    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict
+    ensemble["molecules_idx_sbtype_dictionary"] = (
+        molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
+    )
+    ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
+    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
     ensemble["sbtype_number_dict"] = (
         ensemble["topology_dataframe"][["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    )
+    )  # {mego_type: atomnumer} N_mol_resnum: 1
+    # {mego_type: atomtype} N_mol_resnum: NL
     ensemble["sbtype_type_dict"] = {key: name for key, name in ensemble["topology_dataframe"][["sb_type", "type"]].values}
+    # {molecule: moltype} mol: protein
     ensemble["molecule_type_dict"] = molecule_type_dict
     ensemble["train_matrix_tuples"] = []
 
@@ -399,7 +390,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         (
             temp_topology_dataframe,
             ensemble["molecules_idx_sbtype_dictionary"],
-            _,
             _,
             _,
             _,
@@ -705,7 +695,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4").astype("category")
     train_dataset.loc[(train_dataset["1-4"] == "1_4") & (train_dataset["rep"].isnull()), "rep"] = 0.0
 
-    type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -736,6 +726,29 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
 def get_residue_number(s):
     return int(s.split("_")[-1])
+
+
+def generate_rc_LJ(meGO_ensemble):
+    """
+    The multi-eGO random coil force-field includes special repulsive interaction only for oxygen-oxygen pairs
+    these are generate in the following
+    """
+    O_OM_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
+    ]
+
+    # Generate all possible combinations
+    combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+
+    # Create a DataFrame from the combinations
+    rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    rc_LJ["type"] = 1
+    rc_LJ["c6"] = 0.0
+    rc_LJ["c12"] = 11.4 * np.sqrt(
+        rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+    )
+
+    return rc_LJ
 
 
 def generate_basic_LJ(meGO_ensemble, args, matrices=None):
@@ -777,148 +790,54 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         "number_ai",
         "number_aj",
         "cutoff",
-        "rep",
-        "att",
-        "bare",
     ]
 
     basic_LJ = pd.DataFrame()
-
     topol_df = meGO_ensemble["topology_dataframe"]
-    name_to_bare_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.bare_c12)}
-    name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
-    name_to_c6 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c6)}
+
+    name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         name_to_c12.update(name_to_c12_appo)
 
-    if args.egos == "rc":
-        basic_LJ = pd.DataFrame(columns=columns)
-        basic_LJ["index_ai"] = [
-            i
-            for i in range(1, len(meGO_ensemble["sbtype_number_dict"]) + 1)
-            for j in range(1, len(meGO_ensemble["sbtype_number_dict"]) + 1)
-        ]
-        basic_LJ["index_aj"] = np.array(
-            len(meGO_ensemble["sbtype_number_dict"])
-            * [meGO_ensemble["sbtype_number_dict"][key] for key in meGO_ensemble["sbtype_number_dict"].keys()],
-            dtype=np.int64,
-        )
-        basic_LJ["ai"] = [
-            x for x in meGO_ensemble["sbtype_number_dict"].keys() for _ in meGO_ensemble["sbtype_number_dict"].keys()
-        ]
-        basic_LJ["aj"] = [
-            y for _ in meGO_ensemble["sbtype_number_dict"].keys() for y in meGO_ensemble["sbtype_number_dict"].keys()
-        ]
+    for name in matrices["reference_matrices"].keys():
+        temp_basic_LJ = pd.DataFrame(columns=columns)
+        mol_num_i = str(name.split("_")[-2])
+        mol_num_j = str(name.split("_")[-1])
+        ensemble = matrices["reference_matrices"][name]
+        temp_basic_LJ["ai"] = ensemble["rc_ai"]
+        temp_basic_LJ["aj"] = ensemble["rc_aj"]
+        temp_basic_LJ["type"] = 1
+        temp_basic_LJ["c6"] = 0.0
+        temp_basic_LJ["c12"] = 0.0
+        temp_basic_LJ["same_chain"] = ensemble["rc_same_chain"]
+        temp_basic_LJ["molecule_name_ai"] = ensemble["rc_molecule_name_ai"]
+        temp_basic_LJ["molecule_name_aj"] = ensemble["rc_molecule_name_aj"]
+        temp_basic_LJ["source"] = "basic"
 
-        ai_name = topol_df["type"]
-        bare_c12_list = ai_name.map(name_to_bare_c12).to_numpy()
-        c12_list = ai_name.map(name_to_c12).to_numpy()
-        c6_list = ai_name.map(name_to_c6).to_numpy()
-        ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
-        ca_mask = masking.create_array_mask(
-            ai_name,
-            ai_name,
-            [
-                ("CH1a", "CH1a"),
-                ("CH1a", "C"),
-                ("CH1a", "N"),
-                ("CH1a", "S"),
-                ("CH1a", "CH"),
-                ("CH1a", "CH1"),
-                ("CH1a", "CH2"),
-                ("CH1a", "CH2r"),
-                ("CH1a", "CH3"),
-                ("CH1a", "OA"),
-                ("NL", "CH1a"),
-                ("NZ", "CH1a"),
-                ("NE", "CH1a"),
-                ("NT", "CH1a"),
-                ("NR", "CH1a"),
-            ],
-            symmetrize=True,
-        )
-        basic_LJ["type"] = 1
-        basic_LJ["source"] = "basic"
-        basic_LJ["same_chain"] = True
-        basic_LJ.c6 = 0.0
-        basic_LJ.c12 = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
-        basic_LJ.bare = np.sqrt(bare_c12_list * bare_c12_list[:, np.newaxis]).flatten()
-        basic_LJ.rep = np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
-        basic_LJ.att = np.sqrt(c6_list * c6_list[:, np.newaxis]).flatten()
-        basic_LJ["intra_domain"] = True
-        basic_LJ["residue_ai"] = basic_LJ["ai"].apply(get_residue_number)
-        basic_LJ["residue_aj"] = basic_LJ["aj"].apply(get_residue_number)
-        basic_LJ.loc[oxygen_mask, "c12"] *= 11.4
-        basic_LJ.loc[oxygen_mask, "c6"] = 0.0
-        basic_LJ.loc[~oxygen_mask, "c12"] = 0.155 * basic_LJ["rep"]
-        basic_LJ.loc[~oxygen_mask, "c6"] = 0.155 * basic_LJ["att"]
-        basic_LJ_14 = basic_LJ.copy()
-        basic_LJ_14 = basic_LJ_14[(~oxygen_mask & ~ca_mask)]
-        basic_LJ_14 = basic_LJ_14.loc[
-            (basic_LJ["same_chain"]) & ((basic_LJ["residue_ai"] - basic_LJ["residue_aj"]).abs() <= 2)
-        ]
-        basic_LJ = basic_LJ[~ca_mask]
-        basic_LJ["rep"] = basic_LJ["bare"]
-        basic_LJ_14["c12"] = basic_LJ_14["bare"]
-        basic_LJ_14["c6"] = 0.0
-        basic_LJ_14["rep"] = basic_LJ_14["c12"]
-        # basic_LJ = basic_LJ.loc[(basic_LJ["c6"] == 0.0) | ((basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])) > args.epsilon_min)]
-        basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
-            ["index_ai", "index_aj"]
-        ].max(axis=1)
-        basic_LJ = basic_LJ.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
-        basic_LJ.sort_values(by=["index_ai", "index_aj"], inplace=True)
-        basic_LJ = basic_LJ.drop(["index_ai", "index_aj"], axis=1)
-        basic_LJ_14["index_ai"], basic_LJ_14["index_aj"] = basic_LJ_14[["index_ai", "index_aj"]].min(axis=1), basic_LJ_14[
-            ["index_ai", "index_aj"]
-        ].max(axis=1)
-        basic_LJ_14 = basic_LJ_14.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
-        basic_LJ_14.sort_values(by=["index_ai", "index_aj"], inplace=True)
-        basic_LJ_14 = basic_LJ_14.drop(["index_ai", "index_aj"], axis=1)
+        atom_set_i = topol_df[topol_df["molecule_number"] == mol_num_i]["type"]
+        atom_set_j = topol_df[topol_df["molecule_number"] == mol_num_j]["type"]
+        c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
+        c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
+        ai_name = atom_set_i.to_numpy(dtype=str)
+        aj_name = atom_set_j.to_numpy(dtype=str)
+        oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
+        temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
+        temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
+        temp_basic_LJ = temp_basic_LJ[oxygen_mask]
+        temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
+        temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
 
-    else:
-        for name in matrices["reference_matrices"].keys():
-            temp_basic_LJ = pd.DataFrame(columns=columns)
-            mol_num_i = str(name.split("_")[-2])
-            mol_num_j = str(name.split("_")[-1])
-            ensemble = matrices["reference_matrices"][name]
-            temp_basic_LJ["ai"] = ensemble["rc_ai"]
-            temp_basic_LJ["aj"] = ensemble["rc_aj"]
-            temp_basic_LJ["type"] = 1
-            temp_basic_LJ["c6"] = 0.0
-            temp_basic_LJ["c12"] = 0.0
-            temp_basic_LJ["same_chain"] = ensemble["rc_same_chain"]
-            temp_basic_LJ["molecule_name_ai"] = ensemble["rc_molecule_name_ai"]
-            temp_basic_LJ["molecule_name_aj"] = ensemble["rc_molecule_name_aj"]
-            temp_basic_LJ["source"] = "basic"
-
-            atom_set_i = topol_df[topol_df["molecule_number"] == mol_num_i]["type"]
-            atom_set_j = topol_df[topol_df["molecule_number"] == mol_num_j]["type"]
-            c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
-            c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
-            ai_name = atom_set_i.to_numpy(dtype=str)
-            aj_name = atom_set_j.to_numpy(dtype=str)
-            oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
-            temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
-            temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
-            temp_basic_LJ = temp_basic_LJ[oxygen_mask]
-            temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
-            temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
-
-            basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
+        basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
 
     basic_LJ["probability"] = 1.0
     basic_LJ["rc_probability"] = 1.0
     basic_LJ["rc_threshold"] = 1.0
     basic_LJ["md_threshold"] = 1.0
     basic_LJ["epsilon"] = -basic_LJ["c12"]
-    basic_LJ.loc[basic_LJ["c6"] > 0, "epsilon"] = basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])
     basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
     basic_LJ["sigma"] = basic_LJ["cutoff"] / (2.0 ** (1.0 / 6.0))
-    basic_LJ.loc[basic_LJ["c6"] > 0, "sigma"] = (basic_LJ["c12"] / basic_LJ["c6"]) ** (1 / 6)
     basic_LJ["distance"] = basic_LJ["cutoff"]
     basic_LJ["learned"] = 0
     basic_LJ["1-4"] = "1>4"
@@ -926,24 +845,8 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     basic_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
     # Cleaning the duplicates
     basic_LJ = basic_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
-    basic_LJ_14["probability"] = 1.0
-    basic_LJ_14["rc_probability"] = 1.0
-    basic_LJ_14["rc_threshold"] = 1.0
-    basic_LJ_14["md_threshold"] = 1.0
-    basic_LJ_14["epsilon"] = -basic_LJ_14["c12"]
-    basic_LJ_14.loc[basic_LJ_14["c6"] > 0, "epsilon"] = basic_LJ_14["c6"] ** 2 / (4.0 * basic_LJ_14["c12"])
-    basic_LJ_14["cutoff"] = 1.45 * basic_LJ_14["c12"] ** (1.0 / 12.0)
-    basic_LJ_14["sigma"] = basic_LJ_14["cutoff"] / (2.0 ** (1.0 / 6.0))
-    basic_LJ_14.loc[basic_LJ_14["c6"] > 0, "sigma"] = (basic_LJ_14["c12"] / basic_LJ_14["c6"]) ** (1 / 6)
-    basic_LJ_14["distance"] = basic_LJ_14["cutoff"]
-    basic_LJ_14["learned"] = 0
-    basic_LJ_14["1-4"] = "1>4"
-    # Sorting the pairs prioritising intermolecular interactions
-    basic_LJ_14.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
-    # Cleaning the duplicates
-    basic_LJ_14 = basic_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-    return basic_LJ, basic_LJ_14
+    return basic_LJ
 
 
 def set_sig_epsilon(meGO_LJ, needed_fields):
@@ -1426,6 +1329,28 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     consistency_checks(meGO_LJ)
     consistency_checks(meGO_LJ_14)
 
+    final_fields = [
+        "ai",
+        "aj",
+        "type",
+        "c6",
+        "c12",
+        "sigma",
+        "epsilon",
+        "probability",
+        "rc_probability",
+        "md_threshold",
+        "rc_threshold",
+        "rep",
+        "cutoff",
+        "same_chain",
+        "source",
+        "number_ai",
+        "number_aj",
+    ]
+
+    meGO_LJ = meGO_LJ[final_fields]
+
     et = time.time()
     elapsed_time = et - st
     print("\t- Done in:", elapsed_time, "seconds")
@@ -1433,7 +1358,7 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     return meGO_LJ, meGO_LJ_14
 
 
-def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
+def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     """
     This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
 
@@ -1471,10 +1396,57 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
         reduced_topology["resnum"] = reduced_topology["resnum"].astype(int)
 
         atnum_type_dict = reduced_topology.set_index("sb_type")["number"].to_dict()
+        resnum_type_dict = reduced_topology.set_index("sb_type")["resnum"].to_dict()
+
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
         exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
+
+        # in the case of the MG prior we need to remove interactions in a window of 2 residues
+        if args.egos == "mg":
+            # Create a list of tuples (sbtype, residue_number)
+            sbtype_with_residue = [
+                (sbtype, resnum_type_dict[sbtype])
+                for sbtype in reduced_topology["sb_type"]
+                if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
+            ]
+            # Sort the list by residue numbers
+            sbtype_with_residue.sort(key=lambda x: x[1])
+            # Initialize a list to hold the filtered combinations
+            filtered_combinations = []
+            # Use two pointers to find valid pairs
+            n = len(sbtype_with_residue)
+            for i in range(n):
+                j = i + 1  # Start with the current sbtype
+                # Find the range of valid sbtypes
+                while j < n and abs(sbtype_with_residue[j][1] - sbtype_with_residue[i][1]) <= 2:
+                    filtered_combinations.append((sbtype_with_residue[i][0], sbtype_with_residue[j][0]))
+                    j += 1
+
+            # Create a DataFrame from the filtered combinations
+            df = pd.DataFrame(filtered_combinations, columns=["ai", "aj"])
+            df["c6"] = 0.0
+            df["c12"] = np.sqrt(
+                df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+            )
+            df["same_chain"] = True
+            df["probability"] = 1.0
+            df["rc_probability"] = 1.0
+            df["source"] = "mg"
+            df["rep"] = df["c12"]
+            df["1-4"] = "1>4"
+            # The exclusion list was made based on the atom number
+            df["check"] = df["ai"].map(atnum_type_dict).astype(str) + "_" + df["aj"].map(atnum_type_dict).astype(str)
+            # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_df
+            df["remove"] = ""
+            df.loc[(df["check"].isin(exclusion_bonds)), "remove"] = "Yes"
+            df.loc[(df["check"].isin(p14) & (df["same_chain"])), "remove"] = "Yes"
+            mask = df.remove == "Yes"
+            df = df[~mask]
+            df.drop(columns=["check", "remove"], inplace=True)
+            meGO_LJ_14 = pd.concat([meGO_LJ_14, df], axis=0, sort=False, ignore_index=True)
+
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
             # pairs do not have duplicates because these have been cleaned before
@@ -1484,7 +1456,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
                     "aj",
                     "c6",
                     "c12",
-                    "epsilon",
                     "same_chain",
                     "probability",
                     "rc_probability",
@@ -1503,7 +1474,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs["check"].isin(p14) & (pairs["same_chain"])), "remove"] = "No"
             mask = pairs.remove == "Yes"
             pairs = pairs[~mask]
-
             pairs["func"] = 1
             # Intermolecular interactions are excluded
             pairs.loc[(~pairs["same_chain"]), "c6"] = 0.0

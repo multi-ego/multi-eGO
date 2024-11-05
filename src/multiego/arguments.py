@@ -5,13 +5,10 @@ args_dict = {
     },
     "--egos": {
         "type": str,
-        "choices": ["rc", "production"],
+        "choices": ["rc", "mg", "production"],
         "help": "rc: creates a force-field for random coil simulations. "
+        "mg: creates a force-field for molten globule simulations."
         "production: creates a force-field combining random coil simulations and training simulations.",
-    },
-    "--epsilon": {
-        "type": float,
-        "help": "Maximum interaction energy per contact. The typical range is 0.2-0.4 kJ/mol",
     },
     "--reference": {
         "type": lambda x: x.split(","),
@@ -25,13 +22,17 @@ args_dict = {
         "help": "A list of the training simulations to be included in multi-eGO, "
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
+    "--epsilon": {
+        "type": float,
+        "help": "Maximum interaction energy per contact.",
+    },
     "--inter_epsilon": {
         "type": float,
-        "help": "Maximum interaction energy per intermolecular contacts. The typical range is 0.2-0.4 kJ/mol",
+        "help": "Maximum interaction energy per intermolecular contacts.",
     },
     "--inter_domain_epsilon": {
         "type": float,
-        "help": "Maximum interaction energy per interdomain contacts. The typical range is 0.2-0.4 kJ/mol",
+        "help": "Maximum interaction energy per interdomain contacts.",
     },
     "--p_to_learn": {
         "type": float,
