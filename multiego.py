@@ -230,6 +230,14 @@ def main():
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
+    elif args.egos == "mg":
+        print("- Generate the LJ dataset")
+        meGO_LJ = ensemble.generate_mg_LJ(meGO_ensembles)
+        meGO_LJ_14 = pairs14
+        et = time.time()
+        elapsed_time = et - st
+        st = et
+        print("- Done in:", elapsed_time, "seconds")
     else:
         print("- Generate the LJ dataset")
         meGO_LJ = ensemble.generate_rc_LJ(meGO_ensembles)
