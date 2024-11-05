@@ -134,7 +134,7 @@ def initialize_topology(topology, custom_dict, args):
         number_sbtype_dict = temp_topology_dataframe[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
 
-    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "c12"]].set_index("sb_type")["c12"].to_dict()
+    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "rc_c12"]].set_index("sb_type")["rc_c12"].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[["sb_type", "name"]].set_index("sb_type")["name"].to_dict()
     sbtype_moltype_dict = (
         ensemble_topology_dataframe[["sb_type", "molecule_type"]].set_index("sb_type")["molecule_type"].to_dict()
@@ -790,9 +790,6 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         "number_ai",
         "number_aj",
         "cutoff",
-        "rep",
-        "att",
-        "bare",
     ]
 
     basic_LJ = pd.DataFrame()
@@ -839,10 +836,8 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
     basic_LJ["rc_threshold"] = 1.0
     basic_LJ["md_threshold"] = 1.0
     basic_LJ["epsilon"] = -basic_LJ["c12"]
-    basic_LJ.loc[basic_LJ["c6"] > 0, "epsilon"] = basic_LJ["c6"] ** 2 / (4.0 * basic_LJ["c12"])
     basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
     basic_LJ["sigma"] = basic_LJ["cutoff"] / (2.0 ** (1.0 / 6.0))
-    basic_LJ.loc[basic_LJ["c6"] > 0, "sigma"] = (basic_LJ["c12"] / basic_LJ["c6"]) ** (1 / 6)
     basic_LJ["distance"] = basic_LJ["cutoff"]
     basic_LJ["learned"] = 0
     basic_LJ["1-4"] = "1>4"
