@@ -771,23 +771,36 @@ def generate_mg_LJ(meGO_ensemble):
         rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
 
-    CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
+    #N_sbtype = [
+    #    sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"
+    #]
 
-    all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
-    # Step 3: Create a list for 'aj' by excluding 'CH1a_sbtype'
-    aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
-    # Step 4: Build the DataFrame with all combinations of 'ai' and 'aj'
-    ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
+    # Generate all combinations of N_sbtype and O_OM_sbtype
+    #ai_aj_combinations = [(ai, aj) for ai, aj in itertools.product(N_sbtype, O_OM_sbtype)]
+
     # Create the DataFrame
-    df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
+    #df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
+    #df["type"] = 1
+    #df["c6"] = 0.11 * np.sqrt((0.0024364096 / 0.63980)*(0.0022619536 / 1.27911))
+    #df["c12"] = 0.11 * np.sqrt((2.319529e-06 / 0.63980)*(1e-06 / 1.27911))
 
-    df["type"] = 1
-    df["c6"] = 0.0
-    df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
+    #CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
 
-    mg_LJ = pd.concat([rc_LJ, df])
+    #all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
+    ## Step 3: Create a list for 'aj' by excluding 'CH1a_sbtype'
+    #aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
+    ## Step 4: Build the DataFrame with all combinations of 'ai' and 'aj'
+    #ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
+    ## Create the DataFrame
+    #df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
 
-    return mg_LJ
+    #df["type"] = 1
+    #df["c6"] = 0.0
+    #df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
+
+    #mg_LJ = pd.concat([rc_LJ, df])
+
+    return rc_LJ
 
 
 def generate_basic_LJ(meGO_ensemble, args, matrices=None):
@@ -1448,7 +1461,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             sbtype_with_residue = [
                 (sbtype, resnum_type_dict[sbtype])
                 for sbtype in reduced_topology["sb_type"]
-                if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
+                #if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
             ]
             # Sort the list by residue numbers
             sbtype_with_residue.sort(key=lambda x: x[1])
