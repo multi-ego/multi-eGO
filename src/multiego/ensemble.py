@@ -1469,6 +1469,17 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             df["c12"] = np.sqrt(
                 df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"])
             )
+            df.loc[
+                (
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                )
+                & (
+                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                ),
+                "c12",
+            ] *= 11.4
             df["same_chain"] = True
             df["probability"] = 1.0
             df["rc_probability"] = 1.0
