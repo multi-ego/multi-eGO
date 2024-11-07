@@ -911,13 +911,14 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     )
 
     # General repulsive term
-    # this is used only when MD_p < RC_p eventually corrected by the ZF
+    # this is used only when MD_th < MD_p < RC_p eventually corrected by the ZF
     # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
             np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
             < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-        ),
+        )
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
         np.log(
