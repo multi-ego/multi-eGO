@@ -225,20 +225,19 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-        contact_matrix["epsilon_0"] / ( prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
+        contact_matrix["epsilon_0"] / (prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
     )
     contact_matrix["limit_rc_att"] = (
         # 1.0
         # / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
         # * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
-        contact_matrix["rc_threshold"] ** (- (args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"])
-        * contact_matrix["zf"] ** (1 - (- (args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
+        contact_matrix["rc_threshold"] ** (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"])
+        * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
         # contact_matrix["rc_threshold"] ** (- args.epsilon_min / contact_matrix["epsilon_0"]) * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
     )
-    contact_matrix["limit_rc_rep"] = (
-        contact_matrix["rc_threshold"] ** (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"])
-        * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
-    )
+    contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
+        prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
 
     # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
     f_min = md_threshold
@@ -364,8 +363,10 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         lj_data = topology.get_lj_params(topol)
         lj_pairs = topology.get_lj_pairs(topol)
         lj_data_dict = {key: val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
-        lj_pairs_dict = {(ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj_pairs[['ai', 'aj', 'epsilon', 'sigma']].to_numpy() } 
-        
+        lj_pairs_dict = {
+            (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
+        }
+
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.h5")
@@ -383,29 +384,41 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 path, ensemble["molecules_idx_sbtype_dictionary"], reference, path.endswith(".h5")
             )
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
-            reference_contact_matrices[name]['c6_i'] = [ lj_data_dict[x][0] for x in reference_contact_matrices[name]['rc_ai'].str.split(r'_.+_').str[0] ]
-            reference_contact_matrices[name]['c6_j'] = [ lj_data_dict[x][0] for x in reference_contact_matrices[name]['rc_aj'].str.split(r'_.+_').str[0] ]
-            reference_contact_matrices[name]['c6'] = np.sqrt(reference_contact_matrices[name]['c6_i'] * reference_contact_matrices[name]['c6_j'])
-            reference_contact_matrices[name]['c12_i'] = [ lj_data_dict[x][1] for x in reference_contact_matrices[name]['rc_ai'].str.split(r'_.+_').str[0] ]
-            reference_contact_matrices[name]['c12_j'] = [ lj_data_dict[x][1] for x in reference_contact_matrices[name]['rc_aj'].str.split(r'_.+_').str[0] ]
-            reference_contact_matrices[name]['c12'] = np.sqrt(reference_contact_matrices[name]['c12_i'] * reference_contact_matrices[name]['c12_j'])
-            reference_contact_matrices[name]['sigma_prior'] = np.where(
-                reference_contact_matrices[name]['c6'] > 0, 
-                ( reference_contact_matrices[name]['c12'] / reference_contact_matrices[name]['c6'] ) ** (1/6),
-                reference_contact_matrices[name]['rc_cutoff'] / (2.0 ** (1.0 / 6.0))
+            reference_contact_matrices[name]["c6_i"] = [
+                lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_ai"].str.split(r"_.+_").str[0]
+            ]
+            reference_contact_matrices[name]["c6_j"] = [
+                lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_aj"].str.split(r"_.+_").str[0]
+            ]
+            reference_contact_matrices[name]["c6"] = np.sqrt(
+                reference_contact_matrices[name]["c6_i"] * reference_contact_matrices[name]["c6_j"]
             )
-            reference_contact_matrices[name]['epsilon_prior'] = np.where(
-                reference_contact_matrices[name]['c6'] > 0,
-                reference_contact_matrices[name]['c6'] ** 2 / ( 4 * reference_contact_matrices[name]['c12']),
-                0
+            reference_contact_matrices[name]["c12_i"] = [
+                lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_ai"].str.split(r"_.+_").str[0]
+            ]
+            reference_contact_matrices[name]["c12_j"] = [
+                lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_aj"].str.split(r"_.+_").str[0]
+            ]
+            reference_contact_matrices[name]["c12"] = np.sqrt(
+                reference_contact_matrices[name]["c12_i"] * reference_contact_matrices[name]["c12_j"]
+            )
+            reference_contact_matrices[name]["sigma_prior"] = np.where(
+                reference_contact_matrices[name]["c6"] > 0,
+                (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
+                reference_contact_matrices[name]["rc_cutoff"] / (2.0 ** (1.0 / 6.0)),
+            )
+            reference_contact_matrices[name]["epsilon_prior"] = np.where(
+                reference_contact_matrices[name]["c6"] > 0,
+                reference_contact_matrices[name]["c6"] ** 2 / (4 * reference_contact_matrices[name]["c12"]),
+                0,
             )
 
             # apply the LJ pairs
             for i, row in reference_contact_matrices[name].iterrows():
-                if (row['rc_ai'], row['rc_aj']) in lj_pairs_dict.keys():
-                    reference_contact_matrices[name].loc[i, 'epsilon_prior'] = lj_pairs_dict[(row['rc_ai'], row['rc_aj'])][0]
-                    reference_contact_matrices[name].loc[i, 'sigma_prior'] = lj_pairs_dict[(row['rc_ai'], row['rc_aj'])][1]
-            reference_contact_matrices[name].drop(columns=['c6_i', 'c6_j', 'c12_i', 'c12_j', 'c6', 'c12'], inplace=True)
+                if (row["rc_ai"], row["rc_aj"]) in lj_pairs_dict.keys():
+                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
+                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
+            reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
         et = time.time()
         elapsed_time = et - st
@@ -818,34 +831,34 @@ def generate_mg_LJ(meGO_ensemble):
         rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
 
-    #N_sbtype = [
+    # N_sbtype = [
     #    sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"
-    #]
+    # ]
 
     # Generate all combinations of N_sbtype and O_OM_sbtype
-    #ai_aj_combinations = [(ai, aj) for ai, aj in itertools.product(N_sbtype, O_OM_sbtype)]
+    # ai_aj_combinations = [(ai, aj) for ai, aj in itertools.product(N_sbtype, O_OM_sbtype)]
 
     # Create the DataFrame
-    #df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
-    #df["type"] = 1
-    #df["c6"] = 0.11 * np.sqrt((0.0024364096 / 0.63980)*(0.0022619536 / 1.27911))
-    #df["c12"] = 0.11 * np.sqrt((2.319529e-06 / 0.63980)*(1e-06 / 1.27911))
+    # df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
+    # df["type"] = 1
+    # df["c6"] = 0.11 * np.sqrt((0.0024364096 / 0.63980)*(0.0022619536 / 1.27911))
+    # df["c12"] = 0.11 * np.sqrt((2.319529e-06 / 0.63980)*(1e-06 / 1.27911))
 
-    #CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
+    # CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
 
-    #all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
+    # all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
     ## Step 3: Create a list for 'aj' by excluding 'CH1a_sbtype'
-    #aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
+    # aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
     ## Step 4: Build the DataFrame with all combinations of 'ai' and 'aj'
-    #ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
+    # ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
     ## Create the DataFrame
-    #df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
+    # df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
 
-    #df["type"] = 1
-    #df["c6"] = 0.0
-    #df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
+    # df["type"] = 1
+    # df["c6"] = 0.0
+    # df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
 
-    #mg_LJ = pd.concat([rc_LJ, df])
+    # mg_LJ = pd.concat([rc_LJ, df])
 
     return rc_LJ
 
@@ -973,7 +986,9 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     """
     # when distance estimates are poor we use the cutoff value
     meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
+    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (
+        1.0 / 6.0
+    )
 
     # by default epsilon is set to the prior epsilon
     meGO_LJ["epsilon"] = meGO_LJ["epsilon_prior"]
@@ -984,7 +999,9 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     # This is always correct becasue distance is always well defined by either training data
     # or using default C12 values
     # negative epsilon are used to identify non-attractive interactions
-    meGO_LJ.loc[meGO_LJ["probability"] > meGO_LJ["md_threshold"], "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    meGO_LJ.loc[meGO_LJ["probability"] > meGO_LJ["md_threshold"], "epsilon"] = (
+        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    )
 
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
@@ -998,12 +1015,14 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     )
 
     # General repulsive term
-    # this is used only when MD_p < RC_p eventually corrected by the ZF
+    # this is used only when MD_th < MD_p < RC_p eventually corrected by the ZF
     # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
-            (np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
-            < meGO_LJ["limit_rc_rep"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+            (
+                np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
+                < meGO_LJ["limit_rc_rep"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+            )
             & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         ),
         "epsilon",
@@ -1011,7 +1030,8 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
         np.log(
             np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
             / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        ) - meGO_LJ["epsilon_prior"]
+        )
+        - meGO_LJ["epsilon_prior"]
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1512,7 +1532,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             sbtype_with_residue = [
                 (sbtype, resnum_type_dict[sbtype])
                 for sbtype in reduced_topology["sb_type"]
-                #if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
+                # if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
             ]
             # Sort the list by residue numbers
             sbtype_with_residue.sort(key=lambda x: x[1])

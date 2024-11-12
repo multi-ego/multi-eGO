@@ -329,14 +329,19 @@ def get_lj_params(topology):
         c6, c12 = atom.sigma * 0.1, atom.epsilon * 4.184
         # epsilon = c6 ** 2 / (4 * c12) if c6 > 0 else c12
         # sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else 0
-        lj_params = pd.concat([lj_params, pd.DataFrame(
-            {
-                "ai": atom.name,
-                "c6": c6,
-                "c12": c12,
-            },
-            index=[0],
-        )])
+        lj_params = pd.concat(
+            [
+                lj_params,
+                pd.DataFrame(
+                    {
+                        "ai": atom.name,
+                        "c6": c6,
+                        "c12": c12,
+                    },
+                    index=[0],
+                ),
+            ]
+        )
     lj_params.drop_duplicates(inplace=True)
     lj_params = lj_params.reset_index()
     return lj_params
@@ -360,17 +365,22 @@ def get_lj_pairs(topology):
     for sbtype_i, sbtype_j in topology.parameterset.nbfix_types:
         key = (sbtype_i, sbtype_j)
         c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 4.184
-        epsilon = c6 ** 2 / (4 * c12) if c6 > 0 else c12
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else c12
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else 0
-        lj_pairs = pd.concat([lj_pairs, pd.DataFrame(
-            {
-                "ai": sbtype_i,
-                "aj": sbtype_j,
-                "epsilon": epsilon,
-                "sigma": sigma,
-            },
-            index=[0],
-        )])
+        lj_pairs = pd.concat(
+            [
+                lj_pairs,
+                pd.DataFrame(
+                    {
+                        "ai": sbtype_i,
+                        "aj": sbtype_j,
+                        "epsilon": epsilon,
+                        "sigma": sigma,
+                    },
+                    index=[0],
+                ),
+            ]
+        )
     lj_pairs = lj_pairs.reset_index()
 
     return lj_pairs
