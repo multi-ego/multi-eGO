@@ -93,7 +93,7 @@ for a contact pair.
 
     # mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
     # topol_names = [m for m in mego_topology.molecules]
-    
+
     custom_dict = {}
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)
@@ -102,7 +102,7 @@ for a contact pair.
             sys.exit()
 
     mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
-    topol_names = [ m for m in mego_ensemble['topology'].molecules ]
+    topol_names = [m for m in mego_ensemble["topology"].molecules]
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -187,7 +187,6 @@ def main():
     if not args.no_header:
         generate_face.print_welcome()
     print(f"Multi-eGO: {args.egos}\n")
-
 
     print("- Checking for input files and folders")
     io.check_files_existence(args)

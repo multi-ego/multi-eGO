@@ -375,7 +375,11 @@ public:
     }
     if(!check_same && same_) same_ = false;
     if(natmol2_.size()<2) cross_ = false; 
-
+    if(nindex_>1 && (same_ || cross_))
+    {
+      printf("\n\n::::::::::::WARNING::::::::::::\nMore than 1 molcule found in the system.\nFix pbc before running cmdata using pbc mol\n");
+      printf(":::::::::::::::::::::::::::::::\n\n");
+    }
     if (same_)
     {
       f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
