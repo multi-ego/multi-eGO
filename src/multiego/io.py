@@ -775,7 +775,12 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = args.reference + args.train
+    md_ensembles = args.reference + args.train if args.egos == "production" else []
+
+    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
+        raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
+    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}/topol.top"):
+        raise FileNotFoundError(f"File {args.root_dir}/inputs/{args.system}/topol.top does not exist.")
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"

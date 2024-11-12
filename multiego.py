@@ -91,8 +91,18 @@ for a contact pair.
     if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
         multi_flag = True
 
-    mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
-    topol_names = [m for m in mego_topology.molecules]
+    # mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
+    # topol_names = [m for m in mego_topology.molecules]
+    
+    custom_dict = {}
+    if args.custom_dict:
+        custom_dict = parse_json(args.custom_dict)
+        if custom_dict == None:
+            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
+            sys.exit()
+
+    mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
+    topol_names = [ m for m in mego_ensemble['topology'].molecules ]
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -150,13 +160,6 @@ for a contact pair.
     elif args.symmetry:
         args.symmetry = io.parse_symmetry_list(args.symmetry)
 
-    custom_dict = {}
-    if args.custom_dict:
-        custom_dict = parse_json(args.custom_dict)
-        if custom_dict == None:
-            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
-            sys.exit()
-
     custom_c12_dict = pd.DataFrame()
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
@@ -169,7 +172,7 @@ for a contact pair.
         parser.print_usage()
         sys.exit()
 
-    return args, custom_dict
+    return args, mego_ensemble, custom_dict
 
 
 def main():
@@ -179,12 +182,12 @@ def main():
     """
 
     bt = time.time()
-    args, custom_dict = meGO_parsing()
+    args, meGO_ensembles, custom_dict = meGO_parsing()
 
     if not args.no_header:
         generate_face.print_welcome()
-
     print(f"Multi-eGO: {args.egos}\n")
+
 
     print("- Checking for input files and folders")
     io.check_files_existence(args)
@@ -193,7 +196,7 @@ def main():
 
     print("- Processing Multi-eGO topology")
     st = time.time()
-    meGO_ensembles = ensemble.init_meGO_ensemble(args, custom_dict)
+    # meGO_ensembles = ensemble.init_meGO_ensemble(args, custom_dict)
     print("\t- Generating bonded interactions")
     meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
     print("\t- Generating 1-4 data")
