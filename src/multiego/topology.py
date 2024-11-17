@@ -334,7 +334,7 @@ def get_lj_params(topology):
                 lj_params,
                 pd.DataFrame(
                     {
-                        "ai": atom.name,
+                        "ai": atom.atom_type,
                         "c6": c6,
                         "c12": c12,
                     },
@@ -342,7 +342,6 @@ def get_lj_params(topology):
                 ),
             ]
         )
-    lj_params.drop_duplicates(inplace=True)
     lj_params = lj_params.reset_index()
     return lj_params
 

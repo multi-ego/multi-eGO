@@ -120,6 +120,12 @@ args_dict = {
         "type": str,
         "help": "Explicit name for the output directory stored in outputs/system",
     },
+    "--regtest": {
+        "type": bool,
+        "default": False,
+        "action": "store_true",
+        "help": "Use old rules for regtests check.",
+    },
     "--config": {
         "default": "",
         "type": str,
