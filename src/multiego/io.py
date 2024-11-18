@@ -364,7 +364,7 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "rc_c6", "rc_c12"]].copy()
             atomtypes.rename(columns={"rc_c6": "c6", "rc_c12": "c12"}, inplace=True)
         elif parameters.egos == "mg":
-            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "rc_c6", "rc_c12"]].copy()
+            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]].copy()
             atomtypes.rename(columns={"mg_c6": "c6", "mg_c12": "c12"}, inplace=True)
         else:
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
