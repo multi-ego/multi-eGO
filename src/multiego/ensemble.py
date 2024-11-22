@@ -1102,9 +1102,11 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     # add a flag to identify learned contacts
     meGO_LJ.loc[:, "learned"] = 1
 
+    #keep only epsilons different from the epsilon prior ones (avoid c6,c12 already defined by atomtypes)
+    meGO_LJ=meGO_LJ.loc[meGO_LJ["epsilon"]!=meGO_LJ["epsilon_prior"]]
+
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
-
     return meGO_LJ
 
 
