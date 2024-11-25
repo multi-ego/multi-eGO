@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-import parmed as pmd
 import pandas as pd
 import time
 import gc
