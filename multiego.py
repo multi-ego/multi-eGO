@@ -90,9 +90,6 @@ for a contact pair.
     if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
         multi_flag = True
 
-    # mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
-    # topol_names = [m for m in mego_topology.molecules]
-
     custom_dict = {}
     if args.custom_dict:
         custom_dict = parse_json(args.custom_dict)
@@ -185,16 +182,16 @@ def main():
 
     if not args.no_header:
         generate_face.print_welcome()
-    print(f"Multi-eGO: {args.egos}\n")
-
+    print(f"Running Multi-eGO: {args.egos}\n")
+    print("- Processing Multi-eGO topology")
+    st = time.time()
+    elapsed_time = st - bt
+    print("- Done in:", elapsed_time, "seconds")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
     if args.egos == "production":
         io.check_matrix_format(args)
 
-    print("- Processing Multi-eGO topology")
-    st = time.time()
-    # meGO_ensembles = ensemble.init_meGO_ensemble(args, custom_dict)
     print("\t- Generating bonded interactions")
     meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
     print("\t- Generating 1-4 data")
