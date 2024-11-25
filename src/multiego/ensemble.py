@@ -365,12 +365,20 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             warnings.simplefilter("ignore")
             topol = parmed.load_file(topology_path)
 
+        # these are the atom type c6_i,c12_j
         lj_data = topology.get_lj_params(topol)
+        # these are the combined cases (c6_ij, c12_ij)
         lj_pairs = topology.get_lj_pairs(topol)
+        # these are the combined cases in the [pairs] section (c6_ij, c12_ij)
+        lj14_pairs = topology.get_lj14_pairs(topol)
         lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
         lj_pairs_dict = {
             (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
         }
+        lj14_pairs_dict = {
+            (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj14_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
+        }
+
         ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
         ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
 
@@ -404,8 +412,8 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             reference_contact_matrices[name]["sigma_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
                 (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
-                # reference_contact_matrices[name]["rc_cutoff"]/ (2.0 ** (1.0 / 6.0)),
-                reference_contact_matrices[name]["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
+                reference_contact_matrices[name]["c12"] ** (1 / 12)
+                / (2.0 ** (1.0 / 6.0)),  # at this point this still needs to be divided by epsilon_0
             )
             reference_contact_matrices[name]["epsilon_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
@@ -418,6 +426,19 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 if (row["rc_ai"], row["rc_aj"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
+                if (row["rc_aj"], row["rc_ai"]) in lj_pairs_dict.keys():
+                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
+                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
+
+            # apply the LJ14 pairs (only if same_chain = True)
+            for i, row in reference_contact_matrices[name].iterrows():
+                if row["rc_same_chain"] and (row["rc_ai"], row["rc_aj"]) in lj14_pairs_dict.keys():
+                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
+                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
+                if row["rc_same_chain"] and (row["rc_aj"], row["rc_ai"]) in lj14_pairs_dict.keys():
+                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
+                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
+
             reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
         et = time.time()
@@ -778,8 +799,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         ),
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    train_dataset.loc[oxygen_mask.flatten(), "epsilon_prior"] = 0
-    train_dataset.loc[oxygen_mask.flatten(), "sigma_prior"] = train_dataset["rep"] ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
+    # train_dataset.loc[oxygen_mask.flatten(), "epsilon_prior"] = 0
+    # train_dataset.loc[oxygen_mask.flatten(), "sigma_prior"] = train_dataset["rep"] ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
 
     return train_dataset
 
@@ -985,37 +1006,25 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
     # when distance estimates are poor we use the cutoff value
-    if not parameters.regtest:
-        meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (
-            1.0 / 6.0
-        )
-        meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (
-            1.0 / 6.0
-        )
-    else:
-        meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (
-            meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ["epsilon_0"] ** (1.0 / 12.0)
-        )
-        meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = (
-            meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ["epsilon_0"] ** (1.0 / 12.0)
-        )
+    # Update the "distance" column for rows in the mask
+    mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
+    meGO_LJ.loc[mask, "distance"] = np.where(
+        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0),
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
+    )
+    mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
+    meGO_LJ.loc[mask, "rc_distance"] = np.where(
+        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0),
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
+    )
 
-    # by default epsilon is set to the prior epsilon
-    meGO_LJ["epsilon"] = meGO_LJ["epsilon_prior"]
-
-    # Epsilon is initialised to a rescaled C12
-    # This is always correct becasue distance is always well defined by either training data
-    # or using default C12 values
-    # negative epsilon are used to identify non-attractive interactions
-
-    # # Correct version
-    if not parameters.regtest:
-        meGO_LJ.loc[meGO_LJ["probability"] > meGO_LJ["md_threshold"], "epsilon"] = (
-            -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
-        )
-    # # Needed for regtests
-    else:
-        meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    meGO_LJ["epsilon"] = np.where(
+        meGO_LJ["epsilon_prior"] == 0,
+        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,  # If epsilon_prior == 0
+        meGO_LJ["epsilon_prior"],  # Otherwise, set to epsilon_prior
+    )
 
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
@@ -1103,7 +1112,7 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     meGO_LJ.loc[:, "learned"] = 1
 
     # keep only epsilons different from the epsilon prior ones (avoid c6,c12 already defined by atomtypes)
-    meGO_LJ = meGO_LJ.loc[meGO_LJ["epsilon"] != meGO_LJ["epsilon_prior"]]
+    # meGO_LJ=meGO_LJ.loc[meGO_LJ["epsilon"]!=meGO_LJ["epsilon_prior"]]
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
@@ -1304,6 +1313,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
+    # now we can remove all attractive contacts with default (i.e., att) c12 becasue these
+    # are uninformative and predefined. This also allow to replace them with contact learned
+    # by either intra/inter training. We cannot remove 1-4 interactions.
 
     # transfer rule for inter/intra contacts:
     # 1) only attractive contacts can be transferd
@@ -1395,8 +1407,8 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    basic_LJ = basic_LJ[needed_fields]
-    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+    # basic_LJ = basic_LJ[needed_fields]
+    # meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
     # make meGO_LJ fully symmetric
     # Create inverse DataFrame
