@@ -324,25 +324,11 @@ def get_14_interaction_list(reduced_topology, bond_pair):
 
 
 def get_lj_params(topology):
-    lj_params = pd.DataFrame()
-    for atom in topology.atoms:
+    lj_params = pd.DataFrame(columns=["ai", "c6", "c12"], index=np.arange(len(topology.atoms)))
+    for i, atom in enumerate(topology.atoms):
         c6, c12 = atom.sigma * 0.1, atom.epsilon * 4.184
-        # epsilon = c6 ** 2 / (4 * c12) if c6 > 0 else c12
-        # sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else 0
-        lj_params = pd.concat(
-            [
-                lj_params,
-                pd.DataFrame(
-                    {
-                        "ai": atom.atom_type,
-                        "c6": c6,
-                        "c12": c12,
-                    },
-                    index=[0],
-                ),
-            ]
-        )
-    lj_params = lj_params.reset_index()
+        lj_params.loc[i] = [atom.atom_type, c6, c12]
+
     return lj_params
 
 
@@ -360,27 +346,13 @@ def get_lj_pairs(topology):
     pairs_dataframe: pd.DataFrame
         DataFrame containing Lennard-Jones pair information
     """
-    lj_pairs = pd.DataFrame()
-    for sbtype_i, sbtype_j in topology.parameterset.nbfix_types:
+    lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(topology.parameterset.nbfix_types)))
+    for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
         key = (sbtype_i, sbtype_j)
         c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 4.184
         epsilon = c6**2 / (4 * c12) if c6 > 0 else c12
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else 0
-        lj_pairs = pd.concat(
-            [
-                lj_pairs,
-                pd.DataFrame(
-                    {
-                        "ai": sbtype_i,
-                        "aj": sbtype_j,
-                        "epsilon": epsilon,
-                        "sigma": sigma,
-                    },
-                    index=[0],
-                ),
-            ]
-        )
-    lj_pairs = lj_pairs.reset_index()
+        lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
 
     return lj_pairs
 
