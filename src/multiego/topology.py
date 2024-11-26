@@ -349,8 +349,8 @@ def get_lj_pairs(topology):
     lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(topology.parameterset.nbfix_types)))
     for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
         key = (sbtype_i, sbtype_j)
-        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 4.184
-        epsilon = c6**2 / (4 * c12) if c6 > 0 else 0 
+        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else 0
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
         lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
 
@@ -377,7 +377,7 @@ def get_lj14_pairs(topology):
             {
                 "ai": pair.atom1.type,
                 "aj": pair.atom2.type,
-                "c6": pair.type.rmin * 4.184,
+                "c6": pair.type.sigma * 0.1,
                 "c12": pair.type.epsilon * 4.184,
             }
             for pair in top[0].adjusts
