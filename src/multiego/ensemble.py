@@ -136,6 +136,8 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
 
     sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "rc_c12"]].set_index("sb_type")["rc_c12"].to_dict()
+    sbtype_mg_c12_dict = ensemble_topology_dataframe[["sb_type", "mg_c12"]].set_index("sb_type")["mg_c12"].to_dict()
+    sbtype_mg_c6_dict = ensemble_topology_dataframe[["sb_type", "mg_c6"]].set_index("sb_type")["mg_c6"].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[["sb_type", "name"]].set_index("sb_type")["name"].to_dict()
     sbtype_moltype_dict = (
         ensemble_topology_dataframe[["sb_type", "molecule_type"]].set_index("sb_type")["molecule_type"].to_dict()
@@ -145,6 +147,8 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_topology_dataframe,
         ensemble_molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -291,6 +295,8 @@ def init_meGO_ensemble(args, custom_dict):
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
@@ -303,6 +309,8 @@ def init_meGO_ensemble(args, custom_dict):
         molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
     )
     ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c12_dict"] = sbtype_mg_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c6_dict"] = sbtype_mg_c6_dict  # {mego_type: c12} N_mol_resnum: c12
     ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
     ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
     ensemble["sbtype_number_dict"] = (
@@ -468,6 +476,8 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         (
             temp_topology_dataframe,
             ensemble["molecules_idx_sbtype_dictionary"],
+            _,
+            _,
             _,
             _,
             _,
@@ -775,6 +785,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[(train_dataset["1-4"] == "1_4") & (train_dataset["rep"].isnull()), "rep"] = 0.0
 
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
+
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -799,8 +810,38 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         ),
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    # train_dataset.loc[oxygen_mask.flatten(), "epsilon_prior"] = 0
-    # train_dataset.loc[oxygen_mask.flatten(), "sigma_prior"] = train_dataset["rep"] ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
+
+    pairwise_mg_sigma = np.where(
+        oxygen_mask,
+        (11.4 * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12))) ** (1 / 12),
+        (
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            / (
+                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+            )
+        )
+        ** (1 / 12),
+    )
+    train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
+
+    pairwise_mg_epsilon = np.where(
+        oxygen_mask,
+        -11.4 * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
+        (
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+        )
+        / (
+            4
+            * np.sqrt(
+                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            )
+        ),
+    )
+    train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
 
     return train_dataset
 
@@ -851,35 +892,6 @@ def generate_mg_LJ(meGO_ensemble):
     rc_LJ["c12"] = 11.4 * np.sqrt(
         rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
-
-    # N_sbtype = [
-    #    sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"
-    # ]
-
-    # Generate all combinations of N_sbtype and O_OM_sbtype
-    # ai_aj_combinations = [(ai, aj) for ai, aj in itertools.product(N_sbtype, O_OM_sbtype)]
-
-    # Create the DataFrame
-    # df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
-    # df["type"] = 1
-    # df["c6"] = 0.11 * np.sqrt((0.0024364096 / 0.63980)*(0.0022619536 / 1.27911))
-    # df["c12"] = 0.11 * np.sqrt((2.319529e-06 / 0.63980)*(1e-06 / 1.27911))
-
-    # CH1a_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "CH1a"]
-
-    # all_sbtypes = list(meGO_ensemble["sbtype_type_dict"].keys())
-    ## Step 3: Create a list for 'aj' by excluding 'CH1a_sbtype'
-    # aj_sbtype = [sbtype for sbtype in all_sbtypes if sbtype not in CH1a_sbtype]
-    ## Step 4: Build the DataFrame with all combinations of 'ai' and 'aj'
-    # ai_aj_combinations = [(ai, aj) for ai in CH1a_sbtype for aj in aj_sbtype]
-    ## Create the DataFrame
-    # df = pd.DataFrame(ai_aj_combinations, columns=["ai", "aj"])
-
-    # df["type"] = 1
-    # df["c6"] = 0.0
-    # df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
-
-    # mg_LJ = pd.concat([rc_LJ, df])
 
     return rc_LJ
 
@@ -958,6 +970,8 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
         oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
         temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
         temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
+        temp_basic_LJ["mg_sigma"] = temp_basic_LJ["c12"] ** (1 / 12)
+        temp_basic_LJ["mg_epsilon"] = -temp_basic_LJ["c12"]
         temp_basic_LJ = temp_basic_LJ[oxygen_mask]
         temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
         temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
@@ -1111,9 +1125,6 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     # add a flag to identify learned contacts
     meGO_LJ.loc[:, "learned"] = 1
 
-    # keep only epsilons different from the epsilon prior ones (avoid c6,c12 already defined by atomtypes)
-    # meGO_LJ=meGO_LJ.loc[meGO_LJ["epsilon"]!=meGO_LJ["epsilon_prior"]]
-
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
     return meGO_LJ
@@ -1256,13 +1267,13 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
         "source",
         "rc_probability",
         "sigma",
-        # "sigma_prior",
         "epsilon",
-        # "epsilon_prior",
         "1-4",
         "distance",
         "cutoff",
         "rep",
+        "mg_sigma",
+        "mg_epsilon",
         "md_threshold",
         "rc_threshold",
         "learned",
@@ -1303,19 +1314,16 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
 
-    # now we can remove all repulsive contacts with default (i.e., rep) c12 becasue these
+    # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
     meGO_LJ = meGO_LJ.loc[
         ~(
-            (meGO_LJ["epsilon"] < 0)
-            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < parameters.relative_c12d)
+            ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
+            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
-    # now we can remove all attractive contacts with default (i.e., att) c12 becasue these
-    # are uninformative and predefined. This also allow to replace them with contact learned
-    # by either intra/inter training. We cannot remove 1-4 interactions.
 
     # transfer rule for inter/intra contacts:
     # 1) only attractive contacts can be transferd
@@ -1407,8 +1415,8 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    # basic_LJ = basic_LJ[needed_fields]
-    # meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+    basic_LJ = basic_LJ[needed_fields]
+    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
     # make meGO_LJ fully symmetric
     # Create inverse DataFrame
