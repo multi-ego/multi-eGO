@@ -194,10 +194,9 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
         contact_matrix["epsilon_0"] / (prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
     )
-    contact_matrix["limit_rc_att"] = (
-        contact_matrix["rc_threshold"] ** (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"])
-        * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
-    )
+    contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
+        -(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
     contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
         prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]
     ) * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
@@ -377,8 +376,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             reference_contact_matrices[name]["sigma_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
                 (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
-                reference_contact_matrices[name]["c12"] ** (1 / 12)
-                / (2.0 ** (1.0 / 6.0)),
+                reference_contact_matrices[name]["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
             )
             reference_contact_matrices[name]["epsilon_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
@@ -387,6 +385,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             )
 
             # apply the LJ pairs
+            # apply the LJ14 pairs (only if same_chain = True)
             for i, row in reference_contact_matrices[name].iterrows():
                 if (row["rc_ai"], row["rc_aj"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
@@ -394,9 +393,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 if (row["rc_aj"], row["rc_ai"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
-
-            # apply the LJ14 pairs (only if same_chain = True)
-            for i, row in reference_contact_matrices[name].iterrows():
                 if row["rc_same_chain"] and (row["rc_ai"], row["rc_aj"]) in lj14_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
