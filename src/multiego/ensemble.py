@@ -1024,13 +1024,13 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "distance"] = np.where(
         meGO_LJ.loc[mask, "epsilon_prior"] == 0,
-        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0),
+        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
         meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
     )
     mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "rc_distance"] = np.where(
         meGO_LJ.loc[mask, "epsilon_prior"] == 0,
-        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0) / meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0),
+        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
         meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
     )
 
@@ -1112,7 +1112,8 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     # Sigma is set from the estimated interaction length
     # # Correct version
     if not parameters.regtest:
-        meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["sigma_prior"] * meGO_LJ["distance"] / meGO_LJ["rc_distance"])
+        meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
+        # meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["sigma_prior"] * meGO_LJ["distance"] / meGO_LJ["rc_distance"])
     # # Needed for regtests
     else:
         meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
