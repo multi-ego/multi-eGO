@@ -48,25 +48,6 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
 def initialize_topology(topology, custom_dict, args):
     """
     Initializes a topology DataFrame using provided molecule information.
-
-    Args:
-    - topology (object): An object containing information about the molecules.
-
-    Returns:
-    - ensemble_topology_dataframe (DataFrame): DataFrame containing ensemble topology information.
-    - ensemble_molecules_idx_sbtype_dictionary (dict): Dictionary mapping molecule indexes to their respective subtypes.
-    - sbtype_c12_dict (dict): Dictionary mapping subtype to their c12 values.
-    - sbtype_name_dict (dict): Dictionary mapping subtype to their names.
-    - sbtype_moltype_dict (dict): Dictionary mapping subtype to their molecule types.
-    - molecule_type_dict (dict): Dictionary mapping molecule names to their types.
-
-    This function initializes a topology DataFrame by extracting information about molecules and their atoms.
-    It creates a DataFrame containing details about atoms, molecules, their types, and assigns specific values based on the provided information.
-    The function also generates dictionaries mapping different atom subtypes to their respective characteristics and molecule types.
-
-    Note:
-    - The 'topology' object is expected to contain molecule information.
-    - The returned DataFrame and dictionaries provide comprehensive details about the molecular structure and characteristics.
     """
 
     (
@@ -111,12 +92,11 @@ def initialize_topology(topology, custom_dict, args):
         + "_"
         + ensemble_topology_dataframe["resnum"].astype(str)
     )
-    # TODO remove, not sure why it was here (it was overwritten immidiately after)
-    ensemble_topology_dataframe.rename(columns={"epsilon": "to_remove_c12"}, inplace=True)
 
     atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["rc_c12"])}
     atp_mg_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c6"])}
     atp_mg_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c12"])}
+
     # TODO: we will need to extend this to mg c6/c12 stuff?
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
@@ -158,24 +138,6 @@ def initialize_topology(topology, custom_dict, args):
 def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     """
     This function initializes a contact matrix for a given simulation.
-
-    Parameters
-    ----------
-    contact_matrix : pd.DataFrame
-        Contains contact information read from intra-/intermat
-    path : str
-        Path to the simulation folder
-    ensemble_molecules_idx_sbtype_dictionary : dict
-        Associates atom indices to atoms named according to multi-eGO conventions
-    simulation : str
-        The simulation classified equivalent to the input folder
-    args : argparse.Namespace
-        Parsed arguments
-
-    Returns
-    -------
-    contact_matrix : pd.DataFrame
-        A contact matrix containing contact data for each of the different simulations
     """
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
@@ -232,14 +194,9 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
         contact_matrix["epsilon_0"] / (prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
     )
-    contact_matrix["limit_rc_att"] = (
-        # 1.0
-        # / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
-        # * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
-        contact_matrix["rc_threshold"] ** (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"])
-        * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
-        # contact_matrix["rc_threshold"] ** (- args.epsilon_min / contact_matrix["epsilon_0"]) * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
-    )
+    contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
+        -(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
     contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
         prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]
     ) * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
@@ -359,7 +316,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         print("\t-", f"Initializing {reference} ensemble data")
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
         topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
-        # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
         if len(topol_files) > 1:
             raise RuntimeError(f"More than 1 topology file found in {reference_path}. Only one should be used")
 
@@ -420,8 +376,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             reference_contact_matrices[name]["sigma_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
                 (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
-                reference_contact_matrices[name]["c12"] ** (1 / 12)
-                / (2.0 ** (1.0 / 6.0)),  # at this point this still needs to be divided by epsilon_0
+                reference_contact_matrices[name]["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
             )
             reference_contact_matrices[name]["epsilon_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
@@ -430,6 +385,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             )
 
             # apply the LJ pairs
+            # apply the LJ14 pairs (only if same_chain = True)
             for i, row in reference_contact_matrices[name].iterrows():
                 if (row["rc_ai"], row["rc_aj"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
@@ -437,9 +393,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 if (row["rc_aj"], row["rc_ai"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
-
-            # apply the LJ14 pairs (only if same_chain = True)
-            for i, row in reference_contact_matrices[name].iterrows():
                 if row["rc_same_chain"] and (row["rc_ai"], row["rc_aj"]) in lj14_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
@@ -1110,13 +1063,7 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     ] = -meGO_LJ["rep"]
 
     # Sigma is set from the estimated interaction length
-    # # Correct version
-    if not parameters.regtest:
-        meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
-        # meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["sigma_prior"] * meGO_LJ["distance"] / meGO_LJ["rc_distance"])
-    # # Needed for regtests
-    else:
-        meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
+    meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters

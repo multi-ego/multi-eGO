@@ -97,6 +97,8 @@ for a contact pair.
             print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
             sys.exit()
 
+    print(f"Running Multi-eGO: {args.egos}\n")
+    print("- Processing Multi-eGO topology")
     mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
     topol_names = [m for m in mego_ensemble["topology"].molecules]
 
@@ -178,12 +180,9 @@ def main():
     """
 
     bt = time.time()
+    generate_face.print_welcome()
     args, meGO_ensembles, custom_dict = meGO_parsing()
 
-    if not args.no_header:
-        generate_face.print_welcome()
-    print(f"Running Multi-eGO: {args.egos}\n")
-    print("- Processing Multi-eGO topology")
     st = time.time()
     elapsed_time = st - bt
     print("- Done in:", elapsed_time, "seconds")
