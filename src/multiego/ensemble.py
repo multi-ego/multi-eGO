@@ -336,12 +336,26 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         # these are the combined cases in the [pairs] section (c6_ij, c12_ij)
         lj14_pairs = topology.get_lj14_pairs(topol)
         lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
-        lj_pairs_dict = {
-            (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
-        }
-        lj14_pairs_dict = {
-            (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj14_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
-        }
+        #lj_pairs_dict = {
+        #    (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
+        #}
+
+        # Create the lj_pairs_dict and make it symmetric
+        lj_pairs_dict = {}
+        for ai, aj, epsilon, sigma in lj_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy():
+        # Add both (ai, aj) and (aj, ai) with the same epsilon, sigma
+            lj_pairs_dict[(ai, aj)] = (epsilon, sigma)
+            lj_pairs_dict[(aj, ai)] = (epsilon, sigma)  # Ensure symmetry
+        lj14_pairs_dict = {}
+        for ai, aj, epsilon, sigma in lj14_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy():
+        # Add both (ai, aj) and (aj, ai) with the same epsilon, sigma
+            lj14_pairs_dict[(ai, aj)] = (epsilon, sigma)
+            lj14_pairs_dict[(aj, ai)] = (epsilon, sigma)  # Ensure symmetry
+
+
+        #lj14_pairs_dict = {
+        #    (ai, aj): (epsilon, sigma) for ai, aj, epsilon, sigma in lj14_pairs[["ai", "aj", "epsilon", "sigma"]].to_numpy()
+        #}
 
         ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
         ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
@@ -390,15 +404,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 if (row["rc_ai"], row["rc_aj"]) in lj_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
-                if (row["rc_aj"], row["rc_ai"]) in lj_pairs_dict.keys():
-                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
-                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
                 if row["rc_same_chain"] and (row["rc_ai"], row["rc_aj"]) in lj14_pairs_dict.keys():
                     reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][0]
                     reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_ai"], row["rc_aj"])][1]
-                if row["rc_same_chain"] and (row["rc_aj"], row["rc_ai"]) in lj14_pairs_dict.keys():
-                    reference_contact_matrices[name].loc[i, "epsilon_prior"] = lj14_pairs_dict[(row["rc_aj"], row["rc_ai"])][0]
-                    reference_contact_matrices[name].loc[i, "sigma_prior"] = lj14_pairs_dict[(row["rc_aj"], row["rc_ai"])][1]
 
             reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
