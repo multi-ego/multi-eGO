@@ -52,20 +52,20 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
     return ref_df
 
 
-def zero_probability_decorator(flag):
+def zero_probability_decorator(func, flag):
     """
     Decorator of function to return 0 if flag is rased
     """
 
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            if flag:
-                return 0  # Return 0 if the flag is set
-            return func(*args, **kwargs)  # Otherwise, execute the original function
+    # def decorator(func):
+    def wrapper(*args, **kwargs):
+        if flag:
+            return 0  # Return 0 if the flag is set
+        return func(*args, **kwargs)  # Otherwise, execute the original function
 
-        return wrapper
+    return wrapper
 
-    return decorator
+    # return decorator
 
 
 def run_mat_(arguments):
@@ -124,9 +124,9 @@ def run_mat_(arguments):
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            c12_avg_ = zero_probability_decorator(args.zero)(c12_avg)
-            calculate_probability_ = zero_probability_decorator(args.zero)(calculate_probability)
-            get_cumulative_probability_ = zero_probability_decorator(args.zero)(get_cumulative_probability)
+            c12_avg_ = zero_probability_decorator(c12_avg, args.zero)
+            calculate_probability_ = zero_probability_decorator(calculate_probability, args.zero)
+            get_cumulative_probability_ = zero_probability_decorator(get_cumulative_probability, args.zero)
 
             c12dist = ref_df.apply(lambda x: c12_avg_(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             if mat_type == "intra":
