@@ -51,17 +51,22 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
 
     return ref_df
 
+
 def zero_probability_decorator(flag):
     """
     Decorator of function to return 0 if flag is rased
     """
+
     def decorator(func):
         def wrapper(*args, **kwargs):
             if flag:
                 return 0  # Return 0 if the flag is set
             return func(*args, **kwargs)  # Otherwise, execute the original function
+
         return wrapper
+
     return decorator
+
 
 def run_mat_(arguments):
     """
@@ -119,10 +124,10 @@ def run_mat_(arguments):
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            c12_avg_ = zero_probability_decorator( args.zero)(c12_avg)
-            calculate_probability_ = zero_probability_decorator( args.zero)(calculate_probability)
-            get_cumulative_probability_ = zero_probability_decorator( args.zero)(get_cumulative_probability)
-           
+            c12_avg_ = zero_probability_decorator(args.zero)(c12_avg)
+            calculate_probability_ = zero_probability_decorator(args.zero)(calculate_probability)
+            get_cumulative_probability_ = zero_probability_decorator(args.zero)(get_cumulative_probability)
+
             c12dist = ref_df.apply(lambda x: c12_avg_(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             if mat_type == "intra":
                 p = ref_df.apply(
@@ -322,6 +327,7 @@ def map_if_exists(atom_name):
     else:
         return atom_name
 
+
 # TODO is it needed anymore?
 def hallfunction(values, weights):
     """
@@ -418,6 +424,7 @@ def zero_callback(values, weights):
         The array with the respective weights
     """
     return None, None, np.sum(weights), values, weights
+
 
 def calculate_probability(values, weights, callback=allfunction):
     """
@@ -580,9 +587,11 @@ def calculate_matrices(args):
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
             run_stuff(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
-        for mol_j in mol_list[mol_i-1:]:           
-            if mol_i==mol_j and not args.same:  continue
-            if mol_i!=mol_j and not args.cross: continue
+        for mol_j in mol_list[mol_i - 1 :]:
+            if mol_i == mol_j and not args.same:
+                continue
+            if mol_i != mol_j and not args.cross:
+                continue
 
             prefix = f"inter_mol_{mol_i}_{mol_j}"
             run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
@@ -615,12 +624,8 @@ def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
     original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
-    protein_ref_indices_i = np.array(
-        [i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"]
-    )
-    protein_ref_indices_j = np.array(
-        [i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"]
-    )
+    protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
+    protein_ref_indices_j = np.array([i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"])
 
     protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
     protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
@@ -696,13 +701,17 @@ def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
             molecule_keys = list(topology_mego.molecules.keys())
             user_pairs = [
                 (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
-                for pair in topology_mego.molecules[molecule_keys[mol_i-1]][0].adjusts
+                for pair in topology_mego.molecules[molecule_keys[mol_i - 1]][0].adjusts
             ]
             user_pairs = [
-                (topology_df_i[topology_df_i["mego_ai"] == ai].index[0], topology_df_i[topology_df_i["mego_ai"] == aj].index[0], c12)
+                (
+                    topology_df_i[topology_df_i["mego_ai"] == ai].index[0],
+                    topology_df_i[topology_df_i["mego_ai"] == aj].index[0],
+                    c12,
+                )
                 for ai, aj, c12 in user_pairs
             ]
-        
+
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
         # define all cutoff
@@ -716,7 +725,7 @@ def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
                 if c12 > 0.0:
                     c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
-    
+
     if mat_type == "inter":
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
@@ -829,7 +838,7 @@ def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
                 for x in chunks
             ],
         )
-       
+
     pool.close()
     pool.join()
 
@@ -861,7 +870,8 @@ def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
     df.index = range(len(df.index))
     out_name = args.out_name + "_" if args.out_name else ""
     output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.gz"
-    if args.residue: output_file = f"{args.out}/{mat_type}mat_res_{out_name}{mol_i}_{mol_j}.ndx.gz"
+    if args.residue:
+        output_file = f"{args.out}/{mat_type}mat_res_{out_name}{mol_i}_{mol_j}.ndx.gz"
     print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
     write_mat(df, output_file)
 
@@ -885,9 +895,7 @@ if __name__ == "__main__":
         help="""Path to the standard multi-eGO topology of the system generated by pdb2gmx""",
     )
     parser.add_argument(
-        "--mode",
-        help="Sets the caculation to be intra/same/cross for histograms processing",
-        default="intra+same+cross"
+        "--mode", help="Sets the caculation to be intra/same/cross for histograms processing", default="intra+same+cross"
     )
     parser.add_argument("--out", default="./", help="""Sets the output path""")
     parser.add_argument(
@@ -941,17 +949,22 @@ if __name__ == "__main__":
         sys.exit()
 
     # Sets mode
-    modes = np.array(args.mode.split("+"),dtype=str)
-    modes_possible =  np.array(["intra", "same", "cross"])
+    modes = np.array(args.mode.split("+"), dtype=str)
+    modes_possible = np.array(["intra", "same", "cross"])
     args.intra = False
-    args.same  = False
+    args.same = False
     args.cross = False
     if np.any(np.isin(modes, modes_possible) == False):
-        raise ValueError(f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross")
+        raise ValueError(
+            f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross"
+        )
 
-    if "intra" in modes: args.intra = True
-    if "same"  in modes: args.same  = True
-    if "cross" in modes: args.cross = True
+    if "intra" in modes:
+        args.intra = True
+    if "same" in modes:
+        args.same = True
+    if "cross" in modes:
+        args.cross = True
 
     if args.residue and args.intra:
         print("Residue calculation is only possible for intermolecular calculations (not implemented yet for intramolecular).")
