@@ -57,15 +57,12 @@ def zero_probability_decorator(func, flag):
     Decorator of function to return 0 if flag is rased
     """
 
-    # def decorator(func):
     def wrapper(*args, **kwargs):
         if flag:
             return 0  # Return 0 if the flag is set
         return func(*args, **kwargs)  # Otherwise, execute the original function
 
     return wrapper
-
-    # return decorator
 
 
 def run_mat_(arguments):
@@ -327,35 +324,7 @@ def map_if_exists(atom_name):
         return atom_name
 
 
-# TODO is it needed anymore?
-def hallfunction(values, weights):
-    """
-    A substitute to the allfunction without considering the cutoff.
-    Does not change the data except for the removal of the cutoff from the array.
-
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-
-    Return
-    ------
-    norm : float
-        The normalization constant
-    v : np.array
-        The unchanged x values of the histogram
-    w : np.array
-        The unchanged weights of the histogram
-    """
-    v = values[:-1]
-    w = weights[:-1]
-    norm = np.sum(w)
-    return norm, v, w
-
-
-def allfunction(values, weights):
+def get_col_params(values, weights):
     """
     TODO rename pls
 
@@ -397,35 +366,7 @@ def allfunction(values, weights):
     return cutoff, i, norm, v, w
 
 
-def zero_callback(values, weights):
-    """
-    A zero callback doing nothing but returning the normalization constant, values and weights.
-    The first two return values so the function can be switched with allfunction.
-
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-
-    Returns
-    -------
-    None : None
-        None
-    None : None
-        None
-    np.sum(weights) : float
-        The normalization constant
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-    """
-    return None, None, np.sum(weights), values, weights
-
-
-def calculate_probability(values, weights, callback=allfunction):
+def calculate_probability(values, weights):
     """
     Calculates a plain probability accoring to \sum_x x * dx
 
@@ -435,24 +376,22 @@ def calculate_probability(values, weights, callback=allfunction):
         The array of the histograms x values
     weights : np.array
         The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
 
     Returns
     -------
     The probability of the histogram
     """
     dx = values[1] - values[0]
-    cutoff, i, norm, v, w = callback(values, weights)
+    cutoff, i, norm, v, w = get_col_params(values, weights)
     return np.minimum(np.sum(w * dx), 1)
 
 
-def get_cumulative_probability(values, weights, callback=allfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
+def get_cumulative_probability(values, weights):
+    cutoff, i, norm, v, w = get_col_params(values, weights)
     return weights[i]
 
 
-def c12_avg(values, weights, callback=allfunction):
+def c12_avg(values, weights):
     """
     Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
 
@@ -462,14 +401,12 @@ def c12_avg(values, weights, callback=allfunction):
         The array of the histograms x values
     weights : np.array
         The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
 
     Returns
     -------
     The c12 average
     """
-    cutoff, i, norm, v, w = callback(values, weights)
+    cutoff, i, norm, v, w = get_col_params(values, weights)
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
@@ -585,7 +522,7 @@ def calculate_matrices(args):
     for mol_i in mol_list:
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
-            run_stuff(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
+            main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
         for mol_j in mol_list[mol_i - 1 :]:
             if mol_i == mol_j and not args.same:
                 continue
@@ -593,10 +530,10 @@ def calculate_matrices(args):
                 continue
 
             prefix = f"inter_mol_{mol_i}_{mol_j}"
-            run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
+            main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
 
 
-def run_stuff(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix):
+def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix):
 
     df = pd.DataFrame()
 
