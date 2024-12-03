@@ -103,18 +103,17 @@ def run_mat_(arguments):
         results_df = pd.DataFrame()
         ai = ref_f.split(".")[-2].split("_")[-1]
 
-        if True:
-            all_ai = [ai for _ in range(1, original_size_j + 1)]
-            range_list = [str(x) for x in range(1, original_size_j + 1)]
+        all_ai = [ai for _ in range(1, original_size_j + 1)]
+        range_list = [str(x) for x in range(1, original_size_j + 1)]
 
-            results_df["ai"] = np.array(all_ai).astype(int)
-            results_df["aj"] = np.array(range_list).astype(int)
+        results_df["ai"] = np.array(all_ai).astype(int)
+        results_df["aj"] = np.array(range_list).astype(int)
 
-            results_df["mi"] = mi
-            results_df["mj"] = mj
-            results_df["c12dist"] = 0.0
-            results_df["p"] = 0.0
-            results_df["cutoff"] = 0.0
+        results_df["mi"] = mi
+        results_df["mj"] = mj
+        results_df["c12dist"] = 0.0
+        results_df["p"] = 0.0
+        results_df["cutoff"] = 0.0
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
