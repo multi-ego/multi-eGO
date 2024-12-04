@@ -493,7 +493,6 @@ def calculate_matrices(args):
         The command-line parsed parameters
     """
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
-    pairs = list(itertools.combinations_with_replacement(mol_list, 2))
 
     chain_list = []
     chains = [x for x in topology_mego.molecules]
@@ -523,7 +522,7 @@ def calculate_matrices(args):
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
             main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
-        for mol_j in mol_list[mol_i - 1 :]:
+        for mol_j in mol_list[mol_i - 1:]:
             if mol_i == mol_j and not args.same:
                 continue
             if mol_i != mol_j and not args.cross:
@@ -890,7 +889,7 @@ if __name__ == "__main__":
     args.intra = False
     args.same = False
     args.cross = False
-    if np.any(np.isin(modes, modes_possible) == False):
+    if not np.any(np.isin(modes, modes_possible)):
         raise ValueError(
             f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross"
         )
