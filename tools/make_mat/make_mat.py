@@ -10,7 +10,6 @@ from multiego.util import masking
 from multiego import io
 
 import argparse
-import itertools
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -29,11 +28,16 @@ COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
 def write_mat(df, output_file):
+    if df.empty:  # Check if the DataFrame is empty
+        print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
+        return
+
     out_content = df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
     out_content += "\n"
+
     with gzip.open(output_file, "wt") as f:
         f.write(out_content)
 
@@ -52,7 +56,20 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
     return ref_df
 
 
-def run_intra_(arguments):
+def zero_probability_decorator(func, flag):
+    """
+    Decorator of function to return 0 if flag is rased
+    """
+
+    def wrapper(*args, **kwargs):
+        if flag:
+            return 0  # Return 0 if the flag is set
+        return func(*args, **kwargs)  # Otherwise, execute the original function
+
+    return wrapper
+
+
+def run_mat_(arguments):
     """
     Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
     Is used in combination with multiprocessing to speed up the calculations.
@@ -76,27 +93,27 @@ def run_intra_(arguments):
         mi,
         mj,
         frac_target_list,
+        mat_type,
     ) = arguments
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
         results_df = pd.DataFrame()
         ai = ref_f.split(".")[-2].split("_")[-1]
 
-        if True:
-            all_ai = [ai for _ in range(1, original_size_j + 1)]
-            range_list = [str(x) for x in range(1, original_size_j + 1)]
+        all_ai = [ai for _ in range(1, original_size_j + 1)]
+        range_list = [str(x) for x in range(1, original_size_j + 1)]
 
-            results_df["ai"] = np.array(all_ai).astype(int)
-            results_df["aj"] = np.array(range_list).astype(int)
+        results_df["ai"] = np.array(all_ai).astype(int)
+        results_df["aj"] = np.array(range_list).astype(int)
 
-            results_df["mi"] = mi
-            results_df["mj"] = mj
-            results_df["c12dist"] = 0.0
-            results_df["p"] = 0.0
-            results_df["cutoff"] = 0.0
+        results_df["mi"] = mi
+        results_df["mj"] = mj
+        results_df["c12dist"] = 0.0
+        results_df["p"] = 0.0
+        results_df["cutoff"] = 0.0
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
@@ -106,105 +123,44 @@ def run_intra_(arguments):
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
             # calculate data
-            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            p = ref_df.apply(
-                lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()),
-                axis=0,
-            ).values
+            c12_avg_ = zero_probability_decorator(c12_avg, args.zero)
+            calculate_probability_ = zero_probability_decorator(calculate_probability, args.zero)
+            get_cumulative_probability_ = zero_probability_decorator(get_cumulative_probability, args.zero)
+
+            c12dist = ref_df.apply(lambda x: c12_avg_(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            if mat_type == "intra":
+                p = ref_df.apply(
+                    lambda x: calculate_probability_(ref_df.index.to_numpy(), weights=x.to_numpy()),
+                    axis=0,
+                ).values
+            elif mat_type == "inter":
+                # repeat for cumulative
+                c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
+                c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
+                c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
+                p = c_ref_df.apply(
+                    lambda x: get_cumulative_probability_(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
+                    axis=0,
+                ).values
+
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
 
-        df = pd.concat([df, results_df])
-        df = df.sort_values(by=["p", "c12dist"], ascending=True)
+        if df.empty:
+            df = results_df.copy()
+        else:
+            if not results_df.empty:
+                df = pd.concat([df, results_df])
 
-    df.fillna(0)
+    df.fillna(0).infer_objects(copy=False)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
 
     return out_path
 
 
-def run_inter_(arguments):
-    """
-    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
-    Is used in combination with multiprocessing to speed up the calculations.
-
-    Parameters
-    ----------
-    arguments : dict
-        Contains all the command-line parsed arguments
-
-    Returns
-    -------
-    out_path : str
-        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data
-    """
-    (
-        args,
-        protein_ref_indices_i,
-        protein_ref_indices_j,
-        original_size_j,
-        c12_cutoff,
-        mi,
-        mj,
-        frac_target_list,
-    ) = arguments
-    process = multiprocessing.current_process()
-    df = pd.DataFrame()
-    # We do not consider old histograms
-    frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
-    for i, ref_f in enumerate(frac_target_list):
-        results_df = pd.DataFrame()
-        ai = ref_f.split(".")[-2].split("_")[-1]
-
-        if True:
-            all_ai = [ai for _ in range(1, original_size_j + 1)]
-            range_list = [str(x) for x in range(1, original_size_j + 1)]
-
-            results_df["ai"] = np.array(all_ai).astype(int)
-            results_df["aj"] = np.array(range_list).astype(int)
-
-            results_df["mi"] = mi
-            results_df["mj"] = mj
-            results_df["c12dist"] = 0.0
-            results_df["p"] = 0.0
-            results_df["cutoff"] = 0.0
-
-        if np.isin(int(ai), protein_ref_indices_i):
-            cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
-
-            # column mapping
-            ref_df = read_mat(ref_f, protein_ref_indices_j, args)
-            ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
-
-            # repeat for cumulative
-            c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
-            c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
-            c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
-
-            # calculate data
-            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
-            p = c_ref_df.apply(
-                lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
-                axis=0,
-            ).values
-
-            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "c12dist"] = c12dist
-            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
-            results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
-
-        df = pd.concat([df, results_df])
-
-        df = df.sort_values(by=["p", "c12dist"], ascending=True)
-
-    df.fillna(0)
-    out_path = f"mat_{process.pid}_t{time.time()}.part"
-    df.to_csv(out_path, index=False)
-
-    return out_path
-
-
+# TODO add intra or remove this and use resdata?
 def run_residue_inter_(arguments):
     """
     Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
@@ -232,7 +188,7 @@ def run_residue_inter_(arguments):
         frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     for res in frac_target_list:
         p = 0.0
@@ -373,34 +329,7 @@ def map_if_exists(atom_name):
         return atom_name
 
 
-def hallfunction(values, weights):
-    """
-    A substitute to the allfunction without considering the cutoff.
-    Does not change the data except for the removal of the cutoff from the array.
-
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-
-    Return
-    ------
-    norm : float
-        The normalization constant
-    v : np.array
-        The unchanged x values of the histogram
-    w : np.array
-        The unchanged weights of the histogram
-    """
-    v = values[:-1]
-    w = weights[:-1]
-    norm = np.sum(w)
-    return norm, v, w
-
-
-def allfunction(values, weights):
+def get_col_params(values, weights):
     """
     TODO rename pls
 
@@ -442,10 +371,9 @@ def allfunction(values, weights):
     return cutoff, i, norm, v, w
 
 
-def zero_callback(values, weights):
+def calculate_probability(values, weights):
     """
-    A zero callback doing nothing but returning the normalization constant, values and weights.
-    The first two return values so the function can be switched with allfunction.
+    Calculates a plain probability accoring to \sum_x x * dx
 
     Parameters
     ----------
@@ -456,26 +384,19 @@ def zero_callback(values, weights):
 
     Returns
     -------
-    None : None
-        None
-    None : None
-        None
-    np.sum(weights) : float
-        The normalization constant
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
+    The probability of the histogram
     """
-    return None, None, np.sum(weights), values, weights
+    dx = values[1] - values[0]
+    cutoff, i, norm, v, w = get_col_params(values, weights)
+    return np.minimum(np.sum(w * dx), 1)
 
 
-def get_cumulative_probability(values, weights, callback=allfunction):
-    cutoff, i, norm, v, w = callback(values, weights)
+def get_cumulative_probability(values, weights):
+    cutoff, i, norm, v, w = get_col_params(values, weights)
     return weights[i]
 
 
-def c12_avg(values, weights, callback=allfunction):
+def c12_avg(values, weights):
     """
     Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
 
@@ -485,20 +406,19 @@ def c12_avg(values, weights, callback=allfunction):
         The array of the histograms x values
     weights : np.array
         The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
 
     Returns
     -------
     The c12 average
     """
-    cutoff, i, norm, v, w = callback(values, weights)
+    cutoff, i, norm, v, w = get_col_params(values, weights)
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
+    # fmt: off
     v = v[r[0][0]:v.size]
     w = w[r[0][0]:w.size]
-
+    # fmt: on
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
 
@@ -564,194 +484,7 @@ def generate_c12_values(df, types, combinations, molecule_type):
     return c12_map
 
 
-def calculate_intra_probabilities(args):
-    """
-    Starts the main routine for calculating the intramat by:
-     - reading the topologies
-     - calculating the cutoffs
-     - and caclulating the probabilities
-    The operation is finalized by writing out a csv with the name pattern intramat<_name>_{mol_i}_{mol_j}.ndx
-
-    Parameters
-    ----------
-    args : dict
-        The command-line parsed parameters
-    """
-    (
-        topology_mego,
-        topology_ref,
-        N_molecules,
-        molecules_name,
-        mol_list,
-    ) = read_topologies(args.mego_top, args.target_top)
-
-    print(
-        f"""
-    Topology contains {N_molecules} molecules species. Namely {molecules_name}.
-    Calculating intramat for all species
-    """
-    )
-    for i in range(N_molecules):
-        print(f"\n Calculating intramat for molecule {mol_list[i]}: {molecules_name[i]}")
-        df = pd.DataFrame()
-        topology_df = pd.DataFrame()
-
-        prefix = f"intra_mol_{mol_list[i]}_{mol_list[i]}"
-        if args.tar:
-            with tarfile.open(args.histo, "r:*") as tar:
-                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
-        else:
-            target_list = [x for x in os.listdir(args.histo) if prefix in x]
-
-        protein_mego = topology_mego.molecules[list(topology_mego.molecules.keys())[i]][0]
-        protein_ref = topology_ref.molecules[list(topology_ref.molecules.keys())[i]][0]
-        original_size = len(protein_ref.atoms)
-        protein_ref_indices = np.array([i + 1 for i in range(len(protein_ref.atoms)) if protein_ref[i].element_name != "H"])
-        protein_ref = [a for a in protein_ref.atoms if a.element_name != "H"]
-
-        sorter = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref]
-        sorter_mego = [str(x.residue.number) + x.name for x in protein_mego]
-
-        topology_df["ref_ai"] = protein_ref_indices
-        topology_df["ref_type"] = [a.name for a in protein_ref]
-        topology_df["resname"] = [a.residue.name for a in protein_ref]
-        topology_df["resnum"] = [a.residue.idx for a in protein_ref]
-        topology_df["sorter"] = sorter
-        topology_df["ref_ri"] = topology_df["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
-        topology_df.sort_values(by="sorter", inplace=True)
-        topology_df["mego_ai"] = [a[0].idx for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
-        topology_df["mego_type"] = [a[0].type for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
-        topology_df["mego_name"] = [a[0].name for a in sorted(zip(protein_mego, sorter_mego), key=lambda x: x[1])]
-        topology_df["name"] = topology_df["mego_name"]
-        topology_df["type"] = topology_df["mego_type"]
-        # need to sort back otherwise c12_cutoff are all wrong
-        topology_df.sort_values(by="ref_ai", inplace=True)
-        if args.custom_c12 is not None:
-            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
-            d.update(d_appo)
-
-        topology_df["c12"] = topology_df["mego_type"].map(d)
-        first_aminoacid = topology_mego.residues[0].name
-        if first_aminoacid in type_definitions.aminoacids_list:
-            molecule_type = "protein"
-        elif first_aminoacid in type_definitions.nucleic_acid_list:
-            molecule_type = "nucleic_acid"
-        else:
-            molecule_type = "other"
-
-        types = type_definitions.lj14_generator(topology_df)
-
-        if molecule_type == "other":
-            # read user pairs
-            molecule_keys = list(topology_mego.molecules.keys())
-            user_pairs = [
-                (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
-                for pair in topology_mego.molecules[molecule_keys[i]][0].adjusts
-            ]
-            user_pairs = [
-                (topology_df[topology_df["mego_ai"] == ai].index[0], topology_df[topology_df["mego_ai"] == aj].index[0], c12)
-                for ai, aj, c12 in user_pairs
-            ]
-
-        # create Datarame with the pairs and the c12 values
-        c12_values = generate_c12_values(topology_df, types, type_definitions.atom_type_combinations, molecule_type)
-
-        # consider special cases
-        oxygen_mask = masking.create_matrix_mask(
-            topology_df["mego_type"].to_numpy(),
-            topology_df["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O")],
-            symmetrize=True,
-        )
-
-        # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
-
-        # apply the user pairs (overwrite all other rules)
-        if molecule_type == "other":
-            for ai, aj, c12 in user_pairs:
-                ai = int(ai)
-                aj = int(aj)
-                if c12 > 0.0:
-                    c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
-                    c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
-
-        mismatched = topology_df.loc[topology_df["ref_type"].str[0] != topology_df["mego_name"].str[0]]
-        if not mismatched.empty:
-            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
-
-        if np.any(c12_cutoff > args.cutoff):
-            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
-        if np.isnan(c12_cutoff.astype(float)).any():
-            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
-
-        ########################
-        # PARALLEL PROCESS START
-        ########################
-
-        chunks = np.array_split(target_list, args.proc)
-        pool = multiprocessing.Pool(args.proc)
-        results = pool.map(
-            run_intra_,
-            [
-                (
-                    args,
-                    protein_ref_indices,
-                    protein_ref_indices,
-                    original_size,
-                    c12_cutoff,
-                    mol_list[i],
-                    mol_list[i],
-                    x,
-                )
-                for x in chunks
-            ],
-        )
-        pool.close()
-        pool.join()
-
-        ########################
-        # PARALLEL PROCESS END
-        ########################
-
-        # concatenate and remove partial dataframes
-        for name in results:
-            try:
-                part_df = pd.read_csv(name)
-                df = pd.concat([df, part_df])
-            except pd.errors.EmptyDataError:
-                print(f"Ignoring partial dataframe in {name} as csv is empty")
-        [os.remove(name) for name in results]
-
-        df = df.astype(
-            {
-                "mi": "int32",
-                "mj": "int32",
-                "ai": "int32",
-                "aj": "int32",
-            }
-        )
-
-        df = df.sort_values(by=["mi", "mj", "ai", "aj"])
-        df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
-
-        df["mi"] = df["mi"].map("{:}".format)
-        df["mj"] = df["mj"].map("{:}".format)
-        df["ai"] = df["ai"].map("{:}".format)
-        df["aj"] = df["aj"].map("{:}".format)
-        df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
-        df["p"] = df["p"].map("{:,.6e}".format)
-        df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
-
-        df.index = range(len(df.index))
-        out_name = args.out_name + "_" if args.out_name else ""
-        output_file = f"{args.out}/intramat_{out_name}{mol_list[i]}_{mol_list[i]}.ndx.gz"
-        print(f"Saving output for molecule {mol_list[i]} in {output_file}")
-        write_mat(df, output_file)
-
-
-def calculate_inter_probabilities(args):
+def calculate_matrices(args):
     """
     Starts the main routine for calculating the intermat by:
      - reading the topologies
@@ -766,7 +499,6 @@ def calculate_inter_probabilities(args):
         The command-line parsed parameters
     """
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
-    pairs = list(itertools.combinations_with_replacement(mol_list, 2))
 
     chain_list = []
     chains = [x for x in topology_mego.molecules]
@@ -792,126 +524,151 @@ def calculate_inter_probabilities(args):
     Calculating intermat for all species\n\n
     """
     )
-    columns = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
-    for pair in pairs:
-        df = pd.DataFrame()
-
-        topology_df_i = pd.DataFrame()
-        topology_df_j = pd.DataFrame()
-
-        mol_i = pair[0]
-        mol_j = pair[1]
-
-        print(
-            f"\nCalculating intermat between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
-        )
-        prefix = f"inter_mol_{mol_i}_{mol_j}"
-        if args.tar:
-            with tarfile.open(args.histo, "r:*") as tar:
-                target_list = [x.name for x in tar.getmembers() if prefix in x.name]
-        else:
-            target_list = [x for x in os.listdir(args.histo) if prefix in x]
-
-        protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
-        protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
-
-        protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
-        protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
-
-        original_size_i = len(protein_ref_i.atoms)
-        original_size_j = len(protein_ref_j.atoms)
-
-        if mol_i == mol_j:
-            if N_mols[mol_i - 1] == 0:
-                print(
-                    f"Skipping intermolecular calculation between {mol_i} and {mol_j} cause the number of molecules of this species is only {N_mols[mol_i-1]}"
-                )
-                matrix_index = pd.MultiIndex.from_product(
-                    [range(1, original_size_i + 1), range(1, original_size_j + 1)],
-                    names=["ai", "aj"],
-                )
-                indeces_ai = np.array(list(matrix_index)).T[0]
-                indeces_aj = np.array(list(matrix_index)).T[1]
-                df = pd.DataFrame(columns=columns)
-                df["mi"] = [mol_i for x in range(1, original_size_i * original_size_j + 1)]
-                df["mj"] = [mol_j for x in range(1, original_size_i * original_size_j + 1)]
-                df["ai"] = indeces_ai
-                df["aj"] = indeces_aj
-                df["c12dist"] = 0.0
-                df["p"] = 0.0
-                df["cutoff"] = 0.0
-                df["mi"] = df["mi"].map("{:}".format)
-                df["mj"] = df["mj"].map("{:}".format)
-                df["ai"] = df["ai"].map("{:}".format)
-                df["aj"] = df["aj"].map("{:}".format)
-                df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
-                df["p"] = df["p"].map("{:,.6e}".format)
-                df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
-
-                df.index = range(len(df.index))
-                out_name = args.out_name + "_" if args.out_name else ""
-                output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx"
-
-                df.to_csv(output_file, index=False, sep=" ", header=False, columns=columns)
+    for mol_i in mol_list:
+        if args.intra:
+            prefix = f"intra_mol_{mol_i}_{mol_i}"
+            main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
+        # fmt: off
+        for mol_j in mol_list[mol_i - 1:]:
+            # fmt: on
+            if mol_i == mol_j and not args.same:
+                continue
+            if mol_i != mol_j and not args.cross:
                 continue
 
-        protein_ref_indices_i = np.array(
-            [i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"]
-        )
-        protein_ref_indices_j = np.array(
-            [i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"]
-        )
+            prefix = f"inter_mol_{mol_i}_{mol_j}"
+            main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
 
-        protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
-        protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
 
-        sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
-        sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
+def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix):
 
-        sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
-        sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
+    df = pd.DataFrame()
 
-        # preparing topology of molecule i
-        topology_df_i["ref_ai"] = protein_ref_indices_i
-        topology_df_i["ref_type"] = [a.name for a in protein_ref_i]
-        topology_df_i["sorter"] = sorter_i
-        topology_df_i["ref_ri"] = topology_df_i["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
-        topology_df_i.sort_values(by="sorter", inplace=True)
-        topology_df_i["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
-        topology_df_i["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
-        # need to sort back otherwise c12_cutoff are all wrong
-        topology_df_i.sort_values(by="ref_ai", inplace=True)
-        if args.custom_c12 is not None:
-            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
-            d.update(d_appo)
+    topology_df_i = pd.DataFrame()
+    topology_df_j = pd.DataFrame()
 
-        topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
+    # define matrix type (intra o inter)
+    mat_type = prefix.split("_")[0]
+    print(
+        f"\nCalculating {mat_type} between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
+    )
+    if args.tar:
+        with tarfile.open(args.histo, "r:*") as tar:
+            target_list = [x.name for x in tar.getmembers() if prefix in x.name]
+    else:
+        target_list = [x for x in os.listdir(args.histo) if prefix in x]
 
-        # preparing topology of molecule j
-        topology_df_j["ref_ai"] = protein_ref_indices_j
-        topology_df_j["ref_type"] = [a.name for a in protein_ref_j]
-        topology_df_j["sorter"] = sorter_j
-        topology_df_j["ref_ri"] = topology_df_j["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
-        topology_df_j.sort_values(by="sorter", inplace=True)
-        topology_df_j["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
-        topology_df_j["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
-        # need to sort back otherwise c12_cutoff are all wrong
-        topology_df_j.sort_values(by="ref_ai", inplace=True)
-        if args.custom_c12 is not None:
-            custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-            d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
-            d.update(d_appo)
+    protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
+    protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
 
-        topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
+    protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
+    protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
-        oxygen_mask = masking.create_matrix_mask(
-            topology_df_i["mego_type"].to_numpy(),
-            topology_df_j["mego_type"].to_numpy(),
-            [("OM", "OM"), ("O", "O"), ("OM", "O")],
-            symmetrize=True,
-        )
+    original_size_j = len(protein_ref_j.atoms)
 
+    protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
+    protein_ref_indices_j = np.array([i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"])
+
+    protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
+    protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
+
+    sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
+    sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
+
+    sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
+    sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
+
+    # preparing topology of molecule i
+    topology_df_i["ref_ai"] = protein_ref_indices_i
+    topology_df_i["ref_type"] = [a.name for a in protein_ref_i]
+    topology_df_i["resname"] = [a.residue.name for a in protein_ref_i]
+    topology_df_i["resnum"] = [a.residue.idx for a in protein_ref_i]
+    topology_df_i["sorter"] = sorter_i
+    topology_df_i["ref_ri"] = topology_df_i["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
+    topology_df_i.sort_values(by="sorter", inplace=True)
+    topology_df_i["mego_ai"] = [a[0].idx for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
+    topology_df_i["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
+    topology_df_i["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_i, sorter_mego_i), key=lambda x: x[1])]
+    topology_df_i["name"] = topology_df_i["mego_name"]
+    topology_df_i["type"] = topology_df_i["mego_type"]
+    # need to sort back otherwise c12_cutoff are all wrong
+    topology_df_i.sort_values(by="ref_ai", inplace=True)
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
+        d.update(d_appo)
+
+    topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
+
+    # preparing topology of molecule j
+    topology_df_j["ref_ai"] = protein_ref_indices_j
+    topology_df_j["ref_type"] = [a.name for a in protein_ref_j]
+    topology_df_j["sorter"] = sorter_j
+    topology_df_j["resname"] = [a.residue.name for a in protein_ref_j]
+    topology_df_j["resnum"] = [a.residue.idx for a in protein_ref_j]
+    topology_df_j["ref_ri"] = topology_df_j["sorter"].str.replace("[a-zA-Z]+[0-9]*", "", regex=True).astype(int)
+    topology_df_j.sort_values(by="sorter", inplace=True)
+    topology_df_j["mego_type"] = [a[0].type for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
+    topology_df_j["mego_name"] = [a[0].name for a in sorted(zip(protein_mego_j, sorter_mego_j), key=lambda x: x[1])]
+    topology_df_j["name"] = topology_df_j["mego_name"]
+    topology_df_j["type"] = topology_df_j["mego_type"]
+    # need to sort back otherwise c12_cutoff are all wrong
+    topology_df_j.sort_values(by="ref_ai", inplace=True)
+    if args.custom_c12 is not None:
+        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
+        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
+        d.update(d_appo)
+
+    topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
+    oxygen_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("OM", "OM"), ("O", "O"), ("OM", "O")],
+        symmetrize=True,
+    )
+
+    if mat_type == "intra":
+        first_aminoacid = topology_mego.residues[0].name
+        if first_aminoacid in type_definitions.aminoacids_list:
+            molecule_type = "protein"
+        elif first_aminoacid in type_definitions.nucleic_acid_list:
+            molecule_type = "nucleic_acid"
+        else:
+            molecule_type = "other"
+
+        types = type_definitions.lj14_generator(topology_df_i)
+
+        if molecule_type == "other":
+            # read user pairs
+            molecule_keys = list(topology_mego.molecules.keys())
+            user_pairs = [
+                (pair.atom1.idx, pair.atom2.idx, pair.type.epsilon * 4.184)
+                for pair in topology_mego.molecules[molecule_keys[mol_i - 1]][0].adjusts
+            ]
+            user_pairs = [
+                (
+                    topology_df_i[topology_df_i["mego_ai"] == ai].index[0],
+                    topology_df_i[topology_df_i["mego_ai"] == aj].index[0],
+                    c12,
+                )
+                for ai, aj, c12 in user_pairs
+            ]
+
+        c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
+
+        # define all cutoff
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
+
+        # apply the user pairs (overwrite all other rules)
+        if molecule_type == "other":
+            for ai, aj, c12 in user_pairs:
+                ai = int(ai)
+                aj = int(aj)
+                if c12 > 0.0:
+                    c12_cutoff[ai][aj] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+                    c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
+
+    if mat_type == "inter":
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
             oxygen_mask,
@@ -925,157 +682,139 @@ def calculate_inter_probabilities(args):
             ),
         )
 
-        mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
-        if not mismatched.empty:
-            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
-        mismatched = topology_df_j.loc[topology_df_j["ref_type"].str[0] != topology_df_j["mego_name"].str[0]]
-        if not mismatched.empty:
-            raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+    mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
+    if not mismatched.empty:
+        raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
+    mismatched = topology_df_j.loc[topology_df_j["ref_type"].str[0] != topology_df_j["mego_name"].str[0]]
+    if not mismatched.empty:
+        raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
 
-        if args.residue:
-            c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
-        if np.any(c12_cutoff > args.cutoff):
-            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
-        if np.isnan(c12_cutoff.astype(float)).any():
-            warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
+    if args.residue:
+        c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
+    if np.any(c12_cutoff > args.cutoff):
+        warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
+    if np.isnan(c12_cutoff.astype(float)).any():
+        warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
-        # create dictionary with ref_ai to ri
-        ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
-        ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-        # index_ai_to_ri_i = {k: v for k, v in enumerate(topology_df_i["ref_ri"])}
-        index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
-        # create a dictionary with ref_ri to ai as a list of ai
-        ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
-        ref_ri_to_ai_j = {f"{mol_j}_{ri}": [] for ri in topology_df_j["ref_ri"]}
-        for ai, ri in ref_ai_to_ri_i.items():
-            ref_ri_to_ai_i[f"{mol_i}_{ri}"].append(ai)
-        for ai, ri in ref_ai_to_ri_j.items():
-            ref_ri_to_ai_j[f"{mol_j}_{ri}"].append(ai)
+    # create dictionary with ref_ai to ri
+    ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
+    ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
+    index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
+    # create a dictionary with ref_ri to ai as a list of ai
+    ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
+    ref_ri_to_ai_j = {f"{mol_j}_{ri}": [] for ri in topology_df_j["ref_ri"]}
+    for ai, ri in ref_ai_to_ri_i.items():
+        ref_ri_to_ai_i[f"{mol_i}_{ri}"].append(ai)
+    for ai, ri in ref_ai_to_ri_j.items():
+        ref_ri_to_ai_j[f"{mol_j}_{ri}"].append(ai)
 
-        dict_m_m_r = {}
-        for target in target_list:
-            target_fields = target.replace(".dat", "").split("_")
-            mi = int(target_fields[-4])
-            mj = int(target_fields[-3])
-            ai = int(target_fields[-1])
-            if ai not in protein_ref_indices_i:
-                continue
-            ri = ref_ai_to_ri_i[ai]
-            if (mi, mj, ri) in dict_m_m_r:
-                dict_m_m_r[(mi, mj, ri)].append(target)
-            else:
-                dict_m_m_r[(mi, mj, ri)] = [target]
-
-        ########################
-        # PARALLEL PROCESS START
-        ########################
-
-        if not args.residue:
-            chunks = np.array_split(target_list, args.proc)
+    dict_m_m_r = {}
+    for target in target_list:
+        target_fields = target.replace(".dat", "").split("_")
+        mi = int(target_fields[-4])
+        mj = int(target_fields[-3])
+        ai = int(target_fields[-1])
+        if ai not in protein_ref_indices_i:
+            continue
+        ri = ref_ai_to_ri_i[ai]
+        if (mi, mj, ri) in dict_m_m_r:
+            dict_m_m_r[(mi, mj, ri)].append(target)
         else:
-            chunks = []
-            n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.proc
-            chunk = []
-            n = 0
-            for k, v in dict_m_m_r.items():
-                chunk.append(v)
-                n += len(v)
-                if n > n_threshold:
-                    chunks.append(chunk)
-                    chunk = []
-                    n = 0
-            chunks.append(chunk)
-        pool = multiprocessing.Pool(args.proc)
-        if args.residue:
-            results = pool.map(
-                run_residue_inter_,
-                [
-                    (
-                        args,
-                        protein_ref_indices_i,
-                        protein_ref_indices_j,
-                        len(ref_ri_to_ai_j),
-                        c12_cutoff,
-                        mol_i,
-                        mol_j,
-                        (ref_ai_to_ri_i, index_ai_to_ri_j),
-                        x,
-                    )
-                    for x in chunks
-                ],
-            )
-        else:
-            results = pool.map(
-                run_inter_,
-                [
-                    (
-                        args,
-                        protein_ref_indices_i,
-                        protein_ref_indices_j,
-                        original_size_j,
-                        c12_cutoff,
-                        mol_i,
-                        mol_j,
-                        x,
-                    )
-                    for x in chunks
-                ],
-            )
-        pool.close()
-        pool.join()
+            dict_m_m_r[(mi, mj, ri)] = [target]
 
-        ########################
-        # PARALLEL PROCESS END
-        ########################
+    ########################
+    # PARALLEL PROCESS START
+    ########################
 
-        # concatenate and remove partial dataframes
-        for name in results:
-            try:
-                part_df = pd.read_csv(name)
-                df = pd.concat([df, part_df])
-            except pd.errors.EmptyDataError:
-                print(f"Ignoring partial dataframe in {name} as csv is empty")
-        [os.remove(name) for name in results]
-        df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
+    if not args.residue:
+        chunks = np.array_split(target_list, args.num_threads)
+    else:
+        chunks = []
+        n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.num_threads
+        chunk = []
+        n = 0
+        for k, v in dict_m_m_r.items():
+            chunk.append(v)
+            n += len(v)
+            if n > n_threshold:
+                chunks.append(chunk)
+                chunk = []
+                n = 0
+        chunks.append(chunk)
+    pool = multiprocessing.Pool(args.num_threads)
+    if args.residue and not args.intra:
+        results = pool.map(
+            run_residue_inter_,
+            [
+                (
+                    args,
+                    protein_ref_indices_i,
+                    protein_ref_indices_j,
+                    len(ref_ri_to_ai_j),
+                    c12_cutoff,
+                    mol_i,
+                    mol_j,
+                    (ref_ai_to_ri_i, index_ai_to_ri_j),
+                    x,
+                )
+                for x in chunks
+            ],
+        )
+    else:
 
-        df = df.sort_values(by=["mi", "mj", "ai", "aj"])
-        df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
+        results = pool.map(
+            run_mat_,
+            [
+                (
+                    args,
+                    protein_ref_indices_i,
+                    protein_ref_indices_j,
+                    original_size_j,
+                    c12_cutoff,
+                    mol_i,
+                    mol_j,
+                    x,
+                    mat_type,
+                )
+                for x in chunks
+            ],
+        )
 
-        df["mi"] = df["mi"].map("{:}".format)
-        df["mj"] = df["mj"].map("{:}".format)
-        df["ai"] = df["ai"].map("{:}".format)
-        df["aj"] = df["aj"].map("{:}".format)
-        df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
-        df["p"] = df["p"].map("{:,.6e}".format)
-        df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
+    pool.close()
+    pool.join()
 
-        df.index = range(len(df.index))
-        out_name = args.out_name + "_" if args.out_name else ""
-        output_file = f"{args.out}/intermat_{out_name}{mol_i}_{mol_j}.ndx.gz"
-        print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
-        write_mat(df, output_file)
+    ########################
+    # PARALLEL PROCESS END
+    ########################
 
+    # concatenate and remove partial dataframes
+    for name in results:
+        try:
+            part_df = pd.read_csv(name)
+            df = pd.concat([df, part_df])
+        except pd.errors.EmptyDataError:
+            print(f"Ignoring partial dataframe in {name} as csv is empty")
+    [os.remove(name) for name in results]
+    df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
-def calculate_probability(values, weights, callback=allfunction):
-    """
-    Calculates a plain probability accoring to \sum_x x * dx
+    df = df.sort_values(by=["mi", "mj", "ai", "aj"])
+    df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
 
-    Parameters
-    ----------
-    values : np.array
-        The array of the histograms x values
-    weights : np.array
-        The array with the respective weights
-    callback : function
-        Preprocesses the data before going in to the analysis
+    df["mi"] = df["mi"].map("{:}".format)
+    df["mj"] = df["mj"].map("{:}".format)
+    df["ai"] = df["ai"].map("{:}".format)
+    df["aj"] = df["aj"].map("{:}".format)
+    df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
+    df["p"] = df["p"].map("{:,.6e}".format)
+    df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
 
-    Returns
-    -------
-    The probability of the histogram
-    """
-    dx = values[1] - values[0]
-    cutoff, i, norm, v, w = callback(values, weights)
-    return np.minimum(np.sum(w * dx), 1)
+    df.index = range(len(df.index))
+    out_name = args.out_name + "_" if args.out_name else ""
+    output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.gz"
+    if args.residue:
+        output_file = f"{args.out}/{mat_type}mat_res_{out_name}{mol_i}_{mol_j}.ndx.gz"
+    print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
+    write_mat(df, output_file)
 
 
 if __name__ == "__main__":
@@ -1097,9 +836,7 @@ if __name__ == "__main__":
         help="""Path to the standard multi-eGO topology of the system generated by pdb2gmx""",
     )
     parser.add_argument(
-        "--inter",
-        action="store_true",
-        help="Sets the caculation to be adapted to intermolecular calculations of histograms",
+        "--mode", help="Sets the caculation to be intra/same/cross for histograms processing", default="intra+same+cross"
     )
     parser.add_argument("--out", default="./", help="""Sets the output path""")
     parser.add_argument(
@@ -1107,7 +844,7 @@ if __name__ == "__main__":
         help="""Sets the output name of files to be added to the default one: intermat_<out_name>_mi_mj.ndx or intramat_<out_name>_mi_mj.ndx""",
     )
     parser.add_argument(
-        "--proc",
+        "--num_threads",
         default=1,
         type=int,
         help="Sets the number of processes to perform the calculation",
@@ -1132,6 +869,11 @@ if __name__ == "__main__":
         "--residue",
         action="store_true",
     )
+    parser.add_argument(
+        "--zero",
+        action="store_true",
+        default=False,
+    )
     args = parser.parse_args()
 
     # check if output file exists
@@ -1147,24 +889,38 @@ if __name__ == "__main__":
         print(f"The path '{args.histo}' is not a tar file.")
         sys.exit()
 
-    if args.residue and not args.inter:
+    # Sets mode
+    modes = np.array(args.mode.split("+"), dtype=str)
+    modes_possible = np.array(["intra", "same", "cross"])
+    args.intra = False
+    args.same = False
+    args.cross = False
+    if not np.any(np.isin(modes, modes_possible)):
+        raise ValueError(
+            f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross"
+        )
+
+    if "intra" in modes:
+        args.intra = True
+    if "same" in modes:
+        args.same = True
+    if "cross" in modes:
+        args.cross = True
+
+    if args.residue and args.intra:
         print("Residue calculation is only possible for intermolecular calculations (not implemented yet for intramolecular).")
         sys.exit()
 
     N_BINS = args.cutoff / (0.01 / 4)
     DX = args.cutoff / N_BINS
-    PREFIX = "inter_mol_" if args.inter else "intra_mol_"
     CUTOFF_FACTOR = 1.45
     print(
         f"""
     Starting with cutoff = {args.cutoff},
                   n_bins = {N_BINS},
                   dx     = {DX}
-                  on {args.proc} threads
+                  on {args.num_threads} threads
     """
     )
 
-    if not args.inter:
-        calculate_intra_probabilities(args)
-    else:
-        calculate_inter_probabilities(args)
+    calculate_matrices(args)
