@@ -526,7 +526,7 @@ def generate_14_data(meGO_ensemble):
     # First of all we generate the random-coil 1-4 interactions:
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
-    for molecule, bond_pair in meGO_ensemble["bond_pairs"].items():
+    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
         if not bond_pair:
             continue
         reduced_topology = (
@@ -603,6 +603,10 @@ def generate_14_data(meGO_ensemble):
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
             pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
+
+        mol_ai = f"{idx}_{molecule}"
+        pairs["molecule_name_ai"] = mol_ai
+        pairs["molecule_name_aj"] = mol_ai
 
         if not pairs.empty:
             pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
