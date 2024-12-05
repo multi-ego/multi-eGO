@@ -569,7 +569,7 @@ def generate_14_data(meGO_ensemble):
     # First of all we generate the random-coil 1-4 interactions:
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
-    for molecule, bond_pair in meGO_ensemble["bond_pairs"].items():
+    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
         if not bond_pair:
             continue
         reduced_topology = (
@@ -647,6 +647,10 @@ def generate_14_data(meGO_ensemble):
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
             pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
+
+        mol_ai = f"{idx}_{molecule}"
+        pairs["molecule_name_ai"] = mol_ai
+        pairs["molecule_name_aj"] = mol_ai
 
         if not pairs.empty:
             pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
@@ -1345,6 +1349,9 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     # rename the columns _x
     meGO_LJ_14.columns = meGO_LJ_14.columns.str.rstrip("_x")
 
+    # remove intermolecular interactions across molecules from meGO_LJ_14
+    meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
+
     # copy 1-4 interactions into meGO_LJ_14
     copy14 = meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4")]
     meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
@@ -1514,7 +1521,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         Contains the "write out"-ready pairs-exclusions interactions for each molecule
     """
     pairs_molecule_dict = {}
-    for molecule, bond_pair in meGO_ensemble["bond_pairs"].items():
+    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
         reduced_topology = (
             meGO_ensemble["topology_dataframe"]
             .loc[meGO_ensemble["topology_dataframe"]["molecule_name"] == molecule][
@@ -1599,8 +1606,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
 
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
+            mol_ai = f"{idx}_{molecule}"
             # pairs do not have duplicates because these have been cleaned before
-            pairs = meGO_LJ_14[
+            pairs = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == mol_ai][
                 [
                     "ai",
                     "aj",

@@ -9,6 +9,7 @@ echo "Deleting current inputs"
 [ -d "${MEGO_ROOT}/inputs/abetaref" ] && rm -rf ${MEGO_ROOT}/inputs/abetaref
 [ -d "${MEGO_ROOT}/inputs/ttrref" ] && rm -rf ${MEGO_ROOT}/inputs/ttrref
 [ -d "${MEGO_ROOT}/inputs/lyso-bnz_ref" ] && rm -rf ${MEGO_ROOT}/inputs/lyso-bnz_ref
+[ -d "${MEGO_ROOT}/inputs/het_trim" ] && rm -rf ${MEGO_ROOT}/inputs/het_trim
 cp -r test_inputs/* ${MEGO_ROOT}/inputs
 
 # delete output directories
@@ -17,12 +18,14 @@ echo "Deleting current outputs"
 [ -d "${MEGO_ROOT}/outputs/abetaref" ] && rm -rf ${MEGO_ROOT}/outputs/abetaref
 [ -d "${MEGO_ROOT}/outputs/ttrref" ] && rm -rf ${MEGO_ROOT}/outputs/ttrref
 [ -d "${MEGO_ROOT}/outputs/lyso-bnz_ref" ] && rm -rf ${MEGO_ROOT}/outputs/lyso-bnz_ref
+[ -d "${MEGO_ROOT}/outputs/het_trim" ] && rm -rf ${MEGO_ROOT}/outputs/het_trim
 
 echo "Deleting current test_outputs"
 rm -rf ${TEST_DIR}/test_outputs/gpref
 rm -rf ${TEST_DIR}/test_outputs/abetaref
 rm -rf ${TEST_DIR}/test_outputs/ttrref
 rm -rf ${TEST_DIR}/test_outputs/lyso-bnz_ref
+rm -rf ${TEST_DIR}/test_outputs/het_trim
 
 echo "Generating data for examples from ${TEST_CASES}..."
 while read case; do

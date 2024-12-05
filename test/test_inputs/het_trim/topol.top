@@ -1,0 +1,42 @@
+;
+;	File 'topol.top' was generated
+;	By user: carlo (501)
+;	On host: MacBookPro
+;	At date: Thu Dec  5 21:56:50 2024
+;
+;	This is a standalone topology file
+;
+;	Created by:
+;	              :-) GROMACS - gmx pdb2gmx, 2024.4-plumed_2.9.2 (-:
+;	
+;	Executable:   /Users/carlo/Codes/gromacs-2024.4/exe/bin/gmx_mpi
+;	Data prefix:  /Users/carlo/Codes/gromacs-2024.4/exe
+;	Working dir:  /Users/carlo/Codes/multi-eGO/test/test_inputs/6EG8/preparation
+;	Command line:
+;	  gmx_mpi pdb2gmx -f 6eg8_clean.pdb -ignh
+;	Force field data was read from:
+;	/Users/carlo/Codes/multi-ego
+;
+;	Note:
+;	This might be a non-standard force field location. When you use this topology, the
+;	force field must either be present in the current directory, or the location
+;	specified in the GMXLIB path variable or with the 'include' mdp file option.
+;
+
+; Include forcefield parameters
+#include "../../multi-ego-basic.ff/forcefield.itp"
+
+; Include chain topologies
+#include "topol_Protein_chain_A.itp"
+#include "topol_Protein_chain_B.itp"
+#include "topol_Protein_chain_C.itp"
+
+[ system ]
+; Name
+Protein
+
+[ molecules ]
+; Compound        #mols
+Protein_chain_A     1
+Protein_chain_B     1
+Protein_chain_C     1
