@@ -4,3 +4,5 @@
 --config TEST_ROOT/test_inputs/ttrref/config.yml --explicit_name case # --system ttrref --egos production
 --config TEST_ROOT/test_inputs/lyso-bnz_ref/config_1.yml --explicit_name case # --system lyso-bnz_ref --egos production
 --config TEST_ROOT/test_inputs/lyso-bnz_ref/config_2.yml --explicit_name case # --system lyso-bnz_ref --egos production
+--system het_trim --egos rc --no_header --explicit_name case
+--system het_trim --egos production --epsilon 0.3 --train train --no_header --explicit_name case

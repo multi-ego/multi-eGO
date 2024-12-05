@@ -10,7 +10,6 @@ from multiego.util import masking
 from multiego import io
 
 import argparse
-import itertools
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -29,11 +28,16 @@ COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
 def write_mat(df, output_file):
+    if df.empty:  # Check if the DataFrame is empty
+        print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
+        return
+
     out_content = df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
     out_content += "\n"
+
     with gzip.open(output_file, "wt") as f:
         f.write(out_content)
 
@@ -91,9 +95,8 @@ def run_mat_(arguments):
         frac_target_list,
         mat_type,
     ) = arguments
-
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
@@ -130,8 +133,7 @@ def run_mat_(arguments):
                     lambda x: calculate_probability_(ref_df.index.to_numpy(), weights=x.to_numpy()),
                     axis=0,
                 ).values
-
-            if mat_type == "inter":
+            elif mat_type == "inter":
                 # repeat for cumulative
                 c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
                 c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
@@ -145,10 +147,13 @@ def run_mat_(arguments):
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
 
-        df = pd.concat([df, results_df])
-        df = df.sort_values(by=["p", "c12dist"], ascending=True)
+        if df.empty:
+            df = results_df.copy()
+        else:
+            if not results_df.empty:
+                df = pd.concat([df, results_df])
 
-    df.fillna(0)
+    df.fillna(0).infer_objects(copy=False)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
 
@@ -183,7 +188,7 @@ def run_residue_inter_(arguments):
         frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     for res in frac_target_list:
         p = 0.0
@@ -410,9 +415,10 @@ def c12_avg(values, weights):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
+    # fmt: off
     v = v[r[0][0]:v.size]
     w = w[r[0][0]:w.size]
-
+    # fmt: on
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
 
@@ -493,7 +499,6 @@ def calculate_matrices(args):
         The command-line parsed parameters
     """
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
-    pairs = list(itertools.combinations_with_replacement(mol_list, 2))
 
     chain_list = []
     chains = [x for x in topology_mego.molecules]
@@ -523,7 +528,9 @@ def calculate_matrices(args):
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
             main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
-        for mol_j in mol_list[mol_i - 1 :]:
+        # fmt: off
+        for mol_j in mol_list[mol_i - 1:]:
+            # fmt: on
             if mol_i == mol_j and not args.same:
                 continue
             if mol_i != mol_j and not args.cross:
@@ -557,7 +564,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
-    original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
     protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
@@ -693,7 +699,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     # create dictionary with ref_ai to ri
     ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
     ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-    # index_ai_to_ri_i = {k: v for k, v in enumerate(topology_df_i["ref_ri"])}
     index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
     # create a dictionary with ref_ri to ai as a list of ai
     ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
@@ -890,7 +895,7 @@ if __name__ == "__main__":
     args.intra = False
     args.same = False
     args.cross = False
-    if np.any(np.isin(modes, modes_possible) == False):
+    if not np.any(np.isin(modes, modes_possible)):
         raise ValueError(
             f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross"
         )
