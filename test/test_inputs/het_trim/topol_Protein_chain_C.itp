@@ -1,0 +1,251 @@
+;
+;	File 'topol_Protein_chain_C.itp' was generated
+;	By user: carlo (501)
+;	On host: MacBookPro
+;	At date: Thu Dec  5 21:56:50 2024
+;
+;	This is a include topology file
+;
+;	Created by:
+;	              :-) GROMACS - gmx pdb2gmx, 2024.4-plumed_2.9.2 (-:
+;	
+;	Executable:   /Users/carlo/Codes/gromacs-2024.4/exe/bin/gmx_mpi
+;	Data prefix:  /Users/carlo/Codes/gromacs-2024.4/exe
+;	Working dir:  /Users/carlo/Codes/multi-eGO/test/test_inputs/6EG8/preparation
+;	Command line:
+;	  gmx_mpi pdb2gmx -f 6eg8_clean.pdb -ignh
+;	Force field data was read from:
+;	/Users/carlo/Codes/multi-ego
+;
+;	Note:
+;	This might be a non-standard force field location. When you use this topology, the
+;	force field must either be present in the current directory, or the location
+;	specified in the GMXLIB path variable or with the 'include' mdp file option.
+;
+
+[ moleculetype ]
+; Name            nrexcl
+Protein_chain_C     3
+
+[ atoms ]
+;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
+; residue   9 THR rtp THR  q  0.0
+     1         NL      9    THR      N      1          0    17.0067
+     2        CH1      9    THR     CA      1          0     13.019
+     3        CH1      9    THR     CB      1          0     13.019
+     4         OA      9    THR    OG1      1          0    16.9994
+     5        CH3      9    THR    CG2      1          0     15.035
+     6          C      9    THR      C      1          0     12.011
+     7          O      9    THR      O      1          0    15.9994   ; qtot 0
+; residue  10 GLU rtp GLU  q  0.0
+     8          N     10    GLU      N      2          0    15.0067
+     9        CH1     10    GLU     CA      2          0     13.019
+    10        CH2     10    GLU     CB      2          0     14.027
+    11        CH2     10    GLU     CG      2          0     14.027
+    12          C     10    GLU     CD      2          0     12.011
+    13         OM     10    GLU    OE1      2          0    15.9994
+    14         OM     10    GLU    OE2      2          0    15.9994
+    15          C     10    GLU      C      2          0     12.011
+    16          O     10    GLU      O      2          0    15.9994   ; qtot 0
+; residue  11 ASP rtp ASP  q  0.0
+    17          N     11    ASP      N      3          0    15.0067
+    18        CH1     11    ASP     CA      3          0     13.019
+    19        CH2     11    ASP     CB      3          0     14.027
+    20          C     11    ASP     CG      3          0     12.011
+    21         OM     11    ASP    OD1      3          0    15.9994
+    22         OM     11    ASP    OD2      3          0    15.9994
+    23          C     11    ASP      C      3          0     12.011
+    24          O     11    ASP      O      3          0    15.9994   ; qtot 0
+; residue  12 GLN rtp GLN  q  0.0
+    25          N     12    GLN      N      4          0    15.0067
+    26        CH1     12    GLN     CA      4          0     13.019
+    27        CH2     12    GLN     CB      4          0     14.027
+    28        CH2     12    GLN     CG      4          0     14.027
+    29          C     12    GLN     CD      4          0     12.011
+    30          O     12    GLN    OE1      4          0    15.9994
+    31         NT     12    GLN    NE2      4          0    16.0067
+    32          C     12    GLN      C      4          0     12.011
+    33         OM     12    GLN     O1      4          0    15.9994
+    34         OM     12    GLN     O2      4          0    15.9994   ; qtot 0
+
+[ bonds ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     2     1    gb_21
+    2     3     1    gb_27
+    2     6     1    gb_27
+    3     4     1    gb_18
+    3     5     1    gb_27
+    6     7     1    gb_5
+    6     8     1    gb_10
+    8     9     1    gb_21
+    9    10     1    gb_27
+    9    15     1    gb_27
+   10    11     1    gb_27
+   11    12     1    gb_27
+   12    13     1    gb_6
+   12    14     1    gb_6
+   15    16     1    gb_5
+   15    17     1    gb_10
+   17    18     1    gb_21
+   18    19     1    gb_27
+   18    23     1    gb_27
+   19    20     1    gb_27
+   20    21     1    gb_6
+   20    22     1    gb_6
+   23    24     1    gb_5
+   23    25     1    gb_10
+   25    26     1    gb_21
+   26    27     1    gb_27
+   26    32     1    gb_27
+   27    28     1    gb_27
+   28    29     1    gb_27
+   29    30     1    gb_5
+   29    31     1    gb_9
+   32    33     1    gb_6
+   32    34     1    gb_6
+
+[ pairs ]
+;  ai    aj funct            c0            c1            c2            c3
+    1     4     1 
+    1     5     1 
+    1     7     1 
+    1     8     1 
+    2     9     1 
+    3     7     1 
+    3     8     1 
+    4     6     1 
+    5     6     1 
+    6    10     1 
+    6    15     1 
+    7     9     1 
+    8    11     1 
+    8    16     1 
+    8    17     1 
+    9    12     1 
+    9    18     1 
+   10    13     1 
+   10    14     1 
+   10    16     1 
+   10    17     1 
+   11    15     1 
+   15    19     1 
+   15    23     1 
+   16    18     1 
+   17    20     1 
+   17    24     1 
+   17    25     1 
+   18    21     1 
+   18    22     1 
+   18    26     1 
+   19    24     1 
+   19    25     1 
+   20    23     1 
+   23    27     1 
+   23    32     1 
+   24    26     1 
+   25    28     1 
+   25    33     1 
+   25    34     1 
+   26    29     1 
+   27    30     1 
+   27    31     1 
+   27    33     1 
+   27    34     1 
+   28    32     1 
+
+[ angles ]
+;  ai    aj    ak funct            c0            c1            c2            c3
+    1     2     3     1    ga_13
+    1     2     6     1    ga_13
+    3     2     6     1    ga_13
+    2     3     4     1    ga_13
+    2     3     5     1    ga_15
+    4     3     5     1    ga_15
+    2     6     7     1    ga_30
+    2     6     8     1    ga_19
+    7     6     8     1    ga_33
+    6     8     9     1    ga_31
+    8     9    10     1    ga_13
+    8     9    15     1    ga_13
+   10     9    15     1    ga_13
+    9    10    11     1    ga_15
+   10    11    12     1    ga_15
+   11    12    13     1    ga_22
+   11    12    14     1    ga_22
+   13    12    14     1    ga_38
+    9    15    16     1    ga_30
+    9    15    17     1    ga_19
+   16    15    17     1    ga_33
+   15    17    18     1    ga_31
+   17    18    19     1    ga_13
+   17    18    23     1    ga_13
+   19    18    23     1    ga_13
+   18    19    20     1    ga_15
+   19    20    21     1    ga_22
+   19    20    22     1    ga_22
+   21    20    22     1    ga_38
+   18    23    24     1    ga_30
+   18    23    25     1    ga_19
+   24    23    25     1    ga_33
+   23    25    26     1    ga_31
+   25    26    27     1    ga_13
+   25    26    32     1    ga_13
+   27    26    32     1    ga_13
+   26    27    28     1    ga_15
+   27    28    29     1    ga_15
+   28    29    30     1    ga_30
+   28    29    31     1    ga_19
+   30    29    31     1    ga_33
+   26    32    33     1    ga_22
+   26    32    34     1    ga_22
+   33    32    34     1    ga_38
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
+    1     2     3     4     1    gd_34
+    1     2     6     8     1    gd_42
+    1     2     6     8     1    gd_45
+    2     6     8     9     1    gd_14
+    6     8     9    15     1    gd_43b
+    6     8     9    15     1    gd_44b
+    8     9    10    11     1    gd_34
+    8     9    15    17     1    gd_42b
+    8     9    15    17     1    gd_45b
+    9    10    11    12     1    gd_34
+   10    11    12    14     1    gd_40
+    9    15    17    18     1    gd_14
+   15    17    18    23     1    gd_43
+   15    17    18    23     1    gd_44
+   17    18    19    20     1    gd_34
+   17    18    23    25     1    gd_42
+   17    18    23    25     1    gd_45
+   18    19    20    21     1    gd_40
+   18    23    25    26     1    gd_14
+   23    25    26    32     1    gd_43b
+   23    25    26    32     1    gd_44b
+   25    26    27    28     1    gd_34
+   25    26    32    34     1    gd_42
+   25    26    32    34     1    gd_45
+   26    27    28    29     1    gd_34
+   27    28    29    31     1    gd_40
+
+[ dihedrals ]
+;  ai    aj    ak    al funct            c0            c1            c2            c3
+    2     1     6     3     2    gi_2
+    2     5     4     3     2    gi_2
+    6     2     8     7     2    gi_1
+    9     8    15    10     2    gi_2
+   11    14    13    12     2    gi_1
+   15     9    17    16     2    gi_1
+   18    17    23    19     2    gi_2
+   19    22    21    20     2    gi_1
+   23    18    25    24     2    gi_1
+   26    25    32    27     2    gi_2
+   28    31    30    29     2    gi_1
+   32    26    34    33     2    gi_1
+
+; Include Position restraint file
+#ifdef POSRES
+#include "posre_Protein_chain_C.itp"
+#endif
+
