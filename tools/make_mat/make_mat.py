@@ -91,9 +91,8 @@ def run_mat_(arguments):
         frac_target_list,
         mat_type,
     ) = arguments
-
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
@@ -130,8 +129,7 @@ def run_mat_(arguments):
                     lambda x: calculate_probability_(ref_df.index.to_numpy(), weights=x.to_numpy()),
                     axis=0,
                 ).values
-
-            if mat_type == "inter":
+            elif mat_type == "inter":
                 # repeat for cumulative
                 c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
                 c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
@@ -145,10 +143,13 @@ def run_mat_(arguments):
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "p"] = p
             results_df.loc[results_df["aj"].isin(protein_ref_indices_j), "cutoff"] = c12_cutoff[cut_i].astype(float)
 
-        df = pd.concat([df, results_df])
-        df = df.sort_values(by=["p", "c12dist"], ascending=True)
+        if df.empty:
+            df = results_df.copy()
+        else:
+            if not results_df.empty:
+                df = pd.concat([df, results_df])
 
-    df.fillna(0)
+    df.fillna(0).infer_objects(copy=False)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
 
@@ -183,7 +184,7 @@ def run_residue_inter_(arguments):
         frac_target_list,
     ) = arguments
     process = multiprocessing.current_process()
-    df = pd.DataFrame()
+    df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
     for res in frac_target_list:
         p = 0.0
@@ -556,7 +557,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
-    original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
     protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
@@ -692,7 +692,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     # create dictionary with ref_ai to ri
     ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
     ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-    # index_ai_to_ri_i = {k: v for k, v in enumerate(topology_df_i["ref_ri"])}
     index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
     # create a dictionary with ref_ri to ai as a list of ai
     ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
