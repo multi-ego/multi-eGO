@@ -10,7 +10,6 @@ from multiego.util import masking
 from multiego import io
 
 import argparse
-import itertools
 import multiprocessing
 import numpy as np
 import pandas as pd
@@ -531,7 +530,7 @@ def calculate_matrices(args):
             main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
         # fmt: off
         for mol_j in mol_list[mol_i - 1:]:
-        # fmt: on
+            # fmt: on
             if mol_i == mol_j and not args.same:
                 continue
             if mol_i != mol_j and not args.cross:
