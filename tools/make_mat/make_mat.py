@@ -29,11 +29,16 @@ COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
 
 
 def write_mat(df, output_file):
+    if df.empty:  # Check if the DataFrame is empty
+        print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
+        return
+
     out_content = df.to_string(index=False, header=False, columns=COLUMNS)
     out_content = out_content.replace("\n", "<")
     out_content = " ".join(out_content.split())
     out_content = out_content.replace("<", "\n")
     out_content += "\n"
+
     with gzip.open(output_file, "wt") as f:
         f.write(out_content)
 
@@ -411,9 +416,10 @@ def c12_avg(values, weights):
     if np.sum(w) == 0:
         return 0
     r = np.where(w > 0.0)
+    # fmt: off
     v = v[r[0][0]:v.size]
     w = w[r[0][0]:w.size]
-
+    # fmt: on
     res = np.maximum(cutoff / 4.5, 0.1)
     exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
 
@@ -523,7 +529,9 @@ def calculate_matrices(args):
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
             main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
+        # fmt: off
         for mol_j in mol_list[mol_i - 1:]:
+        # fmt: on
             if mol_i == mol_j and not args.same:
                 continue
             if mol_i != mol_j and not args.cross:
