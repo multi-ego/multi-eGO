@@ -400,13 +400,21 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             lj14_sigma_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["sigma"]
             lj14_epsilon_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["epsilon"]
 
+            # Filter lj_sigma_map to include only indices that exist in reference_contact_matrices[name]
+            common_indices = lj_sigma_map.index.intersection(
+                reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
+            )
+            common_indices_14 = lj14_sigma_map.index.intersection(
+                reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
+            )
+
             # Update sigma values where they exist in lj_pairs
-            reference_contact_matrices[name].loc[lj_sigma_map.index, "sigma_prior"] = lj_sigma_map.astype("float64")
-            reference_contact_matrices[name].loc[lj14_sigma_map.index, "sigma_prior"] = lj14_sigma_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices, "sigma_prior"] = lj_sigma_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
 
             # Update epsilon values where they exist in lj_pairs
-            reference_contact_matrices[name].loc[lj_epsilon_map.index, "epsilon_prior"] = lj_epsilon_map.astype("float64")
-            reference_contact_matrices[name].loc[lj14_epsilon_map.index, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices, "epsilon_prior"] = lj_epsilon_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
 
             reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
