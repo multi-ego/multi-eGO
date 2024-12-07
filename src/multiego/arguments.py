@@ -5,9 +5,8 @@ args_dict = {
     },
     "--egos": {
         "type": str,
-        "choices": ["rc", "mg", "production"],
-        "help": "rc: creates a force-field for random coil simulations. "
-        "mg: creates a force-field for molten globule simulations."
+        "choices": ["mg", "production"],
+        "help": "mg: creates a force-field for molten globule simulations."
         "production: creates a force-field combining random coil simulations and training simulations.",
     },
     "--reference": {
@@ -119,12 +118,6 @@ args_dict = {
         "default": "",
         "type": str,
         "help": "Explicit name for the output directory stored in outputs/system",
-    },
-    "--regtest": {
-        "type": bool,
-        "default": False,
-        "action": "store_true",
-        "help": "Use old rules for regtests check.",
     },
     "--config": {
         "default": "",
