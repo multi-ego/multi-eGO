@@ -359,9 +359,9 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
         file.write("  1             1               no              1.0     1.0\n\n")
 
         file.write("[ atomtypes ]\n")
-        if parameters.egos == "rc":
-            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
-            atomtypes.rename(columns={"rc_c6": "c6", "rc_c12": "c12"}, inplace=True)
+        if parameters.egos == "mg":
+            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]].copy()
+            atomtypes.rename(columns={"mg_c6": "c6", "mg_c12": "c12"}, inplace=True)
         else:
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
 
@@ -725,7 +725,7 @@ def get_name(parameters):
     name : str
         The name of the output directory
     """
-    if parameters.egos == "rc":
+    if parameters.egos == "mg":
         name = f"{parameters.system}_{parameters.egos}"
     else:
         name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_{parameters.inter_epsilon}"
@@ -776,6 +776,11 @@ def check_files_existence(args):
     """
     md_ensembles = args.reference + args.train if args.egos == "production" else []
 
+    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
+        raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
+    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}/topol.top"):
+        raise FileNotFoundError(f"File {args.root_dir}/inputs/{args.system}/topol.top does not exist.")
+
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
         if not os.path.exists(ensemble):
@@ -787,7 +792,7 @@ def check_files_existence(args):
             ndx_files = glob.glob(f"{ensemble}/*.ndx")
             ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
             ndx_files += glob.glob(f"{ensemble}/*.h5")
-            if not ndx_files and not args.egos == "rc":
+            if not ndx_files and not args.egos == "mg":
                 raise FileNotFoundError(
                     f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
                 )

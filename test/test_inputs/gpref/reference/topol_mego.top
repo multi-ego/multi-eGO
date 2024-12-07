@@ -1,40 +1,4 @@
 
-; Multi-eGO force field version beta.1
-; https://github.com/multi-ego/multi-eGO
-; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 17-09-2024 17:40
-; With the following parameters:
-;	- system                     = gpref               
-;	- egos                       = rc                  
-;	- epsilon                    =                     
-;	- reference                  =                     
-;	- train                      =                     
-;	- check                      =                     
-;	- inter_epsilon              =                     
-;	- inter_domain_epsilon       =                     
-;	- p_to_learn                 = 0.9995              
-;	- epsilon_min                = 0.07                
-;	- force_split                =                     
-;	- single_molecule            =                     
-;	- custom_dict                =                     
-;	- custom_c12                 =                     
-;	- GB_1_Protein = None
-;	- GB_1_Protein = None
-;	- GB_1_Protein = {'GB_1_Protein': None}
-;	- symmetry                  :
-;	- symmetry_file              =                     
-;	- f                          = 1                   
-;	- inter_f                    = 1                   
-;	- inter_domain_f             = 1                   
-;	- relative_c12d              = 0.001               
-;	- explicit_name              =                     
-;	- config                     =                     
-;	- root_dir                   = /home/franbt/multi-eGO
-;	- names                      = GB_1_Protein        
-
-
 ; Include forcefield parameters
 #include "ffnonbonded.itp"
 

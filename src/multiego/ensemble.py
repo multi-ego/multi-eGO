@@ -48,25 +48,6 @@ def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
 def initialize_topology(topology, custom_dict, args):
     """
     Initializes a topology DataFrame using provided molecule information.
-
-    Args:
-    - topology (object): An object containing information about the molecules.
-
-    Returns:
-    - ensemble_topology_dataframe (DataFrame): DataFrame containing ensemble topology information.
-    - ensemble_molecules_idx_sbtype_dictionary (dict): Dictionary mapping molecule indexes to their respective subtypes.
-    - sbtype_c12_dict (dict): Dictionary mapping subtype to their c12 values.
-    - sbtype_name_dict (dict): Dictionary mapping subtype to their names.
-    - sbtype_moltype_dict (dict): Dictionary mapping subtype to their molecule types.
-    - molecule_type_dict (dict): Dictionary mapping molecule names to their types.
-
-    This function initializes a topology DataFrame by extracting information about molecules and their atoms.
-    It creates a DataFrame containing details about atoms, molecules, their types, and assigns specific values based on the provided information.
-    The function also generates dictionaries mapping different atom subtypes to their respective characteristics and molecule types.
-
-    Note:
-    - The 'topology' object is expected to contain molecule information.
-    - The returned DataFrame and dictionaries provide comprehensive details about the molecular structure and characteristics.
     """
 
     (
@@ -111,17 +92,22 @@ def initialize_topology(topology, custom_dict, args):
         + "_"
         + ensemble_topology_dataframe["resnum"].astype(str)
     )
-    ensemble_topology_dataframe.rename(columns={"epsilon": "c12"}, inplace=True)
 
-    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["c12"])}
+    atp_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["rc_c12"])}
+    atp_mg_c6_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c6"])}
+    atp_mg_c12_map = {k: v for k, v in zip(type_definitions.gromos_atp["name"], type_definitions.gromos_atp["mg_c12"])}
+
+    # TODO: we will need to extend this to mg c6/c12 stuff?
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         atp_c12_map.update(name_to_c12_appo)
 
     ensemble_topology_dataframe["charge"] = 0.0
-    ensemble_topology_dataframe["c6"] = 0.0
-    ensemble_topology_dataframe["c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
+    ensemble_topology_dataframe["rc_c6"] = 0.0
+    ensemble_topology_dataframe["rc_c12"] = ensemble_topology_dataframe["type"].map(atp_c12_map)
+    ensemble_topology_dataframe["mg_c6"] = ensemble_topology_dataframe["type"].map(atp_mg_c6_map)
+    ensemble_topology_dataframe["mg_c12"] = ensemble_topology_dataframe["type"].map(atp_mg_c12_map)
     ensemble_topology_dataframe["molecule_type"] = ensemble_topology_dataframe["molecule_name"].map(molecule_type_dict)
 
     for molecule in ensemble_molecules_idx_sbtype_dictionary.keys():
@@ -129,7 +115,9 @@ def initialize_topology(topology, custom_dict, args):
         number_sbtype_dict = temp_topology_dataframe[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
         ensemble_molecules_idx_sbtype_dictionary[molecule] = number_sbtype_dict
 
-    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "c12"]].set_index("sb_type")["c12"].to_dict()
+    sbtype_c12_dict = ensemble_topology_dataframe[["sb_type", "rc_c12"]].set_index("sb_type")["rc_c12"].to_dict()
+    sbtype_mg_c12_dict = ensemble_topology_dataframe[["sb_type", "mg_c12"]].set_index("sb_type")["mg_c12"].to_dict()
+    sbtype_mg_c6_dict = ensemble_topology_dataframe[["sb_type", "mg_c6"]].set_index("sb_type")["mg_c6"].to_dict()
     sbtype_name_dict = ensemble_topology_dataframe[["sb_type", "name"]].set_index("sb_type")["name"].to_dict()
     sbtype_moltype_dict = (
         ensemble_topology_dataframe[["sb_type", "molecule_type"]].set_index("sb_type")["molecule_type"].to_dict()
@@ -139,33 +127,17 @@ def initialize_topology(topology, custom_dict, args):
         ensemble_topology_dataframe,
         ensemble_molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
     )
 
 
-def initialize_molecular_contacts(contact_matrix, args):
+def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     """
     This function initializes a contact matrix for a given simulation.
-
-    Parameters
-    ----------
-    contact_matrix : pd.DataFrame
-        Contains contact information read from intra-/intermat
-    path : str
-        Path to the simulation folder
-    ensemble_molecules_idx_sbtype_dictionary : dict
-        Associates atom indices to atoms named according to multi-eGO conventions
-    simulation : str
-        The simulation classified equivalent to the input folder
-    args : argparse.Namespace
-        Parsed arguments
-
-    Returns
-    -------
-    contact_matrix : pd.DataFrame
-        A contact matrix containing contact data for each of the different simulations
     """
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
@@ -220,13 +192,14 @@ def initialize_molecular_contacts(contact_matrix, args):
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-        1.0 / (1.0 - (args.epsilon_min / contact_matrix["epsilon_0"]))
+        contact_matrix["epsilon_0"] / (prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
     )
-    contact_matrix["limit_rc"] = (
-        1.0
-        / contact_matrix["rc_threshold"] ** (args.epsilon_min / contact_matrix["epsilon_0"])
-        * contact_matrix["zf"] ** (1 - (args.epsilon_min / contact_matrix["epsilon_0"]))
-    )
+    contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
+        -(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
+    contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
+        prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
 
     # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
     f_min = md_threshold
@@ -279,35 +252,30 @@ def init_meGO_ensemble(args, custom_dict):
         topology_dataframe,
         molecules_idx_sbtype_dictionary,
         sbtype_c12_dict,
+        sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict,
         sbtype_name_dict,
         sbtype_moltype_dict,
         molecule_type_dict,
     ) = initialize_topology(base_reference_topology, custom_dict, args)
 
-    # prior = {}
-    # prior["topology"] = reference_topology
-    # prior["topology_dataframe"] = topology_dataframe
-    # prior["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
-    # prior["sbtype_c12_dict"] = sbtype_c12_dict
-    # prior["sbtype_name_dict"] = sbtype_name_dict
-    # prior["sbtype_moltype_dict"] = sbtype_moltype_dict
-    # prior["sbtype_number_dict"] = (
-    #     topology_dataframe[["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    # )
-    # prior["sbtype_type_dict"] = {key: name for key, name in topology_dataframe[["sb_type", "type"]].values}
-    # prior["molecule_type_dict"] = molecule_type_dict
-
     ensemble = {}
     ensemble["topology"] = base_reference_topology
     ensemble["topology_dataframe"] = topology_dataframe
-    ensemble["molecules_idx_sbtype_dictionary"] = molecules_idx_sbtype_dictionary
-    ensemble["sbtype_c12_dict"] = sbtype_c12_dict
-    ensemble["sbtype_name_dict"] = sbtype_name_dict
-    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict
+    ensemble["molecules_idx_sbtype_dictionary"] = (
+        molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
+    )
+    ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c12_dict"] = sbtype_mg_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c6_dict"] = sbtype_mg_c6_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
+    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
     ensemble["sbtype_number_dict"] = (
         ensemble["topology_dataframe"][["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    )
+    )  # {mego_type: atomnumer} N_mol_resnum: 1
+    # {mego_type: atomtype} N_mol_resnum: NL
     ensemble["sbtype_type_dict"] = {key: name for key, name in ensemble["topology_dataframe"][["sb_type", "type"]].values}
+    # {molecule: moltype} mol: protein
     ensemble["molecule_type_dict"] = molecule_type_dict
     ensemble["train_matrix_tuples"] = []
 
@@ -347,8 +315,47 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     for reference in args.reference:  # reference_paths:
         print("\t-", f"Initializing {reference} ensemble data")
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
-        # path = f"{args.root_dir}/inputs/{args.system}/{reference_path}"
-        topology_path = f"{reference_path}/topol.top"
+        topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
+        if len(topol_files) > 1:
+            raise RuntimeError(f"More than 1 topology file found in {reference_path}. Only one should be used")
+
+        topology_path = f"{reference_path}/{topol_files[0]}"
+        if not os.path.isfile(topology_path):
+            raise FileNotFoundError(f"{topology_path} not found.")
+
+        print("\t\t-", f"Reading {topology_path}")
+        # ignore the dihedral type overriding in parmed
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            topol = parmed.load_file(topology_path)
+
+        # these are the atom type c6_i,c12_j
+        lj_data = topology.get_lj_params(topol)
+        # these are the combined cases (c6_ij, c12_ij)
+        lj_pairs = topology.get_lj_pairs(topol)
+        # Create reversed pairs
+        reversed_lj_pairs = lj_pairs.rename(columns={"ai": "aj", "aj": "ai"})
+        # Combine original and reversed
+        symmetric_lj_pairs = pd.concat([lj_pairs, reversed_lj_pairs])
+        # Remove duplicates to avoid duplication of symmetric pairs
+        # This step ensures that if a pair already exists in both directions, it's not duplicated
+        symmetric_lj_pairs = symmetric_lj_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
+
+        # these are the combined cases in the [pairs] section (c6_ij, c12_ij)
+        lj14_pairs = topology.get_lj14_pairs(topol)
+        # Create reversed pairs
+        reversed_lj14_pairs = lj14_pairs.rename(columns={"ai": "aj", "aj": "ai"})
+        # Combine original and reversed
+        symmetric_lj14_pairs = pd.concat([lj14_pairs, reversed_lj14_pairs])
+        # Remove duplicates to avoid duplication of symmetric pairs
+        # This step ensures that if a pair already exists in both directions, it's not duplicated
+        symmetric_lj14_pairs = symmetric_lj14_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
+
+        lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
+
+        ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
+        ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
+
         matrix_paths = glob.glob(f"{reference_path}/int??mat_?_?.ndx")
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.gz")
         matrix_paths = matrix_paths + glob.glob(f"{reference_path}/int??mat_?_?.ndx.h5")
@@ -366,6 +373,50 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 path, ensemble["molecules_idx_sbtype_dictionary"], reference, path.endswith(".h5")
             )
             reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
+            reference_contact_matrices[name]["c6_i"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_ai"]]
+            reference_contact_matrices[name]["c6_j"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_aj"]]
+            reference_contact_matrices[name]["c6"] = np.sqrt(
+                reference_contact_matrices[name]["c6_i"] * reference_contact_matrices[name]["c6_j"]
+            )
+            reference_contact_matrices[name]["c12_i"] = [lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_ai"]]
+            reference_contact_matrices[name]["c12_j"] = [lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_aj"]]
+            reference_contact_matrices[name]["c12"] = np.sqrt(
+                reference_contact_matrices[name]["c12_i"] * reference_contact_matrices[name]["c12_j"]
+            )
+            reference_contact_matrices[name]["sigma_prior"] = np.where(
+                reference_contact_matrices[name]["c6"] > 0,
+                (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
+                reference_contact_matrices[name]["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
+            )
+            reference_contact_matrices[name]["epsilon_prior"] = np.where(
+                reference_contact_matrices[name]["c6"] > 0,
+                reference_contact_matrices[name]["c6"] ** 2 / (4 * reference_contact_matrices[name]["c12"]),
+                0,
+            )
+
+            # Create a mapping from lj_pairs for sigma and epsilon
+            lj_sigma_map = symmetric_lj_pairs.set_index(["ai", "aj"])["sigma"]
+            lj_epsilon_map = symmetric_lj_pairs.set_index(["ai", "aj"])["epsilon"]
+            lj14_sigma_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["sigma"]
+            lj14_epsilon_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["epsilon"]
+
+            # Filter lj_sigma_map to include only indices that exist in reference_contact_matrices[name]
+            common_indices = lj_sigma_map.index.intersection(
+                reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
+            )
+            common_indices_14 = lj14_sigma_map.index.intersection(
+                reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
+            )
+
+            # Update sigma values where they exist in lj_pairs
+            reference_contact_matrices[name].loc[common_indices, "sigma_prior"] = lj_sigma_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
+
+            # Update epsilon values where they exist in lj_pairs
+            reference_contact_matrices[name].loc[common_indices, "epsilon_prior"] = lj_epsilon_map.astype("float64")
+            reference_contact_matrices[name].loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
+
+            reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
         et = time.time()
         elapsed_time = et - st
@@ -389,7 +440,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         # ignore the dihedral type overriding in parmed
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            topology = parmed.load_file(topology_path)
+            topol = parmed.load_file(topology_path)
 
         (
             temp_topology_dataframe,
@@ -398,7 +449,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             _,
             _,
             _,
-        ) = initialize_topology(topology, custom_dict, args)
+            _,
+            _,
+        ) = initialize_topology(topol, custom_dict, args)
 
         train_topology_dataframe = pd.concat(
             [train_topology_dataframe, temp_topology_dataframe],
@@ -421,13 +474,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             train_contact_matrices[name] = io.read_molecular_contacts(
                 path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
             )
-            train_contact_matrices[name] = initialize_molecular_contacts(
-                train_contact_matrices[name],
-                args,
-            )
-            # ref_name = reference_path + "_" + path.split("/")[-1]
-            # find corresponding reference matrix (given by the number_number at the end of the name)
-            # using reference contact matrices
             identifier = (
                 f'_{("_").join(path.split("/")[-1].replace(".ndx", "").replace(".gz", "").replace(".h5", "").split("_")[-3:])}'
             )
@@ -436,6 +482,11 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
             ref_name = ref_name[0]
             ensemble["train_matrix_tuples"].append((name, ref_name))
+            train_contact_matrices[name] = initialize_molecular_contacts(
+                train_contact_matrices[name],
+                reference_contact_matrices[ref_name],
+                args,
+            )
 
         et = time.time()
         elapsed_time = et - st
@@ -577,6 +628,7 @@ def generate_14_data(meGO_ensemble):
             pairs["rep"] = pairs["c12"]
             pairs["source"] = pairs["source"].astype("category")
             pairs["same_chain"] = True
+            pairs["1-4"] = "1_4"
         else:
             pairs["ai"] = meGO_ensemble["user_pairs"][molecule].ai.astype(str)
             pairs["aj"] = meGO_ensemble["user_pairs"][molecule].aj.astype(str)
@@ -631,9 +683,12 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "source",
         "zf",
         "epsilon_0",
+        "epsilon_prior",
+        "sigma_prior",
         "md_threshold",
         "rc_threshold",
-        "limit_rc",
+        "limit_rc_att",
+        "limit_rc_rep",
         "rc_distance",
         "rc_probability",
     ]
@@ -702,7 +757,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset["1-4"] = train_dataset["1-4"].fillna("1>4").astype("category")
     train_dataset.loc[(train_dataset["1-4"] == "1_4") & (train_dataset["rep"].isnull()), "rep"] = 0.0
 
-    type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
+    type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
+
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
@@ -727,6 +783,38 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         ),
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
+
+    pairwise_mg_sigma = np.where(
+        oxygen_mask,
+        (11.4 * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12))) ** (1 / 12),
+        (
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            / (
+                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+            )
+        )
+        ** (1 / 12),
+    )
+    train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
+
+    pairwise_mg_epsilon = np.where(
+        oxygen_mask,
+        -11.4 * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
+        (
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+        )
+        / (
+            4
+            * np.sqrt(
+                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            )
+        ),
+    )
+    train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
 
     return train_dataset
 
@@ -778,6 +866,8 @@ def generate_basic_LJ(meGO_ensemble):
     basic_LJ["same_chain"] = False
     basic_LJ["source"] = "basic"
     basic_LJ["rep"] = basic_LJ["c12"]
+    basic_LJ["mg_sigma"] = basic_LJ["c12"] ** (1 / 12)
+    basic_LJ["mg_epsilon"] = -basic_LJ["c12"]
     basic_LJ["molecule_name_ai"] = basic_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1]))
     basic_LJ["molecule_name_aj"] = basic_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1]))
     basic_LJ["probability"] = 1.0
@@ -794,7 +884,7 @@ def generate_basic_LJ(meGO_ensemble):
     return basic_LJ
 
 
-def set_sig_epsilon(meGO_LJ, needed_fields):
+def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     """
     Set the epsilon parameter for LJ interactions based on probability and distance.
 
@@ -818,27 +908,34 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
     # when distance estimates are poor we use the cutoff value
-    meGO_LJ.loc[(meGO_LJ["probability"] <= meGO_LJ["md_threshold"]), "distance"] = (meGO_LJ["rep"] / meGO_LJ["epsilon_0"]) ** (
-        1.0 / 12.0
+    # Update the "distance" column for rows in the mask
+    mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
+    meGO_LJ.loc[mask, "distance"] = np.where(
+        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
     )
-    meGO_LJ.loc[(meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]), "rc_distance"] = (
-        meGO_LJ["rep"] / meGO_LJ["epsilon_0"]
-    ) ** (1.0 / 12.0)
+    mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
+    meGO_LJ.loc[mask, "rc_distance"] = np.where(
+        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
+        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
+    )
 
-    # Epsilon is initialised to a rescaled C12
-    # This is always correct becasue distance is always well defined by either training data
-    # or using default C12 values
-    # negative epsilon are used to identify non-attractive interactions
-    meGO_LJ["epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    meGO_LJ["epsilon"] = np.where(
+        meGO_LJ["epsilon_prior"] == 0,
+        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,  # If epsilon_prior == 0
+        meGO_LJ["epsilon_prior"],  # Otherwise, set to epsilon_prior
+    )
 
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities
     meGO_LJ.loc[
-        (meGO_LJ["probability"] > meGO_LJ["limit_rc"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
-    ] = -(meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])) * (
+    ] = meGO_LJ["epsilon_prior"] - (meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])) * (
         np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
     )
 
@@ -847,16 +944,19 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
-            np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
-            < meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-        )
-        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
+            (
+                np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
+                < meGO_LJ["limit_rc_rep"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+            )
+            & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        ),
         "epsilon",
     ] = -(meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"]))) * meGO_LJ["distance"] ** 12 * (
         np.log(
             np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
             / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         )
+        - meGO_LJ["epsilon_prior"]
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -898,7 +998,7 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
     ] = -meGO_LJ["rep"]
 
     # Sigma is set from the estimated interaction length
-    meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / (2.0 ** (1.0 / 6.0)))
+    meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
@@ -910,7 +1010,6 @@ def set_sig_epsilon(meGO_LJ, needed_fields):
 
     # keep only needed fields
     meGO_LJ = meGO_LJ[needed_fields]
-
     return meGO_LJ
 
 
@@ -1056,13 +1155,15 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "distance",
         "cutoff",
         "rep",
+        "mg_sigma",
+        "mg_epsilon",
         "md_threshold",
         "rc_threshold",
         "learned",
     ]
 
     # generate attractive and repulsive interactions
-    meGO_LJ = set_sig_epsilon(meGO_LJ, needed_fields)
+    meGO_LJ = set_sig_epsilon(meGO_LJ, needed_fields, parameters)
 
     et = time.time()
     elapsed_time = et - st
@@ -1096,13 +1197,23 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # Cleaning the duplicates
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
 
-    # now we can remove all repulsive contacts with default (i.e., rep) c12 becasue these
+    # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
     meGO_LJ = meGO_LJ.loc[
         ~(
+            (meGO_LJ["epsilon"] > 0)
+            & (meGO_LJ["mg_epsilon"] > 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
+            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
+            & (meGO_LJ["1-4"] == "1>4")
+        )
+    ]
+    meGO_LJ = meGO_LJ.loc[
+        ~(
             (meGO_LJ["epsilon"] < 0)
-            & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < parameters.relative_c12d)
+            & (meGO_LJ["mg_epsilon"] < 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
@@ -1307,7 +1418,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     return meGO_LJ, meGO_LJ_14
 
 
-def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
+def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     """
     This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
 
@@ -1345,10 +1456,68 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
         reduced_topology["resnum"] = reduced_topology["resnum"].astype(int)
 
         atnum_type_dict = reduced_topology.set_index("sb_type")["number"].to_dict()
+        resnum_type_dict = reduced_topology.set_index("sb_type")["resnum"].to_dict()
+
         # Building the exclusion bonded list
         # exclusion_bonds are all the interactions within 3 bonds
         # p14 are specifically the interactions at exactly 3 bonds
         exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
+
+        # in the case of the MG prior we need to remove interactions in a window of 2 residues
+        if args.egos == "mg":
+            # Create a list of tuples (sbtype, residue_number)
+            sbtype_with_residue = [
+                (sbtype, resnum_type_dict[sbtype])
+                for sbtype in reduced_topology["sb_type"]
+                # if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
+            ]
+            # Sort the list by residue numbers
+            sbtype_with_residue.sort(key=lambda x: x[1])
+            # Initialize a list to hold the filtered combinations
+            filtered_combinations = []
+            # Use two pointers to find valid pairs
+            n = len(sbtype_with_residue)
+            for i in range(n):
+                j = i + 1  # Start with the current sbtype
+                # Find the range of valid sbtypes
+                while j < n and abs(sbtype_with_residue[j][1] - sbtype_with_residue[i][1]) <= 2:
+                    filtered_combinations.append((sbtype_with_residue[i][0], sbtype_with_residue[j][0]))
+                    j += 1
+
+            # Create a DataFrame from the filtered combinations
+            df = pd.DataFrame(filtered_combinations, columns=["ai", "aj"])
+            df["c6"] = 0.0
+            df["c12"] = np.sqrt(
+                df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+            )
+            df.loc[
+                (
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                )
+                & (
+                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                ),
+                "c12",
+            ] *= 11.4
+            df["same_chain"] = True
+            df["probability"] = 1.0
+            df["rc_probability"] = 1.0
+            df["source"] = "mg"
+            df["rep"] = df["c12"]
+            df["1-4"] = "1>4"
+            # The exclusion list was made based on the atom number
+            df["check"] = df["ai"].map(atnum_type_dict).astype(str) + "_" + df["aj"].map(atnum_type_dict).astype(str)
+            # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_df
+            df["remove"] = ""
+            df.loc[(df["check"].isin(exclusion_bonds)), "remove"] = "Yes"
+            df.loc[(df["check"].isin(p14) & (df["same_chain"])), "remove"] = "Yes"
+            mask = df.remove == "Yes"
+            df = df[~mask]
+            df.drop(columns=["check", "remove"], inplace=True)
+            meGO_LJ_14 = pd.concat([meGO_LJ_14, df], axis=0, sort=False, ignore_index=True)
+
         pairs = pd.DataFrame()
         if not meGO_LJ_14.empty:
             mol_ai = f"{idx}_{molecule}"

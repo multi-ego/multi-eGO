@@ -323,6 +323,15 @@ def get_14_interaction_list(reduced_topology, bond_pair):
     return exclusion_bonds, p14
 
 
+def get_lj_params(topology):
+    lj_params = pd.DataFrame(columns=["ai", "c6", "c12"], index=np.arange(len(topology.atoms)))
+    for i, atom in enumerate(topology.atoms):
+        c6, c12 = atom.sigma * 0.1, atom.epsilon * 4.184
+        lj_params.loc[i] = [atom.atom_type, c6, c12]
+
+    return lj_params
+
+
 def get_lj_pairs(topology):
     """
     Extracts Lennard-Jones pair information from a molecular topology.
@@ -337,22 +346,60 @@ def get_lj_pairs(topology):
     pairs_dataframe: pd.DataFrame
         DataFrame containing Lennard-Jones pair information
     """
-    lj_pairs = pd.DataFrame(columns=["ai", "aj", "func", "c6", "c12"])
-    for sbtype_i, sbtype_j in topology.parameterset.nbfix_types:
+    lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(topology.parameterset.nbfix_types)))
+    for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
         key = (sbtype_i, sbtype_j)
-        c12, c6 = topology.parameterset.nbfix_types[key] * 4.184  # Convert from kcal/mol to kJ/mol
-        lj_pairs = lj_pairs.append(
-            {
-                "ai": sbtype_i,
-                "aj": sbtype_j,
-                "func": 1,
-                "c6": c6,
-                "c12": c12,
-            },
-            ignore_index=True,
-        )
+        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else 0
+        sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
+        lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
 
     return lj_pairs
+
+
+def get_lj14_pairs(topology):
+    """
+    Extracts Lennard-Jones pair information from a molecular topology.
+
+    Parameters
+    ----------
+    topology: parmed.topology object
+        Contains the molecular topology information
+
+    Returns
+    -------
+    pairs_dataframe: pd.DataFrame
+        DataFrame containing Lennard-Jones pair information
+    """
+    lj14_pairs = pd.DataFrame()
+    for mol, top in topology.molecules.items():
+        pair14 = [
+            {
+                "ai": pair.atom1.type,
+                "aj": pair.atom2.type,
+                "c6": pair.type.sigma * 0.1,
+                "c12": pair.type.epsilon * 4.184,
+            }
+            for pair in top[0].adjusts
+        ]
+        df = pd.DataFrame(pair14)
+        lj14_pairs = pd.concat([lj14_pairs, df])
+
+    lj14_pairs = lj14_pairs.reset_index()
+
+    # Calculate "epsilon" using a vectorized conditional expression
+    lj14_pairs["epsilon"] = np.where(lj14_pairs["c6"] > 0, lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]), 0)
+
+    # Calculate "sigma" using a vectorized conditional expression
+    lj14_pairs["sigma"] = np.where(
+        lj14_pairs["c6"] > 0,
+        (lj14_pairs["c12"] / lj14_pairs["c6"]) ** (1 / 6),
+        lj14_pairs["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
+    )
+
+    lj14_pairs.drop(columns=["c6", "c12"], inplace=True)
+
+    return lj14_pairs
 
 
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=None, constant=None):

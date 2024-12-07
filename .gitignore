@@ -137,5 +137,6 @@ outputs/*
 analysis/*
 .DS_Store
 *.ff
-!multi-ego-basic.ff/
+!multi-rc-prior.ff/
+!multi-mg-prior.ff/
 !multi-ego-ready.ff/

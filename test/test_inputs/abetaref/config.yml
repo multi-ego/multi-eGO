@@ -1,7 +1,7 @@
 ---
 - system: abetaref
 - egos: production 
-- epsilon: 0.33 
+- epsilon: 0.24 
 - train: native_MD 
 - reference: ref
 - single_molecule

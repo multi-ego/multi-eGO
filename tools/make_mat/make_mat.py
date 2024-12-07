@@ -20,7 +20,7 @@ import gzip
 import tarfile
 
 d = {
-    type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i]
+    type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.rc_c12[i]
     for i in range(len(type_definitions.gromos_atp.name))
 }
 
@@ -595,7 +595,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_i.sort_values(by="ref_ai", inplace=True)
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
         d.update(d_appo)
 
     topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
@@ -616,7 +616,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_j.sort_values(by="ref_ai", inplace=True)
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
+        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
         d.update(d_appo)
 
     topology_df_j["c12"] = topology_df_j["mego_type"].map(d)

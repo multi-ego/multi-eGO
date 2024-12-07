@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-import parmed as pmd
 import pandas as pd
 import time
 import gc
@@ -91,8 +90,17 @@ for a contact pair.
     if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
         multi_flag = True
 
-    mego_topology = pmd.load_file(f"{args.root_dir}/inputs/{args.system}/topol.top")
-    topol_names = [m for m in mego_topology.molecules]
+    custom_dict = {}
+    if args.custom_dict:
+        custom_dict = parse_json(args.custom_dict)
+        if custom_dict == None:
+            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
+            sys.exit()
+
+    print(f"Running Multi-eGO: {args.egos}\n")
+    print("- Processing Multi-eGO topology")
+    mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
+    topol_names = [m for m in mego_ensemble["topology"].molecules]
 
     args.names = []
     for name in args.multi_epsilon_intra.keys():
@@ -110,7 +118,7 @@ for a contact pair.
     elif not multi_flag:
         args.names = topol_names
 
-    if args.egos != "rc" and not args.reference:
+    if args.egos == "production" and not args.reference:
         args.reference = ["reference"]
 
     if args.epsilon and not args.inter_epsilon:
@@ -127,7 +135,7 @@ for a contact pair.
         args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
 
     # check all epsilons are set and greater than epsilon_min
-    if args.egos != "rc":
+    if args.egos == "production":
         for k, v in args.multi_epsilon_intra.items():
             if v < args.epsilon_min:
                 print("ERROR: epsilon value for " + k + " is less than epsilon_min")
@@ -150,13 +158,6 @@ for a contact pair.
     elif args.symmetry:
         args.symmetry = io.parse_symmetry_list(args.symmetry)
 
-    custom_dict = {}
-    if args.custom_dict:
-        custom_dict = parse_json(args.custom_dict)
-        if custom_dict == None:
-            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
-            sys.exit()
-
     custom_c12_dict = pd.DataFrame()
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
@@ -169,7 +170,7 @@ for a contact pair.
         parser.print_usage()
         sys.exit()
 
-    return args, custom_dict
+    return args, mego_ensemble, custom_dict
 
 
 def main():
@@ -179,20 +180,17 @@ def main():
     """
 
     bt = time.time()
-    print("Multi-eGO\n")
-    args, custom_dict = meGO_parsing()
+    generate_face.print_welcome()
+    args, meGO_ensembles, custom_dict = meGO_parsing()
 
-    if not args.no_header:
-        generate_face.print_welcome()
-
+    st = time.time()
+    elapsed_time = st - bt
+    print("- Done in:", elapsed_time, "seconds")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
-    if args.egos != "rc":
+    if args.egos == "production":
         io.check_matrix_format(args)
 
-    print("- Processing Multi-eGO topology")
-    st = time.time()
-    meGO_ensembles = ensemble.init_meGO_ensemble(args, custom_dict)
     print("\t- Generating bonded interactions")
     meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
     print("\t- Generating 1-4 data")
@@ -202,7 +200,7 @@ def main():
     st = et
     print("- Done in:", elapsed_time, "seconds")
 
-    if args.egos != "rc":
+    if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = ensemble.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
@@ -227,7 +225,7 @@ def main():
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
-    else:
+    elif args.egos == "mg":
         print("- Generate the LJ dataset")
         meGO_LJ = ensemble.generate_OO_LJ(meGO_ensembles)
         meGO_LJ_14 = pairs14
@@ -237,7 +235,7 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
 
     print("- Finalize pairs and exclusions")
-    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14)
+    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
     elapsed_time = et - st
     st = et
