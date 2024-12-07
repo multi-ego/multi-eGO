@@ -819,10 +819,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     return train_dataset
 
 
-def get_residue_number(s):
-    return int(s.split("_")[-1])
-
-
 def generate_OO_LJ(meGO_ensemble):
     """
     The multi-eGO random coil force-field includes special repulsive interaction only for oxygen-oxygen pairs
