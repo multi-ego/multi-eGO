@@ -10,8 +10,6 @@
 - Fran Bacic Toplek
 - Carlo Camilloni
 - Riccardo Capelli
-- Gaia Poloni
-- Emanuele Scalone
 - Bruno Stegani
   
 Original version by Emanuele Scalone, Cristina Paissoni, and Carlo Camilloni, [Computational Structural Biology Lab](http://compsb.unimi.it), Department of Biosciences, University of Milano, Italy.
