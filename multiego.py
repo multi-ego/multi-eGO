@@ -211,7 +211,6 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
         print("- Initializing LJ dataset")
         train_dataset = ensemble.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
-        basic_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args, matrices)
         # force memory cleaning to decrease footprint in case of large dataset
         del matrices
         gc.collect()
@@ -220,20 +219,18 @@ def main():
         st = et
         print("- Done in:", elapsed_time, "seconds")
         print("- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, basic_LJ, args)
+        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
-        del basic_LJ
         gc.collect()
         et = time.time()
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
     else:
-        print("- Generate LJ dataset")
-        meGO_LJ = ensemble.generate_basic_LJ(meGO_ensembles, args)
+        print("- Generate the LJ dataset")
+        meGO_LJ = ensemble.generate_OO_LJ(meGO_ensembles)
         meGO_LJ_14 = pairs14
-        meGO_LJ_14["epsilon"] = -meGO_LJ_14["c12"]
         et = time.time()
         elapsed_time = et - st
         st = et

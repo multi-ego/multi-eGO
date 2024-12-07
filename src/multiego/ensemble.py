@@ -731,7 +731,30 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     return train_dataset
 
 
-def generate_basic_LJ(meGO_ensemble, args, matrices=None):
+def generate_OO_LJ(meGO_ensemble):
+    """
+    The multi-eGO random coil force-field includes special repulsive interaction only for oxygen-oxygen pairs
+    these are generate in the following
+    """
+    O_OM_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
+    ]
+
+    # Generate all possible combinations
+    combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+
+    # Create a DataFrame from the combinations
+    rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    rc_LJ["type"] = 1
+    rc_LJ["c6"] = 0.0
+    rc_LJ["c12"] = 11.4 * np.sqrt(
+        rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+    )
+    rc_LJ.sort_values(by=["ai", "aj"], ascending=[True, True], inplace=True)
+    return rc_LJ
+
+
+def generate_basic_LJ(meGO_ensemble):
     """
     Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
 
@@ -750,118 +773,23 @@ def generate_basic_LJ(meGO_ensemble, args, matrices=None):
       types, c6, c12, sigma, epsilon, probability, rc_probability, molecule names, source, and thresholds.
     - The generated DataFrame provides basic LJ interactions for further analysis or processing within the ensemble.
     """
-    columns = [
-        "ai",
-        "aj",
-        "type",
-        "c6",
-        "c12",
-        "sigma",
-        "epsilon",
-        "probability",
-        "rc_probability",
-        "distance",
-        "molecule_name_ai",
-        "molecule_name_aj",
-        "same_chain",
-        "source",
-        "md_threshold",
-        "rc_threshold",
-        "number_ai",
-        "number_aj",
-        "cutoff",
-    ]
 
-    basic_LJ = pd.DataFrame()
-
-    topol_df = meGO_ensemble["topology_dataframe"]
-    name_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.c12)}
-    if args.custom_c12 is not None:
-        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        name_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
-        name_to_c12.update(name_to_c12_appo)
-
-    if args.egos == "rc":
-        basic_LJ = pd.DataFrame(columns=columns)
-        basic_LJ["index_ai"] = [
-            i
-            for i in range(1, len(meGO_ensemble["sbtype_number_dict"]) + 1)
-            for j in range(1, len(meGO_ensemble["sbtype_number_dict"]) + 1)
-        ]
-        basic_LJ["index_aj"] = np.array(
-            len(meGO_ensemble["sbtype_number_dict"])
-            * [meGO_ensemble["sbtype_number_dict"][key] for key in meGO_ensemble["sbtype_number_dict"].keys()],
-            dtype=np.int64,
-        )
-        basic_LJ["ai"] = [
-            x for x in meGO_ensemble["sbtype_number_dict"].keys() for _ in meGO_ensemble["sbtype_number_dict"].keys()
-        ]
-        basic_LJ["aj"] = [
-            y for _ in meGO_ensemble["sbtype_number_dict"].keys() for y in meGO_ensemble["sbtype_number_dict"].keys()
-        ]
-
-        ai_name = topol_df["type"]
-        c12_list = ai_name.map(name_to_c12).to_numpy()
-        ai_name = ai_name.to_numpy(dtype=str)
-        oxygen_mask = masking.create_array_mask(ai_name, ai_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
-        basic_LJ["type"] = 1
-        basic_LJ["source"] = "basic"
-        basic_LJ["same_chain"] = True
-        basic_LJ["c6"] = 0.0
-        basic_LJ["c12"] = 11.4 * np.sqrt(c12_list * c12_list[:, np.newaxis]).flatten()
-        basic_LJ["rep"] = basic_LJ["c12"]
-        basic_LJ = basic_LJ[oxygen_mask]
-        basic_LJ["index_ai"], basic_LJ["index_aj"] = basic_LJ[["index_ai", "index_aj"]].min(axis=1), basic_LJ[
-            ["index_ai", "index_aj"]
-        ].max(axis=1)
-        basic_LJ = basic_LJ.drop_duplicates(subset=["index_ai", "index_aj", "same_chain"], keep="first")
-        basic_LJ = basic_LJ.drop(["index_ai", "index_aj"], axis=1)
-
-    else:
-        for name in matrices["reference_matrices"].keys():
-            temp_basic_LJ = pd.DataFrame(columns=columns)
-            mol_num_i = str(name.split("_")[-2])
-            mol_num_j = str(name.split("_")[-1])
-            ensemble = matrices["reference_matrices"][name]
-            temp_basic_LJ["ai"] = ensemble["rc_ai"]
-            temp_basic_LJ["aj"] = ensemble["rc_aj"]
-            temp_basic_LJ["type"] = 1
-            temp_basic_LJ["c6"] = 0.0
-            temp_basic_LJ["c12"] = 0.0
-            temp_basic_LJ["same_chain"] = ensemble["rc_same_chain"]
-            temp_basic_LJ["molecule_name_ai"] = ensemble["rc_molecule_name_ai"]
-            temp_basic_LJ["molecule_name_aj"] = ensemble["rc_molecule_name_aj"]
-            temp_basic_LJ["source"] = "basic"
-
-            atom_set_i = topol_df[topol_df["molecule_number"] == mol_num_i]["type"]
-            atom_set_j = topol_df[topol_df["molecule_number"] == mol_num_j]["type"]
-            c12_list_i = atom_set_i.map(name_to_c12).to_numpy(dtype=np.float64)
-            c12_list_j = atom_set_j.map(name_to_c12).to_numpy(dtype=np.float64)
-            ai_name = atom_set_i.to_numpy(dtype=str)
-            aj_name = atom_set_j.to_numpy(dtype=str)
-            oxygen_mask = masking.create_array_mask(ai_name, aj_name, [("O", "OM"), ("O", "O"), ("OM", "OM")], symmetrize=True)
-            temp_basic_LJ["c12"] = 11.4 * np.sqrt(c12_list_i * c12_list_j[:, np.newaxis]).flatten()
-            temp_basic_LJ["rep"] = temp_basic_LJ["c12"]
-            temp_basic_LJ = temp_basic_LJ[oxygen_mask]
-            temp_basic_LJ = temp_basic_LJ.dropna(axis=1, how="all")
-            temp_basic_LJ = temp_basic_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
-
-            basic_LJ = pd.concat([basic_LJ, temp_basic_LJ])
-
+    basic_LJ = generate_OO_LJ(meGO_ensemble)
+    basic_LJ["same_chain"] = False
+    basic_LJ["source"] = "basic"
+    basic_LJ["rep"] = basic_LJ["c12"]
+    basic_LJ["molecule_name_ai"] = basic_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1]))
+    basic_LJ["molecule_name_aj"] = basic_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1]))
     basic_LJ["probability"] = 1.0
     basic_LJ["rc_probability"] = 1.0
     basic_LJ["rc_threshold"] = 1.0
     basic_LJ["md_threshold"] = 1.0
     basic_LJ["epsilon"] = -basic_LJ["c12"]
     basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
-    basic_LJ["sigma"] = basic_LJ["cutoff"] / (2.0 ** (1.0 / 6.0))
+    basic_LJ["sigma"] = basic_LJ["c12"] ** (1.0 / 12.0)
     basic_LJ["distance"] = basic_LJ["cutoff"]
     basic_LJ["learned"] = 0
     basic_LJ["1-4"] = "1>4"
-    # Sorting the pairs prioritising intermolecular interactions
-    basic_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
-    # Cleaning the duplicates
-    basic_LJ = basic_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     return basic_LJ
 
@@ -1088,7 +1016,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     return tmp_df
 
 
-def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
+def generate_LJ(meGO_ensemble, train_dataset, parameters):
     """
     Generates LJ (Lennard-Jones) interactions and associated atomic contacts within a molecular ensemble.
 
@@ -1272,7 +1200,7 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    basic_LJ = basic_LJ[needed_fields]
+    basic_LJ = generate_basic_LJ(meGO_ensemble)[needed_fields]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
     # make meGO_LJ fully symmetric
@@ -1350,6 +1278,28 @@ def generate_LJ(meGO_ensemble, train_dataset, basic_LJ, parameters):
     consistency_checks(meGO_LJ)
     consistency_checks(meGO_LJ_14)
 
+    final_fields = [
+        "ai",
+        "aj",
+        "type",
+        "c6",
+        "c12",
+        "sigma",
+        "epsilon",
+        "probability",
+        "rc_probability",
+        "md_threshold",
+        "rc_threshold",
+        "rep",
+        "cutoff",
+        "same_chain",
+        "source",
+        "number_ai",
+        "number_aj",
+    ]
+
+    meGO_LJ = meGO_LJ[final_fields]
+
     et = time.time()
     elapsed_time = et - st
     print("\t- Done in:", elapsed_time, "seconds")
@@ -1409,7 +1359,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
                     "aj",
                     "c6",
                     "c12",
-                    "epsilon",
                     "same_chain",
                     "probability",
                     "rc_probability",
@@ -1428,7 +1377,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs["check"].isin(p14) & (pairs["same_chain"])), "remove"] = "No"
             mask = pairs.remove == "Yes"
             pairs = pairs[~mask]
-
             pairs["func"] = 1
             # Intermolecular interactions are excluded
             pairs.loc[(~pairs["same_chain"]), "c6"] = 0.0
