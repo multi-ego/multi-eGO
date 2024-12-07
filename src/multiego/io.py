@@ -6,28 +6,6 @@ import yaml
 import git
 import time
 
-final_fields = [
-    "ai",
-    "aj",
-    "type",
-    "c6",
-    "c12",
-    "sigma",
-    "epsilon",
-    "probability",
-    "rc_probability",
-    "md_threshold",
-    "rc_threshold",
-    "rep",
-    "cutoff",
-    "molecule_name_ai",
-    "molecule_name_aj",
-    "same_chain",
-    "source",
-    "number_ai",
-    "number_aj",
-]
-
 
 def read_config(file, args_dict):
     """
@@ -86,7 +64,6 @@ def combine_configurations(yml, args, args_dict):
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
-                print(element, yml)
                 setattr(args, element, True)
 
     return args
@@ -382,7 +359,12 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
         file.write("  1             1               no              1.0     1.0\n\n")
 
         file.write("[ atomtypes ]\n")
-        atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
+        if parameters.egos == "rc":
+            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
+            atomtypes.rename(columns={"rc_c6": "c6", "rc_c12": "c12"}, inplace=True)
+        else:
+            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
+
         atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
         atomtypes["c12"] = atomtypes["c12"].map(lambda x: "{:.6e}".format(x))
         file.write(dataframe_to_write(atomtypes))
@@ -392,7 +374,6 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
             meGO_LJ["c6"] = meGO_LJ["c6"].map(lambda x: "{:.6e}".format(x))
             meGO_LJ["c12"] = meGO_LJ["c12"].map(lambda x: "{:.6e}".format(x))
             meGO_LJ.insert(5, ";", ";")
-            meGO_LJ.drop(columns=["molecule_name_ai", "molecule_name_aj"], inplace=True)
             file.write(dataframe_to_write(meGO_LJ))
 
 
@@ -415,7 +396,6 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
         f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos
     )
     create_output_directories(parameters, output_dir)
-    meGO_LJ_out = meGO_LJ[final_fields].copy()
     write_topology(
         meGO_ensemble["topology_dataframe"],
         meGO_ensemble["molecule_type_dict"],
@@ -424,7 +404,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
         parameters,
         output_dir,
     )
-    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ_out, parameters, output_dir)
+    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir)
     print("\t- " f"Output files written to {output_dir}")
 
@@ -448,38 +428,45 @@ def write_output_readme(meGO_LJ, parameters, output_dir):
         for key, value in vars(parameters).items():
             f.write(f" - {key}: {value}\n")
 
-        # write contents of the symmetry file
-        if parameters.symmetry:
-            f.write("\nSymmetry file contents:\n")
-            # symmetry = read_symmetry_file(parameters.symmetry)
-            for line in parameters.symmetry:
-                f.write(f" - {' '.join(line)}\n")
+        if parameters.egos == "production":
+            # write contents of the symmetry file
+            if parameters.symmetry:
+                f.write("\nSymmetry file contents:\n")
+                # symmetry = read_symmetry_file(parameters.symmetry)
+                for line in parameters.symmetry:
+                    f.write(f" - {' '.join(line)}\n")
 
-        f.write("\nContact parameters:\n")
-        # write average data intra
-        f.write("- Intramolecular contacts:\n")
-        f.write(
-            f"- epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
-        )
-        f.write(f"- sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
-        f.write(f"- number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n")
-        f.write(f"- number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n")
+            f.write("\nContact parameters:\n")
+            # write average data intra
+            f.write("- Intramolecular contacts:\n")
+            f.write(
+                f"- epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+            )
+            f.write(f"- sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
+            f.write(
+                f"- number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+            )
+            f.write(
+                f"- number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
+            )
 
-        # write average data inter
-        f.write("- Intermolecular contacts:\n")
-        f.write(
-            f"- epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
-        )
-        f.write(f"- sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
-        f.write(
-            f"- number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
-        )
-        f.write(f"- number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n")
+            # write average data inter
+            f.write("- Intermolecular contacts:\n")
+            f.write(
+                f"- epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
+            )
+            f.write(f"- sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
+            f.write(
+                f"- number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
+            )
+            f.write(
+                f"- number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
+            )
 
-        # mdp parameters
-        f.write("Cutoff MDP parameters:\n")
-        f.write(f"- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
-        f.write(f"- Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+            # mdp parameters
+            f.write("Cutoff MDP parameters:\n")
+            f.write(f"- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+            f.write(f"- Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
 
 
 def print_stats(meGO_LJ):
@@ -787,7 +774,7 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = args.reference + args.train
+    md_ensembles = args.reference + args.train if args.egos == "production" else []
 
     for ensemble in md_ensembles:
         ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"

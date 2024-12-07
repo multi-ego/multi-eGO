@@ -1278,6 +1278,28 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     consistency_checks(meGO_LJ)
     consistency_checks(meGO_LJ_14)
 
+    final_fields = [
+        "ai",
+        "aj",
+        "type",
+        "c6",
+        "c12",
+        "sigma",
+        "epsilon",
+        "probability",
+        "rc_probability",
+        "md_threshold",
+        "rc_threshold",
+        "rep",
+        "cutoff",
+        "same_chain",
+        "source",
+        "number_ai",
+        "number_aj",
+    ]
+
+    meGO_LJ = meGO_LJ[final_fields]
+
     et = time.time()
     elapsed_time = et - st
     print("\t- Done in:", elapsed_time, "seconds")
@@ -1355,7 +1377,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14):
             pairs.loc[(pairs["check"].isin(p14) & (pairs["same_chain"])), "remove"] = "No"
             mask = pairs.remove == "Yes"
             pairs = pairs[~mask]
-
             pairs["func"] = 1
             # Intermolecular interactions are excluded
             pairs.loc[(~pairs["same_chain"]), "c6"] = 0.0
