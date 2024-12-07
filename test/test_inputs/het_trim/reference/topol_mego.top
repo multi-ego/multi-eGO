@@ -1,42 +1,4 @@
 
-; Multi-eGO force field version beta.4
-; https://github.com/multi-ego/multi-eGO
-; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 05-12-2024 21:58
-; With the following parameters:
-;	- system                     = test_trimer         
-;	- egos                       = rc                  
-;	- epsilon                    =                     
-;	- reference                  =                     
-;	- train                      =                     
-;	- inter_epsilon              =                     
-;	- inter_domain_epsilon       =                     
-;	- p_to_learn                 = 0.9995              
-;	- epsilon_min                = 0.07                
-;	- force_split                =                     
-;	- single_molecule            =                     
-;	- custom_dict                =                     
-;	- custom_c12                 =                     
-;	- Protein_chain_A = None
-;	- Protein_chain_B = None
-;	- Protein_chain_C = None
-;	- Protein_chain_A = None
-;	- Protein_chain_B = None
-;	- Protein_chain_C = None
-;	- symmetry                  :
-;	- symmetry_file              =                     
-;	- f                          = 1                   
-;	- inter_f                    = 1                   
-;	- inter_domain_f             = 1                   
-;	- relative_c12d              = 0.001               
-;	- explicit_name              =                     
-;	- config                     =                     
-;	- root_dir                   = /Users/carlo/Codes/multi-eGO
-;	- names                      = Protein_chain_A, Protein_chain_B, Protein_chain_C
-
-
 ; Include forcefield parameters
 #include "ffnonbonded.itp"
 
@@ -549,7 +511,7 @@ Protein_chain_C			3
 #endif
 
 [ system ]
-test_trimer
+het_trim
 
 [ molecules ]
 ; Compound #mols

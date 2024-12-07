@@ -233,14 +233,6 @@ def main():
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
-    else:
-        print("- Generate the LJ dataset")
-        meGO_LJ = ensemble.generate_OO_LJ(meGO_ensembles)
-        meGO_LJ_14 = pairs14
-        et = time.time()
-        elapsed_time = et - st
-        st = et
-        print("- Done in:", elapsed_time, "seconds")
 
     print("- Finalize pairs and exclusions")
     meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)

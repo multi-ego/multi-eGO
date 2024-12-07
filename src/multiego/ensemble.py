@@ -1200,32 +1200,23 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
-    if not parameters.regtest:
-        meGO_LJ = meGO_LJ.loc[
-            ~(
-                (meGO_LJ["epsilon"] > 0)
-                & (meGO_LJ["mg_epsilon"] > 0)
-                & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
-                & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
-                & (meGO_LJ["1-4"] == "1>4")
-            )
-        ]
-        meGO_LJ = meGO_LJ.loc[
-            ~(
-                (meGO_LJ["epsilon"] < 0)
-                & (meGO_LJ["mg_epsilon"] < 0)
-                & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
-                & (meGO_LJ["1-4"] == "1>4")
-            )
-        ]
-    else:
-        meGO_LJ = meGO_LJ.loc[
-            ~(
-                (meGO_LJ["epsilon"] < 0)
-                & ((abs(-meGO_LJ["epsilon"] - meGO_LJ["rep"]) / meGO_LJ["rep"]) < parameters.relative_c12d)
-                & (meGO_LJ["1-4"] == "1>4")
-            )
-        ]
+    meGO_LJ = meGO_LJ.loc[
+        ~(
+            (meGO_LJ["epsilon"] > 0)
+            & (meGO_LJ["mg_epsilon"] > 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
+            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
+            & (meGO_LJ["1-4"] == "1>4")
+        )
+    ]
+    meGO_LJ = meGO_LJ.loc[
+        ~(
+            (meGO_LJ["epsilon"] < 0)
+            & (meGO_LJ["mg_epsilon"] < 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
+            & (meGO_LJ["1-4"] == "1>4")
+        )
+    ]
 
     # transfer rule for inter/intra contacts:
     # 1) only attractive contacts can be transferd
