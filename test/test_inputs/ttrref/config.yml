@@ -1,9 +1,10 @@
 ---
 - system: ttrref
 - egos: production
-- epsilon: 0.33
-- train: native_MD,fibril_MD
-- inter_epsilon: 0.275
+- epsilon: 0.1
+- reference: ref_intra,ref_inter
+- train: native_MD,fibril_MD,fibril_check
+- inter_epsilon: 0.2
 - no_header
 - symmetry:
   - ARG NH1 NH2
