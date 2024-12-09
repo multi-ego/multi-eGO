@@ -1200,6 +1200,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
+    # we should not remove default interactions in the window of 2 neighor AA to
+    # avoid replacing them with unwanted interactions
     meGO_LJ = meGO_LJ.loc[
         ~(
             (meGO_LJ["epsilon"] > 0)
@@ -1215,6 +1217,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
+            & ~(
+                (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                & (meGO_LJ["same_chain"] == True)
+            )
         )
     ]
 
