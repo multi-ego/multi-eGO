@@ -1219,7 +1219,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["1-4"] == "1>4")
             & ~(
                 (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-                & (meGO_LJ["same_chain"] == True)
+                & (meGO_LJ["same_chain"])
             )
         )
     ]
