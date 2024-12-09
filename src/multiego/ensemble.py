@@ -1442,6 +1442,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     pairs_molecule_dict : dict
         Contains the "write out"-ready pairs-exclusions interactions for each molecule
     """
+    # pairs and exclusions are built per molecule type and saved in a dictionary
     pairs_molecule_dict = {}
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
         reduced_topology = (
