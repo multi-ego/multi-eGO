@@ -242,6 +242,7 @@ def main():
     print("- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
+    meGO_LJ = ensemble.sort_LJ(meGO_ensembles, meGO_LJ) 
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
     et = time.time()
     elapsed_time = et - st

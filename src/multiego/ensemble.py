@@ -838,50 +838,32 @@ def generate_OO_LJ(meGO_ensemble):
     rc_LJ["c12"] = 11.4 * np.sqrt(
         rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
-    rc_LJ.sort_values(by=["ai", "aj"], ascending=[True, True], inplace=True)
+    rc_LJ["same_chain"] = False
+    rc_LJ["source"] = "mg"
+    rc_LJ["rep"] = rc_LJ["c12"]
+    rc_LJ["probability"] = 1.0
+    rc_LJ["rc_probability"] = 1.0
+    rc_LJ["rc_threshold"] = 1.0
+    rc_LJ["md_threshold"] = 1.0
+    rc_LJ["epsilon"] = -rc_LJ["c12"]
+    rc_LJ["sigma"] = rc_LJ["c12"] ** (1.0 / 12.0)
+    rc_LJ["cutoff"] = 1.45 * rc_LJ["c12"] ** (1.0 / 12.0)
+    rc_LJ["mg_sigma"] = rc_LJ["c12"] ** (1 / 12)
+    rc_LJ["mg_epsilon"] = -rc_LJ["c12"]
+    rc_LJ["distance"] = rc_LJ["cutoff"]
+    rc_LJ["learned"] = 0
+    rc_LJ["1-4"] = "1>4"
+    molecule_names_dictionary = {
+        name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]
+    }
+    rc_LJ["molecule_name_ai"] = rc_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
+    rc_LJ["molecule_name_aj"] = rc_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
+    rc_LJ["ai"] = rc_LJ["ai"].astype("category")
+    rc_LJ["aj"] = rc_LJ["aj"].astype("category")
+    rc_LJ["molecule_name_ai"] = rc_LJ["molecule_name_ai"].astype("category")
+    rc_LJ["molecule_name_aj"] = rc_LJ["molecule_name_aj"].astype("category")
+
     return rc_LJ
-
-
-def generate_basic_LJ(meGO_ensemble):
-    """
-    Generates basic LJ (Lennard-Jones) interactions DataFrame within a molecular ensemble.
-
-    Args:
-    - meGO_ensemble (dict): A dictionary containing information about the molecular ensemble.
-
-    Returns:
-    - basic_LJ (DataFrame): DataFrame containing basic LJ interactions.
-
-    This function generates a DataFrame 'basic_LJ' containing basic LJ interactions within a molecular ensemble.
-    It calculates LJ interactions based on atom types, molecules, and reference matrices present in the ensemble.
-
-    Note:
-    - The 'meGO_ensemble' dictionary is expected to contain necessary details regarding the molecular ensemble.
-    - The returned DataFrame 'basic_LJ' includes columns defining LJ interaction properties such as atom indices,
-      types, c6, c12, sigma, epsilon, probability, rc_probability, molecule names, source, and thresholds.
-    - The generated DataFrame provides basic LJ interactions for further analysis or processing within the ensemble.
-    """
-
-    basic_LJ = generate_OO_LJ(meGO_ensemble)
-    basic_LJ["same_chain"] = False
-    basic_LJ["source"] = "basic"
-    basic_LJ["rep"] = basic_LJ["c12"]
-    basic_LJ["mg_sigma"] = basic_LJ["c12"] ** (1 / 12)
-    basic_LJ["mg_epsilon"] = -basic_LJ["c12"]
-    basic_LJ["molecule_name_ai"] = basic_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1]))
-    basic_LJ["molecule_name_aj"] = basic_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1]))
-    basic_LJ["probability"] = 1.0
-    basic_LJ["rc_probability"] = 1.0
-    basic_LJ["rc_threshold"] = 1.0
-    basic_LJ["md_threshold"] = 1.0
-    basic_LJ["epsilon"] = -basic_LJ["c12"]
-    basic_LJ["cutoff"] = 1.45 * basic_LJ["c12"] ** (1.0 / 12.0)
-    basic_LJ["sigma"] = basic_LJ["c12"] ** (1.0 / 12.0)
-    basic_LJ["distance"] = basic_LJ["cutoff"]
-    basic_LJ["learned"] = 0
-    basic_LJ["1-4"] = "1>4"
-
-    return basic_LJ
 
 
 def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
@@ -1317,7 +1299,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
-    basic_LJ = generate_basic_LJ(meGO_ensemble)[needed_fields]
+    basic_LJ = generate_OO_LJ(meGO_ensemble)[needed_fields]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
     # make meGO_LJ fully symmetric
@@ -1354,12 +1336,31 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
     )
 
+
+    # meGO consistency checks
+    consistency_checks(meGO_LJ)
+    consistency_checks(meGO_LJ_14)
+
+
+    et = time.time()
+    elapsed_time = et - st
+    print("\t- Done in:", elapsed_time, "seconds")
+
+    return meGO_LJ, meGO_LJ_14
+
+
+def sort_LJ(meGO_ensemble, meGO_LJ):
+    # Add or modify columns in the original DataFrame
     meGO_LJ["type"] = 1
     meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
     meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
 
-    # Here we want to sort so that ai is smaller than aj
-    meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)]
+    # Filter and explicitly create a copy to avoid the warning
+    meGO_LJ = meGO_LJ[
+        (meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)
+    ].copy()
+
+    # across molecules use molecule_ai<=molecule_aj 
     (
         meGO_LJ["ai"],
         meGO_LJ["aj"],
@@ -1368,7 +1369,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ["number_ai"],
         meGO_LJ["number_aj"],
     ) = np.where(
-        meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],
+        (meGO_LJ["molecule_name_ai"].astype(str)<=meGO_LJ["molecule_name_aj"].astype(str)),
         [
             meGO_LJ["ai"],
             meGO_LJ["aj"],
@@ -1387,11 +1388,49 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         ],
     )
 
-    meGO_LJ.sort_values(by=["number_ai", "number_aj"], inplace=True)
 
-    # meGO consistency checks
-    consistency_checks(meGO_LJ)
-    consistency_checks(meGO_LJ_14)
+    # in the same molecule use ai<=aj 
+    # Apply np.where to swap values only when molecule_name_ai == molecule_name_aj
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"],  # Only apply when names are equal
+        np.where(
+            meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],  # Condition to check number_ai vs number_aj
+            [
+                meGO_LJ["ai"],
+                meGO_LJ["aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["number_ai"],
+                meGO_LJ["number_aj"],
+            ],
+            [
+                meGO_LJ["aj"],
+                meGO_LJ["ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["number_aj"],
+                meGO_LJ["number_ai"],
+            ],
+        ),
+        # If molecule_name_ai != molecule_name_aj, keep the values unchanged
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+    )
+
+    meGO_LJ.sort_values(by=["molecule_name_ai", "molecule_name_aj", "number_ai", "number_aj"], inplace=True)
 
     final_fields = [
         "ai",
@@ -1415,11 +1454,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     meGO_LJ = meGO_LJ[final_fields]
 
-    et = time.time()
-    elapsed_time = et - st
-    print("\t- Done in:", elapsed_time, "seconds")
-
-    return meGO_LJ, meGO_LJ_14
+    return meGO_LJ
 
 
 def get_residue_number(s):
@@ -1442,6 +1477,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     pairs_molecule_dict : dict
         Contains the "write out"-ready pairs-exclusions interactions for each molecule
     """
+    # pairs and exclusions are built per molecule type and saved in a dictionary
     pairs_molecule_dict = {}
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
         reduced_topology = (
