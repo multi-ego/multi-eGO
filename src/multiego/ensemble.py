@@ -1200,6 +1200,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
+    # we should not remove default interactions in the window of 2 neighor AA to
+    # avoid replacing them with unwanted interactions
     meGO_LJ = meGO_LJ.loc[
         ~(
             (meGO_LJ["epsilon"] > 0)
@@ -1215,6 +1217,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
+            & ~(
+                (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                & (meGO_LJ["same_chain"] == True)
+            )
         )
     ]
 
@@ -1339,15 +1345,13 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # Calculate c6 and c12 for meGO_LJ
     meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
 
-    meGO_LJ["c12"] = np.where(
-        meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], abs(4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
-    )
+    meGO_LJ["c12"] = np.where(meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
 
     # Calculate c6 and c12 for meGO_LJ_14
     meGO_LJ_14["c6"] = np.where(meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6))
 
     meGO_LJ_14["c12"] = np.where(
-        meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], abs(4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12))
+        meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
     )
 
     meGO_LJ["type"] = 1
@@ -1418,6 +1422,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     return meGO_LJ, meGO_LJ_14
 
 
+def get_residue_number(s):
+    return int(s.split("_")[-1])
+
+
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     """
     This function prepares the [ exclusion ] and [ pairs ] section to output to topology.top
@@ -1463,14 +1471,11 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         # p14 are specifically the interactions at exactly 3 bonds
         exclusion_bonds, p14 = topology.get_14_interaction_list(reduced_topology, bond_pair)
 
+        pairs = pd.DataFrame()
         # in the case of the MG prior we need to remove interactions in a window of 2 residues
         if args.egos == "mg":
             # Create a list of tuples (sbtype, residue_number)
-            sbtype_with_residue = [
-                (sbtype, resnum_type_dict[sbtype])
-                for sbtype in reduced_topology["sb_type"]
-                # if meGO_ensemble["sbtype_type_dict"][sbtype] != "CH1a"
-            ]
+            sbtype_with_residue = [(sbtype, resnum_type_dict[sbtype]) for sbtype in reduced_topology["sb_type"]]
             # Sort the list by residue numbers
             sbtype_with_residue.sort(key=lambda x: x[1])
             # Initialize a list to hold the filtered combinations
@@ -1516,10 +1521,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             mask = df.remove == "Yes"
             df = df[~mask]
             df.drop(columns=["check", "remove"], inplace=True)
-            meGO_LJ_14 = pd.concat([meGO_LJ_14, df], axis=0, sort=False, ignore_index=True)
-
-        pairs = pd.DataFrame()
-        if not meGO_LJ_14.empty:
+            pairs = pd.concat([meGO_LJ_14, df], axis=0, sort=False, ignore_index=True)
+        elif args.egos == "production" and not meGO_LJ_14.empty:
             mol_ai = f"{idx}_{molecule}"
             # pairs do not have duplicates because these have been cleaned before
             pairs = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == mol_ai][
@@ -1531,11 +1534,57 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     "same_chain",
                     "probability",
                     "rc_probability",
+                    "mg_sigma",
+                    "mg_epsilon",
                     "source",
                     "rep",
                 ]
             ].copy()
+            # Intermolecular interactions are excluded
+            # this need to be the default repulsion if within two residue
+            if not pairs.empty:
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) < 3),
+                    "c6",
+                ] = 0.0
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) < 3),
+                    "c12",
+                ] = pairs["rep"]
+                # else it should be default mg
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) > 2)
+                    & (pairs["mg_epsilon"] < 0.0),
+                    "c6",
+                ] = 0.0
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) > 2)
+                    & (pairs["mg_epsilon"] < 0.0),
+                    "c12",
+                ] = -pairs["mg_epsilon"]
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) > 2)
+                    & (pairs["mg_epsilon"] > 0.0),
+                    "c6",
+                ] = (
+                    4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
+                )
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (abs(pairs["ai"].apply(get_residue_number) - pairs["aj"].apply(get_residue_number)) > 2)
+                    & (pairs["mg_epsilon"] > 0.0),
+                    "c12",
+                ] = (
+                    4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
+                )
 
+        # now we are ready to finalize
+        if not pairs.empty:
             # The exclusion list was made based on the atom number
             pairs["ai"] = pairs["ai"].map(atnum_type_dict)
             pairs["aj"] = pairs["aj"].map(atnum_type_dict)
@@ -1546,10 +1595,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             pairs.loc[(pairs["check"].isin(p14) & (pairs["same_chain"])), "remove"] = "No"
             mask = pairs.remove == "Yes"
             pairs = pairs[~mask]
+            # finalize
             pairs["func"] = 1
-            # Intermolecular interactions are excluded
-            pairs.loc[(~pairs["same_chain"]), "c6"] = 0.0
-            pairs.loc[(~pairs["same_chain"]), "c12"] = pairs["rep"]
             # this is a safety check
             pairs = pairs[pairs["c12"] > 0.0]
             pairs = pairs[
@@ -1564,7 +1611,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     "source",
                 ]
             ]
-
             pairs.dropna(inplace=True)
             pairs["ai"] = pairs["ai"].astype(int)
             pairs["aj"] = pairs["aj"].astype(int)
