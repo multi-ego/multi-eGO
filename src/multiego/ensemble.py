@@ -853,9 +853,7 @@ def generate_OO_LJ(meGO_ensemble):
     rc_LJ["distance"] = rc_LJ["cutoff"]
     rc_LJ["learned"] = 0
     rc_LJ["1-4"] = "1>4"
-    molecule_names_dictionary = {
-        name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]
-    }
+    molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]}
     rc_LJ["molecule_name_ai"] = rc_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
     rc_LJ["molecule_name_aj"] = rc_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
     rc_LJ["ai"] = rc_LJ["ai"].astype("category")
@@ -1336,11 +1334,9 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
     )
 
-
     # meGO consistency checks
     consistency_checks(meGO_LJ)
     consistency_checks(meGO_LJ_14)
-
 
     et = time.time()
     elapsed_time = et - st
@@ -1356,11 +1352,9 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
     meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
 
     # Filter and explicitly create a copy to avoid the warning
-    meGO_LJ = meGO_LJ[
-        (meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)
-    ].copy()
+    meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)].copy()
 
-    # across molecules use molecule_ai<=molecule_aj 
+    # across molecules use molecule_ai<=molecule_aj
     (
         meGO_LJ["ai"],
         meGO_LJ["aj"],
@@ -1369,7 +1363,7 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         meGO_LJ["number_ai"],
         meGO_LJ["number_aj"],
     ) = np.where(
-        (meGO_LJ["molecule_name_ai"].astype(str)<=meGO_LJ["molecule_name_aj"].astype(str)),
+        (meGO_LJ["molecule_name_ai"].astype(str) <= meGO_LJ["molecule_name_aj"].astype(str)),
         [
             meGO_LJ["ai"],
             meGO_LJ["aj"],
@@ -1388,8 +1382,7 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         ],
     )
 
-
-    # in the same molecule use ai<=aj 
+    # in the same molecule use ai<=aj
     # Apply np.where to swap values only when molecule_name_ai == molecule_name_aj
     (
         meGO_LJ["ai"],
