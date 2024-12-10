@@ -404,8 +404,11 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             common_indices = lj_sigma_map.index.intersection(
                 reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
             )
+            # in this case we want to apply it only for intramolecular contacts
             common_indices_14 = lj14_sigma_map.index.intersection(
-                reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index
+                reference_contact_matrices[name][reference_contact_matrices[name]["rc_same_chain"]]
+                .set_index(["rc_ai", "rc_aj"])
+                .index
             )
 
             # Update sigma values where they exist in lj_pairs
