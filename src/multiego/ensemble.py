@@ -850,10 +850,8 @@ def generate_OO_LJ(meGO_ensemble):
     rc_LJ["md_threshold"] = 1.0
     rc_LJ["epsilon"] = -rc_LJ["c12"]
     rc_LJ["sigma"] = rc_LJ["c12"] ** (1.0 / 12.0)
-    rc_LJ["cutoff"] = 1.45 * rc_LJ["c12"] ** (1.0 / 12.0)
     rc_LJ["mg_sigma"] = rc_LJ["c12"] ** (1 / 12)
     rc_LJ["mg_epsilon"] = -rc_LJ["c12"]
-    rc_LJ["distance"] = rc_LJ["cutoff"]
     rc_LJ["learned"] = 0
     rc_LJ["1-4"] = "1>4"
     molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]}
@@ -867,7 +865,7 @@ def generate_OO_LJ(meGO_ensemble):
     return rc_LJ
 
 
-def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
+def set_sig_epsilon(meGO_LJ, parameters):
     """
     Set the epsilon parameter for LJ interactions based on probability and distance.
 
@@ -991,39 +989,7 @@ def set_sig_epsilon(meGO_LJ, needed_fields, parameters):
     # add a flag to identify learned contacts
     meGO_LJ.loc[:, "learned"] = 1
 
-    # keep only needed fields
-    meGO_LJ = meGO_LJ[needed_fields]
     return meGO_LJ
-
-
-def consistency_checks(meGO_LJ):
-    """
-    Perform consistency checks on LJ parameters.
-
-    This function performs consistency checks on LJ (Lennard-Jones) parameters to avoid data inconsistencies.
-
-    Parameters
-    ----------
-    meGO_LJ : pd.DataFrame
-        DataFrame containing LJ parameters such as repulsive term (rep) and cutoff distance (cutoff).
-
-    Raises
-    ------
-    RuntimeError
-        If inconsistencies are found between the calculated cutoff distance and the provided cutoff values.
-
-    Notes
-    -----
-    This function is primarily used for debugging purposes to ensure data integrity and consistency.
-    """
-    # This is a debug check to avoid data inconsistencies
-    if (np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"])).max() > 10e-6:
-        print(
-            meGO_LJ[["ai", "aj", "same_chain", "source", "rep", "cutoff"]]
-            .loc[(np.abs(1.45 * meGO_LJ["rep"] ** (1 / 12) - meGO_LJ["cutoff"]) > 10e-6)]
-            .to_string()
-        )
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff/c12 values")
 
 
 def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
@@ -1135,8 +1101,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "sigma",
         "epsilon",
         "1-4",
-        "distance",
-        "cutoff",
         "rep",
         "mg_sigma",
         "mg_epsilon",
@@ -1146,7 +1110,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     ]
 
     # generate attractive and repulsive interactions
-    meGO_LJ = set_sig_epsilon(meGO_LJ, needed_fields, parameters)
+    meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
 
     et = time.time()
     elapsed_time = et - st
@@ -1165,8 +1129,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         print("\t- Done in:", elapsed_time, "seconds")
 
     print("\t- Merging multiple states (training, symmetries, inter/intra)")
-    # meGO consistency checks
-    consistency_checks(meGO_LJ)
 
     # Merging of multiple simulations:
     # Here we sort all the atom pairs based on the distance and the probability.
@@ -1337,10 +1299,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
     )
 
-    # meGO consistency checks
-    consistency_checks(meGO_LJ)
-    consistency_checks(meGO_LJ_14)
-
     et = time.time()
     elapsed_time = et - st
     print("\t- Done in:", elapsed_time, "seconds")
@@ -1440,8 +1398,6 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         "rc_probability",
         "md_threshold",
         "rc_threshold",
-        "rep",
-        "cutoff",
         "same_chain",
         "source",
         "number_ai",
