@@ -350,7 +350,7 @@ def get_lj_pairs(topology):
     for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
         key = (sbtype_i, sbtype_j)
         c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1
-        epsilon = c6**2 / (4 * c12) if c6 > 0 else 0
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
         lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
 
@@ -388,7 +388,7 @@ def get_lj14_pairs(topology):
     lj14_pairs = lj14_pairs.reset_index()
 
     # Calculate "epsilon" using a vectorized conditional expression
-    lj14_pairs["epsilon"] = np.where(lj14_pairs["c6"] > 0, lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]), 0)
+    lj14_pairs["epsilon"] = np.where(lj14_pairs["c6"] > 0, lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]), -lj14_pairs["c12"])
 
     # Calculate "sigma" using a vectorized conditional expression
     lj14_pairs["sigma"] = np.where(
