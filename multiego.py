@@ -228,6 +228,7 @@ def main():
     elif args.egos == "mg":
         print("- Generate the LJ dataset")
         meGO_LJ = ensemble.generate_OO_LJ(meGO_ensembles)
+        io.print_stats(meGO_LJ)
         meGO_LJ_14 = pairs14
         et = time.time()
         elapsed_time = et - st
