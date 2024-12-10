@@ -192,14 +192,17 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix.loc[~(contact_matrix["intra_domain"]), "md_threshold"] = md_threshold_id
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-        contact_matrix["epsilon_0"] / (prior_matrix["epsilon_prior"] + contact_matrix["epsilon_0"] - args.epsilon_min)
+        contact_matrix["epsilon_0"]
+        / (np.maximum(0, prior_matrix["epsilon_prior"]) + contact_matrix["epsilon_0"] - args.epsilon_min)
     )
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        -(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
-    ) * contact_matrix["zf"] ** (1 - (-(args.epsilon_min - prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
+        -(args.epsilon_min - np.maximum(0, prior_matrix["epsilon_prior"])) / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (
+        1 - (-(args.epsilon_min - np.maximum(0, prior_matrix["epsilon_prior"])) / contact_matrix["epsilon_0"])
+    )
     contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
-        prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]
-    ) * contact_matrix["zf"] ** (1 + (prior_matrix["epsilon_prior"] / contact_matrix["epsilon_0"]))
+        np.maximum(0, prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
+    ) * contact_matrix["zf"] ** (1 + (np.maximum(0, prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
 
     # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
     f_min = md_threshold
@@ -391,7 +394,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             reference_contact_matrices[name]["epsilon_prior"] = np.where(
                 reference_contact_matrices[name]["c6"] > 0,
                 reference_contact_matrices[name]["c6"] ** 2 / (4 * reference_contact_matrices[name]["c12"]),
-                0,
+                -reference_contact_matrices[name]["c12"],
             )
 
             # Create a mapping from lj_pairs for sigma and epsilon
@@ -892,19 +895,19 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # Update the "distance" column for rows in the mask
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "distance"] = np.where(
-        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        meGO_LJ.loc[mask, "epsilon_prior"] < 0,
         (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
         meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
     )
     mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "rc_distance"] = np.where(
-        meGO_LJ.loc[mask, "epsilon_prior"] == 0,
+        meGO_LJ.loc[mask, "epsilon_prior"] < 0,
         (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
         meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
     )
 
     meGO_LJ["epsilon"] = np.where(
-        meGO_LJ["epsilon_prior"] == 0,
+        meGO_LJ["epsilon_prior"] < 0,
         -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,  # If epsilon_prior == 0
         meGO_LJ["epsilon_prior"],  # Otherwise, set to epsilon_prior
     )
@@ -916,7 +919,9 @@ def set_sig_epsilon(meGO_LJ, parameters):
         (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
-    ] = meGO_LJ["epsilon_prior"] - (meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])) * (
+    ] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
+        meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
+    ) * (
         np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
     )
 
@@ -937,7 +942,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
             np.maximum(meGO_LJ["probability"], meGO_LJ["rc_threshold"])
             / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         )
-        - meGO_LJ["epsilon_prior"]
+        - np.maximum(0.0, meGO_LJ["epsilon_prior"])
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1102,6 +1107,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "epsilon",
         "1-4",
         "rep",
+        "sigma_prior",
+        "epsilon_prior",
         "mg_sigma",
         "mg_epsilon",
         "md_threshold",
@@ -1158,9 +1165,30 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     ]
     meGO_LJ = meGO_LJ.loc[
         ~(
+            (meGO_LJ["epsilon"] > 0)
+            & (meGO_LJ["epsilon_prior"] > 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / meGO_LJ["epsilon_prior"]) < parameters.relative_c12d)
+            & ((abs(meGO_LJ["sigma"] - meGO_LJ["sigma_prior"]) / meGO_LJ["sigma_prior"]) < parameters.relative_c12d)
+            & (meGO_LJ["1-4"] == "1>4")
+        )
+    ]
+    meGO_LJ = meGO_LJ.loc[
+        ~(
             (meGO_LJ["epsilon"] < 0)
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
+            & (meGO_LJ["1-4"] == "1>4")
+            & ~(
+                (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                & (meGO_LJ["same_chain"])
+            )
+        )
+    ]
+    meGO_LJ = meGO_LJ.loc[
+        ~(
+            (meGO_LJ["epsilon"] < 0)
+            & (meGO_LJ["epsilon_prior"] < 0)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / abs(meGO_LJ["epsilon_prior"])) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
             & ~(
                 (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
@@ -1262,6 +1290,25 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     # Now is time to add masked default interactions for pairs
     # that have not been learned in any other way
+    needed_fields = [
+        "molecule_name_ai",
+        "ai",
+        "molecule_name_aj",
+        "aj",
+        "probability",
+        "same_chain",
+        "source",
+        "rc_probability",
+        "sigma",
+        "epsilon",
+        "1-4",
+        "rep",
+        "mg_sigma",
+        "mg_epsilon",
+        "md_threshold",
+        "rc_threshold",
+        "learned",
+    ]
     basic_LJ = generate_OO_LJ(meGO_ensemble)[needed_fields]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
