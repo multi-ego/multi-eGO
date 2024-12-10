@@ -10,7 +10,11 @@ echo "Deleting current inputs"
 [ -d "${MEGO_ROOT}/inputs/ttrref" ] && rm -rf ${MEGO_ROOT}/inputs/ttrref
 [ -d "${MEGO_ROOT}/inputs/lyso-bnz_ref" ] && rm -rf ${MEGO_ROOT}/inputs/lyso-bnz_ref
 [ -d "${MEGO_ROOT}/inputs/het_trim" ] && rm -rf ${MEGO_ROOT}/inputs/het_trim
-cp -r test_inputs/* ${MEGO_ROOT}/inputs
+cp -r test_inputs/gpref ${MEGO_ROOT}/inputs
+cp -r test_inputs/abetaref ${MEGO_ROOT}/inputs
+cp -r test_inputs/ttrref ${MEGO_ROOT}/inputs
+cp -r test_inputs/lyso-bnz_ref ${MEGO_ROOT}/inputs
+cp -r test_inputs/het_trim ${MEGO_ROOT}/inputs
 
 # delete output directories
 echo "Deleting current outputs"
