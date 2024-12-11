@@ -443,7 +443,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
             if constant is not None:
                 pairs_14_c12.append(constant)
             if prefactor is not None:
-                pairs_14_c12.append(prefactor * np.sqrt(line_atomtype1["c12"] * line_atomtype2["c12"]))
+                pairs_14_c12.append((prefactor / 0.9**12) * np.sqrt(line_atomtype1["c12"] * line_atomtype2["c12"]))
 
     pairs_14 = pd.DataFrame(
         columns=[
