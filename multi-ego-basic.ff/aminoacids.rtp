@@ -27,11 +27,17 @@
 [ NME ]
  [ atoms ]
      N     N   0.000    0
+     HN    H   0.000    0
     CA   CH3   0.000    0
  [ bonds ]
     N    CA    gb_21
+    N    HN   gb_2
  [ angles ]
    -C     N    CA     ga_31
+   HN    N    CA     ga_18
+   -C     N    HN    ga_32
+ [ impropers ]
+    N    -C    CA    HN    gi_1
  [ dihedrals ]
   -CA    -C     N    CA     gd_14
 
@@ -50,11 +56,13 @@
 [ ALA ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   HN   H       0.000     0
+   CA   CAH       0.000     0
    CB   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
+    N    HN   gb_2
     N    CA    gb_21   
    CA    CB    gb_27   
    CA     C    gb_27   
@@ -62,7 +70,9 @@
     C    +N    gb_10   
  [ angles ]
 ;  ai    aj    ak   gromos type
+   -C     N    HN    ga_32
    -C     N    CA     ga_31   
+   HN    N    CA     ga_18
     N    CA    CB     ga_13   
     N    CA     C     ga_13   
    CB    CA     C     ga_13   
@@ -71,6 +81,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
+    N    -C    CA    HN    gi_1
    CA     N     C    CB     gi_2    
     C    CA    +N     O     gi_1    
  [ dihedrals ]
@@ -84,7 +95,7 @@
 [ ARG ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD   CH2       0.000     0
@@ -143,7 +154,7 @@
 [ ASN ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   OD1     O       0.000     0
@@ -190,7 +201,7 @@
 [ ASP ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   OD1    OM       0.000     0
@@ -237,7 +248,7 @@
 [ CYS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    SG     S       0.000     0
     C     C       0.000     0
@@ -275,7 +286,7 @@
 [ CYS2 ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    SG     S       0.000     0
     C     C       0.000     0
@@ -313,7 +324,7 @@
 [ GLN ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD     C       0.000     0
@@ -364,7 +375,7 @@
 [ GLU ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD     C       0.000     0
@@ -443,7 +454,7 @@
 [ HIS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   ND1    NR       0.000     0
@@ -504,7 +515,7 @@
 [ ILE ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   CG1   CH2       0.000     0
   CG2   CH3       0.000     0
@@ -551,7 +562,7 @@
 [ LEU ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH1       0.000     0
   CD1   CH3       0.000     0
@@ -598,7 +609,7 @@
 [ LYS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD   CH2       0.000     0
@@ -648,7 +659,7 @@
 [ MET ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    SD     S       0.000     0
@@ -694,7 +705,7 @@
 [ PHE ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -759,7 +770,7 @@
 [ PRO ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB  CH2r       0.000     0
    CG  CH2r       0.000     0
    CD  CH2r       0.000     0
@@ -808,7 +819,7 @@
 [ SER ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    OG    OA       0.000     0
     C     C       0.000     0
@@ -846,7 +857,7 @@
 [ THR ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   OG1    OA       0.000     0
   CG2   CH3       0.000     0
@@ -889,7 +900,7 @@
 [ TRP ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -975,7 +986,7 @@
 [ TYR ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -1045,7 +1056,7 @@
 [ VAL ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1a      0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   CG1   CH3       0.000     0
   CG2   CH3       0.000     0
@@ -1088,7 +1099,7 @@
 [ DALA ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
@@ -1122,7 +1133,7 @@
 [ DARG ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD   CH2       0.000     0
@@ -1181,7 +1192,7 @@
 [ DASN ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   OD1     O       0.000     0
@@ -1228,7 +1239,7 @@
 [ DASP ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   OD1    OM       0.000     0
@@ -1275,7 +1286,7 @@
 [ DCYS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    SG     S       0.000     0
     C     C       0.000     0
@@ -1313,7 +1324,7 @@
 [ DCYS2 ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    SG     S       0.000     0
     C     C       0.000     0
@@ -1351,7 +1362,7 @@
 [ DGLN ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD     C       0.000     0
@@ -1402,7 +1413,7 @@
 [ DGLU ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD     C       0.000     0
@@ -1453,7 +1464,7 @@
 [ DHIS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG     C       0.000     0
   ND1    NR       0.000     0
@@ -1514,7 +1525,7 @@
 [ DILE ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   CG1   CH2       0.000     0
   CG2   CH3       0.000     0
@@ -1561,7 +1572,7 @@
 [ DLEU ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH1       0.000     0
   CD1   CH3       0.000     0
@@ -1608,7 +1619,7 @@
 [ DLYS ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    CD   CH2       0.000     0
@@ -1658,7 +1669,7 @@
 [ DMET ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
    SD     S       0.000     0
@@ -1704,7 +1715,7 @@
 [ DPHE ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -1769,7 +1780,7 @@
 [ DPRO ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB  CH2r       0.000     0
    CG  CH2r       0.000     0
    CD  CH2r       0.000     0
@@ -1818,7 +1829,7 @@
 [ DSER ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    OG    OA       0.000     0
     C     C       0.000     0
@@ -1856,7 +1867,7 @@
 [ DTHR ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   OG1    OA       0.000     0
   CG2   CH3       0.000     0
@@ -1899,7 +1910,7 @@
 [ DTRP ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -1985,7 +1996,7 @@
 [ DTYR ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG    CH       0.000     0
   CD1    CH       0.000     0
@@ -2055,7 +2066,7 @@
 [ DVAL ]
  [ atoms ]
     N     N       0.000     0
-   CA   CH1       0.000     0
+   CA   CAH       0.000     0
    CB   CH1       0.000     0
   CG1   CH3       0.000     0
   CG2   CH3       0.000     0

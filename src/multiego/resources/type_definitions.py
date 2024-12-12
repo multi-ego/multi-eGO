@@ -24,6 +24,7 @@ gromos_atp = pd.DataFrame(
             "C",
             "CH",
             "CH1",
+            "CAH",
             "CH1a",
             "CH2",
             "CH3",
@@ -33,9 +34,10 @@ gromos_atp = pd.DataFrame(
             "P",
             "OE",
             "CR1",
+            "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 16, 6, 15, 8, 6, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.631580e-07 * sig12,  # "O",
             1.724403e-07 * sig12,  # "OM",
@@ -49,6 +51,7 @@ gromos_atp = pd.DataFrame(
             2.598570e-06 * sig12,  # "C",
             2.598570e-06 * sig12,  # "CH"
             6.555574e-05 * sig12,  # "CH1"
+            6.555574e-05 * sig12,  # "CAH"
             6.555574e-05 * sig12,  # "CH1a"
             1.543890e-05 * sig12,  # "CH2"
             8.595562e-06 * sig12,  # "CH3"
@@ -58,6 +61,7 @@ gromos_atp = pd.DataFrame(
             3.893600e-06 * sig12,  # "P",
             3.558824e-07 * sig12,  # "OE",
             6.298560e-06 * sig12,  # "CR1",
+            3.976695e-08 * sig12,  # "H", #ADDED
             2.659360e-07 * sig12,  # "C0",
         ],
         "mg_c12": [
@@ -73,6 +77,7 @@ gromos_atp = pd.DataFrame(
             4.937284e-06 / 0.27741 * mg_eps * sig12,  # "C",
             4.937284e-06 / 0.27741 * mg_eps * sig12,  # "CH"
             9.70225e-05 / 0.09489 * mg_eps_ch1 * sig12,  # "CH1"
+            9.70225e-05 / 0.09489 * mg_eps_ch1 * sig12,  # "CAH"
             9.70225e-05 / 0.09489 * mg_eps_ch1 * sig12,  # "CH1a"
             3.3965584e-05 / 0.4105 * mg_eps_ch2 * sig12,  # "CH2"
             2.6646244e-05 / 0.8671 * mg_eps * sig12,  # "CH3"
@@ -82,6 +87,8 @@ gromos_atp = pd.DataFrame(
             2.2193521e-05 / 2.44674 * mg_eps * sig12,  # "P",
             1.21e-06 / 1.05711 * mg_eps * sig12,  # "OE",
             1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "CR1",
+            #1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "H",
+            3.976695e-08 * sig12,  # "H", #ADDED
             0 * mg_eps * sig12,  # "C0",
         ],
         "mg_c6": [
@@ -97,6 +104,7 @@ gromos_atp = pd.DataFrame(
             0.0023406244 / 0.27741 * mg_eps * sig6,  # "C",
             0.0023406244 / 0.27741 * mg_eps * sig6,  # "CH"
             0.00606841 / 0.09489 * mg_eps_ch1 * sig6,  # "CH1"
+            0.00606841 / 0.09489 * mg_eps_ch1 * sig6,  # "CAH"
             0.00606841 / 0.09489 * mg_eps_ch1 * sig6,  # "CH1a"
             0.0074684164 / 0.41054 * mg_eps_ch2 * sig6,  # "CH2"
             0.0096138025 / 0.86715 * mg_eps * sig6,  # "CH3"
@@ -106,6 +114,8 @@ gromos_atp = pd.DataFrame(
             0.01473796 / 2.44674 * mg_eps * sig6,  # "P",
             0.0022619536 / 1.05711 * mg_eps * sig6,  # "OE",
             0.0055130625 / 0.50266 * mg_eps * sig6,  # "CR1",
+            #0.0055130625 / 0.50266 * mg_eps * sig6,  # "H",
+            0 * mg_eps * sig6,  # "H",
             0 * mg_eps * sig6,  # "C0",
         ],
     }
