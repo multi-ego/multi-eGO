@@ -56,7 +56,7 @@
 [ ALA ]
  [ atoms ]
     N     N       0.000     0
-   HN   H       0.000     0
+   HN     H       0.000     0
    CA   CAH       0.000     0
    CB   CH3       0.000     0
     C     C       0.000     0
@@ -426,24 +426,29 @@
 [ GLY ] 
  [ atoms ]
     N     N       0.000     0
+   HN     H       0.000     0
    CA   CH2       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
     N    CA    gb_21   
+    N    HN    gb_2
    CA     C    gb_27   
     C     O    gb_5    
     C    +N    gb_10   
  [ angles ]
 ;  ai    aj    ak   gromos type
+   -C     N    HN     ga_32
    -C     N    CA     ga_31   
     N    CA     C     ga_13   
+   HN     N    CA     ga_18
    CA     C     O     ga_30   
    CA     C    +N     ga_19   
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
     C    CA    +N     O     gi_1    
+    N    -C    CA    HN     gi_1
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
@@ -1056,6 +1061,7 @@
 [ VAL ]
  [ atoms ]
     N     N       0.000     0
+   HN     H       0.000     0
    CA   CAH       0.000     0
    CB   CH1       0.000     0
   CG1   CH3       0.000     0
@@ -1064,6 +1070,7 @@
     O     O       0.000     0
  [ bonds ]
     N    CA    gb_21   
+    N    HN    gb_2
    CA    CB    gb_27   
    CA     C    gb_27   
    CB   CG1    gb_27   
@@ -1072,7 +1079,9 @@
     C    +N    gb_10   
  [ angles ]
 ;  ai    aj    ak   gromos type
+   -C     N    HN     ga_32
    -C     N    CA     ga_31   
+    HN    N    CA     ga_18
     N    CA    CB     ga_13   
     N    CA     C     ga_13   
    CB    CA     C     ga_13   
@@ -1084,6 +1093,7 @@
     O     C    +N     ga_33   
  [ impropers ]
 ;  ai    aj    ak    al   gromos type
+    N    -C    CA    HN     gi_1
    CA     N     C    CB     gi_2    
    CA   CG1   CG2    CB     gi_2    
     C    CA    +N     O     gi_1    

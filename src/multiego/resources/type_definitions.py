@@ -88,7 +88,8 @@ gromos_atp = pd.DataFrame(
             1.21e-06 / 1.05711 * mg_eps * sig12,  # "OE",
             1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "CR1",
             #1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "H",
-            3.976695e-08 * sig12,  # "H", #ADDED
+            3.56695e-10 * sig12,  # "H", #ADDED
+            #3.976695e-08 * sig12,  # "H", #ADDED
             0 * mg_eps * sig12,  # "C0",
         ],
         "mg_c6": [
