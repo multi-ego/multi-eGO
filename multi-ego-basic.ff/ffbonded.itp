@@ -387,7 +387,7 @@
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
 ;#define gd_45 -105.00 0.2200 1
-#define gd_45 -180.00 1.50 1
+#define gd_45 -180.00 0.40 1
 ; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ; 
 ; OPT November 24, 22 
