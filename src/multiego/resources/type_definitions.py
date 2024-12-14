@@ -61,7 +61,8 @@ gromos_atp = pd.DataFrame(
             3.893600e-06 * sig12,  # "P",
             3.558824e-07 * sig12,  # "OE",
             6.298560e-06 * sig12,  # "CR1",
-            3.976695e-08 * sig12,  # "H", #ADDED
+            #1.239247e-09 * sig12,  # "H", #1.2392471565152519e-09 * sig12 = 3.5e-10  1KT LJ match
+            3.239247e-09 * sig12,  # "H", #3.239247e-09 * sig12 = 9.14859e-10  H-H ALA distance match
             2.659360e-07 * sig12,  # "C0",
         ],
         "mg_c12": [
@@ -87,9 +88,8 @@ gromos_atp = pd.DataFrame(
             2.2193521e-05 / 2.44674 * mg_eps * sig12,  # "P",
             1.21e-06 / 1.05711 * mg_eps * sig12,  # "OE",
             1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "CR1",
-            #1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "H",
-            3.56695e-10 * sig12,  # "H", #ADDED
-            #3.976695e-08 * sig12,  # "H", #ADDED
+            #1.239247e-09 * sig12,  # "H", #1.2392471565152519e-09 * sig12 = 3.5e-10  1KT LJ match
+            3.239247e-09 * sig12,  # "H", #3.239247e-09 * sig12 = 9.14859e-10  H-H ALA distance match
             0 * mg_eps * sig12,  # "C0",
         ],
         "mg_c6": [
@@ -115,8 +115,7 @@ gromos_atp = pd.DataFrame(
             0.01473796 / 2.44674 * mg_eps * sig6,  # "P",
             0.0022619536 / 1.05711 * mg_eps * sig6,  # "OE",
             0.0055130625 / 0.50266 * mg_eps * sig6,  # "CR1",
-            #0.0055130625 / 0.50266 * mg_eps * sig6,  # "H",
-            0 * mg_eps * sig6,  # "H",
+            0 * mg_eps * sig6,  # "H", # TODO
             0 * mg_eps * sig6,  # "C0",
         ],
     }

@@ -1,6 +1,9 @@
 [ NH3+ ]
 [ replace ]
 N		NL	17.0067	0.000  ; weight and charge include the 3 hydrogens
+[ delete ]
+ HN
+
 
 [ PRO-NH2+ ]
 [ replace ]
