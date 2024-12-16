@@ -59,6 +59,7 @@ private:
   std::vector<double> inv_num_mol_unique_;
   std::vector<double> inv_num_mol_;
   
+  std::string bkbn_H_;
   // weights fields
   double weights_sum_;
   std::string weights_path_;
@@ -123,7 +124,7 @@ private:
     cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<double>> &frame_cross_mat_,
     std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
     const std::function<ftype_intra_::signature> &f_intra_mol_, const std::function<ftype_same_::signature> &f_inter_mol_same_,
-    const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight
+    const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight, std::string bkbn_H_
   )
   {
     semaphore_.acquire();
@@ -163,7 +164,7 @@ private:
       {
         std::size_t a_j = 0;
         mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
-        if (atomname[0] == 'H')
+        if (atomname[0] == 'H' && atomname != bkbn_H_)
         {
           a_i++;
           continue;
@@ -172,7 +173,7 @@ private:
         for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
         {
           mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
-          if (atomname[0] == 'H')
+          if (atomname[0] == 'H' && atomname != bkbn_H_)
           {
             a_j++;
             continue;
@@ -235,10 +236,10 @@ public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
     double cutoff, double mol_cutoff, int nskip, int num_threads, int num_mol_threads,
-    int dt, const std::string &mode, const std::string &weights_path, 
+    int dt, const std::string &mode, const std::string &bkbn_H, const std::string &weights_path, 
     bool no_pbc, float t_begin, float t_end
   ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads), num_mol_threads_(num_mol_threads),
-      mode_(mode), weights_path_(weights_path),
+      mode_(mode), bkbn_H_(bkbn_H), weights_path_(weights_path),
       no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
   {
     bool bTop_;
@@ -248,6 +249,7 @@ public:
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
 
+    //const std::string bkbn_H_ = "HN";
     if (no_pbc_)
     {
       pbc_ = nullptr;
@@ -666,7 +668,7 @@ public:
           std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::ref(frame_same_mat_),
           std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
           std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
-          std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight);
+          std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight, bkbn_H_);
           /* end molecule thread */
         }
         /* join molecule threads */

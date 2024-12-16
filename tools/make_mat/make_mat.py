@@ -565,13 +565,22 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
     original_size_j = len(protein_ref_j.atoms)
+    # print(dir(protein_ref_i[0]))
+    # print(dir(protein_ref_i.atoms))
+    # print((protein_ref_i[0].name))
+    # print(args.bkbn_H)
+    # print(np.array([ protein_ref_i[i].name  for i in  range(len(protein_ref_i.atoms)) if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)]))
+    # print(np.array([ protein_ref_i[i].element_name  for i in  range(len(protein_ref_i.atoms)) ]))
+    #exit()
+    protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)])
+    protein_ref_indices_j = np.array([i + 1 for i in range(len(protein_ref_j.atoms)) if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)])
 
-    protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
-    protein_ref_indices_j = np.array([i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"])
+    protein_ref_i = [a for a in protein_ref_i.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
+    protein_ref_j = [a for a in protein_ref_j.atoms if(a.element_name != "H" or a.name == args.bkbn_H)]
 
-    protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
-    protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
-
+    print(len(protein_ref_i))
+    print("\n\n")
+    #print(len(protein_mego_i))
     sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
     sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
 
@@ -837,6 +846,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--mode", help="Sets the caculation to be intra/same/cross for histograms processing", default="intra+same+cross"
+    )
+    parser.add_argument(
+        "--bkbn_H", help="Name of backbone hydrogen (default H, charmm HN)", default="H"
     )
     parser.add_argument("--out", default="./", help="""Sets the output path""")
     parser.add_argument(
