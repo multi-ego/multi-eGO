@@ -18,9 +18,9 @@ int main(int argc, const char** argv)
   double cutoff = 0.75, mol_cutoff = 6.0;
   int nskip = 0, num_threads = 1, mol_threads = -1, dt = 0;
   float t_begin = 0.0, t_end = -1.0;
-  char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL, *p_weights_path = NULL;
+  char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL,*p_bkbn_H = NULL, *p_weights_path = NULL;
   char *p_out_prefix = NULL;
-  std::string traj_path, top_path, mode, weights_path;
+  std::string traj_path, top_path, mode, weights_path, bkbn_H;
   std::string out_prefix;
   int *p_nopbc = NULL;
   int *p_res = NULL;
@@ -42,6 +42,7 @@ int main(int argc, const char** argv)
     {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",           "INT"},
     {"mol_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &mol_threads,     0, "Number of molecule threads",  "INT"},
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
+    {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Backbone H name",             "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
     POPT_TABLEEND
@@ -66,7 +67,9 @@ int main(int argc, const char** argv)
 
   traj_path = std::string(p_traj_path);
   top_path = std::string(p_top_path);
+  //bkbn_H = std::string(p_bkbn_H);
   mode = p_mode ? std::string(p_mode) : std::string("intra+same+cross");
+  bkbn_H = p_bkbn_H ? std::string(p_bkbn_H) : std::string("H");
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
@@ -151,7 +154,7 @@ int main(int argc, const char** argv)
 
   cmdata::CMData cmdata(
     top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
-    mode, weights_path, nopbc, t_begin, t_end
+    mode, bkbn_H, weights_path, nopbc, t_begin, t_end
   );
   cmdata.run();
   cmdata.process_data();
