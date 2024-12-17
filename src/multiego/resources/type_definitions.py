@@ -8,6 +8,9 @@ mg_eps_ch2 = 0.100
 mg_eps_ch1 = 0.090
 sig6 = 0.9**6
 sig12 = 0.9**12
+
+mg_eps_oh = 1.
+sigma_oh = 0.164807
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
     {
@@ -88,8 +91,7 @@ gromos_atp = pd.DataFrame(
             2.2193521e-05 / 2.44674 * mg_eps * sig12,  # "P",
             1.21e-06 / 1.05711 * mg_eps * sig12,  # "OE",
             1.5116544e-05 / 0.50266 * mg_eps * sig12,  # "CR1",
-            #1.239247e-09 * sig12,  # "H", #1.2392471565152519e-09 * sig12 = 3.5e-10  1KT LJ match
-            3.239247e-09 * sig12,  # "H", #3.239247e-09 * sig12 = 9.14859e-10  H-H ALA distance match
+            1.168244e-11 / 0.11000 * mg_eps_oh, # "H" (4*sigma_oh**12)**2/(1e-06 / 1.27911* sig12) / Norm_epsi * mg_eps_oh,
             0 * mg_eps * sig12,  # "C0",
         ],
         "mg_c6": [
@@ -115,7 +117,7 @@ gromos_atp = pd.DataFrame(
             0.01473796 / 2.44674 * mg_eps * sig6,  # "P",
             0.0022619536 / 1.05711 * mg_eps * sig6,  # "OE",
             0.0055130625 / 0.50266 * mg_eps * sig6,  # "CR1",
-            0 * mg_eps * sig6,  # "H", # TODO
+            6.83592e-06 / 0.11000 * mg_eps_oh,  # "H"   4**2*sigma_oh**12/(0.0022619536 / 1.27911 * sig6) / Norm_epsi * mg_eps_oh,
             0 * mg_eps * sig6,  # "C0",
         ],
     }

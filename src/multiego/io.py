@@ -312,7 +312,9 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if len_ai * len_aj != len(contact_matrix):
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
-    mask = np.logical_or(contact_matrix["ai"].str.startswith("H"), contact_matrix["aj"].str.startswith("H"))
+    mask_i = np.logical_and(contact_matrix["ai"].str.startswith("H"), contact_matrix["ai"].str!="H")
+    mask_j = np.logical_and(contact_matrix["aj"].str.startswith("H"), contact_matrix["aj"].str!="H")
+    mask = np.logical_or(mask_i, mask_j)
     if mask.any():
         # Drop rows based on the mask
         contact_matrix = contact_matrix[~mask]
