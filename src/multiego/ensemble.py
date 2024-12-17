@@ -783,14 +783,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         [("O", "O"), ("OM", "OM"), ("O", "OM")],
         symmetrize=True,
     )
-    hydrogen_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [("H", "H")],
-        symmetrize=True,
-    )
-    print(hydrogen_mask)
-    exit()
+
     pairwise_c12 = np.where(
         oxygen_mask,
         (11.4 / 0.9**12) * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
