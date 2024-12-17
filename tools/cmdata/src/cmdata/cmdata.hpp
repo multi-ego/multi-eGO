@@ -249,7 +249,6 @@ public:
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
 
-    //const std::string bkbn_H_ = "HN";
     if (no_pbc_)
     {
       pbc_ = nullptr;
