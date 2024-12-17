@@ -782,7 +782,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     pairwise_c12 = np.where(
         oxygen_mask,
-        (11.4 / 0.9**12) * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
+        3e-6,
         np.sqrt(
             train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"])
             * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
@@ -792,7 +792,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     pairwise_mg_sigma = np.where(
         oxygen_mask,
-        ((11.4 / 0.9**12) * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12))) ** (1 / 12),
+        (3e-6) ** (1 / 12),
         (
             train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
             * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
@@ -807,7 +807,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     pairwise_mg_epsilon = np.where(
         oxygen_mask,
-        -(11.4 / 0.9**12) * np.sqrt(type_ai_mapped.map(type_to_c12) * type_aj_mapped.map(type_to_c12)),
+        -3e-6,
         (
             train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
             * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
@@ -834,16 +834,27 @@ def generate_OO_LJ(meGO_ensemble):
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
     ]
 
+    H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
+
+    half_matrix = list([(a, b) for a, b in itertools.product(O_OM_sbtype, H_H_sbtype)])
+
     # Generate all possible combinations
     combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
-
     # Create a DataFrame from the combinations
-    rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    OO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    OO_LJ["c12"] = 3e-6
+    OO_LJ["c6"] = 0.0
+    # Generate all possible combinations
+    combinations = list(itertools.combinations_with_replacement(H_H_sbtype, 2))
+    # Create a DataFrame from the combinations
+    HH_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    HH_LJ["c12"] = 9.14859e-10
+    HH_LJ["c6"] = 0.0
+    HO_LJ = pd.DataFrame(half_matrix, columns=["ai", "aj"])
+    HO_LJ["c12"] = 1.60608e-09 * 0.115  # mg_eps
+    HO_LJ["c6"] = 8.01519e-05 * 0.115  # mg_eps
+    rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
     rc_LJ["type"] = 1
-    rc_LJ["c6"] = 0.0
-    rc_LJ["c12"] = (11.4 / 0.9**12) * np.sqrt(
-        rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
-    )
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"
     rc_LJ["rep"] = rc_LJ["c12"]
@@ -1540,9 +1551,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                 ),
                 "c12",
-            ] *= (
-                11.4 / 0.9**12
-            )
+            ] = 3e-6
             df["same_chain"] = True
             df["probability"] = 1.0
             df["rc_probability"] = 1.0

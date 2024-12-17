@@ -137,3 +137,4 @@ outputs/*
 analysis/*
 .DS_Store
 *.ff
+!multi-ego-basic.ff
