@@ -505,7 +505,11 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
-            comparison_set = set(comparison_dataframe[~comparison_dataframe["name"].str.startswith("H")]["name"].to_list())
+            comparison_set = set(
+                comparison_dataframe[
+                    (~comparison_dataframe["name"].str.startswith("H")) | (comparison_dataframe["name"].str == "H")
+                ]["name"].to_list()
+            )
         else:
             raise RuntimeError("the molecule names in the training topologies do not match those in the reference")
 
@@ -833,16 +837,25 @@ def generate_OO_LJ(meGO_ensemble):
     O_OM_sbtype = [
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
     ]
+    H_H_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"
+    ]
 
     # Generate all possible combinations
-    combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+    combinations_O = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+    combinations_H = list(itertools.combinations_with_replacement(H_H_sbtype, 2))
+    combinations = combinations_O + combinations_H
 
-    # Create a DataFrame from the combinations
+    # Create a DataFrame from the combinationsj
     rc_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    ai_type = np.array([ a[0] for a in rc_LJ["ai"].str.split("_")]) 
+    aj_type = np.array([ a[0] for a in rc_LJ["aj"].str.split("_")]) 
+    mask_H = np.where((ai_type == "H") & (aj_type == "H"), 1, 0)
     rc_LJ["type"] = 1
     rc_LJ["c6"] = 0.0
-    rc_LJ["c12"] = (11.4 / 0.9**12) * np.sqrt(
-        rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+    rc_LJ["c12"] = np.where(mask_H, 
+        np.sqrt(rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"])), 
+        (11.4 / 0.9**12) * np.sqrt(rc_LJ["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * rc_LJ["aj"].map(meGO_ensemble["sbtype_c12_dict"]))
     )
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"
