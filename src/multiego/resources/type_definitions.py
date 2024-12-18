@@ -3,9 +3,9 @@ import json
 import sys
 
 
-mg_eps = 0.115
-mg_eps_ch2 = 0.105
-mg_eps_ch1 = 0.095
+mg_eps = 0.11
+mg_eps_ch2 = 0.10
+mg_eps_ch1 = 0.09
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
     {
