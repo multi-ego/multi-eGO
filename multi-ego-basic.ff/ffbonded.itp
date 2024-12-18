@@ -374,8 +374,8 @@
 ; -CHn-NT-	0.9
 ;
 ; OPT November 23, 22 
-;#define gd_42 170.0000 2.7000 2
-#define gd_42 -170.0000 2.7000 2
+;#define gd_42 -170.0000 2.7000 2
+#define gd_42 -170.0000 4.0000 2
 ; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ;
 ;#define gd_43 15.0000 2.500 3
@@ -383,7 +383,7 @@
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
 ;#define gd_44 180.000 4.00 1
-#define gd_44 160.000 4.00 1
+#define gd_44 165.000 4.00 1
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
 ;#define gd_45 -105.00 0.2200 1
@@ -400,7 +400,7 @@
 #define gd_44b -110.000 3.90 1 
 ; Backbone dihedral angle -C-N-CA-C- BULKYAA
 ;
-#define gd_45b 180.000 0.05 1
+#define gd_45b 180.000 0.80 1
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ; 
 ; OPT April,  3 2024 
@@ -410,7 +410,7 @@
 #define gd_49 180 11 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 -180 1.7 1
+#define gd_51 -180 2.5 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ; OPT November, 23 2022
@@ -420,10 +420,7 @@
 #define gd_53 0.0000 4.000 4
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-;#define gd_54 -110.4281 0.0000 1
-; Backbone dihedral angle -C-N-CA-C  PRO
-;
-#define gd_55 -60.0000   1.000 1
+#define gd_55 -60.0000   0.400 1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_56    180.000     31.0     2
