@@ -839,25 +839,35 @@ def generate_OO_LJ(meGO_ensemble):
     ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
-    H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
-
-    half_matrix = list([(a, b) for a, b in itertools.product(O_OM_sbtype, H_H_sbtype)])
+    full_matrix = list(itertools.product(H_H_sbtype, O_OM_sbtype)) + list(itertools.product(O_OM_sbtype, H_H_sbtype))
 
     # Generate all possible combinations
-    combinations = list(itertools.combinations_with_replacement(O_OM_sbtype, 2))
+    combinations = list(itertools.product(O_OM_sbtype, repeat=2))
     # Create a DataFrame from the combinations
     OO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
     OO_LJ["c12"] = 3e-6
     OO_LJ["c6"] = 0.0
+    OO_LJ["epsilon"] = -OO_LJ["c12"]
+    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0)
+    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12)
+    OO_LJ["mg_epsilon"] = -OO_LJ["c12"]
     # Generate all possible combinations
-    combinations = list(itertools.combinations_with_replacement(H_H_sbtype, 2))
+    combinations = list(itertools.product(H_H_sbtype, repeat=2))
     # Create a DataFrame from the combinations
     HH_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
     HH_LJ["c12"] = 9.14859e-10
     HH_LJ["c6"] = 0.0
-    HO_LJ = pd.DataFrame(half_matrix, columns=["ai", "aj"])
+    HH_LJ["epsilon"] = -HH_LJ["c12"]
+    HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0)
+    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
+    HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
+    HO_LJ = pd.DataFrame(full_matrix, columns=["ai", "aj"])
     HO_LJ["c12"] = 1.153070e-08 * type_definitions.mg_eps
     HO_LJ["c6"] = 2.147622e-04 * type_definitions.mg_eps
+    HO_LJ["epsilon"] = type_definitions.mg_eps
+    HO_LJ["sigma"] = (HO_LJ["c12"] / HO_LJ["c6"])**(1/6)
+    HO_LJ["mg_sigma"] = (HO_LJ["c12"] / HO_LJ["c6"])**(1/6)
+    HO_LJ["mg_epsilon"] = type_definitions.mg_eps
     rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
@@ -867,10 +877,6 @@ def generate_OO_LJ(meGO_ensemble):
     rc_LJ["rc_probability"] = 1.0
     rc_LJ["rc_threshold"] = 1.0
     rc_LJ["md_threshold"] = 1.0
-    rc_LJ["epsilon"] = -rc_LJ["c12"]
-    rc_LJ["sigma"] = rc_LJ["c12"] ** (1.0 / 12.0)
-    rc_LJ["mg_sigma"] = rc_LJ["c12"] ** (1 / 12)
-    rc_LJ["mg_epsilon"] = -rc_LJ["c12"]
     rc_LJ["learned"] = 0
     rc_LJ["1-4"] = "1>4"
     molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]}
