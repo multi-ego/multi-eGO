@@ -837,9 +837,7 @@ def generate_OO_LJ(meGO_ensemble):
     O_OM_sbtype = [
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
     ]
-    H_H_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"
-    ]
+    H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
@@ -858,8 +856,8 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["c12"] = 9.14859e-10
     HH_LJ["c6"] = 0.0
     HO_LJ = pd.DataFrame(half_matrix, columns=["ai", "aj"])
-    HO_LJ["c12"] = 1.60608e-09 * type_definitions.mg_eps
-    HO_LJ["c6"] = 8.01519e-05 * type_definitions.mg_eps
+    HO_LJ["c12"] = 1.153070e-08 * type_definitions.mg_eps
+    HO_LJ["c6"] = 2.147622e-04 * type_definitions.mg_eps
     rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
