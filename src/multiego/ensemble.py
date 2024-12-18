@@ -505,7 +505,11 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
-            comparison_set = set(comparison_dataframe[~comparison_dataframe["name"].str.startswith("H")]["name"].to_list())
+            comparison_set = set(
+                comparison_dataframe[
+                    (~comparison_dataframe["name"].str.startswith("H")) | (comparison_dataframe["name"].str == "H")
+                ]["name"].to_list()
+            )
         else:
             raise RuntimeError("the molecule names in the training topologies do not match those in the reference")
 
@@ -832,6 +836,9 @@ def generate_OO_LJ(meGO_ensemble):
     """
     O_OM_sbtype = [
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
+    ]
+    H_H_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"
     ]
 
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]

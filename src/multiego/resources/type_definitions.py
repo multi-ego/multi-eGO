@@ -6,6 +6,8 @@ import sys
 mg_eps = 0.11
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
+mg_eps_oh = 0.2
+sigma_oh = 0.164807
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
     {
