@@ -862,11 +862,13 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
     HO_LJ = pd.DataFrame(full_matrix, columns=["ai", "aj"])
-    HO_LJ["c12"] = 1.153070e-08 * type_definitions.mg_eps
-    HO_LJ["c6"] = 2.147622e-04 * type_definitions.mg_eps
+    # HO_LJ["c12"] = 1.153070e-08 * type_definitions.mg_eps
+    # HO_LJ["c6"] = 2.147622e-04 * type_definitions.mg_eps
+    HO_LJ["c12"] = 2.249554e-09 * type_definitions.mg_eps
+    HO_LJ["c6"] = 9.485893e-05 * type_definitions.mg_eps
     HO_LJ["epsilon"] = type_definitions.mg_eps
-    HO_LJ["sigma"] = (HO_LJ["c12"] / HO_LJ["c6"])**(1/6)
-    HO_LJ["mg_sigma"] = (HO_LJ["c12"] / HO_LJ["c6"])**(1/6)
+    HO_LJ["sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
+    HO_LJ["mg_sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
     HO_LJ["mg_epsilon"] = type_definitions.mg_eps
     rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
     rc_LJ["type"] = 1
