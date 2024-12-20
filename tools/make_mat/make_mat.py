@@ -577,7 +577,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         [
             i + 1
             for i in range(len(protein_ref_j.atoms))
-            if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)
+            if (protein_ref_j[i].element_name != "H" or protein_ref_j[i].name == args.bkbn_H)
         ]
     )
 
