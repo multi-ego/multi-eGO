@@ -139,8 +139,12 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args):
     """
     This function initializes a contact matrix for a given simulation.
     """
+
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
+    contact_matrix["intra_domain"] = prior_matrix["rc_intra_domain"]
+    contact_matrix["probability"].loc[(contact_matrix["intra_domain"])] = 0.
+    contact_matrix["distance"].loc[(contact_matrix["intra_domain"])] = 0.
     p_sort = np.sort(contact_matrix["probability"].loc[(contact_matrix["intra_domain"])].to_numpy())[::-1]
     p_sort_id = np.sort(contact_matrix["probability"].loc[~(contact_matrix["intra_domain"])].to_numpy())[::-1]
     norm = np.sum(p_sort)
@@ -315,6 +319,10 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     st = time.time()
     reference_contact_matrices = {}
     matrices = {}
+
+    # if there are more than 1 reference associated to the same
+    # check if reference are associated to the same molecule pair 
+    # if intramat> check for intra domain complementarity 
     for reference in args.reference:  # reference_paths:
         print("\t-", f"Initializing {reference} ensemble data")
         reference_path = f"{args.root_dir}/inputs/{args.system}/{reference}"
@@ -396,6 +404,8 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 reference_contact_matrices[name]["c6"] ** 2 / (4 * reference_contact_matrices[name]["c12"]),
                 -reference_contact_matrices[name]["c12"],
             )
+
+            #reference have or is filled with domain flag
 
             # Create a mapping from lj_pairs for sigma and epsilon
             lj_sigma_map = symmetric_lj_pairs.set_index(["ai", "aj"])["sigma"]
@@ -520,6 +530,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         )
         exit()
 
+    # check  multi references intra domain complementarity
+    # assign epsilons to different domains
+ 
     return ensemble, matrices
 
 
