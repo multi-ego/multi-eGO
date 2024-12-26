@@ -22,8 +22,6 @@ def find_atom_end(top, res_num):
     Finds the ending atom associated to the residue 
     '''
     atom_idx = 0
-    #n_atoms = len(top.atoms)
-    #n_res   = len(top.residues)
 
     for i in range(res_num):
         atom_idx += len(top.residues[i].atoms)
@@ -102,6 +100,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--out", type=str, default="./", help="path for ouput")
+    parser.add_argument("--invert", action='store_true', default=False, help="Inbert domain mask")
 
     args = parser.parse_args()
 
@@ -148,7 +147,9 @@ if __name__ == "__main__":
         map_appo = np.array([ True if x >= start and x <= end else False for x in range(dim)])
         domain_mask = np.logical_or(domain_mask, map_appo)
     domain_mask_linear = (domain_mask * domain_mask[:,np.newaxis]).reshape(dim**2)
-
+    if args.invert:
+        domain_mask_linear = np.logical_not(domain_mask_linear)
+    print(domain_mask_linear)
     # add an eigth column with the domain_mask
     if intra_md.shape[0] == 7:
         intra_md = np.concatenate((intra_md, domain_mask_linear[np.newaxis, :]), axis=0)
@@ -158,8 +159,12 @@ if __name__ == "__main__":
     if "/" in intramat:
         intramat = intramat.split("/")[-1]
 
+    if args.invert:
+        out_name = f'{args.out}inverted_split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}'
+    else:
+        out_name = f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}'
     np.savetxt(
-        f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}',
+        out_name,
         intra_md.T,
         delimiter=" ",
         fmt=["%i", "%i", "%i", "%i", "%2.6f", "%.6e", "%2.6f", "%1i"],

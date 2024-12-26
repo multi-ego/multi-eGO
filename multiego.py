@@ -10,6 +10,8 @@ from src.multiego import io
 from tools.face_generator import generate_face
 from src.multiego.resources.type_definitions import parse_json
 from src.multiego.arguments import args_dict
+from src.multiego.arguments import args_dict_global
+from src.multiego.arguments import args_dict_single_reference
 
 
 def meGO_parsing():
@@ -51,20 +53,15 @@ for a contact pair.
 
     args, remaining = parser.parse_known_args()
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
-    multi_flag = False
+    # multi_flag = False
 
     # Check if no arguments are provided
     if len(sys.argv) == 1:
         parser.print_help()
         sys.exit(1)
 
-    if args.config:
-        config_yaml = io.read_config(args.config, args_dict)
-        # check if yaml file is empty
-        if not config_yaml:
-            print("WARNING: Configuration file was parsed, but the dictionary is empty")
-        else:
-            args = io.combine_configurations(config_yaml, args, args_dict)
+    # read arguments depending on how they were parsed 
+    args = io.read_arguments(args,args_dict,args_dict_global,args_dict_single_reference)
 
     # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
     if not args.system:
@@ -73,22 +70,62 @@ for a contact pair.
     if not args.egos:
         print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
-    if args.egos == "production" and not args.train:
-        print("ERROR: No training simulations found! Please provide a list of training simulations.")
-        sys.exit()
-    if args.egos == "production" and not (
-        args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon
-    ):
-        print("ERROR: No epsilon value found! Please provide an epsilon value.")
-        sys.exit()
-    if args.p_to_learn < 0.9:
-        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-    if args.epsilon_min <= 0.0:
-        print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
-        sys.exit()
+    # if args.egos == "production" and not args.train:
+    #     print("ERROR: No training simulations found! Please provide a list of training simulations.")
+    #     sys.exit()
+    # if args.egos == "production" and not (
+    #     args.epsilon or args.multi_epsilon_intra or args.multi_epsilon_inter or args.inter_epsilon
+    # ):
+        # print("ERROR: No epsilon value found! Please provide an epsilon value.")
+        # sys.exit()
 
-    if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
-        multi_flag = True
+    # controls that all reference entries contains correct arguments 
+    for ref  in args.input_refs.keys():
+        
+        # Check for missing required keys (keys without a default)
+        input_keys = set(args.input_refs[ref])
+        print("aaa ",input_keys)
+        required_keys = {key.lstrip("--") for key, value in args_dict_single_reference.items() if value.get("required", False)}
+        missing_keys = required_keys - input_keys
+        if missing_keys:
+            raise ValueError(f"Missing required keys in {args.input_refs[ref]}: \n{missing_keys}")
+
+        # Check for empty required values
+        empty_required_keys = [
+            key for key in required_keys
+            if not args.input_refs[ref][key]  # Checks for None, empty string, or empty list
+        ]
+        if empty_required_keys:
+            if "train" in empty_required_keys:
+                print("ERROR: No training simulations found! Please provide a list of training simulations.")
+                sys.exit()
+            if "epsilon" in empty_required_keys:
+                print("ERROR: No epsilon value found! Please provide an epsilon value.")
+                sys.exit()
+
+            raise ValueError(f"Empty values for required keys in {args.input_refs[ref]}.\n Missing {empty_required_keys}")
+
+        # Checks and warnings for each reference
+        if args.input_refs[ref]['p_to_learn'] < 0.9:
+            print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+
+        if args.input_refs[ref]['epsilon_min'] <= 0.0:
+            print(f"ERROR: --epsilon_min ({args.input_refs[ref]['epsilon_min']}) must be greater than 0.")
+            sys.exit()
+            
+        if args.input_refs[ref]["epsilon"] < args.input_refs[ref]["epsilon_min"]:
+            raise ValueError(f"ERROR: in {ref}. \nEpsilon value epsi = {args.input_refs[ref]['epsilon']} is below the minimum meaningful value.")
+
+
+
+    # if args.p_to_learn < 0.9:
+    #     print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+    # if args.epsilon_min <= 0.0:
+    #     print("--epsilon_min (" + str(args.epsilon_min) + ") must be greater than 0.")
+    #     sys.exit()
+
+    # if args.multi_epsilon_intra or args.multi_epsilon_inter_domain or args.multi_epsilon_inter:
+    #     multi_flag = True
 
     custom_dict = {}
     if args.custom_dict:
@@ -100,55 +137,55 @@ for a contact pair.
     print(f"Running Multi-eGO: {args.egos}\n")
     print("- Processing Multi-eGO topology")
     mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
-    topol_names = [m for m in mego_ensemble["topology"].molecules]
+    #topol_names = [m for m in mego_ensemble["topology"].molecules]
 
-    args.names = []
-    for name in args.multi_epsilon_intra.keys():
-        args.names.append(name)
-    for name in args.multi_epsilon_inter_domain.keys():
-        args.names.append(name)
-    for name in args.multi_epsilon_inter.keys():
-        args.names.append(name)
-        for name in args.multi_epsilon_inter[name].keys():
-            args.names.append(name)
-    args.names = list(set(args.names))
-    if sorted(args.names) != sorted(topol_names) and multi_flag:
-        print("ERROR: The names of the molecules in the topology and the multi-epsilon files are different")
-        sys.exit()
-    elif not multi_flag:
-        args.names = topol_names
+    # args.names = []
+    # for name in args.multi_epsilon_intra.keys():
+    #     args.names.append(name)
+    # for name in args.multi_epsilon_inter_domain.keys():
+    #     args.names.append(name)
+    # for name in args.multi_epsilon_inter.keys():
+    #     args.names.append(name)
+    #     for name in args.multi_epsilon_inter[name].keys():
+    #         args.names.append(name)
+    # args.names = list(set(args.names))
+    # if sorted(args.names) != sorted(topol_names) and multi_flag:
+    #     print("ERROR: The names of the molecules in the topology and the multi-epsilon files are different")
+    #     sys.exit()
+    # elif not multi_flag:
+    #     args.names = topol_names
 
-    if args.egos == "production" and not args.reference:
-        args.reference = ["reference"]
+    # if args.egos == "production" and not args.reference:
+    #     args.reference = ["reference"]
 
-    if args.epsilon and not args.inter_epsilon:
-        args.inter_epsilon = args.epsilon
-    if args.epsilon and not args.inter_domain_epsilon:
-        args.inter_domain_epsilon = args.epsilon
-    if not args.multi_epsilon_intra:
-        args.multi_epsilon_intra = {k: v for k, v in zip(args.names, [args.epsilon] * len(args.names))}
-    if not args.multi_epsilon_inter_domain and args.inter_domain_epsilon:
-        args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
-    if not args.multi_epsilon_inter_domain and not args.inter_domain_epsilon:
-        args.multi_epsilon_inter_domain = args.multi_epsilon_intra
-    if not args.multi_epsilon_inter and args.inter_epsilon:
-        args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
+    # if args.epsilon and not args.inter_epsilon:
+    #     args.inter_epsilon = args.epsilon
+    # if args.epsilon and not args.inter_domain_epsilon:
+    #     args.inter_domain_epsilon = args.epsilon
+    # if not args.multi_epsilon_intra:
+    #     args.multi_epsilon_intra = {k: v for k, v in zip(args.names, [args.epsilon] * len(args.names))}
+    # if not args.multi_epsilon_inter_domain and args.inter_domain_epsilon:
+    #     args.multi_epsilon_inter_domain = {k: v for k, v in zip(args.names, [args.inter_domain_epsilon] * len(args.names))}
+    # if not args.multi_epsilon_inter_domain and not args.inter_domain_epsilon:
+    #     args.multi_epsilon_inter_domain = args.multi_epsilon_intra
+    # if not args.multi_epsilon_inter and args.inter_epsilon:
+    #     args.multi_epsilon_inter = {k1: {k2: args.inter_epsilon for k2 in args.names} for k1 in args.names}
 
-    # check all epsilons are set and greater than epsilon_min
-    if args.egos == "production":
-        for k, v in args.multi_epsilon_intra.items():
-            if v < args.epsilon_min:
-                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
-                sys.exit()
-        for k, v in args.multi_epsilon_inter_domain.items():
-            if v < args.epsilon_min:
-                print("ERROR: epsilon value for " + k + " is less than epsilon_min")
-                sys.exit()
-        for k1, v1 in args.multi_epsilon_inter.items():
-            for k2, v2 in v1.items():
-                if v2 < args.epsilon_min:
-                    print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
-                    sys.exit()
+    # # check all epsilons are set and greater than epsilon_min
+    # if args.egos == "production":
+    #     for k, v in args.multi_epsilon_intra.items():
+    #         if v < args.epsilon_min:
+    #             print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+    #             sys.exit()
+    #     for k, v in args.multi_epsilon_inter_domain.items():
+    #         if v < args.epsilon_min:
+    #             print("ERROR: epsilon value for " + k + " is less than epsilon_min")
+    #             sys.exit()
+    #     for k1, v1 in args.multi_epsilon_inter.items():
+    #         for k2, v2 in v1.items():
+    #             if v2 < args.epsilon_min:
+    #                 print("ERROR: epsilon value for " + k1 + "-" + k2 + " is less than epsilon_min")
+    #                 sys.exit()
 
     if args.symmetry_file and args.symmetry:
         print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
