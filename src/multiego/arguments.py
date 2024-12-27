@@ -31,14 +31,6 @@ args_dict = {
         "type": float,
         "help": "Maximum interaction energy per contact.",
     },
-    # "--inter_epsilon": {
-    #     "type": float,
-    #     "help": "Maximum interaction energy per intermolecular contacts.",
-    # },
-    # "--inter_domain_epsilon": {
-    #     "type": float,
-    #     "help": "Maximum interaction energy per interdomain contacts.",
-    # },
     "--p_to_learn": {
         "type": float,
         "default": 0.9995,
@@ -75,21 +67,6 @@ args_dict = {
         "action": "store_true",
         "help": "Removes headers from the output files when set",
     },
-    # "--multi_epsilon_intra": {
-    #     "default": {},
-    #     "type": dict,
-    #     "help": "Path to the input file specifying the intra epsilons",
-    # },
-    # "--multi_epsilon_inter_domain": {
-    #     "default": {},
-    #     "type": dict,
-    #     "help": "Path to the input file specifying the intra epsilons",
-    # },
-    # "--multi_epsilon_inter": {
-    #     "default": {},
-    #     "type": dict,
-    #     "help": "Path to the input file specifying the inter epsilons",
-    # },
     "--symmetry": {
         "default": [],
         "type": list,
@@ -105,16 +82,6 @@ args_dict = {
         "type": float,
         "help": "partition function normalization",
     },
-    # "--inter_f": {
-    #     "default": 1,
-    #     "type": float,
-    #     "help": "partition function normalization inter-molecular",
-    # },
-    # "--inter_domain_f": {
-    #     "default": 1,
-    #     "type": float,
-    #     "help": "partition function normalization inter_domain",
-    # },
     "--relative_c12d": {
         "default": 0.001,
         "type": float,
@@ -132,8 +99,7 @@ args_dict = {
     },
 }
 
-
-
+# Global arguments
 args_dict_global = {
     "--system": {
         "type": str,
@@ -204,7 +170,7 @@ args_dict_global = {
     },
 }
 
-
+# Arguments needed in each reference group to define reference, trainings, spcify the matrix, and other variables
 args_dict_single_reference = {
     "--reference": {
         "type": str,
@@ -224,7 +190,6 @@ args_dict_single_reference = {
         "type": str,
         "help": "Matrix name",
         "required": True,
-
     },
     "--epsilon": {
         "type": float,

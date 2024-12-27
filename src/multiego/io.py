@@ -5,60 +5,49 @@ import os
 import yaml
 import git
 import time
-import sys
+
+# import sys
 import re
 
 
-def read_arguments(args,args_dict,args_dict_global,args_dict_single_reference):
+def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
     # TODO UGLY, make it nicer
     new_input = False
     if args.config:
 
-        config_yaml,new_input = read_config(args.config, args_dict)
+        config_yaml, new_input = read_config(args.config, args_dict)
         # check if yaml file is empty
         if not config_yaml:
             print("WARNING: Configuration file was parsed, but the dictionary is empty")
         elif new_input:
-            print("we")
             args = combine_configurations(config_yaml, args, args_dict_global)
             args = read_new_input(args, args_dict_single_reference)
         else:
-            print("wa")
             args = combine_configurations(config_yaml, args, args_dict)
-            convert_command_line_to_new_input(args, args_dict_single_reference)
+            args = convert_command_line_to_new_input(args, args_dict_single_reference)
 
     # if not new_input convert command line to input_ref dictionary format
     else:
         if not new_input:
-            print("aa")
             if args.egos == "production" and not args.reference:
                 args.reference = ["reference"]
 
-            convert_command_line_to_new_input(args, args_dict_single_reference)
+            args = convert_command_line_to_new_input(args, args_dict_single_reference)
     if new_input and (args.reference or args.train or args.epsilon):
-        raise ValueError("""--reference, --train and --epsilon should not be used with input_refs. Either use the firsts or use the second via yml config file. e.g.:
---reference ref --train training --epsilon 0.3
-                         
-or in config file use 
+        raise ValueError(
+            """--reference, --train and --epsilon should not be used with input_refs. Either use the firsts or use the second via yml config file. e.g.:
+--reference ref --train training --epsilon 0.3\n
+or in config file use:
 - input_refs:
-
   - reference: ref
     train: training
     matrix: intramat_1_1
     epsilon: 0.2
-
-                         """)
-
-    # convert input refs in a more usable format
-    test = {}
-    for r in args.input_refs:        
-        test.update({r["reference"]:r})
-
-    args.input_refs = test
-
-    print(args)
+"""
+        )
 
     return args
+
 
 def read_config(file, args_dict):
     """
@@ -108,13 +97,13 @@ def read_new_input(args, args_dict_single_input):
         The combined configuration
     """
 
-    if args.egos!= "production":
+    if args.egos != "production":
         raise ValueError("You should use 'input_refs' only with egos 'production'")
 
     # Check for invalid keys in input_dict
     input_refs = []
     valid_keys = {key.lstrip("--") for key in args_dict_single_input.keys()}
-    for ref  in args.input_refs:
+    for ref in args.input_refs:
 
         input_keys = set(ref.keys())
 
@@ -128,42 +117,49 @@ def read_new_input(args, args_dict_single_input):
         for key, metadata in args_dict_single_input.items():
             stripped_key = key.lstrip("--")
             value = ref.get(stripped_key, metadata.get("default"))
-            
+
             expected_type = metadata["type"]
             try:
                 if value is not None:
                     value = expected_type(value)
                     ref[stripped_key] = value
             except (ValueError, TypeError):
-                raise ValueError(f"Invalid type for key '{stripped_key}'. Expected {expected_type}, got {type(value).__name__}.")
+                raise ValueError(
+                    f"Invalid type for key '{stripped_key}'. Expected {expected_type}, got {type(value).__name__}."
+                )
 
             combined_dict[stripped_key] = ref.get(stripped_key, metadata.get("default"))
-       
-            input_refs.append(combined_dict)
 
+        input_refs.append(combined_dict)
 
     args.input_refs = input_refs
 
     return args
 
+
 def convert_command_line_to_new_input(args, args_dict_single_input):
     dict_input_ref = []
-    for i,reference in enumerate(args.reference):
+    appo = 0
+    for reference in args.reference:
 
-        matrices = [ m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if ("intramat" or "intermat") in m]
-        
-        #check that in reference folder only 1 matrix of the same pair is present
+        matrices_intra = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intramat" in m]
+        matrices_inter = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intermat" in m]
+        matrices = matrices_intra + matrices_inter
+        # check that in reference folder only 1 matrix of the same pair is present
         mat_type = [m.split(".ndx")[0] for m in matrices]
         if len(set(mat_type)) != len(mat_type):
             raise ValueError("In the reference folder, only one matrix of the same pair is allowed")
 
         for mat in mat_type:
             dict_input_ref.append({"reference": reference, "train": args.train, "matrix": mat, "epsilon": args.epsilon})
-        for var in vars(args):
-            if var in [key.lstrip("--") for key, _ in args_dict_single_input.items()]:
-                if var not in ["reference", "train", "epsilon"]:
-                    dict_input_ref[i].update({var: getattr(args, var)})
-        args.input_refs = dict_input_ref
+            for var in vars(args):
+                if var in [key.lstrip("--") for key, _ in args_dict_single_input.items()]:
+                    if var not in ["reference", "train", "epsilon"]:
+                        dict_input_ref[appo].update({var: getattr(args, var)})
+            appo += 1
+    args.input_refs = dict_input_ref
+
+    return args
 
 
 def combine_configurations(yml, args, args_dict):
@@ -190,11 +186,13 @@ def combine_configurations(yml, args, args_dict):
             key, value = list(element.items())[0]
             if key == "input_refs":
                 setattr(args, key, value)
-                continue 
+                continue
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
-            if hasattr(args, key) and getattr(args, key) is default_value:
+
+            # TODO go back using is instead of ==
+            if hasattr(args, key) and getattr(args, key) == default_value:
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
@@ -248,9 +246,6 @@ def check_matrix_compatibility(input_path):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found.
     """
-    # matrix_paths = glob.glob(f"{input_path}/int??mat_?_?.ndx")
-    # matrix_paths_gz = glob.glob(f"{input_path}/int??mat_?_?.ndx.gz")
-    # matrix_paths_h5 = glob.glob(f"{input_path}/int??mat_?_?.ndx.h5")
     matrix_paths = glob.glob(f"{input_path}.ndx")
     matrix_paths_gz = glob.glob(f"{input_path}.ndx.gz")
     matrix_paths_h5 = glob.glob(f"{input_path}.ndx.h5")
@@ -280,18 +275,23 @@ def check_matrix_compatibility(input_path):
         raise ValueError(f"Error: Some files have both gz and hdf5 versions: {common_files}")
 
 
-def check_mat_name(mat_name,ref):
+def check_mat_name(mat_name, ref):
     # Check name of matrix is either intramat_X_X or intermat_X_Y
     pattern = r"^(intra|inter)mat_\d+_\d+$"
     if not re.match(pattern, mat_name):
-        raise ValueError(f"Wrong input matrix format {mat_name} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)")
+        raise ValueError(
+            f"Wrong input matrix format {mat_name} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+        )
 
-def check_mat_extension(extension,ref):
-    #pattern = r"^ndx(\.gz)?(\.h5)?$"
+
+def check_mat_extension(extension, ref):
+    # pattern = r"^ndx(\.gz)?(\.h5)?$"
     # checks the extension of matrix name is either none or, .ndx(.gz/.h5)
     pattern = r"^(|\.ndx(\.gz|\.h5)?)$"
     if not re.match(pattern, extension):
-        raise ValueError(f"Wrong input matrix format extension: {extension} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)")
+        raise ValueError(
+            f"Wrong input matrix format extension: {extension} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+        )
 
 
 def check_matrix_format(args):
@@ -320,30 +320,23 @@ def check_matrix_format(args):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found in any directory.
     """
-    for ref in args.input_refs.keys():
-        mat_appo = args.input_refs[ref]["matrix"].split(".")
-        if len(mat_appo)> 1:
-            extension = args.input_refs[ref]["matrix"].split(mat_appo[0])[1]
-        else: extension = ""
+    for ref in args.input_refs:
+        mat_appo = ref["matrix"].split(".")
+        if len(mat_appo) > 1:
+            extension = ref["matrix"].split(mat_appo[0])[1]
+        else:
+            extension = ""
 
         # Set name of matrix without extension
-        args.input_refs[ref]["matrix"] = mat_appo[0]
+        ref["matrix"] = mat_appo[0]
 
-        matrix_ref_path = f"{args.root_dir}/inputs/{args.system}/{args.input_refs[ref]['reference']}/{args.input_refs[ref]['matrix']}"
-        check_mat_name(args.input_refs[ref]['matrix'],ref)
-        check_mat_extension(extension,ref)
+        matrix_ref_path = f"{args.root_dir}/inputs/{args.system}/{ref['reference']}/{ref['matrix']}"
+        check_mat_name(ref["matrix"], ref)
+        check_mat_extension(extension, ref)
         check_matrix_compatibility(matrix_ref_path)
-        for train in args.input_refs[ref]["train"]:
-            matrix_train_path = f"{args.root_dir}/inputs/{args.system}/{train}/{args.input_refs[ref]['matrix']}"
+        for train in ref["train"]:
+            matrix_train_path = f"{args.root_dir}/inputs/{args.system}/{train}/{ref['matrix']}"
             check_matrix_compatibility(matrix_train_path)
-    
-    # for simulation in args.reference:
-    #     simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
-    #     check_matrix_compatibility(simulation_path)
-    # for simulation in args.train:
-    #     simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
-    #     check_matrix_compatibility(simulation_path)
-
 
 
 def read_symmetry_file(path):
@@ -481,8 +474,14 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if len_ai * len_aj != len(contact_matrix):
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
-    mask_Hi = np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "H", 1, 0)
-    mask_Hj = np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "H", 1, 0)
+    mask_Hi = np.logical_or(
+        np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "H", 1, 0),
+        np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "HN", 1, 0),
+    )
+    mask_Hj = np.logical_or(
+        np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "H", 1, 0),
+        np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "HN", 1, 0),
+    )
     mask_i = np.logical_and(contact_matrix["ai"].str.startswith("H"), mask_Hi)
     mask_j = np.logical_and(contact_matrix["aj"].str.startswith("H"), mask_Hj)
     mask = np.logical_or(mask_i, mask_j)
@@ -947,8 +946,8 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    for ref in args.input_refs.keys():
-        md_ensembles =[args.input_refs[ref]["reference"]] + args.input_refs[ref]["train"] if args.egos == "production" else []
+    for ref in args.input_refs:
+        md_ensembles = [ref["reference"]] + ref["train"] if args.egos == "production" else []
 
         if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
             raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
