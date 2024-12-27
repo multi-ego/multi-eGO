@@ -1,53 +1,58 @@
 import numpy as np
-import sys
+
+# import sys
 import argparse
 import os
 import parmed as pmd
 import warnings
 import pandas as pd
 
+
 def find_atom_start(top, res_num):
-    '''
-    Finds the starting atom associated to the residue 
-    '''
+    """
+    Finds the starting atom associated to the residue
+    """
     atom_idx = 0
 
-    for i in range(res_num-1):
+    for i in range(res_num - 1):
         atom_idx += len(top.residues[i].atoms)
 
     return atom_idx
 
+
 def find_atom_end(top, res_num):
-    '''
-    Finds the ending atom associated to the residue 
-    '''
+    """
+    Finds the ending atom associated to the residue
+    """
     atom_idx = 0
 
     for i in range(res_num):
         atom_idx += len(top.residues[i].atoms)
 
-    return atom_idx -1
+    return atom_idx - 1
+
 
 def dom_range(ranges_str):
-    '''
-    Reads the ranges given in input as a string and puts them in output 
+    """
+    Reads the ranges given in input as a string and puts them in output
     as a list of tuples checking that the ranges are non-decreasing and non-overlapping
-    '''
+    """
 
     print("\nReading domain ranges in which inserting intramats")
-    doms = [ (int(r.split("-")[0]), int(r.split("-")[1])) for r in ranges_str]
+    doms = [(int(r.split("-")[0]), int(r.split("-")[1])) for r in ranges_str]
 
-    if not all([ x[0]<=x[1] for x in doms]):
+    if not all([x[0] <= x[1] for x in doms]):
         raise ValueError("Elements in each range should be non-decreasing e.g. dom_res 1-10 11-20 ...")
-    
-    if not all([ x1[1]<x2[0] for x1, x2 in zip(doms[:-1], doms[1:])]):
+
+    if not all([x1[1] < x2[0] for x1, x2 in zip(doms[:-1], doms[1:])]):
         raise ValueError("Ranges should not overlap e.g. dom_res 1-10 11-20 ...")
 
     return doms
 
+
 # TODO should re-use multiego reading topology function
 def read_topologies(top):
-    '''
+    """
     Reads the input topologies using parmed. Ignores warnings to prevent printing
     of GromacsWarnings regarding 1-4 interactions commonly seen when using
     parmed in combination with multi-eGO topologies.
@@ -58,18 +63,18 @@ def read_topologies(top):
         Path to the multi-eGO topology obtained from gmx pdb2gmx with multi-ego-basic force fields
     target_top : str
         Path to the toplogy of the system on which the analysis is to be performed
-    '''
+    """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         topology = pmd.load_file(top)
 
-    #Return topology and a dataframe with:
-    #molecule name, number of molecules?, residue list, atom_list_per_residue 
+    # Return topology and a dataframe with:
+    # molecule name, number of molecules?, residue list, atom_list_per_residue
     top_df = pd.DataFrame()
-    n_mol=len(list(topology.molecules.keys()))
-    mol_names=list(topology.molecules.keys())
+    # n_mol = len(list(topology.molecules.keys()))
+    mol_names = list(topology.molecules.keys())
     top_df["name"] = mol_names
-    mol_list=np.arange(1,n_mol+1,1)
+    # mol_list = np.arange(1, n_mol + 1, 1)
     res = []
     atoms = []
     atoms_name = []
@@ -77,20 +82,20 @@ def read_topologies(top):
     for name in mol_names:
         res.append([r.name for r in topology.molecules.values().mapping[name][0].residues])
         atoms.append([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])
-        atoms_name.append([ [a.type for a in r.atoms] for r in topology.molecules.values().mapping[name][0].residues])
+        atoms_name.append([[a.type for a in r.atoms] for r in topology.molecules.values().mapping[name][0].residues])
         tot_num_atoms.append(np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])))
     top_df["residues"] = res
     top_df["atoms_per_res"] = atoms
     top_df["tot_atoms"] = tot_num_atoms
     top_df["atoms_name"] = atoms_name
 
-    return topology,  top_df
+    return topology, top_df
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TODO!")
     parser.add_argument("--intra", type=str, required=True, help="intramat to work on")
-    parser.add_argument("--top", type=str, required = True)
+    parser.add_argument("--top", type=str, required=True)
     parser.add_argument(
         "--dom_res",
         nargs="+",
@@ -100,7 +105,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--out", type=str, default="./", help="path for ouput")
-    parser.add_argument("--invert", action='store_true', default=False, help="Inbert domain mask")
+    parser.add_argument("--invert", action="store_true", default=False, help="Inbert domain mask")
 
     args = parser.parse_args()
 
@@ -124,7 +129,7 @@ if __name__ == "__main__":
     n_res = len(top_df.residues[0])
 
     ranges = dom_range(args.dom_res)
-    
+
     print(f"\n Total number of residues {n_res} and total number of atoms {n_atoms} \n")
 
     # read intramat and check consistency
@@ -138,15 +143,15 @@ if __name__ == "__main__":
     domain_mask = np.full(dim, False)
     for r in ranges:
         start = find_atom_start(topology_mego, r[0])
-        end = find_atom_end (topology_mego, r[1])
+        end = find_atom_end(topology_mego, r[1])
         print(f"  Domain range: {r[0]}-{r[1]}")
         print(f"     Atom index range start-end: {start+1} - {end+1}")
         print(f"     Number of atoms in domain range:  {end+1 - (start)}")
         print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
-        print(f"\n")
-        map_appo = np.array([ True if x >= start and x <= end else False for x in range(dim)])
+        print("\n")
+        map_appo = np.array([True if x >= start and x <= end else False for x in range(dim)])
         domain_mask = np.logical_or(domain_mask, map_appo)
-    domain_mask_linear = (domain_mask * domain_mask[:,np.newaxis]).reshape(dim**2)
+    domain_mask_linear = (domain_mask * domain_mask[:, np.newaxis]).reshape(dim**2)
     if args.invert:
         domain_mask_linear = np.logical_not(domain_mask_linear)
     print(domain_mask_linear)
