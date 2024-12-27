@@ -1,10 +1,11 @@
 ---
 - system: ttrref
 - egos: production
-- epsilon: 0.1
-- reference: ref_intra,ref_inter
-- train: native_MD,fibril_MD,fibril_check
-- inter_epsilon: 0.2
+
+# - epsilon: 0.1
+# - reference: ref_intra,ref_inter
+# - train: native_MD,fibril_MD,fibril_check
+# - inter_epsilon: 0.2
 - no_header
 - symmetry:
   - ARG NH1 NH2
@@ -17,3 +18,13 @@
   - TYR CE1 CE2
   - VAL CG1 CG2
   - SER O1 O2
+
+- input_refs:
+  - reference: ref_intra
+    train: native_MD,fibril_check
+    matrix: intramat_1_1
+    epsilon: 0.1
+  - reference: ref_inter
+    train: fibril_MD
+    matrix: intermat_1_1
+    epsilon: 0.2

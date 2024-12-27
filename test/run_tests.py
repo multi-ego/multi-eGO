@@ -29,6 +29,8 @@ def read_infile(path):
     test_systems = []
     with open(path, "r") as f:
         for line in f.readlines():
+            if line[0] == "#":
+                continue
             line = line.replace("\n", "").split(" ")
             system_index = line.index("--system") + 1
 
