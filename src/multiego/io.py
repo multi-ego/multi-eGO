@@ -6,6 +6,48 @@ import yaml
 import git
 import time
 
+# import sys
+import re
+
+
+def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
+    # TODO UGLY, make it nicer
+    new_input = False
+    if args.config:
+
+        config_yaml, new_input = read_config(args.config, args_dict)
+        # check if yaml file is empty
+        if not config_yaml:
+            print("WARNING: Configuration file was parsed, but the dictionary is empty")
+        elif new_input:
+            args = combine_configurations(config_yaml, args, args_dict_global)
+            args = read_new_input(args, args_dict_single_reference)
+        else:
+            args = combine_configurations(config_yaml, args, args_dict)
+            args = convert_command_line_to_new_input(args, args_dict_single_reference)
+
+    # if not new_input convert command line to input_ref dictionary format
+    else:
+        if not new_input:
+            if args.egos == "production" and not args.reference:
+                args.reference = ["reference"]
+
+            args = convert_command_line_to_new_input(args, args_dict_single_reference)
+    if new_input and (args.reference or args.train or args.epsilon):
+        raise ValueError(
+            """--reference, --train and --epsilon should not be used with input_refs. Either use the firsts or use the second via yml config file. e.g.:
+--reference ref --train training --epsilon 0.3\n
+or in config file use:
+- input_refs:
+  - reference: ref
+    train: training
+    matrix: intramat_1_1
+    epsilon: 0.2
+"""
+        )
+
+    return args
+
 
 def read_config(file, args_dict):
     """
@@ -21,6 +63,7 @@ def read_config(file, args_dict):
     args_dict : dict
         The content of the YAML file as a dictionary
     """
+    new_input = False
     with open(file, "r") as f:
         yml = yaml.safe_load(f)
     # check if the keys in the yaml file are valid
@@ -31,8 +74,92 @@ def read_config(file, args_dict):
             key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
             raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
+        if key == "input_refs":
+            new_input = True
+            print("\n\n New input format detected. \n\n")
+    return yml, new_input
 
-    return yml
+
+def read_new_input(args, args_dict_single_input):
+    """
+    converts new inputs structure into the correct dataframe structure and combines it with the other args
+
+    Parameters
+    ----------
+    yml : dict
+        The configuration from the YAML file
+    args : dict
+        The command-line arguments
+
+    Returns
+    -------
+    dict
+        The combined configuration
+    """
+
+    if args.egos != "production":
+        raise ValueError("You should use 'input_refs' only with egos 'production'")
+
+    # Check for invalid keys in input_dict
+    input_refs = []
+    valid_keys = {key.lstrip("--") for key in args_dict_single_input.keys()}
+    for ref in args.input_refs:
+
+        input_keys = set(ref.keys())
+
+        # Raise an error if there are any unexpected keys
+        unexpected_keys = input_keys - valid_keys
+        if unexpected_keys:
+            raise ValueError(f"Unexpected keys in {ref}: \n{unexpected_keys}")
+
+        # Combine dictionaries with defaults
+        combined_dict = {}
+        for key, metadata in args_dict_single_input.items():
+            stripped_key = key.lstrip("--")
+            value = ref.get(stripped_key, metadata.get("default"))
+
+            expected_type = metadata["type"]
+            try:
+                if value is not None:
+                    value = expected_type(value)
+                    ref[stripped_key] = value
+            except (ValueError, TypeError):
+                raise ValueError(
+                    f"Invalid type for key '{stripped_key}'. Expected {expected_type}, got {type(value).__name__}."
+                )
+
+            combined_dict[stripped_key] = ref.get(stripped_key, metadata.get("default"))
+
+        input_refs.append(combined_dict)
+
+    args.input_refs = input_refs
+
+    return args
+
+
+def convert_command_line_to_new_input(args, args_dict_single_input):
+    dict_input_ref = []
+    appo = 0
+    for reference in args.reference:
+
+        matrices_intra = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intramat" in m]
+        matrices_inter = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intermat" in m]
+        matrices = matrices_intra + matrices_inter
+        # check that in reference folder only 1 matrix of the same pair is present
+        mat_type = [m.split(".ndx")[0] for m in matrices]
+        if len(set(mat_type)) != len(mat_type):
+            raise ValueError("In the reference folder, only one matrix of the same pair is allowed")
+
+        for mat in mat_type:
+            dict_input_ref.append({"reference": reference, "train": args.train, "matrix": mat, "epsilon": args.epsilon})
+            for var in vars(args):
+                if var in [key.lstrip("--") for key, _ in args_dict_single_input.items()]:
+                    if var not in ["reference", "train", "epsilon"]:
+                        dict_input_ref[appo].update({var: getattr(args, var)})
+            appo += 1
+    args.input_refs = dict_input_ref
+
+    return args
 
 
 def combine_configurations(yml, args, args_dict):
@@ -57,10 +184,15 @@ def combine_configurations(yml, args, args_dict):
     for element in yml:
         if type(element) is dict:
             key, value = list(element.items())[0]
+            if key == "input_refs":
+                setattr(args, key, value)
+                continue
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
-            if hasattr(args, key) and getattr(args, key) is default_value:
+
+            # TODO go back using is instead of ==
+            if hasattr(args, key) and getattr(args, key) == default_value:
                 setattr(args, key, value)
         else:
             if hasattr(args, element):
@@ -114,9 +246,9 @@ def check_matrix_compatibility(input_path):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found.
     """
-    matrix_paths = glob.glob(f"{input_path}/int??mat_?_?.ndx")
-    matrix_paths_gz = glob.glob(f"{input_path}/int??mat_?_?.ndx.gz")
-    matrix_paths_h5 = glob.glob(f"{input_path}/int??mat_?_?.ndx.h5")
+    matrix_paths = glob.glob(f"{input_path}.ndx")
+    matrix_paths_gz = glob.glob(f"{input_path}.ndx.gz")
+    matrix_paths_h5 = glob.glob(f"{input_path}.ndx.h5")
     stripped_matrix_paths_gz_set = set(map(strip_gz_h5_suffix, matrix_paths_gz))
     stripped_matrix_paths_h5_set = set(map(strip_gz_h5_suffix, matrix_paths_h5))
     matrix_paths_set = set(matrix_paths)
@@ -141,6 +273,25 @@ def check_matrix_compatibility(input_path):
     # Check if there are any common elements and raise an error if there are
     if common_files:
         raise ValueError(f"Error: Some files have both gz and hdf5 versions: {common_files}")
+
+
+def check_mat_name(mat_name, ref):
+    # Check name of matrix is either intramat_X_X or intermat_X_Y
+    pattern = r"^(intra|inter)mat_\d+_\d+$"
+    if not re.match(pattern, mat_name):
+        raise ValueError(
+            f"Wrong input matrix format {mat_name} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+        )
+
+
+def check_mat_extension(extension, ref):
+    # pattern = r"^ndx(\.gz)?(\.h5)?$"
+    # checks the extension of matrix name is either none or, .ndx(.gz/.h5)
+    pattern = r"^(|\.ndx(\.gz|\.h5)?)$"
+    if not re.match(pattern, extension):
+        raise ValueError(
+            f"Wrong input matrix format extension: {extension} in reference {ref}. \nContact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5)"
+        )
 
 
 def check_matrix_format(args):
@@ -169,12 +320,23 @@ def check_matrix_format(args):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found in any directory.
     """
-    for simulation in args.reference:
-        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
-        check_matrix_compatibility(simulation_path)
-    for simulation in args.train:
-        simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
-        check_matrix_compatibility(simulation_path)
+    for ref in args.input_refs:
+        mat_appo = ref["matrix"].split(".")
+        if len(mat_appo) > 1:
+            extension = ref["matrix"].split(mat_appo[0])[1]
+        else:
+            extension = ""
+
+        # Set name of matrix without extension
+        ref["matrix"] = mat_appo[0]
+
+        matrix_ref_path = f"{args.root_dir}/inputs/{args.system}/{ref['reference']}/{ref['matrix']}"
+        check_mat_name(ref["matrix"], ref)
+        check_mat_extension(extension, ref)
+        check_matrix_compatibility(matrix_ref_path)
+        for train in ref["train"]:
+            matrix_train_path = f"{args.root_dir}/inputs/{args.system}/{train}/{ref['matrix']}"
+            check_matrix_compatibility(matrix_train_path)
 
 
 def read_symmetry_file(path):
@@ -245,7 +407,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     print("\t\t-", f"Reading {path}")
     st = time.time()
     # Define column names and data types directly during read
-    col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
+    col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
     col_types = {
         "molecule_name_ai": "category",
         "ai": "category",
@@ -254,13 +416,13 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         "distance": np.float64,
         "probability": np.float64,
         "cutoff": np.float64,
-        "intra_domain": "Int64",  # Allows for integer with NaNs, which can be cast later
+        "learned": "Int64",  # Allows for integer with NaNs, which can be cast later
     }
 
     contact_matrix = pd.DataFrame()
     if not h5:
         contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
-        contact_matrix["intra_domain"] = contact_matrix["intra_domain"].fillna(1).astype(bool)
+        contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
     else:
         contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)
 
@@ -312,8 +474,18 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if len_ai * len_aj != len(contact_matrix):
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
-    mask_Hi = np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "H", 1, 0)
-    mask_Hj = np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "H", 1, 0)
+    mask_Hi = np.invert(
+        np.logical_or(
+            np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) == "H", 1, 0),
+            np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) == "HN", 1, 0),
+        )
+    )
+    mask_Hj = np.invert(
+        np.logical_or(
+            np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) == "H", 1, 0),
+            np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) == "HN", 1, 0),
+        )
+    )
     mask_i = np.logical_and(contact_matrix["ai"].str.startswith("H"), mask_Hi)
     mask_j = np.logical_and(contact_matrix["aj"].str.startswith("H"), mask_Hj)
     mask = np.logical_or(mask_i, mask_j)
@@ -778,28 +950,29 @@ def check_files_existence(args):
     FileNotFoundError
         If any of the files or directories does not exist
     """
-    md_ensembles = args.reference + args.train if args.egos == "production" else []
+    for ref in args.input_refs:
+        md_ensembles = [ref["reference"]] + ref["train"] if args.egos == "production" else []
 
-    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
-        raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
-    if not os.path.exists(f"{args.root_dir}/inputs/{args.system}/topol.top"):
-        raise FileNotFoundError(f"File {args.root_dir}/inputs/{args.system}/topol.top does not exist.")
+        if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
+            raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
+        if not os.path.exists(f"{args.root_dir}/inputs/{args.system}/topol.top"):
+            raise FileNotFoundError(f"File {args.root_dir}/inputs/{args.system}/topol.top does not exist.")
 
-    for ensemble in md_ensembles:
-        ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
-        if not os.path.exists(ensemble):
-            raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
-        else:
-            top_files = glob.glob(f"{ensemble}/*.top")
-            if not top_files:
-                raise FileNotFoundError(f"No .top files found in {ensemble}/")
-            ndx_files = glob.glob(f"{ensemble}/*.ndx")
-            ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
-            ndx_files += glob.glob(f"{ensemble}/*.h5")
-            if not ndx_files and not args.egos == "mg":
-                raise FileNotFoundError(
-                    f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
-                )
+        for ensemble in md_ensembles:
+            ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
+            if not os.path.exists(ensemble):
+                raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
+            else:
+                top_files = glob.glob(f"{ensemble}/*.top")
+                if not top_files:
+                    raise FileNotFoundError(f"No .top files found in {ensemble}/")
+                ndx_files = glob.glob(f"{ensemble}/*.ndx")
+                ndx_files += glob.glob(f"{ensemble}/*.ndx.gz")
+                ndx_files += glob.glob(f"{ensemble}/*.h5")
+                if not ndx_files and not args.egos == "mg":
+                    raise FileNotFoundError(
+                        f"contact matrix input file(s) (e.g., intramat_1_1.ndx, etc.) were not found in {ensemble}/"
+                    )
 
 
 def read_intra_file(file_path):

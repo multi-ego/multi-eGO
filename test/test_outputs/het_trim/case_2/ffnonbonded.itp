@@ -102,13 +102,13 @@ NE2_Protein_chain_C_12              7 16.0067     0.0     A 9.142562e-04 1.89969
   OG_Protein_chain_A_2  CD1_Protein_chain_A_4     1 5.079472e-03 3.004762e-05 ; 0.425271  0.214668     0.280982        0.070245      0.109736      0.142312        True  train         4        20
    C_Protein_chain_A_2  OE1_Protein_chain_A_3     1 1.449672e-03 2.067138e-06 ; 0.335493  0.254162     0.363201        0.090800      0.109736      0.142314        True  train         5        12
    C_Protein_chain_A_2  OE2_Protein_chain_A_3     1 1.118775e-03 1.230076e-06 ; 0.321266  0.254386     0.363731        0.090933      0.109736      0.142314        True  train         5        13
-   O_Protein_chain_A_2    O_Protein_chain_A_2     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
+   O_Protein_chain_A_2    O_Protein_chain_A_2     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
    O_Protein_chain_A_2   CD_Protein_chain_A_3     1 1.201049e-03 1.416874e-06 ; 0.325059  0.254525     0.364060        0.091015      0.109736      0.142314        True  train         6        11
-   O_Protein_chain_A_2  OE1_Protein_chain_A_3     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        12
-   O_Protein_chain_A_2  OE2_Protein_chain_A_3     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
-   O_Protein_chain_A_2    O_Protein_chain_A_3     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
-   O_Protein_chain_A_2   O1_Protein_chain_A_4     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        23
-   O_Protein_chain_A_2   O2_Protein_chain_A_4     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
+   O_Protein_chain_A_2  OE1_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        12
+   O_Protein_chain_A_2  OE2_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
+   O_Protein_chain_A_2    O_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
+   O_Protein_chain_A_2   O1_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        23
+   O_Protein_chain_A_2   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
    N_Protein_chain_A_3  OE1_Protein_chain_A_3     1 3.312234e-04 9.648906e-08 ; 0.257470  0.284252     0.441649        0.110412      0.109736      0.142314        True  train         7        12
    N_Protein_chain_A_3  OE2_Protein_chain_A_3     1 1.728794e-04 2.421280e-08 ; 0.227886  0.308590     0.517332        0.129333      0.109736      0.142314        True  train         7        13
    N_Protein_chain_A_3   CG_Protein_chain_A_4     1 1.118207e-02 1.214565e-04 ; 0.470598  0.257373     0.385538        0.096384      0.109736      0.133740        True  train         7        19
@@ -118,45 +118,45 @@ NE2_Protein_chain_C_12              7 16.0067     0.0     A 9.142562e-04 1.89969
   CB_Protein_chain_A_3  CD2_Protein_chain_A_4     1 5.293725e-03 7.916553e-05 ; 0.496359  0.088497     0.123981        0.030995      0.109736      0.138129        True  train         9        21
   CD_Protein_chain_A_3   CA_Protein_chain_A_4     1 1.290916e-02 1.632015e-04 ; 0.482656  0.255277     0.380157        0.095039      0.109736      0.133740        True  train        11        17
   CD_Protein_chain_A_3   CG_Protein_chain_A_4     1 7.297202e-03 5.355297e-05 ; 0.440830  0.248582     0.363465        0.090866      0.109736      0.133740        True  train        11        19
- OE1_Protein_chain_A_3  OE1_Protein_chain_A_3     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        12
- OE1_Protein_chain_A_3  OE2_Protein_chain_A_3     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        13
- OE1_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        15
+ OE1_Protein_chain_A_3  OE1_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        12
+ OE1_Protein_chain_A_3  OE2_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        13
+ OE1_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        15
  OE1_Protein_chain_A_3    N_Protein_chain_A_4     1 1.520074e-03 4.058505e-06 ; 0.372463  0.142332     0.175593        0.043898      0.109736      0.142314        True  train        12        16
  OE1_Protein_chain_A_3   CA_Protein_chain_A_4     1 4.705597e-03 3.698892e-05 ; 0.445905  0.149657     0.187218        0.046805      0.109736      0.133740        True  train        12        17
  OE1_Protein_chain_A_3   CG_Protein_chain_A_4     1 2.443139e-03 6.003269e-06 ; 0.367344  0.248570     0.363435        0.090859      0.109736      0.133740        True  train        12        19
  OE1_Protein_chain_A_3  CD1_Protein_chain_A_4     1 3.634436e-03 1.624268e-05 ; 0.405854  0.203309     0.260986        0.065247      0.109736      0.142312        True  train        12        20
  OE1_Protein_chain_A_3  CD2_Protein_chain_A_4     1 2.611604e-03 1.208978e-05 ; 0.408243  0.141038     0.174123        0.043531      0.109736      0.142312        True  train        12        21
- OE1_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.109736      0.056012        True  train        12        23
- OE1_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.109736      0.056012        True  train        12        24
- OE2_Protein_chain_A_3  OE2_Protein_chain_A_3     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
+ OE1_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.109736      0.056012        True  train        12        23
+ OE1_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.109736      0.056012        True  train        12        24
+ OE2_Protein_chain_A_3  OE2_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
  OE2_Protein_chain_A_3    C_Protein_chain_A_3     1 3.029853e-03 9.109796e-06 ; 0.379910  0.251927     0.357964        0.089491      0.109736      0.142314        True  train        13        14
- OE2_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     0.000000        0.000000      0.109736      0.056012        True  train        13        15
+ OE2_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.109736      0.056012        True  train        13        15
  OE2_Protein_chain_A_3    N_Protein_chain_A_4     1 1.365429e-03 3.670115e-06 ; 0.372879  0.126999     0.158938        0.039734      0.109736      0.142314        True  train        13        16
- OE2_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.109736      0.056012        True  train        13        23
- OE2_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.109736      0.056012        True  train        13        24
-   O_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
+ OE2_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.109736      0.056012        True  train        13        23
+ OE2_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.109736      0.056012        True  train        13        24
+   O_Protein_chain_A_3    O_Protein_chain_A_3     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
    O_Protein_chain_A_3  CD2_Protein_chain_A_4     1 1.661963e-03 2.713816e-06 ; 0.343157  0.254450     0.363885        0.090971      0.109736      0.142312        True  train        15        21
-   O_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        23
-   O_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
-  O1_Protein_chain_A_4   O1_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        23
-  O1_Protein_chain_A_4   O2_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        24
-  O2_Protein_chain_A_4   O2_Protein_chain_A_4     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
-   O_Protein_chain_A_2    O_Protein_chain_B_8     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
-   O_Protein_chain_A_2   O1_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
-   O_Protein_chain_A_2   O2_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
+   O_Protein_chain_A_3   O1_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        23
+   O_Protein_chain_A_3   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
+  O1_Protein_chain_A_4   O1_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        23
+  O1_Protein_chain_A_4   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        24
+  O2_Protein_chain_A_4   O2_Protein_chain_A_4     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
+   O_Protein_chain_A_2    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
+   O_Protein_chain_A_2   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
+   O_Protein_chain_A_2   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
   CA_Protein_chain_A_3   CD_Protein_chain_B_9     1 1.632838e-02 2.401444e-04 ; 0.494981  0.277558     0.840188        0.090831      0.016301      0.023564       False  train         8        12
   CB_Protein_chain_A_3   CD_Protein_chain_B_9     1 8.249527e-03 7.588990e-05 ; 0.457747  0.224189     0.394383        0.090975      0.016301      0.025025       False  train         9        12
- OE1_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12         6
- OE1_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        14
- OE1_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        15
- OE2_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13         6
- OE2_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
- OE2_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        15
+ OE1_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12         6
+ OE1_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        14
+ OE1_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        15
+ OE2_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13         6
+ OE2_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
+ OE2_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        15
    C_Protein_chain_A_3   CD_Protein_chain_B_9     1 5.660211e-03 2.782378e-05 ; 0.412348  0.287865     0.783099        0.090893      0.016301      0.026455       False  train        14        12
-   O_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15         6
+   O_Protein_chain_A_3    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15         6
    O_Protein_chain_A_3   CD_Protein_chain_B_9     1 8.478782e-03 4.591768e-05 ; 0.419058  0.391406     0.798440        0.022137      0.016301      0.026456       False  train        15        12
-   O_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
-   O_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
+   O_Protein_chain_A_3   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
+   O_Protein_chain_A_3   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
    N_Protein_chain_A_4   CD_Protein_chain_B_9     1 2.876679e-03 6.888144e-06 ; 0.365765  0.300345     0.911647        0.090974      0.016301      0.026455       False  train        16        12
   CA_Protein_chain_A_4   CA_Protein_chain_B_9     1 1.321374e-02 2.904666e-04 ; 0.529271  0.150278     0.197551        0.090972      0.016301      0.021083       False  train        17         8
   CA_Protein_chain_A_4   CB_Protein_chain_B_9     1 1.479724e-02 2.860133e-04 ; 0.518045  0.191388     0.335223        0.090968      0.016301      0.021083       False  train        17         9
@@ -184,112 +184,112 @@ NE2_Protein_chain_C_12              7 16.0067     0.0     A 9.142562e-04 1.89969
  CD1_Protein_chain_A_4  CG1_Protein_chain_B_9     1 5.334948e-03 4.038885e-05 ; 0.443121  0.176173     0.218257        0.090849      0.016301      0.025025       False  train        20        10
  CD1_Protein_chain_A_4   CD_Protein_chain_B_9     1 3.281896e-03 1.064635e-05 ; 0.384751  0.252923     0.512932        0.090885      0.016301      0.026455       False  train        20        12
    C_Protein_chain_A_4   CD_Protein_chain_B_9     1 1.081676e-02 9.584227e-05 ; 0.454894  0.305195     0.839112        0.078960      0.016301      0.026455       False  train        22        12
-  O1_Protein_chain_A_4    O_Protein_chain_B_8     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23         6
-  O1_Protein_chain_A_4   O1_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        14
-  O1_Protein_chain_A_4   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        15
-  O2_Protein_chain_A_4    O_Protein_chain_B_8     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24         6
-  O2_Protein_chain_A_4   O1_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        14
-  O2_Protein_chain_A_4   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        15
-   O_Protein_chain_A_2    O_Protein_chain_C_9     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         7
-   O_Protein_chain_A_2 OE1_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
-   O_Protein_chain_A_2 OE2_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
-   O_Protein_chain_A_2   O_Protein_chain_C_10     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        16
-   O_Protein_chain_A_2 OD1_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        21
-   O_Protein_chain_A_2 OD2_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        22
-   O_Protein_chain_A_2   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
-   O_Protein_chain_A_2 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        30
-   O_Protein_chain_A_2  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        33
-   O_Protein_chain_A_2  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        34
- OE1_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12         7
- OE1_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        13
- OE1_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        14
- OE1_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        16
- OE1_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        21
- OE1_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        22
- OE1_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        24
- OE1_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        30
- OE1_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        33
- OE1_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        12        34
- OE2_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13         7
- OE2_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
- OE2_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
- OE2_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        16
- OE2_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        21
- OE2_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        22
- OE2_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        24
- OE2_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        30
- OE2_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        33
- OE2_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        34
-   O_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15         7
-   O_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        13
-   O_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
-   O_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        16
-   O_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        21
-   O_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        22
-   O_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
-   O_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        30
-   O_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        33
-   O_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        34
-  O1_Protein_chain_A_4    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23         7
-  O1_Protein_chain_A_4 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        13
-  O1_Protein_chain_A_4 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        14
-  O1_Protein_chain_A_4   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        16
-  O1_Protein_chain_A_4 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        21
-  O1_Protein_chain_A_4 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        22
-  O1_Protein_chain_A_4   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        24
-  O1_Protein_chain_A_4 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        30
-  O1_Protein_chain_A_4  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        33
-  O1_Protein_chain_A_4  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        23        34
-  O2_Protein_chain_A_4    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24         7
-  O2_Protein_chain_A_4 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        13
-  O2_Protein_chain_A_4 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        14
-  O2_Protein_chain_A_4   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        16
-  O2_Protein_chain_A_4 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        21
-  O2_Protein_chain_A_4 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        22
-  O2_Protein_chain_A_4   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
-  O2_Protein_chain_A_4 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        30
-  O2_Protein_chain_A_4  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        33
-  O2_Protein_chain_A_4  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        34
+  O1_Protein_chain_A_4    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23         6
+  O1_Protein_chain_A_4   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        14
+  O1_Protein_chain_A_4   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        15
+  O2_Protein_chain_A_4    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24         6
+  O2_Protein_chain_A_4   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        14
+  O2_Protein_chain_A_4   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        15
+   O_Protein_chain_A_2    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         7
+   O_Protein_chain_A_2 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
+   O_Protein_chain_A_2 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
+   O_Protein_chain_A_2   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        16
+   O_Protein_chain_A_2 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        21
+   O_Protein_chain_A_2 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        22
+   O_Protein_chain_A_2   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
+   O_Protein_chain_A_2 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        30
+   O_Protein_chain_A_2  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        33
+   O_Protein_chain_A_2  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        34
+ OE1_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12         7
+ OE1_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        13
+ OE1_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        14
+ OE1_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        16
+ OE1_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        21
+ OE1_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        22
+ OE1_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        24
+ OE1_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        30
+ OE1_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        33
+ OE1_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        12        34
+ OE2_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13         7
+ OE2_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
+ OE2_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
+ OE2_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        16
+ OE2_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        21
+ OE2_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        22
+ OE2_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        24
+ OE2_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        30
+ OE2_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        33
+ OE2_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        34
+   O_Protein_chain_A_3    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15         7
+   O_Protein_chain_A_3 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        13
+   O_Protein_chain_A_3 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
+   O_Protein_chain_A_3   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        16
+   O_Protein_chain_A_3 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        21
+   O_Protein_chain_A_3 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        22
+   O_Protein_chain_A_3   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
+   O_Protein_chain_A_3 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        30
+   O_Protein_chain_A_3  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        33
+   O_Protein_chain_A_3  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        34
+  O1_Protein_chain_A_4    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23         7
+  O1_Protein_chain_A_4 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        13
+  O1_Protein_chain_A_4 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        14
+  O1_Protein_chain_A_4   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        16
+  O1_Protein_chain_A_4 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        21
+  O1_Protein_chain_A_4 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        22
+  O1_Protein_chain_A_4   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        24
+  O1_Protein_chain_A_4 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        30
+  O1_Protein_chain_A_4  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        33
+  O1_Protein_chain_A_4  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        23        34
+  O2_Protein_chain_A_4    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24         7
+  O2_Protein_chain_A_4 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        13
+  O2_Protein_chain_A_4 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        14
+  O2_Protein_chain_A_4   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        16
+  O2_Protein_chain_A_4 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        21
+  O2_Protein_chain_A_4 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        22
+  O2_Protein_chain_A_4   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
+  O2_Protein_chain_A_4 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        30
+  O2_Protein_chain_A_4  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        33
+  O2_Protein_chain_A_4  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        34
   CB_Protein_chain_B_8   CD_Protein_chain_B_9     1 7.975926e-03 1.176204e-04 ; 0.495203  0.135213     0.178064        0.044516      0.117311      0.146641        True  train         3        12
   CB_Protein_chain_B_8   O1_Protein_chain_B_9     1 3.105108e-03 9.773654e-06 ; 0.382822  0.246625     0.363245        0.090811      0.117311      0.146644        True  train         3        14
   OG_Protein_chain_B_8   CB_Protein_chain_B_9     1 7.223186e-03 5.347297e-05 ; 0.441470  0.243929     0.363578        0.090894      0.117311      0.142120        True  train         4         9
   OG_Protein_chain_B_8  CG2_Protein_chain_B_9     1 5.112465e-03 2.989626e-05 ; 0.424454  0.218567     0.299230        0.074808      0.117311      0.150946        True  train         4        11
-   O_Protein_chain_B_8    O_Protein_chain_B_8     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
-   O_Protein_chain_B_8   O1_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
-   O_Protein_chain_B_8   O2_Protein_chain_B_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
-  O1_Protein_chain_B_9   O1_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
-  O1_Protein_chain_B_9   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        15
-  O2_Protein_chain_B_9   O2_Protein_chain_B_9     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
-   O_Protein_chain_B_8    O_Protein_chain_C_9     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         7
-   O_Protein_chain_B_8 OE1_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
-   O_Protein_chain_B_8 OE2_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
-   O_Protein_chain_B_8   O_Protein_chain_C_10     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        16
-   O_Protein_chain_B_8 OD1_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        21
-   O_Protein_chain_B_8 OD2_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        22
-   O_Protein_chain_B_8   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
-   O_Protein_chain_B_8 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        30
-   O_Protein_chain_B_8  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        33
-   O_Protein_chain_B_8  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         6        34
-  O1_Protein_chain_B_9    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14         7
-  O1_Protein_chain_B_9 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        13
-  O1_Protein_chain_B_9 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
-  O1_Protein_chain_B_9   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        16
-  O1_Protein_chain_B_9 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        21
-  O1_Protein_chain_B_9 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        22
-  O1_Protein_chain_B_9   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        24
-  O1_Protein_chain_B_9 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        30
-  O1_Protein_chain_B_9  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        33
-  O1_Protein_chain_B_9  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        34
-  O2_Protein_chain_B_9    O_Protein_chain_C_9     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15         7
-  O2_Protein_chain_B_9 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        13
-  O2_Protein_chain_B_9 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
-  O2_Protein_chain_B_9   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        16
-  O2_Protein_chain_B_9 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        21
-  O2_Protein_chain_B_9 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        22
-  O2_Protein_chain_B_9   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
-  O2_Protein_chain_B_9 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        30
-  O2_Protein_chain_B_9  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        33
-  O2_Protein_chain_B_9  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        15        34
+   O_Protein_chain_B_8    O_Protein_chain_B_8     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         6
+   O_Protein_chain_B_8   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
+   O_Protein_chain_B_8   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        15
+  O1_Protein_chain_B_9   O1_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
+  O1_Protein_chain_B_9   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        15
+  O2_Protein_chain_B_9   O2_Protein_chain_B_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        15
+   O_Protein_chain_B_8    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6         7
+   O_Protein_chain_B_8 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        13
+   O_Protein_chain_B_8 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        14
+   O_Protein_chain_B_8   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        16
+   O_Protein_chain_B_8 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        21
+   O_Protein_chain_B_8 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        22
+   O_Protein_chain_B_8   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        24
+   O_Protein_chain_B_8 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        30
+   O_Protein_chain_B_8  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        33
+   O_Protein_chain_B_8  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         6        34
+  O1_Protein_chain_B_9    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14         7
+  O1_Protein_chain_B_9 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        13
+  O1_Protein_chain_B_9 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
+  O1_Protein_chain_B_9   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        16
+  O1_Protein_chain_B_9 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        21
+  O1_Protein_chain_B_9 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        22
+  O1_Protein_chain_B_9   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        24
+  O1_Protein_chain_B_9 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        30
+  O1_Protein_chain_B_9  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        33
+  O1_Protein_chain_B_9  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        34
+  O2_Protein_chain_B_9    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15         7
+  O2_Protein_chain_B_9 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        13
+  O2_Protein_chain_B_9 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        14
+  O2_Protein_chain_B_9   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        16
+  O2_Protein_chain_B_9 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        21
+  O2_Protein_chain_B_9 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        22
+  O2_Protein_chain_B_9   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        24
+  O2_Protein_chain_B_9 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        30
+  O2_Protein_chain_B_9  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        33
+  O2_Protein_chain_B_9  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        15        34
    N_Protein_chain_C_9  CD_Protein_chain_C_10     1 3.875681e-03 1.343465e-05 ; 0.389027  0.279518     0.363563        0.090891      0.071612      0.097654        True  train         1        12
   CA_Protein_chain_C_9   C_Protein_chain_C_11     1 1.507146e-02 2.091999e-04 ; 0.490231  0.271450     0.358946        0.089736      0.071612      0.090675        True  train         2        23
   CA_Protein_chain_C_9  CD_Protein_chain_C_12     1 1.506109e-02 2.218603e-04 ; 0.495113  0.255607     0.316210        0.079052      0.071612      0.090675        True  train         2        29
@@ -321,23 +321,23 @@ NE2_Protein_chain_C_12              7 16.0067     0.0     A 9.142562e-04 1.89969
    C_Protein_chain_C_9   N_Protein_chain_C_12     1 1.296263e-03 1.503503e-06 ; 0.324142  0.279397     0.363222        0.090806      0.071612      0.097654        True  train         6        25
    C_Protein_chain_C_9  CB_Protein_chain_C_12     1 2.556475e-03 5.909657e-06 ; 0.363625  0.276478     0.363899        0.090975      0.071612      0.094239        True  train         6        27
    C_Protein_chain_C_9  CG_Protein_chain_C_12     1 9.585965e-03 1.020779e-04 ; 0.469047  0.225050     0.242738        0.060684      0.071612      0.094239        True  train         6        28
-   O_Protein_chain_C_9    O_Protein_chain_C_9     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7         7
-   O_Protein_chain_C_9 OE1_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        13
-   O_Protein_chain_C_9 OE2_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        14
-   O_Protein_chain_C_9   O_Protein_chain_C_10     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        16
+   O_Protein_chain_C_9    O_Protein_chain_C_9     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7         7
+   O_Protein_chain_C_9 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        13
+   O_Protein_chain_C_9 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        14
+   O_Protein_chain_C_9   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        16
    O_Protein_chain_C_9  CG_Protein_chain_C_11     1 7.561367e-04 5.111951e-07 ; 0.296254  0.279611     0.363824        0.090956      0.071612      0.097654        True  train         7        20
-   O_Protein_chain_C_9 OD1_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        21
-   O_Protein_chain_C_9 OD2_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        22
+   O_Protein_chain_C_9 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        21
+   O_Protein_chain_C_9 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        22
    O_Protein_chain_C_9   C_Protein_chain_C_11     1 1.507563e-03 2.032037e-06 ; 0.332360  0.279614     0.363834        0.090959      0.071612      0.097654        True  train         7        23
-   O_Protein_chain_C_9   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        24
+   O_Protein_chain_C_9   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        24
    O_Protein_chain_C_9   N_Protein_chain_C_12     1 2.093666e-04 3.918904e-08 ; 0.239172  0.279634     0.363889        0.090972      0.071612      0.097654        True  train         7        25
    O_Protein_chain_C_9  CB_Protein_chain_C_12     1 2.934401e-04 7.787942e-08 ; 0.253503  0.276412     0.363707        0.090927      0.071612      0.094240        True  train         7        27
    O_Protein_chain_C_9  CG_Protein_chain_C_12     1 2.736368e-03 6.771185e-06 ; 0.367775  0.276455     0.363831        0.090958      0.071612      0.094240        True  train         7        28
    O_Protein_chain_C_9  CD_Protein_chain_C_12     1 3.538812e-03 1.119880e-05 ; 0.383165  0.279565     0.363696        0.090924      0.071612      0.097654        True  train         7        29
-   O_Protein_chain_C_9 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        30
+   O_Protein_chain_C_9 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        30
    O_Protein_chain_C_9   C_Protein_chain_C_12     1 3.183856e-03 9.064549e-06 ; 0.376472  0.279576     0.363727        0.090932      0.071612      0.097654        True  train         7        32
-   O_Protein_chain_C_9  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        33
-   O_Protein_chain_C_9  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg         7        34
+   O_Protein_chain_C_9  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        33
+   O_Protein_chain_C_9  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg         7        34
   N_Protein_chain_C_10   C_Protein_chain_C_11     1 4.560927e-03 2.355436e-05 ; 0.415754  0.220788     0.230565        0.057641      0.071612      0.097654        True  train         8        23
   N_Protein_chain_C_10   N_Protein_chain_C_12     1 3.047123e-03 8.307834e-06 ; 0.373766  0.279404     0.363240        0.090810      0.071612      0.097654        True  train         8        25
   N_Protein_chain_C_10  CB_Protein_chain_C_12     1 7.969997e-03 5.950991e-05 ; 0.442101  0.266850     0.337333        0.084333      0.071612      0.094239        True  train         8        27
@@ -353,35 +353,35 @@ NE2_Protein_chain_C_12              7 16.0067     0.0     A 9.142562e-04 1.89969
  CD_Protein_chain_C_10   C_Protein_chain_C_11     1 2.649463e-03 1.902157e-05 ; 0.439219  0.092259     0.085103        0.021276      0.071612      0.097653        True  train        12        23
  CD_Protein_chain_C_10   O_Protein_chain_C_11     1 3.338579e-03 1.283552e-05 ; 0.395800  0.217095     0.224056        0.056014      0.071612      0.097654        True  train        12        24
  CD_Protein_chain_C_10  CB_Protein_chain_C_12     1 5.958594e-03 6.583860e-05 ; 0.471943  0.134818     0.119292        0.029823      0.071612      0.094239        True  train        12        27
-OE1_Protein_chain_C_10 OE1_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
-OE1_Protein_chain_C_10 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
-OE1_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        16
+OE1_Protein_chain_C_10 OE1_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        13
+OE1_Protein_chain_C_10 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        14
+OE1_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        16
 OE1_Protein_chain_C_10   N_Protein_chain_C_11     1 2.549163e-04 5.814012e-08 ; 0.247180  0.279421     0.363288        0.090822      0.071612      0.097654        True  train        13        17
 OE1_Protein_chain_C_10  CB_Protein_chain_C_11     1 4.020363e-03 1.462016e-05 ; 0.392146  0.276388     0.363638        0.090909      0.071612      0.094240        True  train        13        19
-OE1_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        13        21
+OE1_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        13        21
 OE1_Protein_chain_C_10 OD2_Protein_chain_C_11     1 2.419642e-03 1.481533e-05 ; 0.427720  0.098794     0.099616        0.024904      0.071612      0.032100        True  train        13        22
 OE1_Protein_chain_C_10   C_Protein_chain_C_11     1 3.319635e-03 1.044890e-05 ; 0.382822  0.263663     0.321503        0.080376      0.071612      0.097654        True  train        13        23
-OE1_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        13        24
-OE1_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        13        30
-OE1_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        13        33
-OE1_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        13        34
-OE2_Protein_chain_C_10 OE2_Protein_chain_C_10     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
-OE2_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        16
+OE1_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        13        24
+OE1_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        13        30
+OE1_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        13        33
+OE1_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        13        34
+OE2_Protein_chain_C_10 OE2_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        14
+OE2_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        16
 OE2_Protein_chain_C_10  CB_Protein_chain_C_11     1 4.970793e-03 2.234199e-05 ; 0.406240  0.276484     0.363913        0.090978      0.071612      0.094240        True  train        14        19
-OE2_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        14        21
-OE2_Protein_chain_C_10 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        22
-OE2_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        24
-OE2_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        14        30
-OE2_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        14        33
-OE2_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        14        34
-  O_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        16
-  O_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        16        21
-  O_Protein_chain_C_10 OD2_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        16        22
-  O_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        24
+OE2_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        14        21
+OE2_Protein_chain_C_10 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        22
+OE2_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        24
+OE2_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        14        30
+OE2_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        14        33
+OE2_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        14        34
+  O_Protein_chain_C_10   O_Protein_chain_C_10     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        16
+  O_Protein_chain_C_10 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        21
+  O_Protein_chain_C_10 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        22
+  O_Protein_chain_C_10   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        24
   O_Protein_chain_C_10  CB_Protein_chain_C_12     1 5.484792e-03 2.720142e-05 ; 0.412957  0.276483     0.363912        0.090978      0.071612      0.094240        True  train        16        27
-  O_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        16        30
-  O_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        16        33
-  O_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        16        34
+  O_Protein_chain_C_10 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        16        30
+  O_Protein_chain_C_10  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        33
+  O_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        16        34
   N_Protein_chain_C_11  CG_Protein_chain_C_12     1 7.606506e-03 5.983059e-05 ; 0.445954  0.241762     0.276870        0.069218      0.071612      0.094239        True  train        17        28
   N_Protein_chain_C_11  O2_Protein_chain_C_12     1 2.920796e-03 7.820534e-06 ; 0.372640  0.272713     0.344874        0.086218      0.071612      0.097654        True  train        17        34
  CA_Protein_chain_C_11  CD_Protein_chain_C_12     1 7.299260e-03 1.176053e-04 ; 0.502564  0.113258     0.101230        0.025308      0.071612      0.090675        True  train        18        29
@@ -391,31 +391,31 @@ OE2_Protein_chain_C_10  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 
  CG_Protein_chain_C_11  CB_Protein_chain_C_12     1 8.493811e-03 9.193091e-05 ; 0.470320  0.196193     0.193405        0.048351      0.071612      0.094239        True  train        20        27
  CG_Protein_chain_C_11   C_Protein_chain_C_12     1 6.175951e-03 3.411366e-05 ; 0.420440  0.279524     0.363581        0.090895      0.071612      0.097653        True  train        20        32
  CG_Protein_chain_C_11  O1_Protein_chain_C_12     1 3.168993e-03 1.036940e-05 ; 0.385306  0.242119     0.272038        0.068010      0.071612      0.097654        True  train        20        33
-OD1_Protein_chain_C_11 OD1_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        21        21
-OD1_Protein_chain_C_11 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        21        22
-OD1_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        21        24
-OD1_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        21        30
-OD1_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        21        33
-OD1_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        21        34
-OD2_Protein_chain_C_11 OD2_Protein_chain_C_11     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        22        22
-OD2_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        22        24
+OD1_Protein_chain_C_11 OD1_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        21        21
+OD1_Protein_chain_C_11 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        21        22
+OD1_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        21        24
+OD1_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        21        30
+OD1_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        21        33
+OD1_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        21        34
+OD2_Protein_chain_C_11 OD2_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        22        22
+OD2_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        22        24
 OD2_Protein_chain_C_11   N_Protein_chain_C_12     1 1.967314e-03 3.460384e-06 ; 0.347436  0.279617     0.363839        0.090960      0.071612      0.097654        True  train        22        25
-OD2_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        22        30
+OD2_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        22        30
 OD2_Protein_chain_C_11   C_Protein_chain_C_12     1 1.875172e-03 6.539576e-06 ; 0.389420  0.134423     0.118016        0.029504      0.071612      0.097654        True  train        22        32
-OD2_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        22        33
-OD2_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     0.000000        0.000000      0.071612      0.032100        True  train        22        34
+OD2_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        22        33
+OD2_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     0.000000        0.000000      0.071612      0.032100        True  train        22        34
   C_Protein_chain_C_11 OE1_Protein_chain_C_12     1 3.374540e-03 1.018749e-05 ; 0.380168  0.279449     0.363367        0.090842      0.071612      0.097654        True  train        23        30
   C_Protein_chain_C_11 NE2_Protein_chain_C_12     1 4.226890e-03 1.566943e-05 ; 0.393404  0.285055     0.379512        0.094878      0.071612      0.097654        True  train        23        31
-  O_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
-  O_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        30
+  O_Protein_chain_C_11   O_Protein_chain_C_11     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        24
+  O_Protein_chain_C_11 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        30
   O_Protein_chain_C_11 NE2_Protein_chain_C_12     1 1.897582e-03 3.219206e-06 ; 0.345349  0.279636     0.363892        0.090973      0.071612      0.097655        True  train        24        31
-  O_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        33
-  O_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        24        34
+  O_Protein_chain_C_11  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        33
+  O_Protein_chain_C_11  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        24        34
  CD_Protein_chain_C_12  O1_Protein_chain_C_12     1 8.672542e-04 6.725095e-07 ; 0.303104  0.279598     0.363788        0.090947      0.071612      0.097654        True  train        29        33
-OE1_Protein_chain_C_12 OE1_Protein_chain_C_12     1 0.000000e+00 3.000001e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        30        30
-OE1_Protein_chain_C_12  O1_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        30        33
-OE1_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 2.428469e-06 ; 0.340495 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        30        34
+OE1_Protein_chain_C_12 OE1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        30        30
+OE1_Protein_chain_C_12  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        30        33
+OE1_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        30        34
 NE2_Protein_chain_C_12  O1_Protein_chain_C_12     1 2.709249e-03 6.564791e-06 ; 0.366490  0.279523     0.363573        0.090893      0.071612      0.097655        True  train        31        33
- O1_Protein_chain_C_12  O1_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        33        33
- O1_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        33        34
- O2_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 1.965819e-06 ; 0.334551 -0.000002     1.000000        1.000000      1.000000      1.000000       False     mg        34        34
+ O1_Protein_chain_C_12  O1_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        33        33
+ O1_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        33        34
+ O2_Protein_chain_C_12  O2_Protein_chain_C_12     1 0.000000e+00 3.000000e-06 ; 0.346545 -0.000003     1.000000        1.000000      1.000000      1.000000       False     mg        34        34
