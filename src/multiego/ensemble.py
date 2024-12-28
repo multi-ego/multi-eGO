@@ -143,7 +143,6 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     # remove un-learned contacts (intra-inter domain)
     contact_matrix["learned"] = prior_matrix["rc_learned"]
     contact_matrix["reference"] = reference["reference"]
-
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
     p_sort = np.sort(contact_matrix["probability"].loc[(contact_matrix["learned"])].to_numpy())[::-1]
@@ -479,7 +478,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             name = name.replace("/", "_")
             # if the training was already read just copy it instead of re-reading it
             if train_name not in computed_contact_matrices:
-                print("\n\n", name, train_name, "\n\n")
                 train_contact_matrices_general[train_name] = io.read_molecular_contacts(
                     path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
                 )

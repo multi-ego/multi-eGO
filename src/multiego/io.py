@@ -474,13 +474,17 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     if len_ai * len_aj != len(contact_matrix):
         raise Exception("The " + simulation + " topology and " + name[0] + " files are inconsistent")
 
-    mask_Hi = np.logical_or(
-        np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "H", 1, 0),
-        np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) != "HN", 1, 0),
+    mask_Hi = np.invert(
+        np.logical_or(
+            np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) == "H", 1, 0),
+            np.where(np.array([a[0] for a in contact_matrix["ai"].str.split("_")]) == "HN", 1, 0),
+        )
     )
-    mask_Hj = np.logical_or(
-        np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "H", 1, 0),
-        np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) != "HN", 1, 0),
+    mask_Hj = np.invert(
+        np.logical_or(
+            np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) == "H", 1, 0),
+            np.where(np.array([a[0] for a in contact_matrix["aj"].str.split("_")]) == "HN", 1, 0),
+        )
     )
     mask_i = np.logical_and(contact_matrix["ai"].str.startswith("H"), mask_Hi)
     mask_j = np.logical_and(contact_matrix["aj"].str.startswith("H"), mask_Hj)
