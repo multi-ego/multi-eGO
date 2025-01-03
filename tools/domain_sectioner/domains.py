@@ -140,7 +140,7 @@ if __name__ == "__main__":
         raise ValueError(f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})")
 
     # define domain mask
-    domain_mask = np.full(dim, False)
+    domain_mask_linear = np.full(dim**2, False)
     for r in ranges:
         start = find_atom_start(topology_mego, r[0])
         end = find_atom_end(topology_mego, r[1])
@@ -150,8 +150,8 @@ if __name__ == "__main__":
         print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
         print("\n")
         map_appo = np.array([True if x >= start and x <= end else False for x in range(dim)])
-        domain_mask = np.logical_or(domain_mask, map_appo)
-    domain_mask_linear = (domain_mask * domain_mask[:, np.newaxis]).reshape(dim**2)
+        domain_mask_linear = np.logical_or(domain_mask_linear, (map_appo * map_appo[:, np.newaxis]).reshape(dim**2))
+    # domain_mask_linear = (domain_mask * domain_mask[:, np.newaxis]).reshape(dim**2)
     if args.invert:
         domain_mask_linear = np.logical_not(domain_mask_linear)
     print(domain_mask_linear)
