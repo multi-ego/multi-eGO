@@ -141,7 +141,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     """
 
     # remove un-learned contacts (intra-inter domain)
-    contact_matrix["learned"] = prior_matrix["rc_learned"]
+    contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution

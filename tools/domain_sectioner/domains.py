@@ -42,10 +42,10 @@ def dom_range(ranges_str):
     doms = [(int(r.split("-")[0]), int(r.split("-")[1])) for r in ranges_str]
 
     if not all([x[0] <= x[1] for x in doms]):
-        raise ValueError("Elements in each range should be non-decreasing e.g. dom_res 1-10 11-20 ...")
+        print("WARNING: Elements in each range should be non-decreasing e.g. dom_res 1-10 11-20 ...")
 
     if not all([x1[1] < x2[0] for x1, x2 in zip(doms[:-1], doms[1:])]):
-        raise ValueError("Ranges should not overlap e.g. dom_res 1-10 11-20 ...")
+        print("WARNING: Ranges should not overlap e.g. dom_res 1-10 11-20 ...")
 
     return doms
 
@@ -144,14 +144,25 @@ if __name__ == "__main__":
     for r in ranges:
         start = find_atom_start(topology_mego, r[0])
         end = find_atom_end(topology_mego, r[1])
-        print(f"  Domain range: {r[0]}-{r[1]}")
-        print(f"     Atom index range start-end: {start+1} - {end+1}")
-        print(f"     Number of atoms in domain range:  {end+1 - (start)}")
-        print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
-        print("\n")
-        map_appo = np.array([True if x >= start and x <= end else False for x in range(dim)])
+        if start >= end:
+            appo_end = end
+            end = start
+            start = appo_end
+            print(f"  Domain range: {r[0]}-{r[1]} INVERTED")
+            print(f"     Atom index range start-end: {start+1} - {end+1}")
+            print(f"     Number of atoms in domain range:  {end+1 - (start)}")
+            print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
+            print("\n")
+            map_appo = np.invert(np.array([True if x >= start and x <= end else False for x in range(dim)]))
+        else:
+            print(f"  Domain range: {r[0]}-{r[1]}")
+            print(f"     Atom index range start-end: {start+1} - {end+1}")
+            print(f"     Number of atoms in domain range:  {end+1 - (start)}")
+            print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
+            print("\n")
+            map_appo = np.array([True if x >= start and x <= end else False for x in range(dim)])
         domain_mask_linear = np.logical_or(domain_mask_linear, (map_appo * map_appo[:, np.newaxis]).reshape(dim**2))
-    # domain_mask_linear = (domain_mask * domain_mask[:, np.newaxis]).reshape(dim**2)
+
     if args.invert:
         domain_mask_linear = np.logical_not(domain_mask_linear)
     print(domain_mask_linear)
