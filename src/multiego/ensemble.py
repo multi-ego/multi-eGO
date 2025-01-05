@@ -141,7 +141,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     """
 
     # remove un-learned contacts (intra-inter domain)
-    contact_matrix["learned"] = prior_matrix["rc_learned"]
+    contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
@@ -1033,7 +1033,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
 
     # add a flag to identify learned contacts
-    meGO_LJ.loc[:, "learned"] = 1
+    # meGO_LJ.loc[:, "learned"] = 1
 
     return meGO_LJ
 

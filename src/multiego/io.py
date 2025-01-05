@@ -11,40 +11,26 @@ import re
 
 
 def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
-    # TODO UGLY, make it nicer
-    new_input = False
+
     if args.config:
 
-        config_yaml, new_input = read_config(args.config, args_dict)
+        config_yaml = read_config(args.config, args_dict)
         # check if yaml file is empty
         if not config_yaml:
             print("WARNING: Configuration file was parsed, but the dictionary is empty")
-        elif new_input:
+        else:
             args = combine_configurations(config_yaml, args, args_dict_global)
             args = read_new_input(args, args_dict_single_reference)
-        else:
-            args = combine_configurations(config_yaml, args, args_dict)
-            args = convert_command_line_to_new_input(args, args_dict_single_reference)
 
-    # if not new_input convert command line to input_ref dictionary format
+    # if config does not exists convert command line to input_ref dictionary format
     else:
-        if not new_input:
-            if args.egos == "production" and not args.reference:
-                args.reference = ["reference"]
+        if args.input_refs:
+            raise ValueError("ERROR: input_refs should be used only with a configuration file")
 
-            args = convert_command_line_to_new_input(args, args_dict_single_reference)
-    if new_input and (args.reference or args.train or args.epsilon):
-        raise ValueError(
-            """--reference, --train and --epsilon should not be used with input_refs. Either use the firsts or use the second via yml config file. e.g.:
---reference ref --train training --epsilon 0.3\n
-or in config file use:
-- input_refs:
-  - reference: ref
-    train: training
-    matrix: intramat_1_1
-    epsilon: 0.2
-"""
-        )
+        if args.egos == "production" and not args.reference:
+            args.reference = ["reference"]
+
+        args = convert_command_line_to_new_input(args, args_dict_single_reference)
 
     return args
 
@@ -63,7 +49,6 @@ def read_config(file, args_dict):
     args_dict : dict
         The content of the YAML file as a dictionary
     """
-    new_input = False
     with open(file, "r") as f:
         yml = yaml.safe_load(f)
     # check if the keys in the yaml file are valid
@@ -74,22 +59,19 @@ def read_config(file, args_dict):
             key = list(element.keys())[0]
         if f"--{key}" not in args_dict:
             raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
-        if key == "input_refs":
-            new_input = True
-            print("\n\n New input format detected. \n\n")
-    return yml, new_input
+    return yml
 
 
 def read_new_input(args, args_dict_single_input):
     """
-    converts new inputs structure into the correct dataframe structure and combines it with the other args
+    Checks the input_ref dictionary has the correct keys, and combines it with the non-specified default arguments for each reference.
 
     Parameters
     ----------
     yml : dict
         The configuration from the YAML file
     args : dict
-        The command-line arguments
+        The command-line arguments with default values
 
     Returns
     -------
@@ -158,7 +140,6 @@ def convert_command_line_to_new_input(args, args_dict_single_input):
                         dict_input_ref[appo].update({var: getattr(args, var)})
             appo += 1
     args.input_refs = dict_input_ref
-
     return args
 
 
@@ -184,9 +165,6 @@ def combine_configurations(yml, args, args_dict):
     for element in yml:
         if type(element) is dict:
             key, value = list(element.items())[0]
-            if key == "input_refs":
-                setattr(args, key, value)
-                continue
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
