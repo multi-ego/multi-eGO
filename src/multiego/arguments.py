@@ -22,8 +22,8 @@ args_dict = {
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
     "--input_refs": {
-        "type": dict,
-        "default": {},
+        "type": list,
+        "default": [],
         "help": "A list of the training simulations to be included in multi-eGO, "
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
@@ -112,8 +112,8 @@ args_dict_global = {
         "production: creates a force-field combining random coil simulations and training simulations.",
     },
     "--input_refs": {
-        "type": dict,
-        "default": {},
+        "type": list,
+        "default": [],
         "help": "A list of the training simulations to be included in multi-eGO, "
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
