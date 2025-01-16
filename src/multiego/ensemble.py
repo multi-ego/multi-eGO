@@ -792,41 +792,31 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     )
 
     # Define condition where only ai or aj (but not both) starts with "H"
-    h_condition = (
-        train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
-    )
+    h_condition = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
 
-    hh_condition = (
-        train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
-    )
+    hh_condition = train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
 
-    pairwise_c12 = (
-        np.sqrt(
-            train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
-        )
+    pairwise_c12 = np.sqrt(
+        train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
     train_dataset.loc[oxygen_mask, "rep"] = 3e-6
     print(train_dataset.to_string())
 
     pairwise_mg_sigma = (
-        (
-            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            / (
-                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-            )
+        train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+        * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+        / (
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
         )
-        ** (1 / 12)
-    )
+    ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
     train_dataset.loc[oxygen_mask, "mg_sigma"] = (3e-6) ** (1 / 12)
     # Apply the specific value for this condition
-    #train_dataset.loc[h_condition, "mg_sigma"] = 0. 
-    train_dataset.loc[hh_condition, "mg_sigma"] = train_dataset["rep"] ** (1 /12) 
-    train_dataset.loc[ho_mask, "mg_sigma"] = 0.169500 
+    # train_dataset.loc[h_condition, "mg_sigma"] = 0.
+    train_dataset.loc[hh_condition, "mg_sigma"] = train_dataset["rep"] ** (1 / 12)
+    train_dataset.loc[ho_mask, "mg_sigma"] = 0.169500
 
     # Generate the default pairwise_mg_epsilon
     pairwise_mg_epsilon = (
@@ -845,8 +835,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[oxygen_mask, "mg_epsilon"] = -3e-6
 
     # Apply the specific value for this condition
-    train_dataset.loc[h_condition, "mg_epsilon"] = 0.0 
-    train_dataset.loc[hh_condition, "mg_epsilon"] = -train_dataset["rep"] 
+    train_dataset.loc[h_condition, "mg_epsilon"] = 0.0
+    train_dataset.loc[hh_condition, "mg_epsilon"] = -train_dataset["rep"]
     train_dataset.loc[ho_mask, "mg_epsilon"] = 0.11
 
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
@@ -1576,8 +1566,14 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                 (ai, aj)
                 for ai, aj in filtered_combinations
                 if not (
-                    (meGO_ensemble["sbtype_type_dict"][ai] == "H" and meGO_ensemble["sbtype_type_dict"][aj] not in {"H", "O", "OM"})
-                    or (meGO_ensemble["sbtype_type_dict"][aj] == "H" and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM"})
+                    (
+                        meGO_ensemble["sbtype_type_dict"][ai] == "H"
+                        and meGO_ensemble["sbtype_type_dict"][aj] not in {"H", "O", "OM"}
+                    )
+                    or (
+                        meGO_ensemble["sbtype_type_dict"][aj] == "H"
+                        and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM"}
+                    )
                 )
             ]
 

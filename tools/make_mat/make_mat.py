@@ -669,7 +669,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
         # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 3e-6, c12_values), 1.0 / 12.0)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -684,10 +684,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
             oxygen_mask,
-            np.power(
-                11.4 * np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
-                1.0 / 12.0,
-            ),
+            np.power(3e-6, 1.0 / 12.0),
             np.power(
                 np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,

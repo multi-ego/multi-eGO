@@ -351,7 +351,9 @@ def get_lj_pairs(topology):
         key = (sbtype_i, sbtype_j)
         # This is read as rmin not as sigma --> must be scaled by 1/2**(1/6)
         # Any contact present more then once is overwritten by the last one in the nonbond_params
-        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1 / (2**(1/6))
+        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1 / (
+            2 ** (1 / 6)
+        )
         epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
         lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
