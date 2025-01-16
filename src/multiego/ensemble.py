@@ -796,47 +796,62 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         symmetrize=True,
     )
 
-    pairwise_c12 = np.where(
-        oxygen_mask,
-        3e-6,
-        np.sqrt(
-            train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
-        ),
+    ho_mask = masking.create_linearized_mask(
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
+        [("H", "O"), ("H", "OM")],
+        symmetrize=True,
+    )
+
+    # Define condition where only ai or aj (but not both) starts with "H"
+    h_condition = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
+
+    hh_condition = train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
+
+    pairwise_c12 = np.sqrt(
+        train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
+    train_dataset.loc[oxygen_mask, "rep"] = 3e-6
+    print(train_dataset.to_string())
 
-    pairwise_mg_sigma = np.where(
-        oxygen_mask,
-        (3e-6) ** (1 / 12),
-        (
-            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            / (
-                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-            )
-        )
-        ** (1 / 12),
-    )
-    train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
-
-    pairwise_mg_epsilon = np.where(
-        oxygen_mask,
-        -3e-6,
-        (
+    pairwise_mg_sigma = (
+        train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+        * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+        / (
             train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
             * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
         )
-        / (
-            4
-            * np.sqrt(
-                train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-                * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            )
-        ),
+    ) ** (1 / 12)
+    train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
+    train_dataset.loc[oxygen_mask, "mg_sigma"] = (3e-6) ** (1 / 12)
+    # Apply the specific value for this condition
+    # train_dataset.loc[h_condition, "mg_sigma"] = 0.
+    train_dataset.loc[hh_condition, "mg_sigma"] = train_dataset["rep"] ** (1 / 12)
+    train_dataset.loc[ho_mask, "mg_sigma"] = 0.169500
+
+    # Generate the default pairwise_mg_epsilon
+    pairwise_mg_epsilon = (
+        train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+        * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+    ) / (
+        4
+        * np.sqrt(
+            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+        )
     )
+
+    # Initialize pairwise_mg_epsilon with default values
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
+    train_dataset.loc[oxygen_mask, "mg_epsilon"] = -3e-6
+
+    # Apply the specific value for this condition
+    train_dataset.loc[h_condition, "mg_epsilon"] = 0.0
+    train_dataset.loc[hh_condition, "mg_epsilon"] = -train_dataset["rep"]
+    train_dataset.loc[ho_mask, "mg_epsilon"] = 0.11
+
+    train_dataset.dropna(subset=["mg_sigma"], inplace=True)
 
     return train_dataset
 
@@ -851,7 +866,7 @@ def generate_OO_LJ(meGO_ensemble):
     ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
-    full_matrix = list(itertools.product(H_H_sbtype, O_OM_sbtype)) + list(itertools.product(O_OM_sbtype, H_H_sbtype))
+    full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_sbtype)) + list(itertools.product(O_OM_sbtype, H_H_sbtype))
 
     # Generate all possible combinations
     combinations = list(itertools.product(O_OM_sbtype, repeat=2))
@@ -873,9 +888,7 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0)
     HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
-    HO_LJ = pd.DataFrame(full_matrix, columns=["ai", "aj"])
-    # HO_LJ["c12"] = 1.153070e-08 * type_definitions.mg_eps
-    # HO_LJ["c6"] = 2.147622e-04 * type_definitions.mg_eps
+    HO_LJ = pd.DataFrame(full_matrix_OH, columns=["ai", "aj"])
     HO_LJ["c12"] = 2.249554e-09 * type_definitions.mg_eps
     HO_LJ["c6"] = 9.485893e-05 * type_definitions.mg_eps
     HO_LJ["epsilon"] = type_definitions.mg_eps
@@ -1568,8 +1581,24 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     filtered_combinations.append((sbtype_with_residue[i][0], sbtype_with_residue[j][0]))
                     j += 1
 
+            # Filter out invalid combinations
+            valid_combinations = [
+                (ai, aj)
+                for ai, aj in filtered_combinations
+                if not (
+                    (
+                        meGO_ensemble["sbtype_type_dict"][ai] == "H"
+                        and meGO_ensemble["sbtype_type_dict"][aj] not in {"H", "O", "OM"}
+                    )
+                    or (
+                        meGO_ensemble["sbtype_type_dict"][aj] == "H"
+                        and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM"}
+                    )
+                )
+            ]
+
             # Create a DataFrame from the filtered combinations
-            df = pd.DataFrame(filtered_combinations, columns=["ai", "aj"])
+            df = pd.DataFrame(valid_combinations, columns=["ai", "aj"])
             df["c6"] = 0.0
             df["c12"] = np.sqrt(
                 df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"])

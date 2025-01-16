@@ -1,10 +1,9 @@
 ---
 - system: abetaref
 - egos: production 
-- epsilon: 0.235
+- epsilon: 0.225
 - train: native_MD 
 - reference: ref
-- single_molecule
 - symmetry: 
   - ARG NH1 NH2
   - ASP OD1 OD2
