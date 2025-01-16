@@ -120,6 +120,7 @@ gromos_atp = pd.DataFrame(
 
 # Dictionary mapping atom types from a force field to multiego representation
 from_ff_to_multiego = {
+    "HN": "H",
     "OC1": "O1",
     "OC2": "O2",
     "OT1": "O1",
