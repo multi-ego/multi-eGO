@@ -813,7 +813,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
     train_dataset.loc[oxygen_mask, "rep"] = 3e-6
-    print(train_dataset.to_string())
 
     pairwise_mg_sigma = (
         train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])

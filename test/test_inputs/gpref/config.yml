@@ -1,5 +1,5 @@
 ---
-- system: abetaref
+- system: gpref 
 - egos: production 
 - no_header
 - symmetry: 
@@ -12,9 +12,9 @@
   - TYR CD1 CD2
   - TYR CE1 CE2
   - VAL CG1 CG2
-  - ALA O1 O2
+  - GLU O1 O2
 - input_refs:
-  - reference: ref
-    train: native_MD
+  - reference: reference
+    train: md_ensemble 
     matrix: intramat_1_1
-    epsilon: 0.225
+    epsilon: 0.235
