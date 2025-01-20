@@ -2,6 +2,7 @@
 - system: abetaref
 - egos: production 
 - no_header
+- single_molecule
 - symmetry: 
   - ARG NH1 NH2
   - ASP OD1 OD2
@@ -17,4 +18,4 @@
   - reference: ref
     train: native_MD
     matrix: intramat_1_1
-    epsilon: 0.225
+    epsilon: 0.22
