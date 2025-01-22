@@ -159,7 +159,6 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     contact_matrix["zf"] = reference["f"]
 
     contact_matrix["epsilon_0"] = reference["epsilon"]
-
     # add the columns for rc, md threshold
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
@@ -517,7 +516,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                     # TODO use a nicer way to to this (Use a list of possible "H" or dictionary of names external to multiego.py and import it)
                     (~comparison_dataframe["name"].str.startswith("H"))
                     | (comparison_dataframe["name"].str == "H")
-                    | (comparison_dataframe["name"].str == "HN")
                 ]["name"].to_list()
             )
         else:
@@ -1308,10 +1306,14 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     if not parameters.single_molecule:
         # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
         # avoid its use as intermolecular, this includes all repulsive
-        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"])]
+        copy_intra = meGO_LJ.loc[
+            (meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0))
+        ]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
-        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]))]
+        meGO_LJ = meGO_LJ.loc[
+            ~((meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0)))
+        ]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones
     # to do this is enough to remove it from meGO_LJ_14, in this way the value used for the contact is the one meGO_LJ
