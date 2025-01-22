@@ -1,3 +1,5 @@
+#define _FF_MAGROS
+
 [ defaults ]
 ; nbfunc	comb-rule	gen-pairs	fudgeLJ	fudgeQQ
   1		1		yes		1.0	1.0

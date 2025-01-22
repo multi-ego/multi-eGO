@@ -566,11 +566,23 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     original_size_j = len(protein_ref_j.atoms)
 
-    protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms)) if protein_ref_i[i].element_name != "H"])
-    protein_ref_indices_j = np.array([i + 1 for i in range(len(protein_ref_j.atoms)) if protein_ref_j[i].element_name != "H"])
+    protein_ref_indices_i = np.array(
+        [
+            i + 1
+            for i in range(len(protein_ref_i.atoms))
+            if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)
+        ]
+    )
+    protein_ref_indices_j = np.array(
+        [
+            i + 1
+            for i in range(len(protein_ref_j.atoms))
+            if (protein_ref_j[i].element_name != "H" or protein_ref_j[i].name == args.bkbn_H)
+        ]
+    )
 
-    protein_ref_i = [a for a in protein_ref_i.atoms if a.element_name != "H"]
-    protein_ref_j = [a for a in protein_ref_j.atoms if a.element_name != "H"]
+    protein_ref_i = [a for a in protein_ref_i.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
+    protein_ref_j = [a for a in protein_ref_j.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
 
     sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
     sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
@@ -657,7 +669,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
         # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 11.4 * c12_values, c12_values), 1.0 / 12.0)
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 3e-6, c12_values), 1.0 / 12.0)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -672,10 +684,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
             oxygen_mask,
-            np.power(
-                11.4 * np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
-                1.0 / 12.0,
-            ),
+            np.power(3e-6, 1.0 / 12.0),
             np.power(
                 np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
@@ -838,6 +847,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--mode", help="Sets the caculation to be intra/same/cross for histograms processing", default="intra+same+cross"
     )
+    parser.add_argument("--bkbn_H", help="Name of backbone hydrogen (default H, charmm HN)", default="H")
     parser.add_argument("--out", default="./", help="""Sets the output path""")
     parser.add_argument(
         "--out_name",

@@ -1,9 +1,7 @@
 ---
 - system: abetaref
 - egos: production 
-- epsilon: 0.235
-- train: native_MD 
-- reference: ref
+- no_header
 - single_molecule
 - symmetry: 
   - ARG NH1 NH2
@@ -16,4 +14,8 @@
   - TYR CE1 CE2
   - VAL CG1 CG2
   - ALA O1 O2
-- no_header
+- input_refs:
+  - reference: ref
+    train: native_MD
+    matrix: intramat_1_1
+    epsilon: 0.22

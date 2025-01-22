@@ -349,7 +349,11 @@ def get_lj_pairs(topology):
     lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(topology.parameterset.nbfix_types)))
     for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
         key = (sbtype_i, sbtype_j)
-        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1
+        # This is read as rmin not as sigma --> must be scaled by 1/2**(1/6)
+        # Any contact present more then once is overwritten by the last one in the nonbond_params
+        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1 / (
+            2 ** (1 / 6)
+        )
         epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
         sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
         lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
@@ -515,7 +519,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.1),
+            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=0.2),
         ],
         axis=0,
         sort=False,
@@ -525,7 +529,7 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.1),
+            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=0.2),
         ],
         axis=0,
         sort=False,

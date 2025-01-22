@@ -3,9 +3,10 @@ import json
 import sys
 
 
-mg_eps = 0.110
-mg_eps_ch2 = 0.100
-mg_eps_ch1 = 0.090
+mg_eps = 0.11
+mg_eps_ch2 = 0.10
+mg_eps_ch1 = 0.09
+
 # Dataframe with GROMOS atom types and associated parameters
 gromos_atp = pd.DataFrame(
     {
@@ -22,6 +23,7 @@ gromos_atp = pd.DataFrame(
             "C",
             "CH",
             "CH1",
+            "CAH",
             "CH1a",
             "CH2",
             "CH3",
@@ -31,9 +33,10 @@ gromos_atp = pd.DataFrame(
             "P",
             "OE",
             "CR1",
+            "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 16, 6, 15, 8, 6, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.631580e-07,  # "O",
             1.724403e-07,  # "OM",
@@ -47,6 +50,7 @@ gromos_atp = pd.DataFrame(
             2.598570e-06,  # "C",
             2.598570e-06,  # "CH"
             6.555574e-05,  # "CH1"
+            6.555574e-05,  # "CAH"
             6.555574e-05,  # "CH1a"
             1.543890e-05,  # "CH2"
             8.595562e-06,  # "CH3"
@@ -56,31 +60,34 @@ gromos_atp = pd.DataFrame(
             3.893600e-06,  # "P",
             3.558824e-07,  # "OE",
             6.298560e-06,  # "CR1",
+            9.148590e-10,  # "H",
             2.659360e-07,  # "C0",
         ],
         "mg_c12": [
-            1e-06 / 1.27911 * mg_eps,  # "O",
+            1.0000000e-06 / 1.27911 * mg_eps,  # "O",
             7.4149321e-07 / 1.72504 * mg_eps,  # "OM",
-            1.505529e-06 / 0.84961 * mg_eps,  # "OA",
-            2.319529e-06 / 0.63980 * mg_eps,  # "N",
-            5.0625e-06 / 0.29314 * mg_eps,  # "NT",
-            2.319529e-06 / 0.63980 * mg_eps,  # "NL",
-            3.389281e-06 / 0.43786 * mg_eps,  # "NR",
-            2.319529e-06 / 0.63980 * mg_eps,  # "NZ",
-            2.319529e-06 / 0.63980 * mg_eps,  # "NE",
-            4.937284e-06 / 0.27741 * mg_eps,  # "C",
-            4.937284e-06 / 0.27741 * mg_eps,  # "CH"
-            9.70225e-05 / 0.09489 * mg_eps_ch1,  # "CH1"
-            9.70225e-05 / 0.09489 * mg_eps_ch1,  # "CH1a"
-            3.3965584e-05 / 0.4105 * mg_eps_ch2,  # "CH2"
-            2.6646244e-05 / 0.8671 * mg_eps,  # "CH3"
-            2.8058209e-05 / 0.4792 * mg_eps_ch2,  # "CH2r"
+            1.5055290e-06 / 0.84961 * mg_eps,  # "OA",
+            2.3195290e-06 / 0.63980 * mg_eps,  # "N",
+            5.0625000e-06 / 0.29314 * mg_eps,  # "NT",
+            2.3195290e-06 / 0.63980 * mg_eps,  # "NL",
+            3.3892810e-06 / 0.43786 * mg_eps,  # "NR",
+            2.3195290e-06 / 0.63980 * mg_eps,  # "NZ",
+            2.3195290e-06 / 0.63980 * mg_eps,  # "NE",
+            4.9372840e-06 / 0.27741 * mg_eps,  # "C",
+            4.9372840e-06 / 0.27741 * mg_eps,  # "CH"
+            9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CH1"
+            9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CAH"
+            9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CH1a"
+            3.3965584e-05 / 0.41050 * mg_eps_ch2,  # "CH2"
+            2.6646244e-05 / 0.86710 * mg_eps,  # "CH3"
+            2.8058209e-05 / 0.47920 * mg_eps_ch2,  # "CH2r"
             1.3075456e-05 / 1.90587 * mg_eps,  # "S",
             2.6646244e-05 / 0.86715 * mg_eps,  # "CH3p"
             2.2193521e-05 / 2.44674 * mg_eps,  # "P",
-            1.21e-06 / 1.05711 * mg_eps,  # "OE",
+            1.2100000e-06 / 1.05711 * mg_eps,  # "OE",
             1.5116544e-05 / 0.50266 * mg_eps,  # "CR1",
-            0 * mg_eps,  # "C0",
+            0.0000000e-00 / 1.00000 * mg_eps,  # "H",
+            0.0000000e-00 / 1.00000 * mg_eps,  # "C0",
         ],
         "mg_c6": [
             0.0022619536 / 1.27911 * mg_eps,  # "O",
@@ -94,23 +101,26 @@ gromos_atp = pd.DataFrame(
             0.0024364096 / 0.63980 * mg_eps,  # "NE",
             0.0023406244 / 0.27741 * mg_eps,  # "C",
             0.0023406244 / 0.27741 * mg_eps,  # "CH"
-            0.00606841 / 0.09489 * mg_eps_ch1,  # "CH1"
-            0.00606841 / 0.09489 * mg_eps_ch1,  # "CH1a"
+            0.0060684100 / 0.09489 * mg_eps_ch1,  # "CH1"
+            0.0060684100 / 0.09489 * mg_eps_ch1,  # "CAH"
+            0.0060684100 / 0.09489 * mg_eps_ch1,  # "CH1a"
             0.0074684164 / 0.41054 * mg_eps_ch2,  # "CH2"
             0.0096138025 / 0.86715 * mg_eps,  # "CH3"
             0.0073342096 / 0.47928 * mg_eps_ch2,  # "CH2r"
             0.0099840064 / 1.90587 * mg_eps,  # "S",
             0.0096138025 / 0.86715 * mg_eps,  # "CH3p"
-            0.01473796 / 2.44674 * mg_eps,  # "P",
+            0.0147379600 / 2.44674 * mg_eps,  # "P",
             0.0022619536 / 1.05711 * mg_eps,  # "OE",
             0.0055130625 / 0.50266 * mg_eps,  # "CR1",
-            0 * mg_eps,  # "C0",
+            0.0000000000 / 1.00000 * mg_eps,  # "H", # TODO
+            0.0000000000 / 1.00000 * mg_eps,  # "C0",
         ],
     }
 )
 
 # Dictionary mapping atom types from a force field to multiego representation
 from_ff_to_multiego = {
+    "HN": "H",
     "OC1": "O1",
     "OC2": "O2",
     "OT1": "O1",
@@ -152,8 +162,8 @@ def lj14_generator(df):
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
     ("backbone_carbonyl", "sidechain_cb", 0.275, None, 1),
-    ("backbone_oxygen", "sidechain_cb", 0.1, None, 0),
-    ("ct_oxygen", "sidechain_cb", 0.1, None, 0),
+    ("backbone_oxygen", "sidechain_cb", 0.2, None, 0),
+    ("ct_oxygen", "sidechain_cb", 0.2, None, 0),
     ("backbone_nitrogen", "sidechain_cb", 0.65, None, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
     ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),

@@ -12,6 +12,10 @@
 ;
 ; grep "define gb" ffbonded.itp -C 2 |  awk '{if (substr($1,1,1) != ";") printf("%s %s %12.6f %e ; %s\n", $1, $2, $3, $4*2*$3*$3, $6); else print $0}' > new-bond-constant.txt
 
+;#define gb_2        0.1000  1.8700e+07
+#define gb_2        0.1000  4.0000e+04
+; H  -  N (all) 895   
+;
 #define gb_4     0.112000 9.282560e+05 ; 
 ; C - O (CO in heme)  2220
 ;
@@ -60,7 +64,7 @@
 #define gb_20     0.143500 2.500000e+05 ; 
 ; CHn  -  OA (sugar)    600     
 ;
-#define gb_21     0.147000 1.000000e+05 ; 
+#define gb_21     0.147000 9.000000e+04 ; 
 ; CHn  -  N, NT, NL, NZ, NE     900     
 ;
 #define gb_22     0.148000 2.500000e+05 ; 
@@ -167,6 +171,9 @@
 #define ga_17   115.000000 4.107196e+01 ; 
 ; NR(heme)  -  FE  - NR 10      
 ;
+#define ga_18       115.00      460.00
+; H  -  N  -  CHn       90      
+;
 #define ga_19   115.000000 5.010779e+02 ; 
 ; CHn, C  -  C  -  OA, N, NT, NL        120     
 ;
@@ -196,6 +203,9 @@
 ;
 #define ga_31   122.000000 5.034694e+02 ; 
 ; CH1, CH2  -  N  -  C  120     
+;
+#define ga_32       123.00      415.00
+; H  - N  - C   70      
 ;
 #define ga_33   124.000000 5.017746e+02 ; 
 ; O  - C  - OA, N, NT, NL   C - NE - CH2        120     
@@ -363,20 +373,18 @@
 #define gd_41     0.000       3.77          6
 ; -CHn-NT-	0.9
 ;
-; OPT November 23, 22 
-#define gd_42 170.0000 2.7000 2
+#define gd_42 170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ;
 #define gd_43 15.0000 2.500 3
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
-#define gd_44 180.000 4.00 1
+#define gd_44 180.000 5.50 1
 ; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
 ;
-#define gd_45 -105.00 0.2200 1
+#define gd_45 180.00 0.20 1
 ; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ; 
-; OPT November 24, 22 
 #define gd_42b 130.0000 2.5000 2 
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ;
@@ -386,30 +394,25 @@
 #define gd_44b -110.000 3.90 1 
 ; Backbone dihedral angle -C-N-CA-C- BULKYAA
 ;
-#define gd_45b 180.000 0.05 1
+#define gd_45b 180.000 0.20 1
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ; 
-; OPT April,  3 2024 
 #define gd_48 180.0 5 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 #define gd_49 180 11 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 -180 1.7 1
+#define gd_51 -180 1.8 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-; OPT November, 23 2022
 #define gd_52 150.0000 4.0000 2
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_53 0.0000 4.000 4
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-;#define gd_54 -110.4281 0.0000 1
-; Backbone dihedral angle -C-N-CA-C  PRO
-;
-#define gd_55 -60.0000   1.000 1
+#define gd_55 -60.0000   1.200 1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
 #define gd_56    180.000     31.0     2
