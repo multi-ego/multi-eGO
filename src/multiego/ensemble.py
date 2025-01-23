@@ -963,8 +963,8 @@ def set_sig_epsilon(meGO_LJ, parameters):
 
     meGO_LJ["epsilon"] = np.where(
         meGO_LJ["epsilon_prior"] < 0,
-        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,  # If epsilon_prior == 0
-        0,  # meGO_LJ["epsilon_prior"],  # Otherwise, set to epsilon_prior
+        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,
+        0,
     )
 
     # Attractive interactions
@@ -1043,9 +1043,6 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # this because when merging repulsive contacts from different sources what will matters
     # will be the repulsive strength
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
-
-    # add a flag to identify learned contacts
-    # meGO_LJ.loc[:, "learned"] = 1
 
     return meGO_LJ
 
