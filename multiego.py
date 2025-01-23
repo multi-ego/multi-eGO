@@ -103,10 +103,8 @@ for a contact pair.
             print(f"ERROR: --epsilon_min ({ref['epsilon_min']}) must be greater than 0.")
             sys.exit()
 
-        if ref["epsilon"] < ref["epsilon_min"]:
-            raise ValueError(
-                f"ERROR: in {ref}. \nEpsilon value epsi = {ref['epsilon']} is below the minimum meaningful value."
-            )
+        if ref["epsilon"] <= 0.0:
+            raise ValueError(f"ERROR: in {ref}. \nEpsilon value epsi = {ref['epsilon']} must be greater than 0.")
 
     custom_dict = {}
     if args.custom_dict:

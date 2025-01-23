@@ -83,7 +83,7 @@ args_dict = {
         "help": "partition function normalization",
     },
     "--relative_c12d": {
-        "default": 0.001,
+        "default": 0.01,
         "type": float,
         "help": "Relative deviation from default to set new replulsive c12",
     },
