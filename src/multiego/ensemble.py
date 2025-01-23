@@ -1007,32 +1007,34 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
     # lower value for repulsion
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -0.1 * meGO_LJ["rep"]
-    # )
-    ## higher value for repulsion
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 20.0 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -20.0 * meGO_LJ["rep"]
-    # )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.02 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -0.02 * meGO_LJ["rep"]
+    )
+    # higher value for repulsion
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 50.0 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -50.0 * meGO_LJ["rep"]
+    )
 
     # but within a lower
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.1 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -0.1 * meGO_LJ["rep"]
-    # )
-    ## and an upper value
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = -meGO_LJ["rep"]
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.2 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -0.2 * meGO_LJ["rep"]
+    )
+    # and an upper value
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -5.0 * meGO_LJ["rep"]
+    )
 
     # Sigma is set from the estimated interaction length
     meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
