@@ -174,10 +174,6 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     # modify limit_rc_att in the cases where epsilon_prior is negative and limit_rc_att is below 1 == epsilon_0 < epsilon_min)
     contact_matrix.loc[(contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0), "limit_rc_att"] = 1
 
-    contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
-        np.maximum(0, prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]
-    ) * contact_matrix["zf"] ** (1 + (np.maximum(0, prior_matrix["epsilon_prior"]) / contact_matrix["epsilon_0"]))
-
     # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
     f_min = md_threshold
 
@@ -711,7 +707,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "md_threshold",
         "rc_threshold",
         "limit_rc_att",
-        "limit_rc_rep",
         "rc_distance",
         "rc_probability",
         "learned",
