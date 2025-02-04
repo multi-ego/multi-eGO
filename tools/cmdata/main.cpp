@@ -24,8 +24,10 @@ int main(int argc, const char** argv)
   std::string out_prefix;
   int *p_nopbc = NULL;
   int *p_res = NULL;
+  int *p_h5 = NULL;
   bool nopbc = false;
   bool res = false;
+  bool h5 = false;
 
   // make popt options
   struct poptOption optionsTable[] = {
@@ -44,6 +46,7 @@ int main(int argc, const char** argv)
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
+    {"h5",          '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_h5   ,         0, "Write output in HDF5 format", 0},
     POPT_TABLEEND
   };
 
@@ -70,6 +73,7 @@ int main(int argc, const char** argv)
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
+  if ( p_h5 != NULL ) h5 = true;
 
   // check if paths are valid
   if ( !std::filesystem::exists(std::filesystem::path(traj_path)) )
@@ -151,7 +155,7 @@ int main(int argc, const char** argv)
 
   cmdata::CMData cmdata(
     top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
-    mode, weights_path, nopbc, t_begin, t_end
+    mode, weights_path, nopbc, t_begin, t_end, h5
   );
   cmdata.run();
   cmdata.process_data();

@@ -18,6 +18,8 @@ import time
 import warnings
 import gzip
 import tarfile
+import h5py
+from scipy.special import logsumexp
 
 d = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.c12[i]
@@ -48,10 +50,25 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
         with tarfile.open(args.histo, "r:*") as tar:
             ref_df = pd.read_csv(tar.extractfile(name), header=None, sep="\s+", usecols=[0, *protein_ref_indices])
     else:
-        ref_df = pd.read_csv(f"{path_prefix}/{name}", header=None, sep="\s+", usecols=[0, *protein_ref_indices])
-    ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
-    ref_df.columns = ref_df_columns
-    ref_df.set_index("distance", inplace=True)
+        if not args.h5:
+            ref_df = pd.read_csv(f"{path_prefix}/{name}", header=None, sep="\s+", usecols=[0, *protein_ref_indices])
+            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
+            ref_df.columns = ref_df_columns
+            ref_df.set_index("distance", inplace=True)
+        else:
+            with h5py.File(f"{path_prefix}/{name}", "r") as f:
+                if "density" not in f:
+                    raise KeyError(f"Dataset 'density' not found in {h5_file}")
+
+                data = f["density"][:]  # Read full dataset
+                # Extract the first column (distance) and the relevant protein_ref_indices columns
+                distances = data[:, 0]  # First column is distance
+                protein_data = data[:, protein_ref_indices]  # Select the relevant protein reference indices
+                # Create a DataFrame
+                ref_df = pd.DataFrame(protein_data, columns=[str(i) for i in protein_ref_indices])
+                ref_df['distance'] = distances
+                # Set 'distance' as the index
+                ref_df.set_index('distance', inplace=True)
 
     return ref_df
 
@@ -100,6 +117,7 @@ def run_mat_(arguments):
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
+        print(f"\rProgress: {ref_f} ", end="", flush=True)
         results_df = pd.DataFrame()
         ai = ref_f.split(".")[-2].split("_")[-1]
 
@@ -115,9 +133,9 @@ def run_mat_(arguments):
         results_df["p"] = 0.0
         results_df["cutoff"] = 0.0
 
+
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
-
             # column mapping
             ref_df = read_mat(ref_f, protein_ref_indices_j, args)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
@@ -153,6 +171,7 @@ def run_mat_(arguments):
             if not results_df.empty:
                 df = pd.concat([df, results_df])
 
+    print("done.")
     df.fillna(0).infer_objects(copy=False)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
@@ -420,7 +439,9 @@ def c12_avg(values, weights):
     w = w[r[0][0]:w.size]
     # fmt: on
     res = np.maximum(cutoff / 4.5, 0.1)
-    exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
+    log_exp_sum = logsumexp(1.0 / v / res, b=w) - np.log(norm)
+    exp_aver = (1.0 / res) / log_exp_sum
+    #exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
 
     return exp_aver
 
@@ -554,9 +575,12 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     )
     if args.tar:
         with tarfile.open(args.histo, "r:*") as tar:
-            target_list = [x.name for x in tar.getmembers() if prefix in x.name]
+            target_list = [x.name for x in tar.getmembers() if prefix in x.name and x.name.endswith('.dat')]
     else:
-        target_list = [x for x in os.listdir(args.histo) if prefix in x]
+        if not args.h5:
+            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith('.dat')]
+        else:
+            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith('.h5')]
 
     protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
     protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
@@ -710,7 +734,10 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     dict_m_m_r = {}
     for target in target_list:
-        target_fields = target.replace(".dat", "").split("_")
+        if not args.h5 or args.tar:
+            target_fields = target.replace(".dat", "").split("_")
+        else:
+            target_fields = target.replace(".h5", "").split("_")
         mi = int(target_fields[-4])
         mj = int(target_fields[-3])
         ai = int(target_fields[-1])
@@ -861,6 +888,11 @@ if __name__ == "__main__":
         help="Read from tar file instead of directory",
     )
     parser.add_argument(
+        "--h5",
+        action="store_true",
+        help="Read from h5 file instead of text (.dat)",
+    )
+    parser.add_argument(
         "--custom_c12",
         type=str,
         help="Custom dictionary of c12 for special molecules",
@@ -887,6 +919,10 @@ if __name__ == "__main__":
 
     if args.tar and not tarfile.is_tarfile(args.histo):
         print(f"The path '{args.histo}' is not a tar file.")
+        sys.exit()
+
+    if args.tar and args.h5:
+        printf("cannot use --tar and --h5, chose one.")
         sys.exit()
 
     # Sets mode

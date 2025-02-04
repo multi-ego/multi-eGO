@@ -4,6 +4,8 @@
 #include <gromacs/trajectoryanalysis/topologyinformation.h>
 #include <gromacs/fileio/tpxio.h>
 
+#include <H5Cpp.h>
+
 #include <filesystem>
 #include <string>
 #include <fstream>
@@ -15,6 +17,8 @@
 #include <regex>
 
 #define COUT_FLOAT_PREC6 std::fixed << std::setprecision(6)
+
+using namespace H5;
 
 static inline void mtopGetMolblockIndex(const gmx_mtop_t& mtop,
                                         int               globalAtomIndex,
@@ -66,6 +70,7 @@ static inline void mtopGetMolblockIndex(const gmx_mtop_t& mtop,
                                - molIndex * mtop.moleculeBlockIndices[*moleculeBlock].numAtomsPerMolecule;
     }
 }
+
 void mtopGetAtomAndResidueName(const gmx_mtop_t& mtop,
                                              int               globalAtomIndex,
                                              int*              moleculeBlock,
@@ -112,7 +117,7 @@ void mtopGetAtomAndResidueName(const gmx_mtop_t& mtop,
 namespace cmdata::io
 {
 
-std::vector<double> read_weights_file( const std::string &path )
+std::vector<float> read_weights_file( const std::string &path )
 {
   std::ifstream infile(path);
   if (!infile.good())
@@ -120,7 +125,7 @@ std::vector<double> read_weights_file( const std::string &path )
     std::string errorMessage = "Cannot find the indicated weights file";
     throw std::runtime_error(errorMessage.c_str());
   }
-  std::vector<double> w;
+  std::vector<float> w;
 
   std::string line;
   while ( std::getline(infile, line) )
@@ -171,9 +176,45 @@ std::vector<double> read_weights_file( const std::string &path )
 //     return mols;
 // }
 
+void f_write_intra_HDF5(const std::string &output_prefix,
+  std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &intram_mat_density
+)
+{
+  std::string file_name = output_prefix + "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  // Create a new HDF5 file using the default settings.
+  H5File file(file_name.c_str(), H5F_ACC_TRUNC);
+
+  // Define the dimensions of the dataset
+  hsize_t dims[2] = {static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(natmol2[i]+1)};
+  DataSpace dataspace(2, dims);
+
+  // Create dataset creation property list with compression
+  DSetCreatPropList plist;
+  plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
+  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  plist.setChunk(2, chunk_dims);
+ 
+  // Create a dataset with compression
+  DataSet dataset = file.createDataSet("density", PredType::NATIVE_FLOAT, dataspace, plist);
+
+  // Flatten the 2D vector into a 1D array for writing
+  std::vector<float> flat_data;
+  for (size_t k = 0; k < density_bins.size(); ++k) {
+      flat_data.push_back(density_bins[k]);
+      // Then iterate over jj dimension
+      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+          flat_data.push_back(intram_mat_density[i][ii][jj][k]);
+      }
+  }
+
+  // Write the data to the dataset
+  dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
+}
+
 void f_write_intra(const std::string &output_prefix,
-  std::size_t i, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
-  const std::vector<std::vector<std::vector<std::vector<double>>>> &intram_mat_density
+  std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &intram_mat_density
 )
 {
   std::filesystem::path ffh_intra = output_prefix + "intra_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
@@ -191,10 +232,54 @@ void f_write_intra(const std::string &output_prefix,
   fp_intra.close();
 }
 
+void f_write_inter_same_HDF5(const std::string &output_prefix,
+  std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_maxcdf_mol
+)
+{
+  std::string file_name = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  std::string file_name_c = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  // Create a new HDF5 file using the default settings.
+  H5File file(file_name.c_str(), H5F_ACC_TRUNC);
+  H5File file_c(file_name_c.c_str(), H5F_ACC_TRUNC);
+
+  // Define the dimensions of the dataset
+  hsize_t dims[2] = {static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(natmol2[i]+1)};
+  DataSpace dataspace(2, dims);
+
+  // Create dataset creation property list with compression
+  DSetCreatPropList plist;
+  plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
+  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  plist.setChunk(2, chunk_dims);
+ 
+  // Create a dataset with compression
+  DataSet dataset = file.createDataSet("density", PredType::NATIVE_FLOAT, dataspace, plist);
+  DataSet dataset_c = file_c.createDataSet("density", PredType::NATIVE_FLOAT, dataspace, plist);
+
+  // Flatten the 2D vector into a 1D array for writing
+  std::vector<float> flat_data;
+  std::vector<float> flat_data_c;
+  for (size_t k = 0; k < density_bins.size(); ++k) {
+      flat_data.push_back(density_bins[k]);
+      flat_data_c.push_back(density_bins[k]);
+      // Then iterate over jj dimension
+      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+          flat_data.push_back(interm_same_mat_density[i][ii][jj][k]);
+          flat_data_c.push_back(interm_same_maxcdf_mol[i][ii][jj][k]);
+      }
+  }
+
+  // Write the data to the dataset
+  dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
+  dataset_c.write(flat_data_c.data(), PredType::NATIVE_FLOAT);
+}
+
 void f_write_inter_same(const std::string &output_prefix,
-  std::size_t i, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
-  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_mat_density,
-  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol
+  std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_maxcdf_mol
 )
 {
   std::filesystem::path ffh_inter = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
@@ -217,11 +302,56 @@ void f_write_inter_same(const std::string &output_prefix,
   fp_inter_cum.close();
 }
 
-void f_write_inter_cross(const std::string &output_prefix,
-  std::size_t i, std::size_t j, int ii, const std::vector<double> &density_bins, const std::vector<int> &natmol2,
+void f_write_inter_cross_HDF5(const std::string &output_prefix,
+  std::size_t i, std::size_t j, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
   const std::vector<std::vector<int>> &cross_index,
-  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_mat_density,
-  const std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_maxcdf_mol
+)
+{
+  std::string file_name = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  std::string file_name_c = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  // Create a new HDF5 file using the default settings.
+  H5File file(file_name.c_str(), H5F_ACC_TRUNC);
+  H5File file_c(file_name_c.c_str(), H5F_ACC_TRUNC);
+
+  // Define the dimensions of the dataset
+  hsize_t dims[2] = {static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(natmol2[i]+1)};
+  DataSpace dataspace(2, dims);
+
+  // Create dataset creation property list with compression
+  DSetCreatPropList plist;
+  plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
+  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  plist.setChunk(2, chunk_dims);
+ 
+  // Create a dataset with compression
+  DataSet dataset = file.createDataSet("density", PredType::NATIVE_FLOAT, dataspace, plist);
+  DataSet dataset_c = file_c.createDataSet("density", PredType::NATIVE_FLOAT, dataspace, plist);
+
+  // Flatten the 2D vector into a 1D array for writing
+  std::vector<float> flat_data;
+  std::vector<float> flat_data_c;
+  for (size_t k = 0; k < density_bins.size(); ++k) {
+      flat_data.push_back(density_bins[k]);
+      flat_data_c.push_back(density_bins[k]);
+      // Then iterate over jj dimension
+      for (size_t jj = 0; jj < natmol2[j]; ++jj) {
+          flat_data.push_back(interm_cross_mat_density[cross_index[i][j]][ii][jj][k]);
+          flat_data_c.push_back(interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k]);
+      }
+  }
+
+  // Write the data to the dataset
+  dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
+  dataset_c.write(flat_data_c.data(), PredType::NATIVE_FLOAT);
+}
+
+void f_write_inter_cross(const std::string &output_prefix,
+  std::size_t i, std::size_t j, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
+  const std::vector<std::vector<int>> &cross_index,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_mat_density,
+  const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_maxcdf_mol
 )
 {
   std::filesystem::path ffh = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".dat";
