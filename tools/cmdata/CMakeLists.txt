@@ -25,9 +25,10 @@ endif()
 
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
+find_package(HDF5 REQUIRED COMPONENTS C CXX)
 
 # include source and header files
-target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${HDF5_INCLUDE_DIRS})
 
 include(FetchContent)
 SET(FETCHCONTENT_QUIET OFF)
@@ -50,7 +51,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(xdrfile)
 
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt ${HDF5_CXX_LIBRARIES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)

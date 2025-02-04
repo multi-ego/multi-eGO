@@ -13,12 +13,12 @@ namespace cmdata::mindist
 
 static void mindist_same(
   std::size_t start_mti_same, std::size_t start_im_same, std::size_t start_i_same, 
-  std::size_t start_j_same, long int n_loop_operations_same, const std::vector<double> &density_bins,
+  std::size_t start_j_same, long int n_loop_operations_same, const std::vector<float> &density_bins,
   const std::vector<int> &num_mol_unique, const std::vector<int> &natmol2,
-  const std::vector<std::vector<double>> &frame_same_mat,
+  const std::vector<std::vector<float>> &frame_same_mat,
   std::vector<std::vector<std::mutex>> &frame_same_mutex,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
-  double weight
+  std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_maxcdf_mol,
+  float weight
 )
 {
   bool first_im_same = true, first_i_same = true, first_j_same = true;
@@ -33,7 +33,7 @@ static void mindist_same(
         {
           std::size_t offset = cmdata::indexing::offset_same(mt_i, im, i, j, natmol2);
           std::size_t mutex_j = cmdata::indexing::mutex_access(mt_i, i, j, natmol2);
-          double mindist = frame_same_mat[mt_i][offset];
+          float mindist = frame_same_mat[mt_i][offset];
 
           std::unique_lock<std::mutex> lock(frame_same_mutex[mt_i][mutex_j]);
           cmdata::density::kernel_density_estimator(std::begin(interm_same_maxcdf_mol[mt_i][i][j]), density_bins, mindist, weight);
@@ -55,11 +55,11 @@ static void mindist_cross(
   std::size_t start_mti_cross, std::size_t start_mtj_cross, std::size_t start_im_cross, std::size_t start_jm_cross, 
   std::size_t start_i_cross, std::size_t start_j_cross, int n_loop_operations_cross, 
   const std::vector<int> &natmol2, const std::vector<std::vector<int>> &cross_index,
-  const std::vector<double> &density_bins, const std::vector<int> &num_mol_unique,
-  const std::vector<std::vector<double>> &frame_cross_mat,
+  const std::vector<float> &density_bins, const std::vector<int> &num_mol_unique,
+  const std::vector<std::vector<float>> &frame_cross_mat,
   std::vector<std::vector<std::mutex>> &frame_cross_mutex,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol,
-  double weight
+  std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_maxcdf_mol,
+  float weight
 )
 {
   bool first_im_cross = true, first_mtj_cross = true, first_jm_cross = true, first_i_cross = true, first_j_cross = true;
@@ -79,7 +79,7 @@ static void mindist_cross(
             {
               std::size_t offset = cmdata::indexing::offset_cross(mt_i, mt_j, im, jm, i, j, natmol2);
               std::size_t mutex_j = cmdata::indexing::mutex_access(mt_j, i, j, natmol2);
-              double mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset];
+              float mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset];
               
               std::unique_lock<std::mutex> lock(frame_cross_mutex[cross_index[mt_i][mt_j]][mutex_j]);
               cmdata::density::kernel_density_estimator(std::begin(interm_cross_maxcdf_mol[cross_index[mt_i][mt_j]][i][j]), density_bins, mindist, weight);
@@ -103,17 +103,17 @@ static void mindist_cross(
 static void mindist_kernel( // indices
   const cmdata::indexing::SameThreadIndices &same_thread_indices, 
   const cmdata::indexing::CrossThreadIndices &cross_thread_indices, 
-  const double weight,                            // common parameters
+  const float weight,                            // common parameters
   const std::vector<int> &natmol2,
-  const std::vector<double> &density_bins,
+  const std::vector<float> &density_bins,
   const std::vector<int> &num_mol_unique,
-  const std::vector<std::vector<double>> &frame_same_mat,
+  const std::vector<std::vector<float>> &frame_same_mat,
   std::vector<std::vector<std::mutex>> &frame_same_mutex, 
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_same_maxcdf_mol,
+  std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_maxcdf_mol,
   const std::vector<std::vector<int>> &cross_index, 
-  const std::vector<std::vector<double>> &frame_cross_mat,
+  const std::vector<std::vector<float>> &frame_cross_mat,
   std::vector<std::vector<std::mutex>> &frame_cross_mutex,
-  std::vector<std::vector<std::vector<std::vector<double>>>> &interm_cross_maxcdf_mol
+  std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_maxcdf_mol
 )
 {
   const std::size_t start_mti_same = same_thread_indices.start_mti_same;
