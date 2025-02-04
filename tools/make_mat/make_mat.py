@@ -66,9 +66,9 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
                 protein_data = data[:, protein_ref_indices]  # Select the relevant protein reference indices
                 # Create a DataFrame
                 ref_df = pd.DataFrame(protein_data, columns=[str(i) for i in protein_ref_indices])
-                ref_df['distance'] = distances
+                ref_df["distance"] = distances
                 # Set 'distance' as the index
-                ref_df.set_index('distance', inplace=True)
+                ref_df.set_index("distance", inplace=True)
 
     return ref_df
 
@@ -132,7 +132,6 @@ def run_mat_(arguments):
         results_df["c12dist"] = 0.0
         results_df["p"] = 0.0
         results_df["cutoff"] = 0.0
-
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
@@ -441,7 +440,7 @@ def c12_avg(values, weights):
     res = np.maximum(cutoff / 4.5, 0.1)
     log_exp_sum = logsumexp(1.0 / v / res, b=w) - np.log(norm)
     exp_aver = (1.0 / res) / log_exp_sum
-    #exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
+    # exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
 
     return exp_aver
 
@@ -575,12 +574,12 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     )
     if args.tar:
         with tarfile.open(args.histo, "r:*") as tar:
-            target_list = [x.name for x in tar.getmembers() if prefix in x.name and x.name.endswith('.dat')]
+            target_list = [x.name for x in tar.getmembers() if prefix in x.name and x.name.endswith(".dat")]
     else:
         if not args.h5:
-            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith('.dat')]
+            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith(".dat")]
         else:
-            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith('.h5')]
+            target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith(".h5")]
 
     protein_mego_i = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_i - 1]][0]
     protein_mego_j = topology_mego.molecules[list(topology_mego.molecules.keys())[mol_j - 1]][0]
