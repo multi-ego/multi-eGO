@@ -61,7 +61,7 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
         else:
             with h5py.File(f"{path_prefix}/{name}", "r") as f:
                 if "density" not in f:
-                    raise KeyError(f"Dataset 'density' not found in {h5_file}")
+                    raise KeyError(f"Dataset 'density' not found in {name}")
 
                 data = f["density"][:]  # Read full dataset
                 # Extract the first column (distance) and the relevant protein_ref_indices columns
