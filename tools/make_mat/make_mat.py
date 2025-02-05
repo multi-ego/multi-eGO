@@ -950,7 +950,7 @@ if __name__ == "__main__":
             sys.exit()
 
     if args.tar and args.h5:
-        printf("cannot use --tar and --h5, chose one.")
+        print("cannot use --tar and --h5, chose one.")
         sys.exit()
 
     # Sets mode
