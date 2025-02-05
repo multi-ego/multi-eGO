@@ -135,19 +135,15 @@ def run_mat_(arguments):
 
         if np.isin(int(ai), protein_ref_indices_i):
             cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
+
             # column mapping
             ref_df = read_mat(ref_f, protein_ref_indices_j, args)
             ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
 
-            # calculate data
-            c12_avg_ = zero_probability_decorator(c12_avg, args.zero)
-            calculate_probability_ = zero_probability_decorator(calculate_probability, args.zero)
-            get_cumulative_probability_ = zero_probability_decorator(get_cumulative_probability, args.zero)
-
-            c12dist = ref_df.apply(lambda x: c12_avg_(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
+            c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).values
             if mat_type == "intra":
                 p = ref_df.apply(
-                    lambda x: calculate_probability_(ref_df.index.to_numpy(), weights=x.to_numpy()),
+                    lambda x: calculate_probability(ref_df.index.to_numpy(), weights=x.to_numpy()),
                     axis=0,
                 ).values
             elif mat_type == "inter":
@@ -156,7 +152,7 @@ def run_mat_(arguments):
                 c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
                 c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
                 p = c_ref_df.apply(
-                    lambda x: get_cumulative_probability_(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
+                    lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
                     axis=0,
                 ).values
 
@@ -752,79 +748,90 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     # PARALLEL PROCESS START
     ########################
 
-    if not args.residue:
-        chunks = np.array_split(target_list, args.num_threads)
+    if args.zero:
+
+        df = pd.DataFrame()
+        df["mi"] = [mol_i for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
+        df["mj"] = [mol_j for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
+        df["ai"] = np.repeat(protein_ref_indices_i, len(protein_ref_indices_j))
+        df["aj"] = np.tile(protein_ref_indices_j, len(protein_ref_indices_i))
+        df["c12dist"] = 0.0
+        df["p"] = 0.0
+        df["cutoff"] = [c12_cutoff[i, j] for i in range(len(protein_ref_indices_i)) for j in range(len(protein_ref_indices_j))]
     else:
-        chunks = []
-        n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.num_threads
-        chunk = []
-        n = 0
-        for k, v in dict_m_m_r.items():
-            chunk.append(v)
-            n += len(v)
-            if n > n_threshold:
-                chunks.append(chunk)
-                chunk = []
-                n = 0
-        chunks.append(chunk)
-    pool = multiprocessing.Pool(args.num_threads)
-    if args.residue and not args.intra:
-        results = pool.map(
-            run_residue_inter_,
-            [
-                (
-                    args,
-                    protein_ref_indices_i,
-                    protein_ref_indices_j,
-                    len(ref_ri_to_ai_j),
-                    c12_cutoff,
-                    mol_i,
-                    mol_j,
-                    (ref_ai_to_ri_i, index_ai_to_ri_j),
-                    x,
-                )
-                for x in chunks
-            ],
-        )
-    else:
+        if not args.residue:
+            chunks = np.array_split(target_list, args.num_threads)
+        else:
+            chunks = []
+            n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.num_threads
+            chunk = []
+            n = 0
+            for k, v in dict_m_m_r.items():
+                chunk.append(v)
+                n += len(v)
+                if n > n_threshold:
+                    chunks.append(chunk)
+                    chunk = []
+                    n = 0
+            chunks.append(chunk)
+        pool = multiprocessing.Pool(args.num_threads)
+        if args.residue and not args.intra:
+            results = pool.map(
+                run_residue_inter_,
+                [
+                    (
+                        args,
+                        protein_ref_indices_i,
+                        protein_ref_indices_j,
+                        len(ref_ri_to_ai_j),
+                        c12_cutoff,
+                        mol_i,
+                        mol_j,
+                        (ref_ai_to_ri_i, index_ai_to_ri_j),
+                        x,
+                    )
+                    for x in chunks
+                ],
+            )
+        else:
 
-        results = pool.map(
-            run_mat_,
-            [
-                (
-                    args,
-                    protein_ref_indices_i,
-                    protein_ref_indices_j,
-                    original_size_j,
-                    c12_cutoff,
-                    mol_i,
-                    mol_j,
-                    x,
-                    mat_type,
-                )
-                for x in chunks
-            ],
-        )
+            results = pool.map(
+                run_mat_,
+                [
+                    (
+                        args,
+                        protein_ref_indices_i,
+                        protein_ref_indices_j,
+                        original_size_j,
+                        c12_cutoff,
+                        mol_i,
+                        mol_j,
+                        x,
+                        mat_type,
+                    )
+                    for x in chunks
+                ],
+            )
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
-    ########################
-    # PARALLEL PROCESS END
-    ########################
+        ########################
+        # PARALLEL PROCESS END
+        ########################
 
-    # concatenate and remove partial dataframes
-    for name in results:
-        try:
-            part_df = pd.read_csv(name)
-            df = pd.concat([df, part_df])
-        except pd.errors.EmptyDataError:
-            print(f"Ignoring partial dataframe in {name} as csv is empty")
-    [os.remove(name) for name in results]
-    df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
+        # concatenate and remove partial dataframes
+        for name in results:
+            try:
+                part_df = pd.read_csv(name)
+                df = pd.concat([df, part_df])
+            except pd.errors.EmptyDataError:
+                print(f"Ignoring partial dataframe in {name} as csv is empty")
+        [os.remove(name) for name in results]
+        df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
-    df = df.sort_values(by=["mi", "mj", "ai", "aj"])
-    df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
+        df = df.sort_values(by=["mi", "mj", "ai", "aj"])
+        df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
 
     df["mi"] = df["mi"].map("{:}".format)
     df["mj"] = df["mj"].map("{:}".format)
@@ -848,7 +855,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--histo",
         type=str,
-        required=True,
+        required=False,
         help='Path to the directory containing the histograms. The histogram files should contain the prefix "intra_" for intra molecular contact descriptions and "inter_" for  inter molecular.',
     )
     parser.add_argument(
@@ -907,18 +914,26 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    # check either histo or zero flag are set
+    if not args.histo and not args.zero:
+        raise ValueError("Either --histo or --zero flag must be set.")
+    if args.histo and args.zero:
+        raise ValueError("Both --histo and --zero flags cannot be set at the same time.")
+
     # check if output file exists
     if not os.path.exists(args.out):
         print(f"The path '{args.out}' does not exist.")
         sys.exit()
 
-    if not args.tar and not os.path.isdir(args.histo):
-        print(f"The path '{args.histo}' is not a directory.")
-        sys.exit()
+    if not args.zero and not args.tar:
+        if not os.path.isdir(args.histo):
+            print(f"The path '{args.histo}' is not a directory.")
+            sys.exit()
 
-    if args.tar and not tarfile.is_tarfile(args.histo):
-        print(f"The path '{args.histo}' is not a tar file.")
-        sys.exit()
+    if not args.zero and args.tar:
+        if not tarfile.is_tarfile(args.histo):
+            print(f"The path '{args.histo}' is not a tar file.")
+            sys.exit()
 
     if args.tar and args.h5:
         printf("cannot use --tar and --h5, chose one.")
