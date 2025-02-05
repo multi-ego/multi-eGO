@@ -49,6 +49,9 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
     if args.tar:
         with tarfile.open(args.histo, "r:*") as tar:
             ref_df = pd.read_csv(tar.extractfile(name), header=None, sep="\s+", usecols=[0, *protein_ref_indices])
+            ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
+            ref_df.columns = ref_df_columns
+            ref_df.set_index("distance", inplace=True)
     else:
         if not args.h5:
             ref_df = pd.read_csv(f"{path_prefix}/{name}", header=None, sep="\s+", usecols=[0, *protein_ref_indices])
