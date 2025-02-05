@@ -439,7 +439,8 @@ def c12_avg(values, weights):
     res = np.maximum(cutoff / 4.5, 0.1)
     log_exp_sum = logsumexp(1.0 / v / res, b=w) - np.log(norm)
     exp_aver = (1.0 / res) / log_exp_sum
-    # exp_aver = (1.0 / res) / np.log(np.sum(w * np.exp(1.0 / v / res)) / norm)
+    if exp_aver < 0.01:
+        exp_aver = 0
 
     return exp_aver
 
