@@ -9,3 +9,5 @@ dependencies:
   - parmed
   - gitpython
   - pyyaml
+  - scipy
+  - h5py
