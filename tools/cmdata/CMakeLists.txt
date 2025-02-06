@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 
 project(cmdata VERSION 0.1
                DESCRIPTION "A programm to calculate contact data from gromacs trajectories for multi-eGO"
-               LANGUAGES CXX)
+               LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMDATA cmdata)
@@ -25,7 +25,11 @@ endif()
 
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
-find_package(HDF5 REQUIRED COMPONENTS C CXX)
+find_package(HDF5 COMPONENTS C CXX)
+if(HDF5_FOUND)
+  message(STATUS "HDF5 found, enabling HDF5 support")
+  add_definitions(-DUSE_HDF5)
+endif()
 
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${HDF5_INCLUDE_DIRS})
