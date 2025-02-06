@@ -4,7 +4,9 @@
 #include <gromacs/trajectoryanalysis/topologyinformation.h>
 #include <gromacs/fileio/tpxio.h>
 
+#ifdef USE_HDF5
 #include <H5Cpp.h>
+#endif
 
 #include <filesystem>
 #include <string>
@@ -18,7 +20,9 @@
 
 #define COUT_FLOAT_PREC6 std::fixed << std::setprecision(6)
 
+#ifdef USE_HDF5
 using namespace H5;
+#endif
 
 static inline void mtopGetMolblockIndex(const gmx_mtop_t& mtop,
                                         int               globalAtomIndex,
@@ -176,6 +180,7 @@ std::vector<float> read_weights_file( const std::string &path )
 //     return mols;
 // }
 
+#ifdef USE_HDF5
 void f_write_intra_HDF5(const std::string &output_prefix,
   std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
   const std::vector<std::vector<std::vector<std::vector<float>>>> &intram_mat_density
@@ -192,7 +197,11 @@ void f_write_intra_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  // hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  hsize_t chunk_dims[2] = {
+    std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
+    std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
+  };
   plist.setChunk(2, chunk_dims);
  
   // Create a dataset with compression
@@ -211,6 +220,7 @@ void f_write_intra_HDF5(const std::string &output_prefix,
   // Write the data to the dataset
   dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
 }
+#endif
 
 void f_write_intra(const std::string &output_prefix,
   std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
@@ -232,6 +242,7 @@ void f_write_intra(const std::string &output_prefix,
   fp_intra.close();
 }
 
+#ifdef USE_HDF5
 void f_write_inter_same_HDF5(const std::string &output_prefix,
   std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
   const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_mat_density,
@@ -251,7 +262,21 @@ void f_write_inter_same_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  // hsize_t chunk_dims[2] = {
+  //   (static_cast<hsize_t>(density_bins.size()) < 300) ? 300 : static_cast<hsize_t>(density_bins.size()),
+  //   (static_cast<hsize_t>(natmol2[i]+1) < 512) ? 512 : static_cast<hsize_t>(natmol2[i]+1)
+  // };  // Adjust chunk size based on your data
+  hsize_t chunk_dims[2] = {
+    std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
+    std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
+  };
+std::cout << "Dataset dimensions: (" 
+          << density_bins.size() << ", " 
+          << (natmol2[i] + 1) << ")" << std::endl;
+std::cout << "Chunk dimensions: (" 
+          << chunk_dims[0] << ", "
+          << chunk_dims[1] << ")" << std::endl;
+
   plist.setChunk(2, chunk_dims);
  
   // Create a dataset with compression
@@ -275,6 +300,7 @@ void f_write_inter_same_HDF5(const std::string &output_prefix,
   dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
   dataset_c.write(flat_data_c.data(), PredType::NATIVE_FLOAT);
 }
+#endif
 
 void f_write_inter_same(const std::string &output_prefix,
   std::size_t i, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
@@ -302,6 +328,7 @@ void f_write_inter_same(const std::string &output_prefix,
   fp_inter_cum.close();
 }
 
+#ifdef USE_HDF5
 void f_write_inter_cross_HDF5(const std::string &output_prefix,
   std::size_t i, std::size_t j, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,
   const std::vector<std::vector<int>> &cross_index,
@@ -322,7 +349,11 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  // hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
+  hsize_t chunk_dims[2] = {
+    std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
+    std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
+  };
   plist.setChunk(2, chunk_dims);
  
   // Create a dataset with compression
@@ -346,6 +377,7 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
   dataset.write(flat_data.data(), PredType::NATIVE_FLOAT);
   dataset_c.write(flat_data_c.data(), PredType::NATIVE_FLOAT);
 }
+#endif
 
 void f_write_inter_cross(const std::string &output_prefix,
   std::size_t i, std::size_t j, int ii, const std::vector<float> &density_bins, const std::vector<int> &natmol2,

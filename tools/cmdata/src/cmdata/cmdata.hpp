@@ -104,7 +104,9 @@ private:
   // mode selection, booleans and functions
   std::string mode_;
   bool intra_ = false, same_ = false, cross_ = false;
+  #ifdef USE_HDF5
   bool h5_ = false;
+  #endif
 
   // function types
   using ftype_intra_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::intra_mol_routine)>;
@@ -235,12 +237,18 @@ private:
 public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
-    float cutoff, float mol_cutoff, int nskip, int num_threads, int num_mol_threads,
+    double cutoff, double mol_cutoff, int nskip, int num_threads, int num_mol_threads,
     int dt, const std::string &mode, const std::string &weights_path, 
-    bool no_pbc, float t_begin, float t_end, bool h5
+    bool no_pbc, float t_begin, float t_end
+    #ifdef USE_HDF5
+    , bool h5
+    #endif
   ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads), num_mol_threads_(num_mol_threads),
       mode_(mode), weights_path_(weights_path),
-      no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end), h5_(h5)
+      no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
+      #ifdef USE_HDF5
+      ,h5_(h5)
+      #endif
   {
     bool bTop_;
     matrix boxtop_;
@@ -756,27 +764,39 @@ public:
   void write_output( const std::string &output_prefix )
   {
     std::cout << "Writing data... " << std::endl;
-    using ftype_write_intra = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_intra_HDF5)>;
-    using ftype_write_inter_same = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_same_HDF5)>;
-    using ftype_write_inter_cross = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_cross_HDF5)>;
+    using ftype_write_intra = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_intra)>;
+    using ftype_write_inter_same = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_same)>;
+    using ftype_write_inter_cross = cmdata::ftypes::function_traits<decltype(&cmdata::io::f_write_inter_cross)>;
     std::function<ftype_write_intra::signature> write_intra = cmdata::ftypes::do_nothing<ftype_write_intra>();
     std::function<ftype_write_inter_same::signature> write_inter_same = cmdata::ftypes::do_nothing<ftype_write_inter_same>();
     std::function<ftype_write_inter_cross::signature> write_inter_cross = cmdata::ftypes::do_nothing<ftype_write_inter_cross>();
 
     if (intra_)
     {
+      #ifdef USE_HDF5
       if(h5_) write_intra = cmdata::io::f_write_intra_HDF5;
-      else write_intra = cmdata::io::f_write_intra; 
+      else write_intra = cmdata::io::f_write_intra;
+      #else
+      write_intra = cmdata::io::f_write_intra;
+      #endif
     }
     if (same_) 
     {
+      #ifdef USE_HDF5
       if(h5_) write_inter_same = cmdata::io::f_write_inter_same_HDF5;
       else write_inter_same = cmdata::io::f_write_inter_same;
+      #else
+      write_inter_same = cmdata::io::f_write_inter_same;
+      #endif
     }
     if (cross_)
     {
+      #ifdef USE_HDF5
       if(h5_) write_inter_cross = cmdata::io::f_write_inter_cross_HDF5;
-      else write_inter_cross = cmdata::io::f_write_inter_cross; 
+      else write_inter_cross = cmdata::io::f_write_inter_cross;
+      #else
+      write_inter_cross = cmdata::io::f_write_inter_cross;
+      #endif
     }
 
     for (std::size_t i = 0; i < natmol2_.size(); i++)
