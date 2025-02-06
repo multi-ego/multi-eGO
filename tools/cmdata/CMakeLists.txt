@@ -29,10 +29,12 @@ find_package(HDF5 COMPONENTS C CXX)
 if(HDF5_FOUND)
   message(STATUS "HDF5 found, enabling HDF5 support")
   add_definitions(-DUSE_HDF5)
+  target_include_directories(${CMDATA} PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(${CMDATA} PRIVATE ${HDF5_CXX_LIBRARIES})
 endif()
 
 # include source and header files
-target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${HDF5_INCLUDE_DIRS})
+target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 include(FetchContent)
 SET(FETCHCONTENT_QUIET OFF)
@@ -55,7 +57,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(xdrfile)
 
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt ${HDF5_CXX_LIBRARIES})
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
