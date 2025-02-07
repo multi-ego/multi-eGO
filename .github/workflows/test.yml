@@ -67,7 +67,9 @@ jobs:
       with:
         environment-file: conda/environment.yml
         miniforge-version: latest
+        activate-environment: test
     - name: Run tests
+      shell: bash -el {0}
       run: |
         $CONDA/bin/python test/run_tests.py
         cd test; bash run_make_mat.sh; cd ..
