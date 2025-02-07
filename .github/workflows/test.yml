@@ -19,18 +19,19 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
-    - name: Install hdf5 
-      run: sudo apt-get install -y libhdf5-serial-dev libhdf5-dev
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
-        conda install --solver=classic -y conda=25.1.1
-        conda install --solver=classic -y python=3.12
-        conda env update --solver=classic --file conda/environment.yml --name base
-        conda install --solver=classic flake8
+        conda update conda
+        conda update conda-build
+        conda install -n base conda-libmamba-solver
+        conda config --set solver libmamba
+        conda env create --file conda/environment.yml
+        conda activate meGO
+        conda install flake8
     - name: Run flake8 
       run: |
         # Flake8 exit on most issues
