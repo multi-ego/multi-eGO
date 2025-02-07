@@ -29,6 +29,7 @@ jobs:
         conda install -n base conda-libmamba-solver
         conda config --set solver libmamba
         conda env create --file conda/environment.yml
+        conda init
         conda activate meGO
         conda install flake8
     - name: Run flake8 
