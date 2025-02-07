@@ -16,7 +16,6 @@ import pandas as pd
 import parmed as pmd
 import time
 import warnings
-import gzip
 import tarfile
 import h5py
 from scipy.special import logsumexp
@@ -656,7 +655,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     # create dictionary with ref_ai to ri
     ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
     ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-    index_ai_to_ri_j = {k: v for k, v in enumerate(topology_df_j["ref_ri"])}
     # create a dictionary with ref_ri to ai as a list of ai
     ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
     ref_ri_to_ai_j = {f"{mol_j}_{ri}": [] for ri in topology_df_j["ref_ri"]}
