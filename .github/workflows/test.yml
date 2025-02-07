@@ -65,12 +65,8 @@ jobs:
     - name: Add conda to system path
       uses: conda-incubator/setup-miniconda@v3
       with:
-        activate-environment:
-    - name: Install dependencies with conda
-      run: |
-        echo $CONDA/bin >> $GITHUB_PATH
-        conda update conda 
-        conda env update --file conda/environment.yml --name base
+        environment-file: etc/example-environment.yml
+        miniforge-version: latest
     - name: Run tests
       run: |
         $CONDA/bin/python test/run_tests.py
