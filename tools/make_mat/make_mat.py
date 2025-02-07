@@ -316,7 +316,7 @@ def get_col_params(values, weights):
 
 def calculate_probability(values, weights):
     """
-    Calculates a plain probability accoring to \sum_x x * dx
+    Calculates a plain probability accoring to sum_x x * dx
 
     Parameters
     ----------
@@ -341,7 +341,7 @@ def get_cumulative_probability(values, weights):
 
 def c12_avg(values, weights):
     """
-    Calculates the c12 averaging of a histogram as 1 / ( (\sum_i^n w[i] * (1 / x[i])^12 ) / norm )^(1/12)
+    Calculates the c12 exp averaging of a histogram
 
     Parameters
     ----------
