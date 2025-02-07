@@ -65,7 +65,7 @@ jobs:
     - name: Add conda to system path
       uses: conda-incubator/setup-miniconda@v3
       with:
-        environment-file: etc/example-environment.yml
+        environment-file: conda/environment.yml
         miniforge-version: latest
     - name: Run tests
       run: |
