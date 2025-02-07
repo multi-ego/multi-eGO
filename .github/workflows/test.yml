@@ -27,6 +27,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
+        conda install --solver=classic -y conda=25.1.1
         conda install --solver=classic -y python=3.12
         conda env update --solver=classic --file conda/environment.yml --name base
         conda install --solver=classic flake8
@@ -71,6 +72,7 @@ jobs:
     - name: Install dependencies with conda
       run: |
         echo $CONDA/bin >> $GITHUB_PATH
+        conda install -y conda=25.1.1
         conda install -y python=3.10
         conda env update --file conda/environment.yml --name base
     - name: Run tests
