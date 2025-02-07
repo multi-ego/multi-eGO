@@ -34,14 +34,32 @@ def write_mat(df, output_file):
         print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
         return
 
-    out_content = df.to_string(index=False, header=False, columns=COLUMNS)
-    out_content = out_content.replace("\n", "<")
-    out_content = " ".join(out_content.split())
-    out_content = out_content.replace("<", "\n")
-    out_content += "\n"
+    df = df.rename(
+        columns={
+            "mi": "molecule_name_ai",
+            "ai": "ai",
+            "mj": "molecule_name_aj",
+            "aj": "aj",
+            "c12dist": "distance",
+            "p": "probability",
+        }
+    )
 
-    with gzip.open(output_file, "wt") as f:
-        f.write(out_content)
+    df["molecule_name_ai"] = df["molecule_name_ai"].astype("category")
+    df["ai"] = df["ai"].astype("category")
+    df["molecule_name_aj"] = df["molecule_name_aj"].astype("category")
+    df["aj"] = df["aj"].astype("category")
+    df["distance"] = df["distance"].astype("float64")
+    df["probability"] = df["probability"].astype("float64")
+    df["cutoff"] = df["cutoff"].astype("float64")
+    df["learned"] = True
+
+    # Force the column order
+    ordered_columns = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
+    df = df[ordered_columns]
+
+    # Save the data as HDF5 with compression
+    df.to_hdf(output_file, key="data", mode="w", format="table", complib="blosc:lz4", complevel=9)
 
 
 def read_mat(name, protein_ref_indices, args, cumulative=False):
@@ -53,7 +71,7 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
             ref_df.columns = ref_df_columns
             ref_df.set_index("distance", inplace=True)
     else:
-        if not args.h5:
+        if args.noh5:
             ref_df = pd.read_csv(f"{path_prefix}/{name}", header=None, sep="\s+", usecols=[0, *protein_ref_indices])
             ref_df_columns = ["distance", *[str(x) for x in protein_ref_indices]]
             ref_df.columns = ref_df_columns
@@ -128,9 +146,8 @@ def run_mat_(arguments):
         range_list = [str(x) for x in range(1, original_size_j + 1)]
 
         results_df["ai"] = np.array(all_ai).astype(int)
-        results_df["aj"] = np.array(range_list).astype(int)
-
         results_df["mi"] = mi
+        results_df["aj"] = np.array(range_list).astype(int)
         results_df["mj"] = mj
         results_df["c12dist"] = 0.0
         results_df["p"] = 0.0
@@ -171,96 +188,6 @@ def run_mat_(arguments):
 
     print("done.")
     df.fillna(0).infer_objects(copy=False)
-    out_path = f"mat_{process.pid}_t{time.time()}.part"
-    df.to_csv(out_path, index=False)
-
-    return out_path
-
-
-# TODO add intra or remove this and use resdata?
-def run_residue_inter_(arguments):
-    """
-    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
-    Is used in combination with multiprocessing to speed up the calculations.
-
-    Parameters
-    ----------
-    arguments : dict
-        Contains all the command-line parsed arguments
-
-    Returns
-    -------
-    out_path : str
-        Path to the temporary file which contains a partial pd.DataFrame with the analyzed data
-    """
-    (
-        args,
-        protein_ref_indices_i,
-        protein_ref_indices_j,
-        num_res_j,
-        c12_cutoff,
-        mi,
-        mj,
-        (ref_ai_to_ri_i, index_ai_to_ri_j),
-        frac_target_list,
-    ) = arguments
-    process = multiprocessing.current_process()
-    df = pd.DataFrame(columns=COLUMNS)
-    # We do not consider old histograms
-    for res in frac_target_list:
-        p = 0.0
-        c12dist = 0.0
-
-        for ref_f in res:
-            results_df = pd.DataFrame()
-            ai = int(ref_f.split(".")[-2].split("_")[-1])
-            ri = ref_ai_to_ri_i[ai]
-
-            all_ai = [ri for _ in range(1, num_res_j + 1)]
-            range_list = [str(x) for x in range(1, num_res_j + 1)]
-
-            results_df["ai"] = np.array(all_ai).astype(int)
-            results_df["aj"] = np.array(range_list).astype(int)
-
-            results_df["mi"] = mi
-            results_df["mj"] = mj
-            results_df["c12dist"] = 0.0
-            results_df["p"] = 0.0
-            results_df["cutoff"] = 0.0
-
-            if np.isin(int(ai), protein_ref_indices_i):
-                cut_i = np.where(protein_ref_indices_i == int(ai))[0][0]
-
-                # column mapping
-                ref_df = read_mat(ref_f, protein_ref_indices_j, args)
-                ref_df.loc[len(ref_df)] = c12_cutoff[cut_i]
-
-                # repeat for cumulative
-                c_ref_f = ref_f.replace("inter_mol_", "inter_mol_c_")
-                c_ref_df = read_mat(c_ref_f, protein_ref_indices_j, args, True)
-                c_ref_df.loc[len(c_ref_df)] = c12_cutoff[cut_i]
-
-                # calculate data
-                new_p = c_ref_df.apply(
-                    lambda x: get_cumulative_probability(c_ref_df.index.to_numpy(), weights=x.to_numpy()),
-                    axis=0,
-                ).to_numpy()
-                ridx = np.array([index_ai_to_ri_j[aj] for aj in range(len(new_p))])
-                new_p = np.array([np.max(new_p[ridx == i]) for i in set(ridx)])
-                greater_p = new_p > p
-                p = np.where(greater_p, new_p, p)
-                new_c12dist = ref_df.apply(lambda x: c12_avg(ref_df.index.to_numpy(), weights=x.to_numpy()), axis=0).to_numpy()
-                new_c12dist = np.array([np.mean(new_c12dist[ridx == i]) for i in set(ridx)])
-                c12dist = np.where(greater_p, new_c12dist, c12dist)
-
-            results_df["c12dist"] = c12dist
-            results_df["p"] = p
-
-        df = pd.concat([df, results_df])
-
-        df = df.sort_values(by=["p", "c12dist"], ascending=True)
-
-    df.fillna(0)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
 
@@ -576,7 +503,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         with tarfile.open(args.histo, "r:*") as tar:
             target_list = [x.name for x in tar.getmembers() if prefix in x.name and x.name.endswith(".dat")]
     else:
-        if not args.h5:
+        if args.noh5:
             target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith(".dat")]
         else:
             target_list = [x for x in os.listdir(args.histo) if prefix in x and x.endswith(".h5")]
@@ -721,8 +648,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     if not mismatched.empty:
         raise ValueError(f"Mismatch found:\n{mismatched}, target and mego topology are not compatible")
 
-    if args.residue:
-        c12_cutoff = args.cutoff * np.ones(c12_cutoff.shape)
     if np.any(c12_cutoff > args.cutoff):
         warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
     if np.isnan(c12_cutoff.astype(float)).any():
@@ -742,7 +667,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     dict_m_m_r = {}
     for target in target_list:
-        if not args.h5 or args.tar:
+        if args.noh5 or args.tar:
             target_fields = target.replace(".dat", "").split("_")
         else:
             target_fields = target.replace(".h5", "").split("_")
@@ -762,70 +687,34 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     ########################
 
     if args.zero:
-
         df = pd.DataFrame()
-        df["mi"] = [mol_i for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
-        df["mj"] = [mol_j for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
         df["ai"] = np.repeat(protein_ref_indices_i, len(protein_ref_indices_j))
+        df["mi"] = [mol_i for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
         df["aj"] = np.tile(protein_ref_indices_j, len(protein_ref_indices_i))
+        df["mj"] = [mol_j for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
         df["c12dist"] = 0.0
         df["p"] = 0.0
         df["cutoff"] = [c12_cutoff[i, j] for i in range(len(protein_ref_indices_i)) for j in range(len(protein_ref_indices_j))]
     else:
-        if not args.residue:
-            chunks = np.array_split(target_list, args.num_threads)
-        else:
-            chunks = []
-            n_threshold = sum([len(v) for v in dict_m_m_r.values()]) // args.num_threads
-            chunk = []
-            n = 0
-            for k, v in dict_m_m_r.items():
-                chunk.append(v)
-                n += len(v)
-                if n > n_threshold:
-                    chunks.append(chunk)
-                    chunk = []
-                    n = 0
-            chunks.append(chunk)
+        chunks = np.array_split(target_list, args.num_threads)
         pool = multiprocessing.Pool(args.num_threads)
-        if args.residue and not args.intra:
-            results = pool.map(
-                run_residue_inter_,
-                [
-                    (
-                        args,
-                        protein_ref_indices_i,
-                        protein_ref_indices_j,
-                        len(ref_ri_to_ai_j),
-                        c12_cutoff,
-                        mol_i,
-                        mol_j,
-                        (ref_ai_to_ri_i, index_ai_to_ri_j),
-                        x,
-                    )
-                    for x in chunks
-                ],
-            )
-        else:
-
-            results = pool.map(
-                run_mat_,
-                [
-                    (
-                        args,
-                        protein_ref_indices_i,
-                        protein_ref_indices_j,
-                        original_size_j,
-                        c12_cutoff,
-                        mol_i,
-                        mol_j,
-                        x,
-                        mat_type,
-                    )
-                    for x in chunks
-                ],
-            )
-
+        results = pool.map(
+            run_mat_,
+            [
+                (
+                    args,
+                    protein_ref_indices_i,
+                    protein_ref_indices_j,
+                    original_size_j,
+                    c12_cutoff,
+                    mol_i,
+                    mol_j,
+                    x,
+                    mat_type,
+                )
+                for x in chunks
+            ],
+        )
         pool.close()
         pool.join()
 
@@ -856,9 +745,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     df.index = range(len(df.index))
     out_name = args.out_name + "_" if args.out_name else ""
-    output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.gz"
-    if args.residue:
-        output_file = f"{args.out}/{mat_type}mat_res_{out_name}{mol_i}_{mol_j}.ndx.gz"
+    output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.h5"
     print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
     write_mat(df, output_file)
 
@@ -908,18 +795,14 @@ if __name__ == "__main__":
         help="Read from tar file instead of directory",
     )
     parser.add_argument(
-        "--h5",
+        "--noh5",
         action="store_true",
-        help="Read from h5 file instead of text (.dat)",
+        help="Read from text file instead of hdf5",
     )
     parser.add_argument(
         "--custom_c12",
         type=str,
         help="Custom dictionary of c12 for special molecules",
-    )
-    parser.add_argument(
-        "--residue",
-        action="store_true",
     )
     parser.add_argument(
         "--zero",
@@ -949,16 +832,13 @@ if __name__ == "__main__":
             print(f"The path '{args.histo}' is not a tar file.")
             sys.exit()
 
-    if args.tar and args.h5:
-        print("cannot use --tar and --h5, chose one.")
-        sys.exit()
-
     # Sets mode
     modes = np.array(args.mode.split("+"), dtype=str)
     modes_possible = np.array(["intra", "same", "cross"])
     args.intra = False
     args.same = False
     args.cross = False
+
     if not np.any(np.isin(modes, modes_possible)):
         raise ValueError(
             f"inserted mode {args.mode} is not correct and got evaluated to {modes}. Choose intra,same and or cross separated by '+', e.g.: intra+same or same+cross"
@@ -970,10 +850,6 @@ if __name__ == "__main__":
         args.same = True
     if "cross" in modes:
         args.cross = True
-
-    if args.residue and args.intra:
-        print("Residue calculation is only possible for intermolecular calculations (not implemented yet for intramolecular).")
-        sys.exit()
 
     N_BINS = args.cutoff / (0.01 / 4)
     DX = args.cutoff / N_BINS

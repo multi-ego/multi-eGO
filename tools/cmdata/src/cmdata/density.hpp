@@ -10,7 +10,7 @@
 namespace cmdata::density
 {
 
-void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<float> &bins, const double mu, const double norm)
+void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<float> &bins, const float mu, const float norm)
 {
   float h = 0.01;
   float from_x = std::max(mu - 2 * h, bins[0]);

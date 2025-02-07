@@ -197,7 +197,6 @@ void f_write_intra_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  // hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
   hsize_t chunk_dims[2] = {
     std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
     std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
@@ -262,20 +261,10 @@ void f_write_inter_same_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  // hsize_t chunk_dims[2] = {
-  //   (static_cast<hsize_t>(density_bins.size()) < 300) ? 300 : static_cast<hsize_t>(density_bins.size()),
-  //   (static_cast<hsize_t>(natmol2[i]+1) < 512) ? 512 : static_cast<hsize_t>(natmol2[i]+1)
-  // };  // Adjust chunk size based on your data
   hsize_t chunk_dims[2] = {
     std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
     std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
   };
-std::cout << "Dataset dimensions: (" 
-          << density_bins.size() << ", " 
-          << (natmol2[i] + 1) << ")" << std::endl;
-std::cout << "Chunk dimensions: (" 
-          << chunk_dims[0] << ", "
-          << chunk_dims[1] << ")" << std::endl;
 
   plist.setChunk(2, chunk_dims);
  
@@ -349,7 +338,6 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
   // Create dataset creation property list with compression
   DSetCreatPropList plist;
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
-  // hsize_t chunk_dims[2] = {300, 512};  // Adjust chunk size based on your data
   hsize_t chunk_dims[2] = {
     std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
     std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))

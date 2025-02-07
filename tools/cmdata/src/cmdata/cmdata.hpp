@@ -42,24 +42,22 @@ class CMData
 {
 private:
   // general fields
-  int n_x_;
+  float cutoff_, mol_cutoff_, mcut2_, cut_sig_2_;
+  int nskip_, n_x_;
   float dt_, t_begin_, t_end_;
-  int nskip_;
   gmx_mtop_t *mtop_;
   rvec *xcm_ = nullptr;
-  float cutoff_, mol_cutoff_, mcut2_, cut_sig_2_;
 
   // molecule number fields
   int nindex_;
-  // std::vector<uint> selection_;
   gmx::RangePartitioning mols_;
   std::vector<int> natmol2_;
   std::vector<int> mol_id_;
   std::vector<int> num_mol_unique_;
   std::vector<float> inv_num_mol_unique_;
   std::vector<float> inv_num_mol_;
-  
   std::string bkbn_H_;
+
   // weights fields
   float weights_sum_;
   std::string weights_path_;
@@ -105,9 +103,7 @@ private:
   // mode selection, booleans and functions
   std::string mode_;
   bool intra_ = false, same_ = false, cross_ = false;
-  #ifdef USE_HDF5
   bool h5_ = false;
-  #endif
 
   // function types
   using ftype_intra_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::intra_mol_routine)>;
@@ -240,15 +236,13 @@ public:
     const std::string &top_path, const std::string &traj_path,
     float cutoff, float mol_cutoff, int nskip, int num_threads, int num_mol_threads,
     int dt, const std::string &mode, const std::string &bkbn_H, const std::string &weights_path, 
-    bool no_pbc, float t_begin, float t_end
-  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads), num_mol_threads_(num_mol_threads),
-      mode_(mode), bkbn_H_(bkbn_H), weights_path_(weights_path),
-      no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
+    bool no_pbc, float t_begin, float t_end, bool h5
+  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), dt_(dt), t_begin_(t_begin), t_end_(t_end),
+      bkbn_H_(bkbn_H), weights_path_(weights_path), no_pbc_(no_pbc), num_threads_(num_threads),
+      num_mol_threads_(num_mol_threads), mode_(mode), h5_(h5)
   {
-    bool bTop_;
     matrix boxtop_;
     mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
-    TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
 
@@ -381,7 +375,7 @@ public:
     if(natmol2_.size()<2) cross_ = false; 
     if(nindex_>1 && (same_ || cross_))
     {
-      printf("\n\n::::::::::::WARNING::::::::::::\nMore than 1 molcule found in the system.\nFix pbc before running cmdata using pbc mol\n");
+      printf("\n\n::::::::::::WARNING::::::::::::\nMore than 1 molecule found in the system.\nFix pbc before running cmdata using pbc mol\n");
       printf(":::::::::::::::::::::::::::::::\n\n");
     }
     if (same_)
@@ -439,7 +433,6 @@ public:
     if (intra_ || same_) frame_same_mutex_.resize(natmol2_.size());
     if (cross_) frame_cross_mat_.resize(cross_index_.size());
     if (cross_) frame_cross_mutex_.resize(cross_index_.size());
-    std::size_t sum_cross_mol_sizes = 0;
     for ( std::size_t i = 0; i < natmol2_.size(); i++ )
     {
       if (same_) frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
