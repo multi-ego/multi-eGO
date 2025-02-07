@@ -6,7 +6,7 @@
 namespace cmdata::indexing
 {
 
-int n_bins(const double cut, const double factor = 4.0)
+int n_bins(const float cut, const float factor = 4.0)
 {
   return cut / (0.01 / factor);
 }

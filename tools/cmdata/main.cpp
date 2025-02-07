@@ -15,7 +15,7 @@ int main(int argc, const char** argv)
   std::cout << "################## Version 0.1 #################" << std::endl;
   std::cout << "################################################\n" << std::endl;
 
-  double cutoff = 0.75, mol_cutoff = 6.0;
+  float cutoff = 0.75, mol_cutoff = 6.0;
   int nskip = 0, num_threads = 1, mol_threads = -1, dt = 0;
   float t_begin = 0.0, t_end = -1.0;
   char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL,*p_bkbn_H = NULL, *p_weights_path = NULL;
@@ -23,9 +23,12 @@ int main(int argc, const char** argv)
   std::string traj_path, top_path, mode, weights_path, bkbn_H;
   std::string out_prefix;
   int *p_nopbc = NULL;
-  int *p_res = NULL;
+  int *p_h5 = NULL;
   bool nopbc = false;
-  bool res = false;
+  bool h5 = false;
+  #ifdef USE_HDF5
+  h5 = true;
+  #endif
 
   // make popt options
   struct poptOption optionsTable[] = {
@@ -45,6 +48,7 @@ int main(int argc, const char** argv)
     {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Backbone H name",             "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
+    {"noh5",          '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,  &p_h5,            0, "Write output in text format", 0},
     POPT_TABLEEND
   };
 
@@ -67,12 +71,12 @@ int main(int argc, const char** argv)
 
   traj_path = std::string(p_traj_path);
   top_path = std::string(p_top_path);
-  //bkbn_H = std::string(p_bkbn_H);
   mode = p_mode ? std::string(p_mode) : std::string("intra+same+cross");
   bkbn_H = p_bkbn_H ? std::string(p_bkbn_H) : std::string("H");
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
+  if ( p_h5 != NULL ) h5 = false;
 
   // check if paths are valid
   if ( !std::filesystem::exists(std::filesystem::path(traj_path)) )
@@ -154,7 +158,7 @@ int main(int argc, const char** argv)
 
   cmdata::CMData cmdata(
     top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
-    mode, bkbn_H, weights_path, nopbc, t_begin, t_end
+    mode, bkbn_H, weights_path, nopbc, t_begin, t_end, h5
   );
   cmdata.run();
   cmdata.process_data();

@@ -15,24 +15,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: ~/.ccache
-        key: ccache-reset-${{ github.sha }}
-        restore-keys: ccache-reset-
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Add conda to system path
       run: |
         # $CONDA is an environment variable pointing to the root of the miniconda directory
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
-        conda install --solver=classic -y python=3.11
-        conda env update --solver=classic --file conda/environment.yml --name base
-        conda install --solver=classic flake8
+        conda update conda
+        conda env update --file conda/environment.yml -n base
+        conda install flake8
     - name: Run flake8 
       run: |
         # Flake8 exit on most issues
@@ -47,11 +42,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.10
+    - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
-        cache: 'pip'
+        python-version: '3.13'
     - name: Install requirements
       run: pip install -r requirements.txt
     - name: Run tests
@@ -64,25 +58,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: ~/.ccache
-        key: ccache-reset-${{ github.sha }}
-        restore-keys: ccache-reset-
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
-        python-version: '3.11'
+        python-version: '3.12'
     - name: Add conda to system path
       uses: conda-incubator/setup-miniconda@v3
       with:
-        activate-environment:
-    - name: Install dependencies with conda
-      run: |
-        echo $CONDA/bin >> $GITHUB_PATH
-        conda install -y python=3.11
-        conda env update --file conda/environment.yml --name base
+        environment-file: conda/environment.yml
+        miniforge-version: latest
+        activate-environment: test
     - name: Run tests
+      shell: bash -el {0}
       run: |
         $CONDA/bin/python test/run_tests.py
         cd test; bash run_make_mat.sh; cd ..
@@ -91,11 +78,10 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.9
+    - name: Set up Python 3.13
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
-        cache: 'pip'
+        python-version: '3.13'
     - name: Install requirements
       run: pip install -r requirements.txt
     - name: Run tests

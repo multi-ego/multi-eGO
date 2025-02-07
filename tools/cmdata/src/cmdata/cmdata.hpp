@@ -42,28 +42,26 @@ class CMData
 {
 private:
   // general fields
-  int n_x_;
+  float cutoff_, mol_cutoff_, mcut2_, cut_sig_2_;
+  int nskip_, n_x_;
   float dt_, t_begin_, t_end_;
-  int nskip_;
   gmx_mtop_t *mtop_;
   rvec *xcm_ = nullptr;
-  double cutoff_, mol_cutoff_, mcut2_, cut_sig_2_;
 
   // molecule number fields
   int nindex_;
-  // std::vector<uint> selection_;
   gmx::RangePartitioning mols_;
   std::vector<int> natmol2_;
   std::vector<int> mol_id_;
   std::vector<int> num_mol_unique_;
-  std::vector<double> inv_num_mol_unique_;
-  std::vector<double> inv_num_mol_;
-  
+  std::vector<float> inv_num_mol_unique_;
+  std::vector<float> inv_num_mol_;
   std::string bkbn_H_;
+
   // weights fields
-  double weights_sum_;
+  float weights_sum_;
   std::string weights_path_;
-  std::vector<double> weights_;
+  std::vector<float> weights_;
 
   // pbc fields
   bool no_pbc_;
@@ -75,12 +73,12 @@ private:
   XDRFILE *trj_;
 
   // density fields
-  double dx_;
+  float dx_;
   std::size_t n_bins_;
-  std::vector<double> density_bins_;
+  std::vector<float> density_bins_;
   std::vector<std::vector<int>> cross_index_;
 
-  using cmdata_matrix = std::vector<std::vector<std::vector<std::vector<double>>>>;
+  using cmdata_matrix = std::vector<std::vector<std::vector<std::vector<float>>>>;
   cmdata_matrix interm_same_mat_density_;
   cmdata_matrix interm_cross_mat_density_;
   cmdata_matrix intram_mat_density_;
@@ -88,8 +86,8 @@ private:
   cmdata_matrix interm_cross_maxcdf_mol_;
 
   // temporary containers for maxcdf operations
-  std::vector<std::vector<double>> frame_same_mat_;
-  std::vector<std::vector<double>> frame_cross_mat_;
+  std::vector<std::vector<float>> frame_same_mat_;
+  std::vector<std::vector<float>> frame_cross_mat_;
   std::vector<std::vector<std::mutex>> frame_same_mutex_;
   std::vector<std::vector<std::mutex>> frame_cross_mutex_;
 
@@ -105,6 +103,7 @@ private:
   // mode selection, booleans and functions
   std::string mode_;
   bool intra_ = false, same_ = false, cross_ = false;
+  bool h5_ = false;
 
   // function types
   using ftype_intra_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::intra_mol_routine)>;
@@ -116,15 +115,15 @@ private:
   std::function<ftype_cross_::signature> f_inter_mol_cross_;
 
   static void molecule_routine(
-    const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<double> &inv_num_mol_, const double cut_sig_2_, 
+    const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<float> &inv_num_mol_, const float cut_sig_2_, 
     const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_, 
-    const std::vector<std::vector<int>> &cross_index_, const std::vector<double> &density_bins_, const double mcut2_, 
+    const std::vector<std::vector<int>> &cross_index_, const std::vector<float> &density_bins_, const float mcut2_, 
     rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, 
-    std::vector<std::vector<double>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
-    cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<double>> &frame_cross_mat_,
+    std::vector<std::vector<float>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
+    cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<float>> &frame_cross_mat_,
     std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
     const std::function<ftype_intra_::signature> &f_intra_mol_, const std::function<ftype_same_::signature> &f_inter_mol_same_,
-    const std::function<ftype_cross_::signature> &f_inter_mol_cross_, double weight, std::string bkbn_H_
+    const std::function<ftype_cross_::signature> &f_inter_mol_cross_, float weight, std::string bkbn_H_
   )
   {
     semaphore_.acquire();
@@ -151,7 +150,7 @@ private:
         rvec dx;
         if (pbc != nullptr) pbc_dx(pbc, xcm_[i], xcm_[j], dx);
         else rvec_sub(xcm_[i], xcm_[j], dx);
-        double dx2 = iprod(dx, dx);
+        float dx2 = iprod(dx, dx);
         if (dx2 > mcut2_) continue;
       }
       /* for molecules of different specie we fill half a matrix */
@@ -182,7 +181,7 @@ private:
           rvec sym_dx;
           if (pbc != nullptr) pbc_dx(pbc, x[ii], x[jj], sym_dx);
           else rvec_sub(x[ii], x[jj], sym_dx);
-          double dx2 = iprod(sym_dx, sym_dx);
+          float dx2 = iprod(sym_dx, sym_dx);
           if (i==j) 
           {
             if (dx2 < cut_sig_2_)
@@ -235,17 +234,15 @@ private:
 public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
-    double cutoff, double mol_cutoff, int nskip, int num_threads, int num_mol_threads,
+    float cutoff, float mol_cutoff, int nskip, int num_threads, int num_mol_threads,
     int dt, const std::string &mode, const std::string &bkbn_H, const std::string &weights_path, 
-    bool no_pbc, float t_begin, float t_end
-  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), num_threads_(num_threads), num_mol_threads_(num_mol_threads),
-      mode_(mode), bkbn_H_(bkbn_H), weights_path_(weights_path),
-      no_pbc_(no_pbc), dt_(dt), t_begin_(t_begin), t_end_(t_end)
+    bool no_pbc, float t_begin, float t_end, bool h5
+  ) : cutoff_(cutoff), mol_cutoff_(mol_cutoff), nskip_(nskip), dt_(dt), t_begin_(t_begin), t_end_(t_end),
+      bkbn_H_(bkbn_H), weights_path_(weights_path), no_pbc_(no_pbc), num_threads_(num_threads),
+      num_mol_threads_(num_mol_threads), mode_(mode), h5_(h5)
   {
-    bool bTop_;
     matrix boxtop_;
     mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
-    TpxFileHeader header = readTpxHeader(top_path.c_str(), true);
     int natoms;
     pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
 
@@ -358,11 +355,11 @@ public:
     for ( auto i : num_mol_unique_ )
     {
       natmol2_.push_back(mols_.block(molb_index).end() - mols_.block(molb_index).begin());
-      inv_num_mol_unique_.push_back(1. / static_cast<double>(i));
+      inv_num_mol_unique_.push_back(1. / static_cast<float>(i));
       for ( int j = 0; j < i; j++ )
       {
         mol_id_.push_back(mol_id);
-        inv_num_mol_.push_back(1. / static_cast<double>(i));
+        inv_num_mol_.push_back(1. / static_cast<float>(i));
       }
       mol_id++;
       molb_index += i;
@@ -378,7 +375,7 @@ public:
     if(natmol2_.size()<2) cross_ = false; 
     if(nindex_>1 && (same_ || cross_))
     {
-      printf("\n\n::::::::::::WARNING::::::::::::\nMore than 1 molcule found in the system.\nFix pbc before running cmdata using pbc mol\n");
+      printf("\n\n::::::::::::WARNING::::::::::::\nMore than 1 molecule found in the system.\nFix pbc before running cmdata using pbc mol\n");
       printf(":::::::::::::::::::::::::::::::\n\n");
     }
     if (same_)
@@ -404,7 +401,7 @@ public:
 
     density_bins_.resize(cmdata::indexing::n_bins(cutoff_));
     for (std::size_t i = 0; i < density_bins_.size(); i++)
-      density_bins_[i] = cutoff_ / static_cast<double>(density_bins_.size()) * static_cast<double>(i) + cutoff_ / static_cast<double>(density_bins_.size() * 2);
+      density_bins_[i] = cutoff_ / static_cast<float>(density_bins_.size()) * static_cast<float>(i) + cutoff_ / static_cast<float>(density_bins_.size() * 2);
 
     int cross_count = 0;
     if (cross_) cross_index_.resize(natmol2_.size(), std::vector<int>(natmol2_.size(), 0));
@@ -412,21 +409,21 @@ public:
     {
       if (same_)
       {
-        interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
-        interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_same_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<float>>(natmol2_[i], std::vector<float>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_same_maxcdf_mol_[i].resize(natmol2_[i], std::vector<std::vector<float>>(natmol2_[i], std::vector<float>(cmdata::indexing::n_bins(cutoff_), 0)));
       }
-      if (intra_) intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[i], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
+      if (intra_) intram_mat_density_[i].resize(natmol2_[i], std::vector<std::vector<float>>(natmol2_[i], std::vector<float>(cmdata::indexing::n_bins(cutoff_), 0)));
       for ( std::size_t j = i + 1; j < natmol2_.size() && cross_; j++ )
       {
-        interm_cross_mat_density_[cross_count].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
-        interm_cross_maxcdf_mol_[cross_count].resize(natmol2_[i], std::vector<std::vector<double>>(natmol2_[j], std::vector<double>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_cross_mat_density_[cross_count].resize(natmol2_[i], std::vector<std::vector<float>>(natmol2_[j], std::vector<float>(cmdata::indexing::n_bins(cutoff_), 0)));
+        interm_cross_maxcdf_mol_[cross_count].resize(natmol2_[i], std::vector<std::vector<float>>(natmol2_[j], std::vector<float>(cmdata::indexing::n_bins(cutoff_), 0)));
         cross_index_[i][j] = cross_count;
         cross_count++;
       }
     }
 
     n_bins_ = cmdata::indexing::n_bins(cutoff_);
-    dx_ = cutoff_ / static_cast<double>(n_bins_);
+    dx_ = cutoff_ / static_cast<float>(n_bins_);
 
     mcut2_ = mol_cutoff_ * mol_cutoff_;
     cut_sig_2_ = (cutoff_ + 0.02) * (cutoff_ + 0.02);
@@ -436,7 +433,6 @@ public:
     if (intra_ || same_) frame_same_mutex_.resize(natmol2_.size());
     if (cross_) frame_cross_mat_.resize(cross_index_.size());
     if (cross_) frame_cross_mutex_.resize(cross_index_.size());
-    std::size_t sum_cross_mol_sizes = 0;
     for ( std::size_t i = 0; i < natmol2_.size(); i++ )
     {
       if (same_) frame_same_mat_[i].resize(natmol2_[i] *  natmol2_[i] * num_mol_unique_[i], 0);
@@ -453,7 +449,7 @@ public:
       printf("Weights file provided. Reading weights from %s\n", weights_path_.c_str());
       weights_ = cmdata::io::read_weights_file(weights_path_);
       printf("Found %li frame weights in file\n", weights_.size());
-      double w_sum = std::accumulate(std::begin(weights_), std::end(weights_), 0.0, std::plus<>());
+      float w_sum = std::accumulate(std::begin(weights_), std::end(weights_), 0.0, std::plus<>());
       printf("Sum of weights amounts to %lf\n", w_sum);
       weights_sum_ = 0.;
     }
@@ -603,7 +599,7 @@ public:
       start_j_cross = end_j_cross;
     }
 
-    printf("Finished preprocessing. Starting frame-by-frame analysis.\n");
+    printf("Finished preprocessing.\nStarting frame-by-frame analysis.\n");
   }
 
   void run()
@@ -623,7 +619,7 @@ public:
       if ((frame_->time >= t_begin_ && (t_end_ < 0 || frame_->time <= t_end_ )) && // within time borders 
           ( dt_ == 0 || std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0 || std::fmod(frnr, nskip_) == 0)) // skip frames
       {
-        double weight = 1.0;
+        float weight = 1.0;
         if (!weights_.empty())
         {
           weight = weights_[frnr];
@@ -644,7 +640,7 @@ public:
         for (int i = 0; i < nindex_; i++)
         {
           clear_rvec(xcm_[i]);
-          double tm = 0.;
+          float tm = 0.;
           for (int ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
           {
             for (int m = 0; (m < DIM); m++)
@@ -694,11 +690,11 @@ public:
 
   void process_data()
   {
-    std::cout << "Finished frame-by-frame analysis\n";
+    std::cout << "\nFinished frame-by-frame analysis\n";
     std::cout << "Analyzed " << n_x_ << " frames\n";
     std::cout << "Normalizing data... " << std::endl;
     // normalisations
-    double norm = ( weights_.empty() ) ? 1. / n_x_ : 1. / weights_sum_;
+    float norm = ( weights_.empty() ) ? 1. / n_x_ : 1. / weights_sum_;
 
     using ftype_norm = cmdata::ftypes::function_traits<decltype(&cmdata::density::normalize_histo)>;
     std::function<ftype_norm::signature> f_empty = cmdata::ftypes::do_nothing<ftype_norm>();
@@ -713,12 +709,12 @@ public:
       {
         for (int jj = ii; jj < natmol2_[i]; jj++)
         {
-          double inv_num_mol_same = inv_num_mol_unique_[i];
+          float inv_num_mol_same = inv_num_mol_unique_[i];
           normalize_inter_same(i, ii, jj, norm, inv_num_mol_same, interm_same_maxcdf_mol_);
           normalize_inter_same(i, ii, jj, norm, 1.0, interm_same_mat_density_);
           normalize_intra(i, ii, jj, norm, 1.0, intram_mat_density_);
 
-          double sum = 0.0;
+          float sum = 0.0;
           for ( std::size_t k = (same_) ? 0 : cmdata::indexing::n_bins(cutoff_); k < cmdata::indexing::n_bins(cutoff_); k++ )
           {
             sum+= dx_ * interm_same_maxcdf_mol_[i][ii][jj][k];
@@ -736,11 +732,11 @@ public:
         {
           for (int jj = 0; jj < natmol2_[j]; jj++)
           {
-            double inv_num_mol_cross = inv_num_mol_unique_[i];
+            float inv_num_mol_cross = inv_num_mol_unique_[i];
             normalize_inter_cross(cross_index_[i][j], ii, jj, norm, 1.0, interm_cross_mat_density_);
             normalize_inter_cross(cross_index_[i][j], ii, jj, norm, inv_num_mol_cross, interm_cross_maxcdf_mol_);
 
-            double sum = 0.0;
+            float sum = 0.0;
             for ( std::size_t k = (cross_) ? 0 : cmdata::indexing::n_bins(cutoff_); k < cmdata::indexing::n_bins(cutoff_); k++ )
             {
               sum += dx_ * interm_cross_maxcdf_mol_[cross_index_[i][j]][ii][jj][k];
@@ -762,15 +758,41 @@ public:
     std::function<ftype_write_intra::signature> write_intra = cmdata::ftypes::do_nothing<ftype_write_intra>();
     std::function<ftype_write_inter_same::signature> write_inter_same = cmdata::ftypes::do_nothing<ftype_write_inter_same>();
     std::function<ftype_write_inter_cross::signature> write_inter_cross = cmdata::ftypes::do_nothing<ftype_write_inter_cross>();
-    if (intra_) write_intra = cmdata::io::f_write_intra;
-    if (same_) write_inter_same = cmdata::io::f_write_inter_same;
-    if (cross_) write_inter_cross = cmdata::io::f_write_inter_cross;
+
+    if (intra_)
+    {
+      #ifdef USE_HDF5
+      if(h5_) write_intra = cmdata::io::f_write_intra_HDF5;
+      else write_intra = cmdata::io::f_write_intra;
+      #else
+      write_intra = cmdata::io::f_write_intra;
+      #endif
+    }
+    if (same_) 
+    {
+      #ifdef USE_HDF5
+      if(h5_) write_inter_same = cmdata::io::f_write_inter_same_HDF5;
+      else write_inter_same = cmdata::io::f_write_inter_same;
+      #else
+      write_inter_same = cmdata::io::f_write_inter_same;
+      #endif
+    }
+    if (cross_)
+    {
+      #ifdef USE_HDF5
+      if(h5_) write_inter_cross = cmdata::io::f_write_inter_cross_HDF5;
+      else write_inter_cross = cmdata::io::f_write_inter_cross;
+      #else
+      write_inter_cross = cmdata::io::f_write_inter_cross;
+      #endif
+    }
 
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
       std::cout << "Writing data for molecule " << i << "..." << std::endl;
       cmdata::io::print_progress_bar(0.0);
-      float progress = 0.0, new_progress = 0.0;    
+      float progress = 0.0, new_progress = 0.0;
+
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
         new_progress = static_cast<float>(ii) / static_cast<float>(natmol2_[i]);
@@ -782,14 +804,18 @@ public:
         write_intra(output_prefix, i, ii, density_bins_, natmol2_, intram_mat_density_);
         write_inter_same(output_prefix, i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
       }
-      for (std::size_t j = i + 1; j < natmol2_.size(); j++)
+      if(cross_)
       {
-        for (int ii = 0; ii < natmol2_[i]; ii++)
+        for (std::size_t j = i + 1; j < natmol2_.size(); j++)
         {
-          write_inter_cross(output_prefix, i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
+          for (int ii = 0; ii < natmol2_[i]; ii++)
+          {
+            write_inter_cross(output_prefix, i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
+          }
         }
       }
     }
+
     cmdata::io::print_progress_bar(1.0);
     std::cout << "\nFinished!" << std::endl;
   }

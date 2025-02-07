@@ -32,15 +32,14 @@ else:
 contact_matrix = pd.read_hdf(args.input_file, key="data")
 
 # Define the column names if needed (ensure they are consistent with HDF5)
-col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "intra_domain"]
+col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
 
 # Check if the columns exist in the DataFrame
 for col in col_names:
     if col not in contact_matrix.columns:
         raise ValueError(f"Column '{col}' not found in the input HDF5 file.")
 
-contact_matrix["intra_domain"] = contact_matrix["intra_domain"].astype(int)
-
+contact_matrix["learned"] = contact_matrix["learned"].astype(int)
 # Save the DataFrame as a text file with space-separated values
 contact_matrix.to_csv(output_file, sep=" ", index=False, header=False)
 
