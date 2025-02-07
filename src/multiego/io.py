@@ -399,7 +399,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
 
     contact_matrix = pd.DataFrame()
     if not h5:
-        contact_matrix = pd.read_csv(path, header=None, sep="\s+", names=col_names, dtype=col_types)
+        contact_matrix = pd.read_csv(path, header=None, sep=r"\s+", names=col_names, dtype=col_types)
         contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
     else:
         contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)

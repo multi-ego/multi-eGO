@@ -48,7 +48,7 @@ col_types = {
 }
 
 # Read the input file with specified column names and data types
-contact_matrix = pd.read_csv(args.input_file, header=None, sep="\s+", names=col_names, dtype=col_types)
+contact_matrix = pd.read_csv(args.input_file, header=None, sep=r"\s+", names=col_names, dtype=col_types)
 contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
 
 contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].astype("category")
