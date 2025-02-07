@@ -3,7 +3,6 @@
 set -e
 set -o pipefail
 
-tar -zxf test_inputs/make_mat_ttr/hh.tgz -C test_inputs/make_mat_ttr/
 python ../tools/make_mat/make_mat.py --histo test_inputs/make_mat_ttr/hh.tgz --target_top test_inputs/make_mat_ttr/topol_md.top --mego_top test_inputs/make_mat_ttr/topol_ref.top --cutoff 0.75 --mode intra+same --out  test_inputs/make_mat_ttr/ --tar
 #diff <(gzip -dc test_inputs/make_mat_ttr/intramat_1_1.ndx.gz) <(gzip -dc test_outputs/make_mat_ttr/intramat_1_1.ndx.gz)
 #diff <(gzip -dc test_inputs/make_mat_ttr/intermat_1_1.ndx.gz) <(gzip -dc test_outputs/make_mat_ttr/intermat_1_1.ndx.gz)
