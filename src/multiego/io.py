@@ -657,8 +657,8 @@ def print_stats(meGO_LJ):
 \t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
 
 \t- RELEVANT MDP PARAMETERS:
-\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(),0.5):4.2f} nm
-\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(),0.5):4.2f} nm
+\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
+\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
     """
     )
 
@@ -873,7 +873,7 @@ def get_name(parameters):
     if parameters.egos == "mg":
         name = f"{parameters.system}_{parameters.egos}"
     else:
-        name = f"{parameters.system}_{parameters.egos}_epsis_intra{ '-'.join(np.array(parameters.multi_epsilon, dtype=str)) }_{parameters.inter_epsilon}"
+        name = f"{parameters.system}_{parameters.egos}_epsis_intra{'-'.join(np.array(parameters.multi_epsilon, dtype=str))}_{parameters.inter_epsilon}"
     return name
 
 
