@@ -513,6 +513,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
+    original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
     protein_ref_indices_i = np.array(
@@ -686,13 +687,22 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     if args.zero:
         df = pd.DataFrame()
-        df["ai"] = np.repeat(protein_ref_indices_i, len(protein_ref_indices_j))
-        df["mi"] = [mol_i for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
-        df["aj"] = np.tile(protein_ref_indices_j, len(protein_ref_indices_i))
-        df["mj"] = [mol_j for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
+        all_ai = [i for i in range(1, original_size_i+ 1)]
+        all_aj = [j for j in range(1, original_size_j+ 1)]
+        df["mi"] = [mol_i for _ in range((original_size_i) * (original_size_j))]
+        df["mj"] = [mol_j for _ in range((original_size_i) * (original_size_j))]
+        df["ai"] = np.repeat(all_ai, (original_size_j))
+        df["aj"] = np.tile(all_aj, original_size_i)
         df["c12dist"] = 0.0
         df["p"] = 0.0
-        df["cutoff"] = [c12_cutoff[i, j] for i in range(len(protein_ref_indices_i)) for j in range(len(protein_ref_indices_j))]
+        cuts = []
+        # create list of c12 cutoff with H put to zero
+        for i in range(len(df["ai"])):
+            if df["ai"][i] in protein_ref_indices_i:
+                cuts.append(float(c12_cutoff[np.where(protein_ref_indices_i == df["ai"][i])[0][0]])) 
+            else:
+                cuts.append(0.0)
+        df["cutoff"] = cuts                 
     else:
         chunks = np.array_split(target_list, args.num_threads)
         pool = multiprocessing.Pool(args.num_threads)
