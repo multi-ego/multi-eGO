@@ -413,7 +413,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
 
     # check intra domain complementarity
-    check_intra_domain_complementarity(matrices["reference_matrices"])
+    # check_intra_domain_complementarity(matrices["reference_matrices"])
 
     # now we process the train contact matrices
     # keep track of the training matrices already processed
@@ -1200,21 +1200,14 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # by either intra/inter training. We cannot remove 1-4 interactions.
     # we should not remove default interactions in the window of 2 neighor AA to
     # avoid replacing them with unwanted interactions
+
+    # this removes attractive/repulsive contacts that are default
     meGO_LJ = meGO_LJ.loc[
         ~(
             (meGO_LJ["epsilon"] > 0)
             & (meGO_LJ["mg_epsilon"] > 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
             & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
-            & (meGO_LJ["1-4"] == "1>4")
-        )
-    ]
-    meGO_LJ = meGO_LJ.loc[
-        ~(
-            (meGO_LJ["epsilon"] > 0)
-            & (meGO_LJ["epsilon_prior"] > 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / meGO_LJ["epsilon_prior"]) < parameters.relative_c12d)
-            & ((abs(meGO_LJ["sigma"] - meGO_LJ["sigma_prior"]) / meGO_LJ["sigma_prior"]) < parameters.relative_c12d)
             & (meGO_LJ["1-4"] == "1>4")
         )
     ]
@@ -1230,18 +1223,30 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             )
         )
     ]
-    meGO_LJ = meGO_LJ.loc[
-        ~(
-            (meGO_LJ["epsilon"] < 0)
-            & (meGO_LJ["epsilon_prior"] < 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / abs(meGO_LJ["epsilon_prior"])) < parameters.relative_c12d)
-            & (meGO_LJ["1-4"] == "1>4")
-            & ~(
-                (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-                & (meGO_LJ["same_chain"])
-            )
-        )
-    ]
+
+    # this removes attractive/repulsive contacts that are in the prior, but it should work only if they are defined in the prior
+    # otherwise these are lost
+    # meGO_LJ = meGO_LJ.loc[
+    #    ~(
+    #        (meGO_LJ["epsilon"] > 0)
+    #        & (meGO_LJ["epsilon_prior"] > 0)
+    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / meGO_LJ["epsilon_prior"]) < parameters.relative_c12d)
+    #        & ((abs(meGO_LJ["sigma"] - meGO_LJ["sigma_prior"]) / meGO_LJ["sigma_prior"]) < parameters.relative_c12d)
+    #        & (meGO_LJ["1-4"] == "1>4")
+    #    )
+    # ]
+    # meGO_LJ = meGO_LJ.loc[
+    #    ~(
+    #        (meGO_LJ["epsilon"] < 0)
+    #        & (meGO_LJ["epsilon_prior"] < 0)
+    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / abs(meGO_LJ["epsilon_prior"])) < parameters.relative_c12d)
+    #        & (meGO_LJ["1-4"] == "1>4")
+    #        & ~(
+    #            (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+    #            & (meGO_LJ["same_chain"])
+    #        )
+    #    )
+    # ]
 
     # transfer rule for inter/intra contacts:
     # 1) only attractive contacts can be transferd
