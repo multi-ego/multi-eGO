@@ -161,15 +161,15 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     contact_matrix["epsilon_0"] = reference["epsilon"]
     # add the columns for rc, md threshold
     contact_matrix["md_threshold"] = md_threshold
+    contact_matrix["alpha"] = (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))/contact_matrix["epsilon_0"]
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-        contact_matrix["epsilon_0"]
-        / (np.maximum(0, prior_matrix["epsilon_prior"]) + contact_matrix["epsilon_0"] - reference["epsilon_min"])
+       (contact_matrix["alpha"] * contact_matrix["epsilon_0"])
+       / (np.maximum(0, prior_matrix["epsilon_prior"]) + contact_matrix["alpha"]*contact_matrix["epsilon_0"] - reference["epsilon_min"])
     )
+ 
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        -(reference["epsilon_min"] - np.maximum(0, prior_matrix["epsilon_prior"])) / contact_matrix["epsilon_0"]
-    ) * contact_matrix["zf"] ** (
-        1 - (-(reference["epsilon_min"] - np.maximum(0, prior_matrix["epsilon_prior"])) / contact_matrix["epsilon_0"])
-    )
+        (np.maximum(0, prior_matrix["epsilon_prior"]) - reference["epsilon_min"]) / (contact_matrix["alpha"]*contact_matrix["epsilon_0"])
+    ) 
 
     # modify limit_rc_att in the cases where epsilon_prior is negative and limit_rc_att is below 1 == epsilon_0 < epsilon_min)
     contact_matrix.loc[(contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0), "limit_rc_att"] = 1
@@ -706,6 +706,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "sigma_prior",
         "md_threshold",
         "rc_threshold",
+        "alpha",
         "limit_rc_att",
         "rc_distance",
         "rc_probability",
@@ -796,7 +797,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     ho_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("H", "O"), ("H", "OM")],
+        [("H", "O"), ("H", "OM"), ("H", "OA")],
         symmetrize=True,
     )
 
@@ -860,9 +861,12 @@ def generate_OO_LJ(meGO_ensemble):
     O_OM_sbtype = [
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
     ]
+    O_OM_OA_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM" or atomtype == "OA"
+    ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
-    full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_sbtype)) + list(itertools.product(O_OM_sbtype, H_H_sbtype))
+    full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
 
     # Generate all possible combinations
     combinations = list(itertools.product(O_OM_sbtype, repeat=2))
@@ -970,7 +974,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
     ] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
-        meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
+        meGO_LJ["alpha"] * meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
     ) * (
         np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
     )
