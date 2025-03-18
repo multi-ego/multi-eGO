@@ -25,6 +25,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies with conda
       run: |
+        export CONDA_REMOVE_DEFAULTS = true
         conda update conda
         conda env update --file conda/environment.yml -n base
         conda install flake8
