@@ -32,6 +32,7 @@ jobs:
         conda install flake8
         $CONDA/bin/flake8 . --count --extend-ignore E501,W605,E731,E402,E711 --show-source --statistics
     - name: Run tests
+      shell: bash -el {0}
       run: |
         $CONDA/bin/python test/run_tests.py
         cd test; bash run_make_mat.sh; cd ..
