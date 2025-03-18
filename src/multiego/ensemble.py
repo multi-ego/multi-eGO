@@ -155,37 +155,19 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
         p_sort_normalized = np.cumsum(p_sort) / norm
         md_threshold = p_sort[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
 
-    # set zf this simplify a lot of the following code
-    contact_matrix["zf"] = reference["f"]
-
     contact_matrix["epsilon_0"] = reference["epsilon"]
     # add the columns for rc, md threshold
     contact_matrix["md_threshold"] = md_threshold
-    contact_matrix["alpha"] = (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))/contact_matrix["epsilon_0"]
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-       (contact_matrix["alpha"] * contact_matrix["epsilon_0"])
-       / (np.maximum(0, prior_matrix["epsilon_prior"]) + contact_matrix["alpha"]*contact_matrix["epsilon_0"] - reference["epsilon_min"])
+       (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
+       / (contact_matrix["epsilon_0"] - reference["epsilon_min"])
     )
- 
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        (np.maximum(0, prior_matrix["epsilon_prior"]) - reference["epsilon_min"]) / (contact_matrix["alpha"]*contact_matrix["epsilon_0"])
+        (np.maximum(0, prior_matrix["epsilon_prior"]) - reference["epsilon_min"]) / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     ) 
 
     # modify limit_rc_att in the cases where epsilon_prior is negative and limit_rc_att is below 1 == epsilon_0 < epsilon_min)
     contact_matrix.loc[(contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0), "limit_rc_att"] = 1
-
-    # TODO think on the limits of f (should be those for which all repulsive/attractive interactions are removed)
-    f_min = md_threshold
-
-    if reference["f"] != 1:
-        tmp_f_max = contact_matrix["rc_threshold"]
-        if not tmp_f_max.empty:
-            f_max = 1.0 / tmp_f_max.iloc[0]
-            if reference["f"] > f_max:
-                print(
-                    f"f is not in the correct range:\n f_max={f_max} > f={reference['f']} > f_min={f_min}. Choose a proper value"
-                )
-                exit()
 
     return contact_matrix
 
@@ -700,13 +682,11 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "same_chain",
         "source",
         "reference",
-        "zf",
         "epsilon_0",
         "epsilon_prior",
         "sigma_prior",
         "md_threshold",
         "rc_threshold",
-        "alpha",
         "limit_rc_att",
         "rc_distance",
         "rc_probability",
@@ -974,9 +954,9 @@ def set_sig_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
         "epsilon",
     ] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
-        meGO_LJ["alpha"] * meGO_LJ["epsilon_0"] / np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])
+        ( meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"]) )/ np.log(meGO_LJ["rc_threshold"])
     ) * (
-        np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
+        np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
     )
 
     # General repulsive term
@@ -991,8 +971,8 @@ def set_sig_epsilon(meGO_LJ, parameters):
     ] = -np.maximum(
         0,
         (meGO_LJ["distance"] ** 12)
-        * (meGO_LJ["epsilon_0"] / (np.log(meGO_LJ["zf"] * meGO_LJ["rc_threshold"])))
-        * np.log(meGO_LJ["probability"] / (meGO_LJ["zf"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))),
+        * ((meGO_LJ["epsilon_0"]-np.maximum(0.0, meGO_LJ["epsilon_prior"])) / (np.log(meGO_LJ["rc_threshold"])))
+        * np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))),
     ) - (
         meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
@@ -1275,7 +1255,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     # now is a good time to acquire statistics on the parameters
     # this should be done per interaction pair (cycling over all molecules combinations) and inter/intra/intra_d
-    io.print_stats(meGO_LJ)
+    io.print_stats(meGO_LJ, parameters)
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     meGO_LJ_14 = meGO_LJ.copy()
