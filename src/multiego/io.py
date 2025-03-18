@@ -522,7 +522,7 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
             file.write(dataframe_to_write(meGO_LJ))
 
 
-def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
+def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     """
     Takes care of the final print-out and the file writing of topology and ffnonbonded
 
@@ -550,11 +550,12 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters):
         output_dir,
     )
     write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
-    write_output_readme(meGO_LJ, parameters, output_dir)
+    write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
     print("\t- " f"Output files written to {output_dir}")
+    print(stat_str)
 
 
-def write_output_readme(meGO_LJ, parameters, output_dir):
+def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
     """
     Writes a README file with the parameters used to generate the multi-eGO topology.
 
@@ -582,36 +583,7 @@ def write_output_readme(meGO_LJ, parameters, output_dir):
                     f.write(f" - {' '.join(line)}\n")
 
             f.write("\nContact parameters:\n")
-            # write average data intra
-            f.write("- Intramolecular contacts:\n")
-            f.write(
-                f"- epsilon: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
-            )
-            f.write(f"- sigma: {meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
-            f.write(
-                f"- number of attractive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
-            )
-            f.write(
-                f"- number of repulsive contacts: {len(meGO_LJ.loc[(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
-            )
-
-            # write average data inter
-            f.write("- Intermolecular contacts:\n")
-            f.write(
-                f"- epsilon: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['epsilon'].mean():.3f} kJ/mol\n"
-            )
-            f.write(f"- sigma: {meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)]['sigma'].mean():.3f} nm\n")
-            f.write(
-                f"- number of attractive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] > 0.0)])}\n"
-            )
-            f.write(
-                f"- number of repulsive contacts: {len(meGO_LJ.loc[~(meGO_LJ['same_chain']) & (meGO_LJ['epsilon'] < 0.0)])}\n"
-            )
-
-            # mdp parameters
-            f.write("Cutoff MDP parameters:\n")
-            f.write(f"- Suggested rlist value: {1.1*2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
-            f.write(f"- Suggested cut-off value: {2.5*meGO_LJ['sigma'].max():4.2f} nm\n")
+            f.write(stat_str)
 
 
 def print_stats(meGO_LJ):
@@ -647,8 +619,7 @@ def print_stats(meGO_LJ):
         interm_a_s_min_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
         interm_a_s_max_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
 
-    print(
-        f"""
+    stat_str = f"""
 \t- LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
 \t- Attractive: intra-molecular: {intrad_a_contacts}, inter-molecular: {interm_a_contacts}
 \t- Repulsive: intra-molecular: {intrad_r_contacts}, inter-molecular: {interm_r_contacts}
@@ -660,7 +631,8 @@ def print_stats(meGO_LJ):
 \t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
 \t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
     """
-    )
+
+    return stat_str
 
 
 def get_outdir_name(output_dir, explicit_name, egos):

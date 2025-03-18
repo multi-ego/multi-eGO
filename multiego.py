@@ -103,7 +103,7 @@ for a contact pair.
             print(f"ERROR: --epsilon_min ({ref['epsilon_min']}) must be greater than 0.")
             sys.exit()
 
-        if ref["epsilon"] < ref["epsilon_min"]: 
+        if ref["epsilon"] < ref["epsilon_min"]:
             print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({ref['epsilon_min']})")
             sys.exit()
 
@@ -185,7 +185,7 @@ def main():
         st = et
         print("- Done in:", elapsed_time, "seconds")
         print("- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14 = ensemble.generate_LJ(meGO_ensembles, train_dataset, args)
+        meGO_LJ, meGO_LJ_14, stat_str = ensemble.generate_LJ(meGO_ensembles, train_dataset, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
         gc.collect()
@@ -212,7 +212,7 @@ def main():
 
     print("- Writing Multi-eGO model")
     meGO_LJ = ensemble.sort_LJ(meGO_ensembles, meGO_LJ)
-    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args)
+    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
     elapsed_time = et - st
     print("- Done in:", elapsed_time, "seconds")
