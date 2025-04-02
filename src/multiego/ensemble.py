@@ -827,7 +827,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # Apply the specific value for this condition
     train_dataset.loc[h_condition, "mg_epsilon"] = 0.0
     train_dataset.loc[hh_condition, "mg_epsilon"] = -train_dataset["rep"]
-    train_dataset.loc[ho_mask, "mg_epsilon"] = 0.11
+    train_dataset.loc[ho_mask, "mg_epsilon"] = type_definitions.mg_eps_ho 
 
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
 
@@ -848,8 +848,10 @@ def generate_OO_LJ(meGO_ensemble):
         if atomtype == "O" or atomtype == "OM" or atomtype == "OA"
     ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
+    N_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"]
 
     full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
+    full_matrix_ON = list(itertools.product(N_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, N_sbtype))
 
     # Generate all possible combinations
     combinations = list(itertools.product(O_OM_sbtype, repeat=2))
@@ -872,13 +874,20 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
     HO_LJ = pd.DataFrame(full_matrix_OH, columns=["ai", "aj"])
-    HO_LJ["c12"] = 2.249554e-09 * type_definitions.mg_eps
-    HO_LJ["c6"] = 9.485893e-05 * type_definitions.mg_eps
-    HO_LJ["epsilon"] = type_definitions.mg_eps
+    HO_LJ["c12"] = 4. * type_definitions.mg_eps_ho * type_definitions.mg_sig_ho ** 12
+    HO_LJ["c6"] = 4. * type_definitions.mg_eps_ho * type_definitions.mg_sig_ho ** 6
+    HO_LJ["epsilon"] = type_definitions.mg_eps_ho
     HO_LJ["sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
     HO_LJ["mg_sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
-    HO_LJ["mg_epsilon"] = type_definitions.mg_eps
-    rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
+    HO_LJ["mg_epsilon"] = type_definitions.mg_eps_no
+    NO_LJ = pd.DataFrame(full_matrix_ON, columns=["ai", "aj"])
+    NO_LJ["c12"] = 4. * type_definitions.mg_eps_no * type_definitions.mg_sig_no ** 12
+    NO_LJ["c6"] = 4. * type_definitions.mg_eps_no * type_definitions.mg_sig_no ** 6
+    NO_LJ["epsilon"] = type_definitions.mg_eps_no
+    NO_LJ["sigma"] = (NO_LJ["c12"] / NO_LJ["c6"]) ** (1 / 6)
+    NO_LJ["mg_sigma"] = (NO_LJ["c12"] / NO_LJ["c6"]) ** (1 / 6)
+    NO_LJ["mg_epsilon"] = type_definitions.mg_eps_no
+    rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ, NO_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"

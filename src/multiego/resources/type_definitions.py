@@ -4,8 +4,12 @@ import sys
 
 
 mg_eps = 0.11
-mg_eps_ch3 = 0.12
-mg_eps_ch2 = 0.11
+mg_eps_ho = 0.13
+mg_sig_ho = 0.1782 
+mg_eps_no = 0.10
+mg_sig_no = 0.2673 
+mg_eps_ch3 = 0.130
+mg_eps_ch2 = 0.120
 mg_eps_ch1 = 0.09
 
 # Dataframe with GROMOS atom types and associated parameters
@@ -65,9 +69,9 @@ gromos_atp = pd.DataFrame(
             2.659360e-07,  # "C0",
         ],
         "mg_c12": [
-            1.0000000e-06 / 1.27911 * mg_eps,  # "O",
-            7.4149321e-07 / 1.72504 * mg_eps,  # "OM",
-            1.5055290e-06 / 0.84961 * mg_eps,  # "OA",
+            1.0000000e-06 / 1.27911 * mg_eps_ch1,  # "O",
+            7.4149321e-07 / 1.72504 * mg_eps_ch1,  # "OM",
+            1.5055290e-06 / 0.84961 * mg_eps_ch1,  # "OA",
             2.3195290e-06 / 0.63980 * mg_eps,  # "N",
             5.0625000e-06 / 0.29314 * mg_eps_ch1,  # "NT",
             2.3195290e-06 / 0.63980 * mg_eps_ch1,  # "NL",
@@ -91,9 +95,9 @@ gromos_atp = pd.DataFrame(
             0.0000000e-00 / 1.00000 * mg_eps,  # "C0",
         ],
         "mg_c6": [
-            0.0022619536 / 1.27911 * mg_eps,  # "O",
-            0.0022619536 / 1.72504 * mg_eps,  # "OM",
-            0.0022619536 / 0.84961 * mg_eps,  # "OA",
+            0.0022619536 / 1.27911 * mg_eps_ch1,  # "O",
+            0.0022619536 / 1.72504 * mg_eps_ch1,  # "OM",
+            0.0022619536 / 0.84961 * mg_eps_ch1,  # "OA",
             0.0024364096 / 0.63980 * mg_eps,  # "N",
             0.0024364096 / 0.29314 * mg_eps_ch1,  # "NT",
             0.0024364096 / 0.63980 * mg_eps_ch1,  # "NL",
