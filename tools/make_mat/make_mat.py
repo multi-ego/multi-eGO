@@ -740,14 +740,14 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         df["ai"] = df["ai"].astype(int)
         df["aj"] = df["aj"].astype(int)
         df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
-        df.loc[df["residue_diff"] > 1, ["p", "c12dist"]] = 0
+        df.loc[df["residue_diff"] > 2, ["p", "c12dist"]] = 0
         df.drop(columns=["residue_diff"], inplace=True)
 
     if mol_i == mol_j and args.nonb:
         df["ai"] = df["ai"].astype(int)
         df["aj"] = df["aj"].astype(int)
         df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
-        df.loc[df["residue_diff"] < 2, ["p", "c12dist"]] = 0
+        df.loc[df["residue_diff"] < 3, ["p", "c12dist"]] = 0
         df.drop(columns=["residue_diff"], inplace=True)
 
     df["mi"] = df["mi"].map("{:}".format)
