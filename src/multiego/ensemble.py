@@ -848,7 +848,7 @@ def generate_OO_LJ(meGO_ensemble):
         if atomtype == "O" or atomtype == "OM" or atomtype == "OA"
     ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
-    N_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"]
+    N_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N" or atomtype == "NT" or atomtype == "NL" or atomtype == "NR" or atomtype == "NZ" or atomtype == "NE"]
 
     full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
     full_matrix_ON = list(itertools.product(N_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, N_sbtype))
