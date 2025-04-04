@@ -677,8 +677,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
             target_fields = target.replace(".dat", "").split("_")
         else:
             target_fields = target.replace(".h5", "").split("_")
-        mi = int(target_fields[-4])
-        mj = int(target_fields[-3])
+
         ai = int(target_fields[-1])
         if ai not in protein_ref_indices_i:
             continue
