@@ -77,7 +77,7 @@ for a contact pair.
         print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
 
     if args.epsilon_min <= 0.0:
-        print(f"ERROR: --epsilon_min must be greater than 0.")
+        print("ERROR: --epsilon_min must be greater than 0.")
         sys.exit()
 
     # controls that all reference entries contains correct arguments
