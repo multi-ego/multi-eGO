@@ -117,6 +117,16 @@ args_dict_global = {
         "help": "A list of the training simulations to be included in multi-eGO, "
         "corresponding to the subfolders to process and where the contacts are learned.",
     },
+    "--p_to_learn": {
+        "type": float,
+        "default": 0.9995,
+        "help": "Fraction of training simulations to learn.",
+    },
+    "--epsilon_min": {
+        "type": float,
+        "default": 0.07,
+        "help": "The minimum meaningful epsilon value.",
+    },
     "--force_split": {
         "type": bool,
         "default": False,
@@ -154,7 +164,7 @@ args_dict_global = {
         "help": "Symmetry file for the system",
     },
     "--relative_c12d": {
-        "default": 0.001,
+        "default": 0.01,
         "type": float,
         "help": "Relative deviation from default to set new replulsive c12",
     },
@@ -195,16 +205,6 @@ args_dict_single_reference = {
         "type": float,
         "help": "Maximum interaction energy per contact.",
         "required": True,
-    },
-    "--p_to_learn": {
-        "type": float,
-        "default": 0.9995,
-        "help": "Fraction of training simulations to learn.",
-    },
-    "--epsilon_min": {
-        "type": float,
-        "default": 0.07,
-        "help": "The minimum meaningful epsilon value.",
     },
     "--f": {
         "default": 1,

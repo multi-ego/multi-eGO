@@ -160,10 +160,10 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
         (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-        / (contact_matrix["epsilon_0"] - reference["epsilon_min"])
+        / (contact_matrix["epsilon_0"] - args.epsilon_min)
     )
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        (np.maximum(0, prior_matrix["epsilon_prior"]) - reference["epsilon_min"])
+        (np.maximum(0, prior_matrix["epsilon_prior"]) - args.epsilon_min)
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
 
