@@ -995,10 +995,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )
     # higher value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 50.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 2.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -50.0 * meGO_LJ["rep"]
+        -2.0 * meGO_LJ["rep"]
     )
 
     # but within a lower
@@ -1010,14 +1010,27 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )
     # and an upper value
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 2.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -5.0 * meGO_LJ["rep"]
+        -2.0 * meGO_LJ["rep"]
     )
 
     # Sigma is set from the estimated interaction length
     meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
+    # sigma boundaries for attractive interactions
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] < 0.7 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        0.7 * meGO_LJ["mg_sigma"]
+    )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.05 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        1.05 * meGO_LJ["mg_sigma"]
+    )
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
