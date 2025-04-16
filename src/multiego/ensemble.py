@@ -1026,10 +1026,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
         0.7 * meGO_LJ["mg_sigma"]
     )
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.05 * meGO_LJ["mg_sigma"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.3 * meGO_LJ["mg_sigma"]),
         "sigma",
     ] = (
-        1.05 * meGO_LJ["mg_sigma"]
+        1.3 * meGO_LJ["mg_sigma"]
     )
 
     # for repulsive interaction we reset sigma to its effective value
