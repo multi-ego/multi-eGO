@@ -924,9 +924,6 @@ def set_sig_epsilon(meGO_LJ, parameters):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
-    # Consider only the learned contacts
-    meGO_LJ = meGO_LJ[meGO_LJ["learned"]]
-
     # when distance estimates are poor we use the cutoff value
     # Update the "distance" column for rows in the mask
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
@@ -1135,7 +1132,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     st = time.time()
     print("\t- Set sigma and epsilon")
-    meGO_LJ = train_dataset.copy()
+    # copy only learned contacts
+    meGO_LJ = train_dataset[train_dataset["learned"]].copy()
     # meGO needed fields
     needed_fields = [
         "molecule_name_ai",
@@ -1221,30 +1219,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             )
         )
     ]
-
-    # this removes attractive/repulsive contacts that are in the prior, but it should work only if they are defined in the prior
-    # otherwise these are lost
-    # meGO_LJ = meGO_LJ.loc[
-    #    ~(
-    #        (meGO_LJ["epsilon"] > 0)
-    #        & (meGO_LJ["epsilon_prior"] > 0)
-    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / meGO_LJ["epsilon_prior"]) < parameters.relative_c12d)
-    #        & ((abs(meGO_LJ["sigma"] - meGO_LJ["sigma_prior"]) / meGO_LJ["sigma_prior"]) < parameters.relative_c12d)
-    #        & (meGO_LJ["1-4"] == "1>4")
-    #    )
-    # ]
-    # meGO_LJ = meGO_LJ.loc[
-    #    ~(
-    #        (meGO_LJ["epsilon"] < 0)
-    #        & (meGO_LJ["epsilon_prior"] < 0)
-    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / abs(meGO_LJ["epsilon_prior"])) < parameters.relative_c12d)
-    #        & (meGO_LJ["1-4"] == "1>4")
-    #        & ~(
-    #            (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-    #            & (meGO_LJ["same_chain"])
-    #        )
-    #    )
-    # ]
 
     # transfer rule for inter/intra contacts:
     # 1) only attractive contacts can be transferd
