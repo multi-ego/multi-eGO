@@ -1256,15 +1256,33 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
 
     if not parameters.single_molecule:
-        # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
-        # avoid its use as intermolecular, this includes all repulsive
+        # if an attractive intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
+        # avoid its use as intermolecular, the same for repulsive with rc < or in the neigbour window
         copy_intra = meGO_LJ.loc[
-            (meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0))
+            (meGO_LJ["same_chain"])
+            & (
+                ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
+                | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
+                | (
+                    (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                    & (meGO_LJ["epsilon"] < 0.0)
+                )
+            )
         ]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
         meGO_LJ = meGO_LJ.loc[
-            ~((meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0)))
+            ~(
+                (meGO_LJ["same_chain"])
+                & (
+                    ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
+                    | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
+                    | (
+                        (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                        & (meGO_LJ["epsilon"] < 0.0)
+                    )
+                )
+            )
         ]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones
