@@ -1220,25 +1220,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         )
     ]
 
-    # transfer rule for inter/intra contacts:
-    # 1) only attractive contacts can be transferd
-    # 2) attractive contacts that can be transferd are those non affected by their random coil (prc <= rc_threshold)
-    # 3) an attractive contacts can only take the place of a trivial repulsive contact (i.e. a repulsive contact with prc <= rc_threshold)
-    meGO_LJ["trivial"] = False
-    meGO_LJ.loc[(meGO_LJ["epsilon"] > 0) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]), "trivial"] = True
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0) & (meGO_LJ["rc_probability"] <= meGO_LJ["rc_threshold"]), "trivial"] = True
-    # Identify rows where "trivial repulsive" is True and there exists another duplicate row
-    duplicated_at_least_one_trivial = (
-        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["type"] == -1)
-    )
-    # Identify rows where both are trivial/not trivial
-    duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
-    # Identify rows where both are attractive or repulsive
-    duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "type"], keep=False)
-    # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
-    remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
-    # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive
-    meGO_LJ = meGO_LJ[~remove_duplicates_mask]
     meGO_LJ = meGO_LJ[needed_fields]
 
     # now is a good time to acquire statistics on the parameters
