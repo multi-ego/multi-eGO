@@ -404,6 +404,8 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     else:
         contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)
 
+    contact_matrix["learned"] = contact_matrix["learned"].astype(bool)
+
     t1 = time.time()
     print("\t\t- Read in:", t1 - st)
 

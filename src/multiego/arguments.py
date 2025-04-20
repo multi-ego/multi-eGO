@@ -77,11 +77,6 @@ args_dict = {
         "type": str,
         "help": "Symmetry file for the system",
     },
-    "--f": {
-        "default": 1,
-        "type": float,
-        "help": "partition function normalization",
-    },
     "--relative_c12d": {
         "default": 0.01,
         "type": float,
@@ -205,10 +200,5 @@ args_dict_single_reference = {
         "type": float,
         "help": "Maximum interaction energy per contact.",
         "required": True,
-    },
-    "--f": {
-        "default": 1,
-        "type": float,
-        "help": "partition function normalization",
     },
 }

@@ -51,7 +51,6 @@ def write_mat(df, output_file):
     df["distance"] = df["distance"].astype("float64")
     df["probability"] = df["probability"].astype("float64")
     df["cutoff"] = df["cutoff"].astype("float64")
-    df["learned"] = True
 
     # Force the column order
     ordered_columns = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
@@ -735,18 +734,20 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
         df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
 
+    df["learned"] = 1
+
     if mol_i == mol_j and args.nb:
         df["ai"] = df["ai"].astype(int)
         df["aj"] = df["aj"].astype(int)
         df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
-        df.loc[df["residue_diff"] > 2, ["p", "c12dist"]] = 0
+        df.loc[df["residue_diff"] > 2, ["p", "c12dist", "learned"]] = 0
         df.drop(columns=["residue_diff"], inplace=True)
 
     if mol_i == mol_j and args.nonb:
         df["ai"] = df["ai"].astype(int)
         df["aj"] = df["aj"].astype(int)
         df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
-        df.loc[df["residue_diff"] < 3, ["p", "c12dist"]] = 0
+        df.loc[df["residue_diff"] < 3, ["p", "c12dist", "learned"]] = 0
         df.drop(columns=["residue_diff"], inplace=True)
 
     df["mi"] = df["mi"].map("{:}".format)
