@@ -535,17 +535,17 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; NONPOLAR BULKY VAL/ILE/
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42bb 170.0000 5.5000 2 
+#define gd_42bb 150.0000 5.5000 2 
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 ;
-#define gd_43bb 15.0000 3.500 3 
+#define gd_43bb 25.0000 1.500 3 
 ; Backbone dihedral angle -C-N-CA-C- BULKYAA
 ;
 ;#define gd_44bb   0.000 4.0 1
-#define gd_44bb   -60.000 5.3 1
+#define gd_44bb   -110.000 5.9 1
 ; Backbone dihedral angle -C-N-CA-C- BULKYAA
 ;
-#define gd_45bb   180.00 1.0  1
+#define gd_45bb   180.00 1.1  1
 ; Backbone dihedral angle -N-CA-C-N- BULKYAA
 
 ;;;;;;;;;;;;;;;;;;;;
