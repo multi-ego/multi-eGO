@@ -2,7 +2,9 @@ import pandas as pd
 import json
 import sys
 
-
+mg_OO_c12_rep = 3e-6
+mg_HH_c12_rep = 4.148590e-08
+mg_ON_c12_rep = 9.799381e-06
 mg_eps = 0.11
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
@@ -60,7 +62,7 @@ gromos_atp = pd.DataFrame(
             3.893600e-06,  # "P",
             3.558824e-07,  # "OE",
             6.298560e-06,  # "CR1",
-            4.148590e-08,  # "H",
+            4.148590e-12,  # "H",
             2.659360e-07,  # "C0",
         ],
         "mg_c12": [
