@@ -72,6 +72,14 @@ for a contact pair.
         print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
 
+    # Checks and warnings for each reference
+    if args.p_to_learn < 0.9:
+        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+
+    if args.epsilon_min <= 0.0:
+        print("ERROR: --epsilon_min must be greater than 0.")
+        sys.exit()
+
     # controls that all reference entries contains correct arguments
     for ref in args.input_refs:
 
@@ -96,15 +104,8 @@ for a contact pair.
             raise ValueError(f"Empty values for required keys in {ref}.\n Missing {empty_required_keys}")
 
         # Checks and warnings for each reference
-        if ref["p_to_learn"] < 0.9:
-            print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-
-        if ref["epsilon_min"] <= 0.0:
-            print(f"ERROR: --epsilon_min ({ref['epsilon_min']}) must be greater than 0.")
-            sys.exit()
-
-        if ref["epsilon"] < ref["epsilon_min"]:
-            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({ref['epsilon_min']})")
+        if ref["epsilon"] < args.epsilon_min:
+            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({args.epsilon_min})")
             sys.exit()
 
     custom_dict = {}

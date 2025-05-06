@@ -160,10 +160,10 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
         (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-        / (contact_matrix["epsilon_0"] - reference["epsilon_min"])
+        / (contact_matrix["epsilon_0"] - args.epsilon_min)
     )
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        (np.maximum(0, prior_matrix["epsilon_prior"]) - reference["epsilon_min"])
+        (np.maximum(0, prior_matrix["epsilon_prior"]) - args.epsilon_min)
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
 
@@ -925,9 +925,6 @@ def set_sig_epsilon(meGO_LJ, parameters):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
-    # Consider only the learned contacts
-    meGO_LJ = meGO_LJ[meGO_LJ["learned"]]
-
     # when distance estimates are poor we use the cutoff value
     # Update the "distance" column for rows in the mask
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
@@ -996,10 +993,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )
     # higher value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 50.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 2.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -50.0 * meGO_LJ["rep"]
+        -2.0 * meGO_LJ["rep"]
     )
 
     # but within a lower
@@ -1011,14 +1008,27 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )
     # and an upper value
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 2.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -5.0 * meGO_LJ["rep"]
+        -2.0 * meGO_LJ["rep"]
     )
 
     # Sigma is set from the estimated interaction length
     meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
+    # sigma boundaries for attractive interactions
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] < 0.7 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        0.7 * meGO_LJ["mg_sigma"]
+    )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.3 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        1.3 * meGO_LJ["mg_sigma"]
+    )
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
@@ -1123,7 +1133,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     st = time.time()
     print("\t- Set sigma and epsilon")
-    meGO_LJ = train_dataset.copy()
+    # copy only learned contacts
+    meGO_LJ = train_dataset[train_dataset["learned"]].copy()
     # meGO needed fields
     needed_fields = [
         "molecule_name_ai",
@@ -1210,49 +1221,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         )
     ]
 
-    # this removes attractive/repulsive contacts that are in the prior, but it should work only if they are defined in the prior
-    # otherwise these are lost
-    # meGO_LJ = meGO_LJ.loc[
-    #    ~(
-    #        (meGO_LJ["epsilon"] > 0)
-    #        & (meGO_LJ["epsilon_prior"] > 0)
-    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / meGO_LJ["epsilon_prior"]) < parameters.relative_c12d)
-    #        & ((abs(meGO_LJ["sigma"] - meGO_LJ["sigma_prior"]) / meGO_LJ["sigma_prior"]) < parameters.relative_c12d)
-    #        & (meGO_LJ["1-4"] == "1>4")
-    #    )
-    # ]
-    # meGO_LJ = meGO_LJ.loc[
-    #    ~(
-    #        (meGO_LJ["epsilon"] < 0)
-    #        & (meGO_LJ["epsilon_prior"] < 0)
-    #        & ((abs(meGO_LJ["epsilon"] - meGO_LJ["epsilon_prior"]) / abs(meGO_LJ["epsilon_prior"])) < parameters.relative_c12d)
-    #        & (meGO_LJ["1-4"] == "1>4")
-    #        & ~(
-    #            (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-    #            & (meGO_LJ["same_chain"])
-    #        )
-    #    )
-    # ]
-
-    # transfer rule for inter/intra contacts:
-    # 1) only attractive contacts can be transferd
-    # 2) attractive contacts that can be transferd are those non affected by their random coil (prc <= rc_threshold)
-    # 3) an attractive contacts can only take the place of a trivial repulsive contact (i.e. a repulsive contact with prc <= rc_threshold)
-    meGO_LJ["trivial"] = False
-    meGO_LJ.loc[(meGO_LJ["epsilon"] > 0) & (meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]), "trivial"] = True
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0) & (meGO_LJ["rc_probability"] <= meGO_LJ["rc_threshold"]), "trivial"] = True
-    # Identify rows where "trivial repulsive" is True and there exists another duplicate row
-    duplicated_at_least_one_trivial = (
-        (meGO_LJ.duplicated(subset=["ai", "aj", "1-4"], keep=False)) & (meGO_LJ["trivial"]) & (meGO_LJ["type"] == -1)
-    )
-    # Identify rows where both are trivial/not trivial
-    duplicated_same_trivial = meGO_LJ.duplicated(subset=["ai", "aj", "trivial"], keep=False)
-    # Identify rows where both are attractive or repulsive
-    duplicated_same_type = meGO_LJ.duplicated(subset=["ai", "aj", "type"], keep=False)
-    # Combine the conditions to remove only the rows that are trivial but duplicated with a non-trivial counterpart
-    remove_duplicates_mask = duplicated_at_least_one_trivial & ~duplicated_same_trivial & ~duplicated_same_type
-    # Remove rows where "trivial" is True and there exists another duplicate row with "trivial" as False with the not Trivial attractive and the Trivial repulsive
-    meGO_LJ = meGO_LJ[~remove_duplicates_mask]
     meGO_LJ = meGO_LJ[needed_fields]
 
     # now is a good time to acquire statistics on the parameters
@@ -1289,15 +1257,33 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
 
     if not parameters.single_molecule:
-        # if an intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
-        # avoid its use as intermolecular, this includes all repulsive
+        # if an attractive intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
+        # avoid its use as intermolecular, the same for repulsive with rc < or in the neigbour window
         copy_intra = meGO_LJ.loc[
-            (meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0))
+            (meGO_LJ["same_chain"])
+            & (
+                ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
+                | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
+                | (
+                    (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                    & (meGO_LJ["epsilon"] < 0.0)
+                )
+            )
         ]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
         meGO_LJ = meGO_LJ.loc[
-            ~((meGO_LJ["same_chain"]) & ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) | (meGO_LJ["epsilon"] < 0.0)))
+            ~(
+                (meGO_LJ["same_chain"])
+                & (
+                    ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
+                    | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
+                    | (
+                        (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
+                        & (meGO_LJ["epsilon"] < 0.0)
+                    )
+                )
+            )
         ]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones

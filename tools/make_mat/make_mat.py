@@ -51,7 +51,6 @@ def write_mat(df, output_file):
     df["distance"] = df["distance"].astype("float64")
     df["probability"] = df["probability"].astype("float64")
     df["cutoff"] = df["cutoff"].astype("float64")
-    df["learned"] = True
 
     # Force the column order
     ordered_columns = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
@@ -516,6 +515,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
+    d_protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms))])
     protein_ref_indices_i = np.array(
         [
             i + 1
@@ -531,8 +531,27 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         ]
     )
 
+    # the following lines are needed to generate a dictionary atoms - residue includining hydrongen
+    # that we use for neighbour contact
+    d_protein_ref_i = [a for a in protein_ref_i.atoms]
+    d_sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in d_protein_ref_i]
+    # Use list comprehension with regex substitution
+    d_sorter_i = [re.sub(r"[a-zA-Z]+[0-9]*", "", s) for s in d_sorter_i]
+    # Convert to a NumPy array and then to integers
+    d_sorter_i = np.array(d_sorter_i, dtype=int)
+    # create full dictionary with ai to ri
+    d_ref_ai_to_ri_i = dict(zip(d_protein_ref_indices_i, d_sorter_i))
+
     protein_ref_i = [a for a in protein_ref_i.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
     protein_ref_j = [a for a in protein_ref_j.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
+
+    sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
+    sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
+
+    sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
+    sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
+
+    # this is needed to build dictionaries that include hydrogens
 
     sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
     sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
@@ -653,33 +672,15 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     if np.isnan(c12_cutoff.astype(float)).any():
         warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
-    # create dictionary with ref_ai to ri
-    ref_ai_to_ri_i = dict(zip(topology_df_i["ref_ai"], topology_df_i["ref_ri"]))
-    ref_ai_to_ri_j = dict(zip(topology_df_j["ref_ai"], topology_df_j["ref_ri"]))
-    # create a dictionary with ref_ri to ai as a list of ai
-    ref_ri_to_ai_i = {f"{mol_i}_{ri}": [] for ri in topology_df_i["ref_ri"]}
-    ref_ri_to_ai_j = {f"{mol_j}_{ri}": [] for ri in topology_df_j["ref_ri"]}
-    for ai, ri in ref_ai_to_ri_i.items():
-        ref_ri_to_ai_i[f"{mol_i}_{ri}"].append(ai)
-    for ai, ri in ref_ai_to_ri_j.items():
-        ref_ri_to_ai_j[f"{mol_j}_{ri}"].append(ai)
-
-    dict_m_m_r = {}
     for target in target_list:
         if args.noh5 or args.tar:
             target_fields = target.replace(".dat", "").split("_")
         else:
             target_fields = target.replace(".h5", "").split("_")
-        mi = int(target_fields[-4])
-        mj = int(target_fields[-3])
+
         ai = int(target_fields[-1])
         if ai not in protein_ref_indices_i:
             continue
-        ri = ref_ai_to_ri_i[ai]
-        if (mi, mj, ri) in dict_m_m_r:
-            dict_m_m_r[(mi, mj, ri)].append(target)
-        else:
-            dict_m_m_r[(mi, mj, ri)] = [target]
 
     ########################
     # PARALLEL PROCESS START
@@ -743,6 +744,22 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
         df.drop_duplicates(subset=["mi", "ai", "mj", "aj"], inplace=True)
 
+    df["learned"] = 1
+
+    if mol_i == mol_j and args.nb:
+        df["ai"] = df["ai"].astype(int)
+        df["aj"] = df["aj"].astype(int)
+        df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
+        df.loc[df["residue_diff"] > 2, ["p", "c12dist", "learned"]] = 0
+        df.drop(columns=["residue_diff"], inplace=True)
+
+    if mol_i == mol_j and args.nonb:
+        df["ai"] = df["ai"].astype(int)
+        df["aj"] = df["aj"].astype(int)
+        df["residue_diff"] = df.apply(lambda row: abs(d_ref_ai_to_ri_i[row["ai"]] - d_ref_ai_to_ri_i[row["aj"]]), axis=1)
+        df.loc[df["residue_diff"] < 3, ["p", "c12dist", "learned"]] = 0
+        df.drop(columns=["residue_diff"], inplace=True)
+
     df["mi"] = df["mi"].map("{:}".format)
     df["mj"] = df["mj"].map("{:}".format)
     df["ai"] = df["ai"].map("{:}".format)
@@ -750,8 +767,8 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
     df["p"] = df["p"].map("{:,.6e}".format)
     df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
-
     df.index = range(len(df.index))
+
     out_name = args.out_name + "_" if args.out_name else ""
     output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.h5"
     print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
@@ -796,6 +813,16 @@ if __name__ == "__main__":
         default=0.75,
         type=float,
         help="To be set to the max cutoff used for the accumulation of the histograms",
+    )
+    parser.add_argument(
+        "--nb",
+        action="store_true",
+        help="consider contacts only between neighbour aminoacids",
+    )
+    parser.add_argument(
+        "--nonb",
+        action="store_true",
+        help="consider contacts not between neighbour aminoacids",
     )
     parser.add_argument(
         "--tar",
