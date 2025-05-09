@@ -570,10 +570,10 @@
 #define gd_48 180.0 5 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49 180 11 1
+#define gd_49 -170 11 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 -180 1.8 1
+#define gd_51 -180 2.5 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 #define gd_52 150.0000 4.0000 2

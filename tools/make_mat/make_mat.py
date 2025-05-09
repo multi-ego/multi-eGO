@@ -607,6 +607,19 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         [("OM", "OM"), ("O", "O"), ("OM", "O")],
         symmetrize=True,
     )
+    hydrogen_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("H", "H")],
+        symmetrize=True,
+    )
+    # TODO add NT and NZ
+    ON_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ")],
+        symmetrize=True,
+    )
 
     if mat_type == "intra":
         first_aminoacid = topology_mego.residues[0].name
@@ -638,7 +651,11 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
         # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 3e-6, c12_values), 1.0 / 12.0)
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
+        # apply the hydrogen pairs
+        c12_cutoff = np.where(hydrogen_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # apply the ON pairs
+        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -653,12 +670,14 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
             oxygen_mask,
-            np.power(3e-6, 1.0 / 12.0),
+            np.power(type_definitions.mg_OO_c12_rep, 1.0 / 12.0),
             np.power(
                 np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
             ),
         )
+        c12_cutoff = np.where(hydrogen_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
     if not mismatched.empty:
