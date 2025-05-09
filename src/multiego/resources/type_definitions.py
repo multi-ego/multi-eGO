@@ -2,7 +2,9 @@ import pandas as pd
 import json
 import sys
 
-
+mg_OO_c12_rep = 3e-6
+mg_HH_c12_rep = 4.148590e-08
+mg_ON_c12_rep = 9.799381e-06
 mg_eps = 0.11
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
