@@ -3,8 +3,8 @@ import json
 import sys
 
 mg_OO_c12_rep = 3e-6
-mg_HH_c12_rep = 4.148590e-08
-mg_ON_c12_rep = 9.799381e-06
+mg_HH_c12_rep = 1.2e-8
+mg_ON_c12_rep = 3e-6
 mg_eps = 0.11
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
@@ -163,16 +163,16 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    ("backbone_carbonyl", "sidechain_cb", 0.275, None, 1),
-    ("backbone_oxygen", "sidechain_cb", 0.2, None, 0),
-    ("ct_oxygen", "sidechain_cb", 0.2, None, 0),
-    ("backbone_nitrogen", "sidechain_cb", 0.65, None, -1),
+    #("backbone_carbonyl", "sidechain_cb", 0.275, None, 1),
+    ("backbone_oxygen", "sidechain_cb", 1.000, None, 0),
+    ("ct_oxygen", "sidechain_cb", 1.000, None, 0),
+    ("backbone_nitrogen", "sidechain_cb", 1.00, None, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
-    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
-    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
-    ("sidechain_cgs", "backbone_carbonyl", 0.078, None, 0),
-    ("sidechain_cgs", "backbone_nitrogen", 0.087, None, 0),
-    ("sidechain_cgs", "first_backbone_nitrogen", 0.087, None, 0),
+    #("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
+    #("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
+    #("sidechain_cgs", "backbone_carbonyl", 0.078, None, 0),
+    #("sidechain_cgs", "backbone_nitrogen", 0.087, None, 0),
+    #("sidechain_cgs", "first_backbone_nitrogen", 0.087, None, 0),
 ]
 
 # List of amino acids and nucleic acids
