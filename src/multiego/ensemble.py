@@ -782,13 +782,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         symmetrize=True,
     )
 
-    ON_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ")],
-        symmetrize=True,
-    )
-
     # Define condition where only ai or aj (but not both) starts with "H"
     h_condition = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
 
@@ -798,9 +791,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    train_dataset.loc[oxygen_mask, "rep"]  = type_definitions.mg_OO_c12_rep
-    train_dataset.loc[ON_mask, "rep"]      = type_definitions.mg_ON_c12_rep
-    train_dataset.loc[hh_condition, "rep"] = type_definitions.mg_HH_c12_rep
+    train_dataset.loc[oxygen_mask, "rep"] = 3e-6
 
     pairwise_mg_sigma = (
         train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
@@ -811,11 +802,10 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         )
     ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
-    train_dataset.loc[oxygen_mask, "mg_sigma"]  = (type_definitions.mg_OO_c12_rep) ** (1 / 12)
-    train_dataset.loc[ON_mask, "mg_sigma"]      = (type_definitions.mg_ON_c12_rep) ** (1 / 12)
+    train_dataset.loc[oxygen_mask, "mg_sigma"] = (3e-6) ** (1 / 12)
     # Apply the specific value for this condition
     # train_dataset.loc[h_condition, "mg_sigma"] = 0.
-    train_dataset.loc[hh_condition, "mg_sigma"] = type_definitions.mg_HH_c12_rep #train_dataset["rep"] ** (1 / 12)
+    train_dataset.loc[hh_condition, "mg_sigma"] = train_dataset["rep"] ** (1 / 12)
     train_dataset.loc[ho_mask, "mg_sigma"] = 0.169500
 
     # Generate the default pairwise_mg_epsilon
@@ -832,23 +822,21 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     # Initialize pairwise_mg_epsilon with default values
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
-    train_dataset.loc[oxygen_mask, "mg_epsilon"]  = -type_definitions.mg_OO_c12_rep
-    train_dataset.loc[ON_mask, "mg_epsilon"]      = -type_definitions.mg_ON_c12_rep
+    train_dataset.loc[oxygen_mask, "mg_epsilon"] = -3e-6
 
     # Apply the specific value for this condition
-    train_dataset.loc[h_condition, "mg_epsilon"]  = 0.0
-    train_dataset.loc[hh_condition, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep #-train_dataset["rep"]
-    train_dataset.loc[ho_mask, "mg_epsilon"]      = 0.11
+    train_dataset.loc[h_condition, "mg_epsilon"] = 0.0
+    train_dataset.loc[hh_condition, "mg_epsilon"] = -train_dataset["rep"]
+    train_dataset.loc[ho_mask, "mg_epsilon"] = 0.11
 
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
 
     return train_dataset
 
-# TODO: change name to generate_OO_LJ
+
 def generate_OO_LJ(meGO_ensemble):
     """
-    The multi-eGO random coil force-field includes special repulsive interaction pairs like O-O, H-H, and O-H and O-N.
-    TODO: define them by means of an external dictionary instead of hardcoding them. This dictionary should be used also from make_mat 
+    The multi-eGO random coil force-field includes special repulsive interaction only for oxygen-oxygen pairs
     these are generate in the following
     """
     O_OM_sbtype = [
@@ -859,45 +847,25 @@ def generate_OO_LJ(meGO_ensemble):
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
         if atomtype == "O" or atomtype == "OM" or atomtype == "OA"
     ]
-    N_NT_NZ_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N" or atomtype == "NZ" or atomtype == "NT"
-    ]
-    N_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"
-    ]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
 
-    # TODO should be O_OM_OA or only O_OM?
     full_matrix_OH = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
-    full_matrix_NO = list(itertools.product(N_sbtype, O_OM_sbtype)) + list(itertools.product(O_OM_sbtype, N_sbtype)) 
-
-    #TODO: unify the method to generate the combinations
 
     # Generate all possible combinations
     combinations = list(itertools.product(O_OM_sbtype, repeat=2))
     # Create a DataFrame from the combinations
     OO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    OO_LJ["c12"] = type_definitions.mg_OO_c12_rep
+    OO_LJ["c12"] = 3e-6
     OO_LJ["c6"] = 0.0
     OO_LJ["epsilon"] = -OO_LJ["c12"]
     OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0)
     OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12)
     OO_LJ["mg_epsilon"] = -OO_LJ["c12"]
     # Generate all possible combinations
-    # Create a DataFrame from the combinations
-    # ON_LJ = pd.DataFrame(full_matrix_NO, columns=["ai", "aj"])
-    # ON_LJ["c12"] = type_definitions.mg_ON_c12_rep
-    # ON_LJ["c6"] = 0.0
-    # ON_LJ["epsilon"] = -ON_LJ["c12"]
-    # ON_LJ["sigma"] = ON_LJ["c12"] ** (1.0 / 12.0)
-    # ON_LJ["mg_sigma"] = ON_LJ["c12"] ** (1 / 12)
-    # ON_LJ["mg_epsilon"] = -ON_LJ["c12"]
-    # Generate all possible combinations
     combinations = list(itertools.product(H_H_sbtype, repeat=2))
     # Create a DataFrame from the combinations
     HH_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    # bigger H-H repulsion to discourage disallowed alpha region in ramachandran
-    HH_LJ["c12"] = type_definitions.mg_HH_c12_rep
+    HH_LJ["c12"] = 9.14859e-10
     HH_LJ["c6"] = 0.0
     HH_LJ["epsilon"] = -HH_LJ["c12"]
     HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0)
@@ -910,7 +878,6 @@ def generate_OO_LJ(meGO_ensemble):
     HO_LJ["sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
     HO_LJ["mg_sigma"] = (HO_LJ["c12"] / HO_LJ["c6"]) ** (1 / 6)
     HO_LJ["mg_epsilon"] = type_definitions.mg_eps
-    #rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ, ON_LJ], axis=0)
     rc_LJ = pd.concat([OO_LJ, HO_LJ, HH_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
@@ -1589,7 +1556,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             valid_combinations = [
                 (ai, aj)
                 for ai, aj in filtered_combinations
-                # this is to remove all interaction of H with the rest exept for O and OM
                 if not (
                     (
                         meGO_ensemble["sbtype_type_dict"][ai] == "H"
@@ -1618,39 +1584,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                 ),
                 "c12",
-            ] = type_definitions.mg_OO_c12_rep
-            df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "H")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "H")
-                ),
-                "c12",
-            ] = type_definitions.mg_HH_c12_rep
-
-            df.loc[
-                 ((
-                     (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                 )
-                 & (
-                     (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                 )) 
-                 | ((
-                     (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                 )
-                 & (
-                     (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                 )) ,
-                 "c12",
-            ] = type_definitions.mg_ON_c12_rep
-
+            ] = 3e-6
             df["same_chain"] = True
             df["probability"] = 1.0
             df["rc_probability"] = 1.0
