@@ -798,9 +798,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    train_dataset.loc[oxygen_mask, "rep"]  = type_definitions.mg_OO_c12_rep
-    train_dataset.loc[ON_mask, "rep"]      = type_definitions.mg_ON_c12_rep
-    train_dataset.loc[hh_condition, "rep"] = type_definitions.mg_HH_c12_rep
+    train_dataset.loc[oxygen_mask & (train_dataset["1-4"] != "1_4"), "rep"]  = type_definitions.mg_OO_c12_rep
+    train_dataset.loc[ON_mask & (train_dataset["1-4"] != "1_4"), "rep"]      = type_definitions.mg_ON_c12_rep
+    train_dataset.loc[hh_condition & (train_dataset["1-4"] != "1_4"), "rep"] = type_definitions.mg_HH_c12_rep
 
     pairwise_mg_sigma = (
         train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
