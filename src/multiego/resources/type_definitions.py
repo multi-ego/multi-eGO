@@ -146,6 +146,7 @@ def lj14_generator(df):
     types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
     types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
     types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
+    types_dict["backbone_calpha"] = (df["name"] == "CA").to_numpy()
     types_dict["ct_oxygen"] = ((df["name"] == "O1") | (df["name"] == "O2")).to_numpy()
     types_dict["sidechain_cb"] = (df["name"] == "CB").to_numpy()
     types_dict["sidechain_cgs"] = (
@@ -156,6 +157,17 @@ def lj14_generator(df):
         | (df["name"] == "OG")
         | (df["name"] == "OG1") & (df["resname"] != "PRO")
     ).to_numpy()
+    types_dict["sidechain_cds"] = (
+        (df["name"] == "CD")
+        | (df["name"] == "CD1")
+        | (df["name"] == "CD2")
+        | (df["name"] == "SD")
+        | (df["name"] == "OD")
+        | (df["name"] == "OD1")
+        | (df["name"] == "OD2")
+        | (df["name"] == "ND1")
+        | (df["name"] == "ND2") & (df["resname"] != "PRO")
+    ).to_numpy()
 
     return types_dict
 
@@ -163,16 +175,14 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    # ("backbone_carbonyl", "sidechain_cb", 0.275, None, 1),
-    ("backbone_oxygen", "sidechain_cb", 1.000, None, 0),
-    ("ct_oxygen", "sidechain_cb", 1.000, None, 0),
-    ("backbone_nitrogen", "sidechain_cb", 1.00, None, -1),
+    ("backbone_oxygen", "sidechain_cb", None, 1.5e-6, 0),
+    ("ct_oxygen", "sidechain_cb", None, 1.5e-6, 0),
+    ("backbone_nitrogen", "sidechain_cb", None, 2.7e-6, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
-    # ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
-    # ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
-    # ("sidechain_cgs", "backbone_carbonyl", 0.078, None, 0),
-    # ("sidechain_cgs", "backbone_nitrogen", 0.087, None, 0),
-    # ("sidechain_cgs", "first_backbone_nitrogen", 0.087, None, 0),
+    ("sidechain_cgs", "backbone_carbonyl", 0.250, None, 0),
+    ("sidechain_cgs", "backbone_nitrogen", 0.200, None, 0),
+    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, None, 0),
+    ("sidechain_cds", "backbone_calpha", 0.100, None, 0),
 ]
 
 # List of amino acids and nucleic acids
