@@ -516,7 +516,8 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, constant=1.5e-6),
+            #create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, constant=1.5e-6),
+            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
@@ -526,7 +527,8 @@ def protein_LJ14(reduced_topology):
     pairs = pd.concat(
         [
             pairs,
-            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, constant=1.5e-6),
+            #create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, constant=1.5e-6),
+            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
@@ -539,8 +541,8 @@ def protein_LJ14(reduced_topology):
             create_pairs_14_dataframe(
                 atomtype1=backbone_nitrogen,
                 atomtype2=sidechain_cb,
-                constant=2.7e-6,
-                # prefactor=1.00,
+                #constant=2.7e-6,
+                prefactor=1.00,
                 shift=-1,
             ),
         ],
