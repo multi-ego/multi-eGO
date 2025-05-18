@@ -414,12 +414,17 @@ def generate_c12_values(df, types, combinations, molecule_type):
     if molecule_type == "protein":
         for combination in combinations:
             (name_1, name_2, factor, constant, shift) = combination
-            if factor is not None and constant is not None or factor == constant:
-                raise RuntimeError("constant and error should be defined and mutualy exclusive")
-            if factor:
+            #if factor is not None and constant is not None or factor == constant:
+            #    raise RuntimeError("constant and error should be defined and mutualy exclusive")
+            if factor is not None and constant is not None:
+                operation = lambda x: np.minimum(factor * x, constant)
+            elif factor is not None:
                 operation = lambda x: factor * x
-            if constant:
+            elif constant is not None:
                 operation = lambda _: constant
+            else:
+                raise ValueError("Either factor or constant must be specified.")
+
             combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
             combined_map = combined_map | combined_map.T
             c12_map = np.where(combined_map, operation(all_c12), c12_map)

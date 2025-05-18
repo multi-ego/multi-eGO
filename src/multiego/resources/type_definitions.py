@@ -175,17 +175,14 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    #("backbone_oxygen", "sidechain_cb", None, 1.5e-6, 0),
-    #("ct_oxygen", "sidechain_cb", None, 1.5e-6, 0),
-    #("backbone_nitrogen", "sidechain_cb", None, 2.7e-6, -1),
-    ("backbone_oxygen", "sidechain_cb", 1, None, 0),
-    ("ct_oxygen", "sidechain_cb", 1, None, 0),
-    ("backbone_nitrogen", "sidechain_cb", 1, None, -1),
+    ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("ct_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("backbone_nitrogen", "sidechain_cb", 1, 2.7e-6, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
-    ("sidechain_cgs", "backbone_carbonyl", 0.250, None, 0),
-    ("sidechain_cgs", "backbone_nitrogen", 0.200, None, 0),
-    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, None, 0),
-    ("sidechain_cds", "backbone_calpha", 0.100, None, 0),
+    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
+    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
+    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
+    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
 ]
 
 # List of amino acids and nucleic acids
