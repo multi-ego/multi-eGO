@@ -1634,19 +1634,21 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     )
                     & (
                         (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
+                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
+                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
+                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
                     )
                 )
                 | (
                     (
-                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
+                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
                         | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
                         | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
+                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
                     )
                     & (
-                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                     )
                 ),
                 "c12",

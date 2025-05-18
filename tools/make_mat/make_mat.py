@@ -414,7 +414,7 @@ def generate_c12_values(df, types, combinations, molecule_type):
     if molecule_type == "protein":
         for combination in combinations:
             (name_1, name_2, factor, constant, shift) = combination
-            #if factor is not None and constant is not None or factor == constant:
+            # if factor is not None and constant is not None or factor == constant:
             #    raise RuntimeError("constant and error should be defined and mutualy exclusive")
             if factor is not None and constant is not None:
                 operation = lambda x: np.minimum(factor * x, constant)

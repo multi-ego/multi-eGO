@@ -432,7 +432,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
     pairs_14: pd.DataFrame
         A DataFrame containing output containing the additional atom indices and LJ parameters
     """
-    #if prefactor is not None and constant is not None:
+    # if prefactor is not None and constant is not None:
     #    raise ValueError("Either prefactor or constant has to be set.")
     if prefactor is None and constant is None:
         raise ValueError("Neither prefactor nor constant has been set.")
@@ -444,7 +444,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
             pairs_14_ai.append(line_atomtype1["number"])
             pairs_14_aj.append(line_atomtype2["number"])
             pairs_14_c6.append(c6)
-            c12=1
+            c12 = 1
             if constant is not None:
                 c12 = constant
             if prefactor is not None:
@@ -521,7 +521,7 @@ def protein_LJ14(reduced_topology):
         [
             pairs,
             create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, constant=1.5e-6, prefactor=1),
-            #create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=1),
+            # create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
@@ -532,7 +532,7 @@ def protein_LJ14(reduced_topology):
         [
             pairs,
             create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, constant=1.5e-6, prefactor=1),
-            #create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=1),
+            # create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
