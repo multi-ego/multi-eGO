@@ -516,12 +516,27 @@ def protein_LJ14(reduced_topology):
     ]
     pairs = pd.DataFrame()
 
+    # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
+    pairs = pd.concat(
+        [
+            pairs,
+            create_pairs_14_dataframe(
+                atomtype1=backbone_carbonyl,
+                atomtype2=sidechain_cb,
+                constant=1.299682e-06,
+                prefactor=0.275,
+                shift=+1,
+            ),
+        ],
+        axis=0,
+        sort=False,
+        ignore_index=True,
+    )
     # For backbone oxygen take the CB of the same residue and save in a pairs tuple
     pairs = pd.concat(
         [
             pairs,
             create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, constant=1.5e-6, prefactor=1),
-            # create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
@@ -532,7 +547,6 @@ def protein_LJ14(reduced_topology):
         [
             pairs,
             create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, constant=1.5e-6, prefactor=1),
-            # create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, prefactor=1),
         ],
         axis=0,
         sort=False,
@@ -563,6 +577,36 @@ def protein_LJ14(reduced_topology):
                 atomtype2=backbone_nitrogen,
                 constant=4.0e-06,
                 shift=+1,
+            ),
+        ],
+        axis=0,
+        sort=False,
+        ignore_index=True,
+    )
+    # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
+    pairs = pd.concat(
+        [
+            pairs,
+            create_pairs_14_dataframe(
+                atomtype1=backbone_nitrogen,
+                atomtype2=backbone_nitrogen,
+                prefactor=0.343,
+                shift=+1,
+            ),
+        ],
+        axis=0,
+        sort=False,
+        ignore_index=True,
+    )
+    # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
+    pairs = pd.concat(
+        [
+            pairs,
+            create_pairs_14_dataframe(
+                atomtype1=backbone_carbonyl,
+                atomtype2=backbone_carbonyl,
+                prefactor=0.5,
+                shift=-1,
             ),
         ],
         axis=0,
