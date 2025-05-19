@@ -878,8 +878,8 @@ def generate_OO_LJ(meGO_ensemble):
     OO_LJ["c12"] = type_definitions.mg_OO_c12_rep
     OO_LJ["c6"] = 0.0
     OO_LJ["epsilon"] = -OO_LJ["c12"]
-    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0)
-    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12)
+    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0) / 2 ** (1/6)
+    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12) / 2 ** (1/6)
     OO_LJ["mg_epsilon"] = -OO_LJ["c12"]
     # Generate all possible combinations
     # Create a DataFrame from the combinations
@@ -898,8 +898,8 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["c12"] = type_definitions.mg_HH_c12_rep
     HH_LJ["c6"] = 0.0
     HH_LJ["epsilon"] = -HH_LJ["c12"]
-    HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0)
-    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
+    HH_LJ["sigma"] = HH_LJ["c12"] ** (1 / 12) / 2 ** (1/6)
+    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12) / 2 ** (1/6)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
     HO_LJ = pd.DataFrame(full_matrix_OH, columns=["ai", "aj"])
     HO_LJ["c12"] = 2.249554e-09 * type_definitions.mg_eps
