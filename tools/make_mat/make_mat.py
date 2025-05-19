@@ -622,7 +622,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     ON_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
-        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ")],
+        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("O", "NL"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ"), ("OM", "NL")],
         symmetrize=True,
     )
 
