@@ -785,7 +785,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     ON_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ")],
+        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("O", "NL"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ"), ("OM", "NL")],
         symmetrize=True,
     )
 
@@ -811,11 +811,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         )
     ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
-    train_dataset.loc[oxygen_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12)
-    train_dataset.loc[ON_mask, "mg_sigma"] = (type_definitions.mg_ON_c12_rep) ** (1 / 12)
+    train_dataset.loc[oxygen_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     # Apply the specific value for this condition
-    # train_dataset.loc[h_condition, "mg_sigma"] = 0.
-    train_dataset.loc[hh_condition, "mg_sigma"] = type_definitions.mg_HH_c12_rep  # train_dataset["rep"] ** (1 / 12)
+    train_dataset.loc[hh_condition, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[ho_mask, "mg_sigma"] = 0.169500
 
     # Generate the default pairwise_mg_epsilon
@@ -833,11 +831,10 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # Initialize pairwise_mg_epsilon with default values
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
     train_dataset.loc[oxygen_mask, "mg_epsilon"] = -type_definitions.mg_OO_c12_rep
-    train_dataset.loc[ON_mask, "mg_epsilon"] = -type_definitions.mg_ON_c12_rep
 
     # Apply the specific value for this condition
     train_dataset.loc[h_condition, "mg_epsilon"] = 0.0
-    train_dataset.loc[hh_condition, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep  # -train_dataset["rep"]
+    train_dataset.loc[hh_condition, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep
     train_dataset.loc[ho_mask, "mg_epsilon"] = 0.11
 
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
@@ -863,7 +860,7 @@ def generate_OO_LJ(meGO_ensemble):
     N_NT_NZ_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype == "N" or atomtype == "NZ" or atomtype == "NT"
+        if atomtype == "N" or atomtype == "NZ" or atomtype == "NT" or atomtype == "NL"
     ]
     N_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "N"]
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
@@ -881,8 +878,8 @@ def generate_OO_LJ(meGO_ensemble):
     OO_LJ["c12"] = type_definitions.mg_OO_c12_rep
     OO_LJ["c6"] = 0.0
     OO_LJ["epsilon"] = -OO_LJ["c12"]
-    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0)
-    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12)
+    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0) / 2 ** (1 / 6)
+    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1 / 12) / 2 ** (1 / 6)
     OO_LJ["mg_epsilon"] = -OO_LJ["c12"]
     # Generate all possible combinations
     # Create a DataFrame from the combinations
@@ -901,8 +898,8 @@ def generate_OO_LJ(meGO_ensemble):
     HH_LJ["c12"] = type_definitions.mg_HH_c12_rep
     HH_LJ["c6"] = 0.0
     HH_LJ["epsilon"] = -HH_LJ["c12"]
-    HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0)
-    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12)
+    HH_LJ["sigma"] = HH_LJ["c12"] ** (1 / 12) / 2 ** (1 / 6)
+    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1 / 12) / 2 ** (1 / 6)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
     HO_LJ = pd.DataFrame(full_matrix_OH, columns=["ai", "aj"])
     HO_LJ["c12"] = 2.249554e-09 * type_definitions.mg_eps
@@ -961,23 +958,20 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # when distance estimates are poor we use the cutoff value
     # Update the "distance" column for rows in the mask
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
-    meGO_LJ.loc[mask, "distance"] = np.where(
-        meGO_LJ.loc[mask, "epsilon_prior"] < 0,
-        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
-        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
-    )
+    meGO_LJ.loc[mask, "distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
+    meGO_LJ.loc[mask, "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
     mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
-    meGO_LJ.loc[mask, "rc_distance"] = np.where(
-        meGO_LJ.loc[mask, "epsilon_prior"] < 0,
-        (meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0)) / (meGO_LJ.loc[mask, "epsilon_0"] ** (1.0 / 12.0)),
-        meGO_LJ.loc[mask, "sigma_prior"] * 2.0 ** (1.0 / 6.0),
-    )
+    meGO_LJ.loc[mask, "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
 
     meGO_LJ["epsilon"] = np.where(
         meGO_LJ["epsilon_prior"] < 0,
+        # shoudl this be "epsilon_prior"?
         -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,
-        0,
+        # should this be "epsilon_prior"? here the issue is with cases in which I do not learn a case of a symmetric interaction and then I
+        # lose the symmetrized one because is longer than the prior one
+        0,  # meGO_LJ["epsilon_prior"],
     )
+    # meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
 
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
@@ -1019,25 +1013,25 @@ def set_sig_epsilon(meGO_LJ, parameters):
 
     # lower value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.02 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.2 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -0.02 * meGO_LJ["rep"]
+        -0.2 * meGO_LJ["rep"]
     )
     # higher value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 2.0 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -2.0 * meGO_LJ["rep"]
+        -5.0 * meGO_LJ["rep"]
     )
 
     # but within a lower
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.2 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.5 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -0.2 * meGO_LJ["rep"]
+        -0.5 * meGO_LJ["rep"]
     )
     # and an upper value
     meGO_LJ.loc[
@@ -1066,7 +1060,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
     # will be the repulsive strength
-    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0)
+    meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0) / (2.0 ** (1 / 6))
 
     return meGO_LJ
 
