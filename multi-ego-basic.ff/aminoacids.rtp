@@ -759,11 +759,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44L   
-   -C     N    CA     C     gd_43L
+   -C     N    CA     C     gd_44M   
+   -C     N    CA     C     gd_43M
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45L   
-    N    CA     C    +N     gd_42L   
+    N    CA     C    +N     gd_45M   
+    N    CA     C    +N     gd_42M   
    CA    CB    CG    SD     gd_34   
    CB    CG    SD    CE     gd_26   
 
