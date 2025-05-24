@@ -141,6 +141,12 @@ Here one sets the energy scale &#949; to 0.3 kJ/mol and trains the model from th
 Happy simulating :)
 
 ## Cite us
+### Key developments
 1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) Proc Natl Acad Sci USA 119, e2203181119 (2022); preprint available: [bioRxiv](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2)
 2. Bacic Toplek, F., Scalone, E., et al. [Multi-eGO: model improvements towards the study of complex self-assembly processes.](https://doi.org/10.1021/acs.jctc.3c01182) J. Chem. Theory Comput. 20, 459-468 (2024); preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2023-67255)
-
+### Our works and applications
+3. Pennacchietti, V., et al. [A PDZ tandem repeat folds and unfolds via different pathways.](https://dx.doi.org/10.1002/pro.5203) Protein Sci. 33, e5203 (2024).
+4. Stegani, B., et al. [Estimation of Ligand Binding Free Energy Using Multi-eGO.](https://doi.org/10.1021/acs.jcim.4c01545) J. Chem. Inf. Model. 65, 351–362 (2025); preprint available: [chemRxiv](https://doi.org/10.26434/chemrxiv-2024-jcmgc-v2)
+5. Stegani B. and Capelli R. [Kinetic rates calculation via non-equilibrium dynamics.]() [arXiv](https://arxiv.org/abs/2504.14329)
+### Other works
+6.
