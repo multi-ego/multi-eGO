@@ -955,27 +955,22 @@ def set_sig_epsilon(meGO_LJ, parameters):
     adjusting them to represent the strength of attractive and repulsive forces. It ensures that LJ parameters are
     consistent with the given probability and distance thresholds, maintaining the accuracy of simulations or calculations.
     """
-    # when distance estimates are poor we use the cutoff value
-    # Update the "distance" column for rows in the mask
+    # when distance estimates are poor we use the prior-model value
     mask = meGO_LJ["probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
+    # this is done to avoid modifying the repulsion value based only on the prior model
     meGO_LJ.loc[mask, "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
     mask = meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"]
     meGO_LJ.loc[mask, "rc_distance"] = meGO_LJ["sigma_prior"] * 2.0 ** (1.0 / 6.0)
 
-    meGO_LJ["epsilon"] = np.where(
-        meGO_LJ["epsilon_prior"] < 0,
-        # shoudl this be "epsilon_prior"?
-        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12,
-        # should this be "epsilon_prior"? here the issue is with cases in which I do not learn a case of a symmetric interaction and then I
-        # lose the symmetrized one because is longer than the prior one
-        0,  # meGO_LJ["epsilon_prior"],
-    )
-    # meGO_LJ = meGO_LJ.assign(sigma=meGO_LJ["distance"] / 2 ** (1.0 / 6.0))
+    # first: all contacts are set as for the prior model
+    # these contacts are not considered as learned so can be overriden
+    meGO_LJ["learned"] = 0
+    meGO_LJ["epsilon"] = meGO_LJ["epsilon_prior"]
 
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
-    # by comparing them with RC_probabilities
+    # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
     meGO_LJ.loc[
         (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
@@ -985,27 +980,50 @@ def set_sig_epsilon(meGO_LJ, parameters):
     ) * (
         np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])))
     )
-    # General repulsive term
-    # this is used only when MD_th < MD_p < RC_p eventually corrected by the ZF
+    meGO_LJ.loc[
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]),
+        "learned",
+    ] = 1
+    # Not-attractive interactions
+    # this is used only when MD_th < MD_p < RC_p
     # negative epsilon are used to identify non-attractive interactions
     meGO_LJ.loc[
         (
-            (meGO_LJ["probability"] < meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+            (
+                meGO_LJ["probability"]
+                <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+            )
             & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         ),
         "epsilon",
-    ] = -np.maximum(
-        0,
-        (meGO_LJ["distance"] ** 12)
-        * ((meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / (np.log(meGO_LJ["rc_threshold"])))
-        * np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))),
-    ) - (
-        meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    ] = (
+        -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
     )
+    # ] = - np.exp(-(meGO_LJ["epsilon_0"]-0.07))*meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    # -np.maximum(
+    #    0,
+    #    (meGO_LJ["distance"] ** 12)
+    #    * ((meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / (np.log(meGO_LJ["rc_threshold"])))
+    #    * np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))),
+    # ) - (
+    #    meGO_LJ["epsilon_0"] * meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    # )
+    meGO_LJ.loc[
+        (
+            (
+                meGO_LJ["probability"]
+                <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+            )
+            & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        ),
+        "learned",
+    ] = 1
 
     # update the c12 1-4 interactions
     # in principle this is not needed but we redefine them to be safe
     meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12
+    meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "learned"] = 1
 
     # clean NaN and zeros
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
@@ -1013,10 +1031,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
 
     # lower value for repulsion
     meGO_LJ.loc[
-        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.2 * meGO_LJ["rep"]),
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 1.0 * meGO_LJ["rep"]),
         "epsilon",
     ] = (
-        -0.2 * meGO_LJ["rep"]
+        -1.0 * meGO_LJ["rep"]
     )
     # higher value for repulsion
     meGO_LJ.loc[
@@ -1059,7 +1077,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
-    # will be the repulsive strength
+    # will be the repulsive strength that in this way is consistent
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0) / (2.0 ** (1 / 6))
 
     return meGO_LJ
@@ -1208,12 +1226,15 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     print("\t- Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging of multiple simulations:
-    # Here we sort all the atom pairs based on the distance and the probability.
-    # among attractive we keep the shortest the same among repulsive.
+    # 1. learned over not learned
+    # 2. attractive over repulsive
+    # 3. shorter over longer
+    # 4. stronger over weaker attractive
+    # 5. wearker over stronger repulsive
     meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
     meGO_LJ.sort_values(
-        by=["ai", "aj", "same_chain", "type", "sigma", "epsilon"],
-        ascending=[True, True, True, False, True, False],
+        by=["ai", "aj", "same_chain", "learned", "type", "sigma", "epsilon"],
+        ascending=[True, True, True, False, False, True, False],
         inplace=True,
     )
     # Cleaning the duplicates
