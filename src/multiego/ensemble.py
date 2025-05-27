@@ -166,10 +166,16 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
         (np.maximum(0, prior_matrix["epsilon_prior"]) - args.epsilon_min)
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
+    # this is for 0 : + eps
     contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
         (np.maximum(0, prior_matrix["epsilon_prior"]))
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
+    # this is for -eps : + eps
+    # contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
+    #     (np.maximum(0, prior_matrix["epsilon_prior"]) + args.epsilon_min)
+    #     / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
+    # )
 
     # modify limit_rc_att in the cases where epsilon_prior is negative and limit_rc_att is below 1 == epsilon_0 < epsilon_min)
     contact_matrix.loc[(contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0), "limit_rc_att"] = 1
@@ -1031,58 +1037,53 @@ def set_sig_epsilon(meGO_LJ, parameters):
         "learned",
     ] = 1
 
-    # update the c12 1-4 interactions
-    # in principle this is not needed but we redefine them to be safe
-    # meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "epsilon"] = -meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"])
-    meGO_LJ.loc[(meGO_LJ["1-4"] == "1_4"), "learned"] = 1
-
     # clean NaN and zeros
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
     meGO_LJ = meGO_LJ[meGO_LJ.epsilon != 0]
 
     # lower value for repulsion
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < 0.02 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -0.02 * meGO_LJ["rep"]
-    # )
-    ## higher value for repulsion
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -5.0 * meGO_LJ["rep"]
-    # )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] < (1.0 / 5.0) * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -(1.0 / 5.0) * meGO_LJ["rep"]
+    )
+    # higher value for repulsion
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] < 0.0) & (-meGO_LJ["epsilon"] > 4.0 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -4.0 * meGO_LJ["rep"]
+    )
 
     # but within a lower
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < 0.2 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -0.2 * meGO_LJ["rep"]
-    # )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] < (1.0 / 5.0) * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -(1.0 / 5.0) * meGO_LJ["rep"]
+    )
     ## and an upper value
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 5.0 * meGO_LJ["rep"]),
-    #    "epsilon",
-    # ] = (
-    #    -5.0 * meGO_LJ["rep"]
-    # )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] == "1_4") & (-meGO_LJ["epsilon"] > 4.0 * meGO_LJ["rep"]),
+        "epsilon",
+    ] = (
+        -4.0 * meGO_LJ["rep"]
+    )
 
     # sigma boundaries for attractive interactions
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] < 0.7 * meGO_LJ["mg_sigma"]),
-    #    "sigma",
-    # ] = (
-    #    0.7 * meGO_LJ["mg_sigma"]
-    # )
-    # meGO_LJ.loc[
-    #    (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.3 * meGO_LJ["mg_sigma"]),
-    #    "sigma",
-    # ] = (
-    #    1.3 * meGO_LJ["mg_sigma"]
-    # )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] < 0.7 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        0.7 * meGO_LJ["mg_sigma"]
+    )
+    meGO_LJ.loc[
+        (meGO_LJ["1-4"] != "1_4") & (meGO_LJ["epsilon"] > 0.0) & (meGO_LJ["sigma"] > 1.43 * meGO_LJ["mg_sigma"]),
+        "sigma",
+    ] = (
+        1.43 * meGO_LJ["mg_sigma"]
+    )
 
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
