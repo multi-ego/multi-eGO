@@ -5,6 +5,7 @@ import sys
 mg_OO_c12_rep = 3e-6
 mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 3e-6
+mg_HO_sigma = 0.169500
 mg_eps = 0.11
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
