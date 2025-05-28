@@ -799,7 +799,20 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     ON_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("O", "NL"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ"), ("OM", "NL"), ("OA", "N"), ("OA", "NT"), ("OA", "NZ"), ("OA", "NL")],
+        [
+            ("O", "N"),
+            ("O", "NT"),
+            ("O", "NZ"),
+            ("O", "NL"),
+            ("OM", "N"),
+            ("OM", "NT"),
+            ("OM", "NZ"),
+            ("OM", "NL"),
+            ("OA", "N"),
+            ("OA", "NT"),
+            ("OA", "NZ"),
+            ("OA", "NL"),
+        ],
         symmetrize=True,
     )
 

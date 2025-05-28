@@ -606,23 +606,35 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         d.update(d_appo)
 
     topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
-    oxygen_mask = masking.create_matrix_mask(
+    OO_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
         [("OM", "OM"), ("O", "O"), ("OM", "O")],
         symmetrize=True,
     )
-    hydrogen_mask = masking.create_matrix_mask(
+    HH_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
         [("H", "H")],
         symmetrize=True,
     )
-    # TODO add NT and NZ
     ON_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
-        [("O", "N"), ("O", "NT"), ("O", "NZ"), ("O", "NL"), ("OM", "N"), ("OM", "NT"), ("OM", "NZ"), ("OM", "NL")],
+        [
+            ("O", "N"),
+            ("O", "NT"),
+            ("O", "NZ"),
+            ("O", "NL"),
+            ("OM", "N"),
+            ("OM", "NT"),
+            ("OM", "NZ"),
+            ("OM", "NL"),
+            ("OA", "N"),
+            ("OA", "NT"),
+            ("OA", "NZ"),
+            ("OA", "NL"),
+        ],
         symmetrize=True,
     )
 
@@ -655,11 +667,11 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
-        # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
-        # apply the hydrogen pairs
-        c12_cutoff = np.where(hydrogen_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
-        # apply the ON pairs
+        # define all cutoff using combination rule values and OO_mask
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(OO_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
+        # apply HH correction
+        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # apply ON correction
         c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
 
         # apply the user pairs (overwrite all other rules)
