@@ -686,14 +686,14 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     if mat_type == "inter":
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
-            oxygen_mask,
+            OO_mask,
             np.power(type_definitions.mg_OO_c12_rep, 1.0 / 12.0),
             np.power(
                 np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
             ),
         )
-        c12_cutoff = np.where(hydrogen_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
         c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
