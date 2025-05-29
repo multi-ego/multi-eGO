@@ -670,7 +670,7 @@
    CG   CH2       0.000     0
    CD   CH2       0.000     0
    CE   CH2       0.000     0
-   NZ    NT       0.000     0
+   NZ    NL       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
@@ -1719,7 +1719,7 @@
    CG   CH2       0.000     0
    CD   CH2       0.000     0
    CE   CH2       0.000     0
-   NZ    NT       0.000     0
+   NZ    NL       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]
