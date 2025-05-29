@@ -618,6 +618,12 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         [("H", "H")],
         symmetrize=True,
     )
+    NN_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        symmetrize=True,
+    )
     ON_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
@@ -673,6 +679,8 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
         # apply ON correction
         c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # apply NN correction
+        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -695,6 +703,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         )
         c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
         c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
     if not mismatched.empty:

@@ -821,6 +821,14 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     H_mask = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
     HH_mask = train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
 
+    # NL-NZ repulsion
+    NN_mask = masking.create_linearized_mask(
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
+        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        symmetrize=True,
+    )
+
     # default repulsive C12 (rep)
     pairwise_c12 = np.sqrt(
         train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
@@ -830,6 +838,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[OO_mask & (train_dataset["1-4"] != "1_4"), "rep"] = type_definitions.mg_OO_c12_rep
     train_dataset.loc[ON_mask & (train_dataset["1-4"] != "1_4"), "rep"] = type_definitions.mg_ON_c12_rep
     train_dataset.loc[HH_mask & (train_dataset["1-4"] != "1_4"), "rep"] = type_definitions.mg_HH_c12_rep
+    train_dataset.loc[NN_mask & (train_dataset["1-4"] != "1_4"), "rep"] = type_definitions.mg_NN_c12_rep
 
     # default (mg) sigma
     pairwise_mg_sigma = (
@@ -844,6 +853,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # special mg sigma cases:
     train_dataset.loc[OO_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HH_mask, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
+    train_dataset.loc[NN_mask, "mg_sigma"] = (type_definitions.mg_NN_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HO_mask, "mg_sigma"] = type_definitions.mg_HO_sigma
 
     # default (mg) epsilon
@@ -862,6 +872,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[OO_mask, "mg_epsilon"] = -type_definitions.mg_OO_c12_rep
     train_dataset.loc[H_mask, "mg_epsilon"] = 0.0
     train_dataset.loc[HH_mask, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep
+    train_dataset.loc[NN_mask, "mg_epsilon"] = -type_definitions.mg_NN_c12_rep
     train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps
 
     # final cleaning
@@ -880,7 +891,7 @@ def generate_MG_LJ(meGO_ensemble):
 
     # TODO: unify the method to generate the combinations
 
-    # OO in MG are repulsive (Ramachandran)
+    # OO in MG are repulsive (Ramachandran and negatively charged sidechains)
     O_OM_sbtype = [
         sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
     ]
@@ -904,7 +915,7 @@ def generate_MG_LJ(meGO_ensemble):
     HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
     HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
 
-    # HO in MG are attractive
+    # HO in MG are attractive (H-bonds)
     O_OM_OA_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
@@ -919,8 +930,21 @@ def generate_MG_LJ(meGO_ensemble):
     HO_LJ["mg_sigma"] = type_definitions.mg_HO_sigma
     HO_LJ["mg_epsilon"] = type_definitions.mg_eps
 
+    # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
+    NL_NZ_sbtype = [
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "NL" or atomtype == "NZ"
+    ]
+    combinations = list(itertools.product(NL_NZ_sbtype, repeat=2))
+    NN_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    NN_LJ["c12"] = type_definitions.mg_NN_c12_rep
+    NN_LJ["c6"] = 0.0
+    NN_LJ["epsilon"] = -NN_LJ["c12"]
+    NN_LJ["sigma"] = NN_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    NN_LJ["mg_sigma"] = NN_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    NN_LJ["mg_epsilon"] = -NN_LJ["c12"]
+
     # combine them:
-    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ], axis=0)
+    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"
@@ -1566,6 +1590,17 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                 & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "H")),
                 "c12",
             ] = type_definitions.mg_HH_c12_rep
+            df.loc[
+                (
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
+                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
+                )
+                & (
+                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
+                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
+                ),
+                "c12",
+            ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
                 (
