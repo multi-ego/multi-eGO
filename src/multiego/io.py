@@ -630,8 +630,8 @@ def print_stats(meGO_LJ):
 \t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
 
 \t- RELEVANT MDP PARAMETERS:
-\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
-\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 0.5):4.2f} nm
+\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 0.54):4.2f} nm
+\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 0.54):4.2f} nm
     """
 
     return stat_str

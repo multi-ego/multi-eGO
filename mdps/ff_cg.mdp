@@ -75,7 +75,7 @@ periodic-molecules       = no
 ; a value of -1 means: use rlist
 verlet-buffer-tolerance  = -1 
 ; nblist cut-off        
-rlist                    = 1.40
+rlist                    = 1.50
 ; long-range cut-off for switched potentials
 
 ; OPTIONS FOR ELECTROSTATICS AND VDW
