@@ -7,7 +7,7 @@ mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 3e-6
 mg_NN_c12_rep = 2.5e-5
 mg_HO_sigma = 0.169500
-mg_eps = 0.11
+mg_eps = 0.11   #0.13
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
 
@@ -67,6 +67,7 @@ gromos_atp = pd.DataFrame(
             9.148590e-10,  # "H",
             2.659360e-07,  # "C0",
         ],
+        # all to ch2 except ch e ch3
         "mg_c12": [
             1.0000000e-06 / 1.27911 * mg_eps,  # "O",
             7.4149321e-07 / 1.72504 * mg_eps,  # "OM",

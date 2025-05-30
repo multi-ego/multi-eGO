@@ -376,16 +376,16 @@
 ;;;;;;;;;;;;;;;;;;;;
 ;ALA
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42   170.0000 2.5000 2 
+#define gd_42A   170.0000 2.5000 2 
 ; Backbone dihedral angle -N-CA-C-N- ALA
 ;
-#define gd_43 15.0000 3.300 3                ;heigher k to shift down J coupling and have a cleaner distinction between betas
+#define gd_43A 15.0000 3.300 3                ;heigher k to shift down J coupling and have a cleaner distinction between betas
 ; Backbone dihedral angle -C-N-CA-C- ALA
 ;
-#define gd_44 -164.000 5.0 1
+#define gd_44A -164.000 5.0 1
 ; Backbone dihedral angle -C-N-CA-C- ALA
 ;
-#define gd_45 -170.00 1.4 1
+#define gd_45A -170.00 1.4 1
 ; Backbone dihedral angle -N-CA-C-N- ALA
 ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -394,13 +394,13 @@
 #define gd_42N -170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- ASN
 ;
-#define gd_43N  15.0000 2.000 3
+#define gd_43N  15.0000 1.300 3
 ; Backbone dihedral angle -C-N-CA-C- ASN
 ;
-#define gd_44N  -120.000 4.7 1   
+#define gd_44N  -120.000 4.8 1   
 ; Backbone dihedral angle -C-N-CA-C- ASN
 ;
-#define gd_45N  180.00 2.2 1                 
+#define gd_45N  180.00 1.8 1                 
 ; Backbone dihedral angle -N-CA-C-N- ASN
 ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -410,12 +410,12 @@
 ; Backbone dihedral angle -N-CA-C-N- ASP
 ;
 #define gd_43D   15.0000 2.000 3
-; Backbone dihedral angle -C-N-CA-C- ASP
+; Backbone dihedral angle -C-N-CA-C- ASPl
 ;
 #define gd_44D  -140.000 4.60 1
 ; Backbone dihedral angle -C-N-CA-C- ASP
 ;
-#define gd_45D 180.00 2.0 1
+#define gd_45D 180.00 1.6 1
 ; Backbone dihedral angle -N-CA-C-N- ASP
 ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -427,27 +427,25 @@
 #define gd_43C 15.0000 1.300 3
 ; Backbone dihedral angle -C-N-CA-C- CYS
 ;
-#define gd_44C  -150.000 4.30 1
-;this is to match J coupling
-;#define gd_44C  -100.000 3.80 1   
+#define gd_44C  -140.000 4.60 1
 ; Backbone dihedral angle -C-N-CA-C- CYS
 ;
-#define gd_45C 180.00 1.1 1
+#define gd_45C 180.00 1.0 1
 ; Backbone dihedral angle -N-CA-C-N- CYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;GLU
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42g 170.0000 2.5000 2
+#define gd_42E 170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- GLU
 ;
-#define gd_43g 15.0000 2.400 3                ;heigher k to shift down J coupling and have a cleaner distinction between betas
+#define gd_43E 15.0000 2.60 3                ;heigher k to shift down J coupling and have a cleaner distinction between betas
 ; Backbone dihedral angle -C-N-CA-C- GLU
 ;
-#define gd_44g -150.000 3.30 1
+#define gd_44E -120.000 3.30 1
 ; Backbone dihedral angle -C-N-CA-C- GLU
 ;
-#define gd_45g 180.00 1.800 1
+#define gd_45E 180.00 1.900 1
 ; Backbone dihedral angle -N-CA-C-N- GLU
 ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -456,32 +454,29 @@
 #define gd_42H 170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- HIS
 ;
-#define gd_43H -35.0000 1.00 3
 #define gd_43H  15.0000 1.00 3
 ; Backbone dihedral angle -C-N-CA-C- HIS
 ;
-;#define gd_44H    0.000 1.40 1
-#define gd_44H   -120.000 4.40 1
+#define gd_44H   -110.000 4.70 1
 ; Backbone dihedral angle -C-N-CA-C- HIS
 ;
-;#define gd_45H -140.00 1.0    1
 #define gd_45H  180.00 1.5    1
 ; Backbone dihedral angle -N-CA-C-N- HIS
 ;
 ;;;;;;;;;;;;;;;;;;;;
-; LEU/TYR
+; LEU
 ;;;;;;;;;;;;;;;;;;;;
 #define gd_42L 170.0000 2.5000 2
-; Backbone dihedral angle -N-CA-C-N- LEU/TYR
+; Backbone dihedral angle -N-CA-C-N- LEU
 ;
-#define gd_43L 15.0000 2.000 3
-; Backbone dihedral angle -C-N-CA-C- LEU/TYR
+#define gd_43L 15.0000 1.600 3
+; Backbone dihedral angle -C-N-CA-C- LEU
 ;
-#define gd_44L  -120.000 3.2 1
-; Backbone dihedral angle -C-N-CA-C- LEU/TYR
+#define gd_44L  -140.000 3.6 1
+; Backbone dihedral angle -C-N-CA-C- LEU
 ;
 #define gd_45L 180.00 1.0 1
-; Backbone dihedral angle -N-CA-C-N- LEU/TYR
+; Backbone dihedral angle -N-CA-C-N- LEU
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; MET
@@ -492,114 +487,145 @@
 #define gd_43M 15.0000 2.000 3
 ; Backbone dihedral angle -C-N-CA-C- MET
 ;
-#define gd_44M  -130.000 3.2 1
+#define gd_44M  -130.000 4.1 1
 ; Backbone dihedral angle -C-N-CA-C- MET
 ;
 #define gd_45M 180.00 1.0 1
 ; Backbone dihedral angle -N-CA-C-N- MET
 ;
 ;;;;;;;;;;;;;;;;;;;;
-; ARG/TRP/GLN/LYS
+; ARG/TRP
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42b 170.0000 2.5000 2 
-; Backbone dihedral angle -N-CA-C-N- ARG/TRP/GLN/LYS
+#define gd_42RW 170.0000 2.5000 2 
+; Backbone dihedral angle -N-CA-C-N- ARG/TRP
 ;
-#define gd_43b 15.0000 2.500 3 
-; Backbone dihedral angle -C-N-CA-C- ARG/TRP/GLN/LYS
+#define gd_43RW 15.0000 2.500 3 
+; Backbone dihedral angle -C-N-CA-C- ARG/TRP
 ;
-#define gd_44b  -120.000 3.50 1 
-; Backbone dihedral angle -C-N-CA-C- ARG/TRP/GLN/LYS
+#define gd_44RW  -120.000 3.50 1 
+; Backbone dihedral angle -C-N-CA-C- ARG/TRP
 ;
-#define gd_45b 180.000 1.50 1
-; Backbone dihedral angle -N-CA-C-N- ARG/TRP/GLN/LYS
+#define gd_45RW 180.000 1.50 1
+; Backbone dihedral angle -N-CA-C-N- ARG/TRP
+;
+;
+;;;;;;;;;;;;;;;;;;;;
+; GLN/LYS
+;;;;;;;;;;;;;;;;;;;;
+#define gd_42QK 170.0000 2.5000 2 
+; Backbone dihedral angle -N-CA-C-N- GLN/LYS
+;
+#define gd_43QK 15.0000 2.000 3 
+; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+;
+#define gd_44QK  -120.000 3.80 1 
+; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+;
+#define gd_45QK 180.000 1.50 1
+; Backbone dihedral angle -N-CA-C-N- GLN/LYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; VAL/ILE
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42bb 170.0000 2.0000 2 
+#define gd_42VI 170.0000 2.0000 2 
 ; Backbone dihedral angle -N-CA-C-N- VAL/ILE
 ;
-#define gd_43bb 15.0000 1.800 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43VI 15.0000 1.800 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- VAL/ILE
 ;
-#define gd_44bb   -97.000 4.9 1
+#define gd_44VI   -97.000 4.9 1
 ; Backbone dihedral angle -C-N-CA-C- VAL/ILE
 ;
-#define gd_45bb    180.00 0.6  1
+#define gd_45VI    180.00 0.6  1
 ; Backbone dihedral angle -N-CA-C-N- VAL/ILE
 
 ;;;;;;;;;;;;;;;;;;;;
 ; PHE
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42b2 170.0000 2.5000 2 
+#define gd_42F 170.0000 2.5000 2 
 ; Backbone dihedral angle -N-CA-C-N- PHE
 ;
-#define gd_43b2 15.0000 1.000 3 
+#define gd_43F 15.0000 1.700 3 
 ; Backbone dihedral angle -C-N-CA-C- PHE
 ;
-#define gd_44b2   -125.000 4.4 1
+#define gd_44F   -110.000 4.1 1
 ; Backbone dihedral angle -C-N-CA-C- PHE
 ;
-#define gd_45b2   180.00 0.9  1
+#define gd_45F   180.00 1.0  1
 ; Backbone dihedral angle -N-CA-C-N- PHE
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;SER
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42s 170.0000 2.5000 2
+#define gd_42S 170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- SER
 ;
-#define gd_43s 15.0000 2.000 3
+#define gd_43S 15.0000 2.500 3
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
-#define gd_44s -155.000 3.80 1
+#define gd_44S -120.000 3.80 1
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
-#define gd_45s 180.00 1.40 1
+#define gd_45S 180.00 1.70 1
 ; Backbone dihedral angle -N-CA-C-N- SER
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;THR
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42t 170.0000 2.5000 2
+#define gd_42T 170.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- THR
 ;
-#define gd_43t 15.0000 2.000 3
+#define gd_43T 15.0000 2.50 3
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_44t   -100.000 4.3 1
+#define gd_44T   -90.000 4.3 1
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_45t 180.00 2.1 1
+#define gd_45T 180.00 1.7 1
 ; Backbone dihedral angle -N-CA-C-N- THR
-
+;
+;;;;;;;;;;;;;;;;;;;;
+; TYR
+;;;;;;;;;;;;;;;;;;;;
+#define gd_42Y 170.0000 2.5000 2
+; Backbone dihedral angle -N-CA-C-N- TYR
+;
+#define gd_43Y 15.0000 2.000 3
+; Backbone dihedral angle -C-N-CA-C- TYR
+;
+#define gd_44Y  -110.000 3.6 1
+; Backbone dihedral angle -C-N-CA-C- TYR
+;
+#define gd_45Y 180.00 1.0 1
+; Backbone dihedral angle -N-CA-C-N- TYR
+;
 
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;GLY
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_48 180.0 5 2
+#define gd_48G 180.0 5 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49 -180 11 1
+#define gd_49G -180 11 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51 -180 2.0 1
+#define gd_51G -180 2.0 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;PRO
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_52 150.0000 4.0000 2
+#define gd_52P 150.0000 4.0000 2
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_53 0.0000 4.000 4
+#define gd_53P 0.0000 4.000 4
 ; Backbone dihedral angle -C-N-CA-C  PRO
 ;
-#define gd_55 180.0000   2.500 1
+#define gd_55P 180.0000   2.500 1
 ; Backbone dihedral angle -N-CA-C-N  PRO
 ;
-#define gd_56    180.000     31.0     2
+#define gd_56P    180.000     31.0     2
 ; Omega dihedral - PRO
 
 ; D-amino acids

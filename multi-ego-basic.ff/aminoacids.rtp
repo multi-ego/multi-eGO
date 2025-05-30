@@ -87,10 +87,10 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44   
-   -C     N    CA     C     gd_43
-    N    CA     C    +N     gd_45   
-    N    CA     C    +N     gd_42
+   -C     N    CA     C     gd_44A   
+   -C     N    CA     C     gd_43A
+    N    CA     C    +N     gd_45A   
+    N    CA     C    +N     gd_42A
 
 [ ARG ]
  [ atoms ]
@@ -146,11 +146,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b  
-   -C     N    CA     C     gd_43b
+   -C     N    CA     C     gd_44RW  
+   -C     N    CA     C     gd_43RW
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45b   
-    N    CA     C    +N     gd_42b   
+    N    CA     C    +N     gd_45RW   
+    N    CA     C    +N     gd_42RW   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD    NE     gd_34   
    CG    CD    NE    CZ     gd_39   
@@ -340,11 +340,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b   
-   -C     N    CA     C     gd_43b
+   -C     N    CA     C     gd_44C   
+   -C     N    CA     C     gd_43C
     N    CA    CB    SG     gd_34   
-    N    CA     C    +N     gd_45b   
-    N    CA     C    +N     gd_42b   
+    N    CA     C    +N     gd_45C   
+    N    CA     C    +N     gd_42C   
 
 [ GLN ]
  [ atoms ]
@@ -394,11 +394,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b   
-   -C     N    CA     C     gd_43b
+   -C     N    CA     C     gd_44QK   
+   -C     N    CA     C     gd_43QK
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45b   
-    N    CA     C    +N     gd_42b   
+    N    CA     C    +N     gd_45QK   
+    N    CA     C    +N     gd_42QK   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD   NE2     gd_40   
 
@@ -450,11 +450,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44g   
-   -C     N    CA     C     gd_43g
+   -C     N    CA     C     gd_44E   
+   -C     N    CA     C     gd_43E
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45g   
-    N    CA     C    +N     gd_42g   
+    N    CA     C    +N     gd_45E   
+    N    CA     C    +N     gd_42E   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD   OE2     gd_40   
 
@@ -487,9 +487,9 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_49
-    N    CA     C    +N     gd_51   
-    N    CA     C    +N     gd_48   
+   -C     N    CA     C     gd_49G
+    N    CA     C    +N     gd_51G   
+    N    CA     C    +N     gd_48G   
 
 [ HIS ]
  [ atoms ]
@@ -602,11 +602,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44bb   
-   -C     N    CA     C     gd_43bb
+   -C     N    CA     C     gd_44VI   
+   -C     N    CA     C     gd_43VI
     N    CA    CB   CG1     gd_34   
-    N    CA     C    +N     gd_45bb   
-    N    CA     C    +N     gd_42bb  
+    N    CA     C    +N     gd_45VI   
+    N    CA     C    +N     gd_42VI  
    CA    CB   CG1    CD     gd_34   
 
 [ LEU ]
@@ -707,11 +707,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b   
-   -C     N    CA     C     gd_43b
+   -C     N    CA     C     gd_44QK   
+   -C     N    CA     C     gd_43QK
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45b   
-    N    CA     C    +N     gd_42b   
+    N    CA     C    +N     gd_45QK   
+    N    CA     C    +N     gd_42QK   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD    CE     gd_34   
    CG    CD    CE    NZ     gd_34   
@@ -830,11 +830,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b2   
-   -C     N    CA     C     gd_43b2
+   -C     N    CA     C     gd_44F   
+   -C     N    CA     C     gd_43F
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45b2   
-    N    CA     C    +N     gd_42b2   
+    N    CA     C    +N     gd_45F   
+    N    CA     C    +N     gd_42F   
    CA    CB    CG   CD1     gd_40   
 
 [ PRO ]
@@ -876,13 +876,13 @@
     C    CA    +N     O     gi_1    
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
-  -CA    -C     N    CA     gd_56
+  -CA    -C     N    CA     gd_56P
 ;  -C     N    CA     C     gd_54   
-   -C     N    CA     C     gd_53
+   -C     N    CA     C     gd_53P
    CA     N    CD    CG     gd_39   
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_55   
-    N    CA     C    +N     gd_52   
+    N    CA     C    +N     gd_55P   
+    N    CA     C    +N     gd_52P   
    CA    CB    CG    CD     gd_34   
    CB    CG    CD     N     gd_34   
 
@@ -923,11 +923,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44s   
-   -C     N    CA     C     gd_43s
+   -C     N    CA     C     gd_44S   
+   -C     N    CA     C     gd_43S
     N    CA    CB    OG     gd_34   
-    N    CA     C    +N     gd_45s   
-    N    CA     C    +N     gd_42s   
+    N    CA     C    +N     gd_45S   
+    N    CA     C    +N     gd_42S   
 
 [ THR ]
  [ atoms ]
@@ -971,11 +971,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44t   
-   -C     N    CA     C     gd_43t
+   -C     N    CA     C     gd_44T   
+   -C     N    CA     C     gd_43T
     N    CA    CB   OG1     gd_34   
-    N    CA     C    +N     gd_45t   
-    N    CA     C    +N     gd_42t   
+    N    CA     C    +N     gd_45T   
+    N    CA     C    +N     gd_42T   
 
 [ TRP ]
  [ atoms ]
@@ -1061,11 +1061,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44b   
-   -C     N    CA     C     gd_43b
+   -C     N    CA     C     gd_44RW   
+   -C     N    CA     C     gd_43RW
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45b   
-    N    CA     C    +N     gd_42b   
+    N    CA     C    +N     gd_45RW   
+    N    CA     C    +N     gd_42RW   
    CA    CB    CG   CD2     gd_40   
 
 [ TYR ]
@@ -1136,11 +1136,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44L   
-   -C     N    CA     C     gd_43L
+   -C     N    CA     C     gd_44Y   
+   -C     N    CA     C     gd_43Y
     N    CA    CB    CG     gd_34   
-    N    CA     C    +N     gd_45L   
-    N    CA     C    +N     gd_42L  
+    N    CA     C    +N     gd_45Y   
+    N    CA     C    +N     gd_42Y  
    CA    CB    CG   CD1     gd_40   
 
 [ VAL ]
@@ -1185,11 +1185,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14   
-   -C     N    CA     C     gd_44bb   
-   -C     N    CA     C     gd_43bb
+   -C     N    CA     C     gd_44VI   
+   -C     N    CA     C     gd_43VI
     N    CA    CB   CG1     gd_34   
-    N    CA     C    +N     gd_45bb   
-    N    CA     C    +N     gd_42bb   
+    N    CA     C    +N     gd_45VI   
+    N    CA     C    +N     gd_42VI   
 
 [ DALA ]
  [ atoms ]
