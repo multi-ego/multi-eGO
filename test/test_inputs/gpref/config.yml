@@ -15,4 +15,4 @@
   - reference: reference
     train: md_ensemble 
     matrix: intramat_1_1
-    epsilon: 0.235
+    epsilon: 0.310
