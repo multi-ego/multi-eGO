@@ -2,6 +2,7 @@
 - system: gpref 
 - egos: production 
 - no_header
+- single_molecule
 - symmetry: 
   - ARG NH1 NH2
   - ASP OD1 OD2
