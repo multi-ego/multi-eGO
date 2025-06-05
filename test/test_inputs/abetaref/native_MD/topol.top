@@ -22,7 +22,7 @@
 
 [ moleculetype ]
 ; Name            nrexcl
-ABeta             3
+AB42             3
 
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
@@ -5932,4 +5932,4 @@ Generated with MDTraj, t= 36860.0 in water
 
 [ molecules ]
 ; Compound        #mols
-ABeta             1
+AB42             1
