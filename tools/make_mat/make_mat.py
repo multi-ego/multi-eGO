@@ -517,7 +517,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
-    original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
     d_protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms))])
