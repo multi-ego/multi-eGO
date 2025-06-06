@@ -814,7 +814,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     df["aj"] = df["aj"].map("{:}".format)
     df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
     df["p"] = df["p"].map("{:,.6e}".format)
-    print(df)
     df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
     df.index = range(len(df.index))
 
