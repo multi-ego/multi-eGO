@@ -10,7 +10,7 @@
    NE  15.00670 ;     Arg NE (NH)
 ;    C  12.01100 ;     bare carbon
     C  11.01100 ;     bare carbon
-   CH  13.01900 ;     aromatic CH 
+   CH  13.01900 ;     aromatic CH
   CAH  12.01100 ;     aliphatic or sugar CH-group
   CH1  13.01900 ;     aliphatic or sugar CH-group
   CH2  14.02700 ;     aliphatic or sugar CH2-group
@@ -19,9 +19,9 @@
     S  32.06000 ;     sulfur
     H   4.03200 ;     backbone Hydrogen
 ; LIPIDS
- CH3p  15.03500 ;     Polar aliphatic CH3-group 
+ CH3p  15.03500 ;     Polar aliphatic CH3-group
     P  30.97380 ;     phosphor
    OE  15.99940 ;     ether or ester oxygen
-  CR1  13.01900 ;     aromatic CH-group    
+  CR1  13.01900 ;     aromatic CH-group
 ; IONS
    C0  40.08000 ;     calcium (charge 2+) DES-AMBER
