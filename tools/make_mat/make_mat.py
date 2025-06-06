@@ -742,10 +742,13 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         df["c12dist"] = 0.0
         df["p"] = 0.0
         cuts = []
-        # create list of c12 cutoff with H put to zero
-        for i in range(len(df["ai"])):
-            if df["ai"][i] in protein_ref_indices_i:
-                cuts.append(float(c12_cutoff[np.where(protein_ref_indices_i == df["ai"][i])[0][0]]))
+        for ai, aj in zip(df["ai"], df["aj"]):
+            # Check if both ai and aj are in reference indices
+            if ai in protein_ref_indices_i and aj in protein_ref_indices_j:
+                # Get matrix indices
+                i = np.where(protein_ref_indices_i == ai)[0][0]
+                j = np.where(protein_ref_indices_j == aj)[0][0]
+                cuts.append(float(c12_cutoff[i, j]))
             else:
                 cuts.append(0.0)
         df["cutoff"] = cuts
@@ -811,6 +814,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     df["aj"] = df["aj"].map("{:}".format)
     df["c12dist"] = df["c12dist"].map("{:,.6f}".format)
     df["p"] = df["p"].map("{:,.6e}".format)
+    print(df)
     df["cutoff"] = df["cutoff"].map("{:,.6f}".format)
     df.index = range(len(df.index))
 
