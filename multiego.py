@@ -196,7 +196,7 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
     elif args.egos == "mg":
         print("- Generate the LJ dataset")
-        meGO_LJ = ensemble.generate_OO_LJ(meGO_ensembles)
+        meGO_LJ = ensemble.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         meGO_LJ_14 = pairs14
         et = time.time()

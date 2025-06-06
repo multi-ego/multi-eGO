@@ -1,19 +1,19 @@
 ;
 ;	File 'topol.top' was generated
 ;	By user: carlo (501)
-;	On host: MacBookPro
-;	At date: Thu Jan 16 19:28:51 2025
+;	On host: dhcp-160-207.celoria26-16000022-smfn_biodip.unimi.it
+;	At date: Tue Jun  3 15:20:34 2025
 ;
 ;	This is a standalone topology file
 ;
 ;	Created by:
-;	              :-) GROMACS - gmx pdb2gmx, 2024.4-plumed_2.9.2 (-:
+;	                    :-) GROMACS - gmx pdb2gmx, 2024.5 (-:
 ;	
-;	Executable:   /Users/carlo/Codes/gromacs-2024.4/exe/bin/gmx_mpi
-;	Data prefix:  /Users/carlo/Codes/gromacs-2024.4/exe
-;	Working dir:  /Users/carlo/Projects/meGO/TTR
+;	Executable:   /Users/carlo/Codes/gromacs-2024.5/exe/bin/gmx_mpi
+;	Data prefix:  /Users/carlo/Codes/gromacs-2024.5/exe
+;	Working dir:  /Users/carlo/Projects/meGO/TTR/setup
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f confout -ignh
+;	  gmx_mpi pdb2gmx -f conf.gro
 ;	Force field data was read from:
 ;	/Users/carlo/Codes/multi-ego
 ;
@@ -553,73 +553,73 @@ TTR             3
 [ dihedrals ]
 ;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
     1     2     3     4     1    gd_34
-    1     2    11    13     1    gd_42b
-    1     2    11    13     1    gd_45b
+    1     2    11    13     1    gd_42Y
+    1     2    11    13     1    gd_45Y
     2     3     4     5     1    gd_40
     2    11    13    15     1    gd_14
-   11    13    15    19     1    gd_43
-   11    13    15    19     1    gd_44
+   11    13    15    19     1    gd_43T
+   11    13    15    19     1    gd_44T
    13    15    16    17     1    gd_34
-   13    15    19    21     1    gd_42
-   13    15    19    21     1    gd_45
+   13    15    19    21     1    gd_42T
+   13    15    19    21     1    gd_45T
    15    19    21    23     1    gd_14
-   19    21    23    28     1    gd_43b
-   19    21    23    28     1    gd_44b
+   19    21    23    28     1    gd_43VI
+   19    21    23    28     1    gd_44VI
    21    23    24    25     1    gd_34
-   21    23    28    30     1    gd_42b
-   21    23    28    30     1    gd_45b
+   21    23    28    30     1    gd_42VI
+   21    23    28    30     1    gd_45VI
    23    24    25    27     1    gd_34
    23    28    30    32     1    gd_14
-   28    30    32    34     1    gd_43
-   28    30    32    34     1    gd_44
-   30    32    34    36     1    gd_42
-   30    32    34    36     1    gd_45
+   28    30    32    34     1    gd_43A
+   28    30    32    34     1    gd_44A
+   30    32    34    36     1    gd_42A
+   30    32    34    36     1    gd_45A
    32    34    36    38     1    gd_14
-   34    36    38    40     1    gd_43
-   34    36    38    40     1    gd_44
-   36    38    40    42     1    gd_42
-   36    38    40    42     1    gd_45
+   34    36    38    40     1    gd_43A
+   34    36    38    40     1    gd_44A
+   36    38    40    42     1    gd_42A
+   36    38    40    42     1    gd_45A
    38    40    42    44     1    gd_14
-   40    42    44    49     1    gd_43b
-   40    42    44    49     1    gd_44b
+   40    42    44    49     1    gd_43L
+   40    42    44    49     1    gd_44L
    42    44    45    46     1    gd_34
-   42    44    49    51     1    gd_42b
-   42    44    49    51     1    gd_45b
+   42    44    49    51     1    gd_42L
+   42    44    49    51     1    gd_45L
    44    45    46    47     1    gd_34
    44    49    51    53     1    gd_14
-   49    51    53    58     1    gd_43b
-   49    51    53    58     1    gd_44b
+   49    51    53    58     1    gd_43L
+   49    51    53    58     1    gd_44L
    51    53    54    55     1    gd_34
-   51    53    58    60     1    gd_42b
-   51    53    58    60     1    gd_45b
+   51    53    58    60     1    gd_42L
+   51    53    58    60     1    gd_45L
    53    54    55    56     1    gd_34
    53    58    60    62     1    gd_14
-   58    60    62    65     1    gd_43
-   58    60    62    65     1    gd_44
+   58    60    62    65     1    gd_43S
+   58    60    62    65     1    gd_44S
    60    62    63    64     1    gd_34
-   60    62    65    67     1    gd_42
-   60    62    65    67     1    gd_45
-   62    65    67    68     1    gd_56
-   65    67    68    72     1    gd_53
+   60    62    65    67     1    gd_42S
+   60    62    65    67     1    gd_45S
+   62    65    67    68     1    gd_56P
+   65    67    68    72     1    gd_53P
    68    67    71    70     1    gd_39
    67    68    69    70     1    gd_34
-   67    68    72    74     1    gd_52
-   67    68    72    74     1    gd_55
+   67    68    72    74     1    gd_52P
+   67    68    72    74     1    gd_55P
    68    69    70    71     1    gd_34
    69    70    71    67     1    gd_34
    68    72    74    76     1    gd_14
-   72    74    76    85     1    gd_43b
-   72    74    76    85     1    gd_44b
+   72    74    76    85     1    gd_43Y
+   72    74    76    85     1    gd_44Y
    74    76    77    78     1    gd_34
-   74    76    85    87     1    gd_42b
-   74    76    85    87     1    gd_45b
+   74    76    85    87     1    gd_42Y
+   74    76    85    87     1    gd_45Y
    76    77    78    79     1    gd_40
    76    85    87    89     1    gd_14
-   85    87    89    92     1    gd_43
-   85    87    89    92     1    gd_44
+   85    87    89    92     1    gd_43S
+   85    87    89    92     1    gd_44S
    87    89    90    91     1    gd_34
-   87    89    92    94     1    gd_42
-   87    89    92    94     1    gd_45
+   87    89    92    94     1    gd_42A
+   87    89    92    94     1    gd_45A
 
 [ dihedrals ]
 ;  ai    aj    ak    al funct            c0            c1            c2            c3

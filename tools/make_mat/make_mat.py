@@ -414,12 +414,17 @@ def generate_c12_values(df, types, combinations, molecule_type):
     if molecule_type == "protein":
         for combination in combinations:
             (name_1, name_2, factor, constant, shift) = combination
-            if factor is not None and constant is not None or factor == constant:
-                raise RuntimeError("constant and error should be defined and mutualy exclusive")
-            if factor:
+            # if factor is not None and constant is not None or factor == constant:
+            #    raise RuntimeError("constant and error should be defined and mutualy exclusive")
+            if factor is not None and constant is not None:
+                operation = lambda x: np.minimum(factor * x, constant)
+            elif factor is not None:
                 operation = lambda x: factor * x
-            if constant:
+            elif constant is not None:
                 operation = lambda _: constant
+            else:
+                raise ValueError("Either factor or constant must be specified.")
+
             combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
             combined_map = combined_map | combined_map.T
             c12_map = np.where(combined_map, operation(all_c12), c12_map)
@@ -512,6 +517,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     protein_ref_i = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_i - 1]][0]
     protein_ref_j = topology_ref.molecules[list(topology_ref.molecules.keys())[mol_j - 1]][0]
 
+    original_size_i = len(protein_ref_i.atoms)
     original_size_j = len(protein_ref_j.atoms)
 
     d_protein_ref_indices_i = np.array([i + 1 for i in range(len(protein_ref_i.atoms))])
@@ -600,10 +606,41 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         d.update(d_appo)
 
     topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
-    oxygen_mask = masking.create_matrix_mask(
+    OO_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
         [("OM", "OM"), ("O", "O"), ("OM", "O")],
+        symmetrize=True,
+    )
+    HH_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("H", "H")],
+        symmetrize=True,
+    )
+    NN_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        symmetrize=True,
+    )
+    ON_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [
+            ("O", "N"),
+            ("O", "NT"),
+            ("O", "NZ"),
+            ("O", "NL"),
+            ("OM", "N"),
+            ("OM", "NT"),
+            ("OM", "NZ"),
+            ("OM", "NL"),
+            ("OA", "N"),
+            ("OA", "NT"),
+            ("OA", "NZ"),
+            ("OA", "NL"),
+        ],
         symmetrize=True,
     )
 
@@ -636,8 +673,14 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
 
-        # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(oxygen_mask, 3e-6, c12_values), 1.0 / 12.0)
+        # define all cutoff using combination rule values and OO_mask
+        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(OO_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
+        # apply HH correction
+        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # apply ON correction
+        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # apply NN correction
+        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -651,13 +694,16 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     if mat_type == "inter":
         # define all cutoff
         c12_cutoff = CUTOFF_FACTOR * np.where(
-            oxygen_mask,
-            np.power(3e-6, 1.0 / 12.0),
+            OO_mask,
+            np.power(type_definitions.mg_OO_c12_rep, 1.0 / 12.0),
             np.power(
                 np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
                 1.0 / 12.0,
             ),
         )
+        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
     if not mismatched.empty:
@@ -687,13 +733,25 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
     if args.zero:
         df = pd.DataFrame()
-        df["ai"] = np.repeat(protein_ref_indices_i, len(protein_ref_indices_j))
-        df["mi"] = [mol_i for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
-        df["aj"] = np.tile(protein_ref_indices_j, len(protein_ref_indices_i))
-        df["mj"] = [mol_j for _ in range(len(protein_ref_indices_i) * len(protein_ref_indices_j))]
+        all_ai = [i for i in range(1, original_size_i + 1)]
+        all_aj = [j for j in range(1, original_size_j + 1)]
+        df["mi"] = [mol_i for _ in range((original_size_i) * (original_size_j))]
+        df["mj"] = [mol_j for _ in range((original_size_i) * (original_size_j))]
+        df["ai"] = np.repeat(all_ai, (original_size_j))
+        df["aj"] = np.tile(all_aj, original_size_i)
         df["c12dist"] = 0.0
         df["p"] = 0.0
-        df["cutoff"] = [c12_cutoff[i, j] for i in range(len(protein_ref_indices_i)) for j in range(len(protein_ref_indices_j))]
+        cuts = []
+        for ai, aj in zip(df["ai"], df["aj"]):
+            # Check if both ai and aj are in reference indices
+            if ai in protein_ref_indices_i and aj in protein_ref_indices_j:
+                # Get matrix indices
+                i = np.where(protein_ref_indices_i == ai)[0][0]
+                j = np.where(protein_ref_indices_j == aj)[0][0]
+                cuts.append(float(c12_cutoff[i, j]))
+            else:
+                cuts.append(0.0)
+        df["cutoff"] = cuts
     else:
         chunks = np.array_split(target_list, args.num_threads)
         pool = multiprocessing.Pool(args.num_threads)

@@ -2,8 +2,12 @@ import pandas as pd
 import json
 import sys
 
-
-mg_eps = 0.11
+mg_OO_c12_rep = 3e-6
+mg_HH_c12_rep = 1.2e-8
+mg_ON_c12_rep = 3e-6
+mg_NN_c12_rep = 2.5e-5
+mg_HO_sigma = 0.169500
+mg_eps = 0.13
 mg_eps_ch2 = 0.10
 mg_eps_ch1 = 0.09
 
@@ -63,17 +67,18 @@ gromos_atp = pd.DataFrame(
             9.148590e-10,  # "H",
             2.659360e-07,  # "C0",
         ],
+        # all to ch2 except ch e ch3
         "mg_c12": [
-            1.0000000e-06 / 1.27911 * mg_eps,  # "O",
-            7.4149321e-07 / 1.72504 * mg_eps,  # "OM",
-            1.5055290e-06 / 0.84961 * mg_eps,  # "OA",
-            2.3195290e-06 / 0.63980 * mg_eps,  # "N",
-            5.0625000e-06 / 0.29314 * mg_eps,  # "NT",
-            2.3195290e-06 / 0.63980 * mg_eps,  # "NL",
-            3.3892810e-06 / 0.43786 * mg_eps,  # "NR",
-            2.3195290e-06 / 0.63980 * mg_eps,  # "NZ",
-            2.3195290e-06 / 0.63980 * mg_eps,  # "NE",
-            4.9372840e-06 / 0.27741 * mg_eps,  # "C",
+            1.0000000e-06 / 1.27911 * mg_eps_ch2,  # "O",
+            7.4149321e-07 / 1.72504 * mg_eps_ch2,  # "OM",
+            1.5055290e-06 / 0.84961 * mg_eps_ch2,  # "OA",
+            2.3195290e-06 / 0.63980 * mg_eps_ch2,  # "N",
+            5.0625000e-06 / 0.29314 * mg_eps_ch2,  # "NT",
+            2.3195290e-06 / 0.63980 * mg_eps_ch2,  # "NL",
+            3.3892810e-06 / 0.43786 * mg_eps_ch2,  # "NR",
+            2.3195290e-06 / 0.63980 * mg_eps_ch2,  # "NZ",
+            2.3195290e-06 / 0.63980 * mg_eps_ch2,  # "NE",
+            4.9372840e-06 / 0.27741 * mg_eps_ch2,  # "C",
             4.9372840e-06 / 0.27741 * mg_eps,  # "CH"
             9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CH1"
             9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CAH"
@@ -81,25 +86,25 @@ gromos_atp = pd.DataFrame(
             3.3965584e-05 / 0.41050 * mg_eps_ch2,  # "CH2"
             2.6646244e-05 / 0.86710 * mg_eps,  # "CH3"
             2.8058209e-05 / 0.47920 * mg_eps_ch2,  # "CH2r"
-            1.3075456e-05 / 1.90587 * mg_eps,  # "S",
-            2.6646244e-05 / 0.86715 * mg_eps,  # "CH3p"
-            2.2193521e-05 / 2.44674 * mg_eps,  # "P",
-            1.2100000e-06 / 1.05711 * mg_eps,  # "OE",
-            1.5116544e-05 / 0.50266 * mg_eps,  # "CR1",
-            0.0000000e-00 / 1.00000 * mg_eps,  # "H",
-            0.0000000e-00 / 1.00000 * mg_eps,  # "C0",
+            1.3075456e-05 / 1.90587 * mg_eps_ch2,  # "S",
+            2.6646244e-05 / 0.86715 * mg_eps_ch2,  # "CH3p"
+            2.2193521e-05 / 2.44674 * mg_eps_ch2,  # "P",
+            1.2100000e-06 / 1.05711 * mg_eps_ch2,  # "OE",
+            1.5116544e-05 / 0.50266 * mg_eps_ch2,  # "CR1",
+            0.0000000e-00 / 1.00000 * mg_eps_ch2,  # "H",
+            0.0000000e-00 / 1.00000 * mg_eps_ch2,  # "C0",
         ],
         "mg_c6": [
-            0.0022619536 / 1.27911 * mg_eps,  # "O",
-            0.0022619536 / 1.72504 * mg_eps,  # "OM",
-            0.0022619536 / 0.84961 * mg_eps,  # "OA",
-            0.0024364096 / 0.63980 * mg_eps,  # "N",
-            0.0024364096 / 0.29314 * mg_eps,  # "NT",
-            0.0024364096 / 0.63980 * mg_eps,  # "NL",
-            0.0024364096 / 0.43786 * mg_eps,  # "NR",
-            0.0024364096 / 0.63980 * mg_eps,  # "NZ",
-            0.0024364096 / 0.63980 * mg_eps,  # "NE",
-            0.0023406244 / 0.27741 * mg_eps,  # "C",
+            0.0022619536 / 1.27911 * mg_eps_ch2,  # "O",
+            0.0022619536 / 1.72504 * mg_eps_ch2,  # "OM",
+            0.0022619536 / 0.84961 * mg_eps_ch2,  # "OA",
+            0.0024364096 / 0.63980 * mg_eps_ch2,  # "N",
+            0.0024364096 / 0.29314 * mg_eps_ch2,  # "NT",
+            0.0024364096 / 0.63980 * mg_eps_ch2,  # "NL",
+            0.0024364096 / 0.43786 * mg_eps_ch2,  # "NR",
+            0.0024364096 / 0.63980 * mg_eps_ch2,  # "NZ",
+            0.0024364096 / 0.63980 * mg_eps_ch2,  # "NE",
+            0.0023406244 / 0.27741 * mg_eps_ch2,  # "C",
             0.0023406244 / 0.27741 * mg_eps,  # "CH"
             0.0060684100 / 0.09489 * mg_eps_ch1,  # "CH1"
             0.0060684100 / 0.09489 * mg_eps_ch1,  # "CAH"
@@ -107,13 +112,13 @@ gromos_atp = pd.DataFrame(
             0.0074684164 / 0.41054 * mg_eps_ch2,  # "CH2"
             0.0096138025 / 0.86715 * mg_eps,  # "CH3"
             0.0073342096 / 0.47928 * mg_eps_ch2,  # "CH2r"
-            0.0099840064 / 1.90587 * mg_eps,  # "S",
-            0.0096138025 / 0.86715 * mg_eps,  # "CH3p"
-            0.0147379600 / 2.44674 * mg_eps,  # "P",
-            0.0022619536 / 1.05711 * mg_eps,  # "OE",
-            0.0055130625 / 0.50266 * mg_eps,  # "CR1",
-            0.0000000000 / 1.00000 * mg_eps,  # "H", # TODO
-            0.0000000000 / 1.00000 * mg_eps,  # "C0",
+            0.0099840064 / 1.90587 * mg_eps_ch2,  # "S",
+            0.0096138025 / 0.86715 * mg_eps_ch2,  # "CH3p"
+            0.0147379600 / 2.44674 * mg_eps_ch2,  # "P",
+            0.0022619536 / 1.05711 * mg_eps_ch2,  # "OE",
+            0.0055130625 / 0.50266 * mg_eps_ch2,  # "CR1",
+            0.0000000000 / 1.00000 * mg_eps_ch2,  # "H", # TODO
+            0.0000000000 / 1.00000 * mg_eps_ch2,  # "C0",
         ],
     }
 )
@@ -144,6 +149,7 @@ def lj14_generator(df):
     types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
     types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
     types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
+    types_dict["backbone_calpha"] = (df["name"] == "CA").to_numpy()
     types_dict["ct_oxygen"] = ((df["name"] == "O1") | (df["name"] == "O2")).to_numpy()
     types_dict["sidechain_cb"] = (df["name"] == "CB").to_numpy()
     types_dict["sidechain_cgs"] = (
@@ -154,6 +160,17 @@ def lj14_generator(df):
         | (df["name"] == "OG")
         | (df["name"] == "OG1") & (df["resname"] != "PRO")
     ).to_numpy()
+    types_dict["sidechain_cds"] = (
+        (df["name"] == "CD")
+        | (df["name"] == "CD1")
+        | (df["name"] == "CD2")
+        | (df["name"] == "SD")
+        | (df["name"] == "OD")
+        | (df["name"] == "OD1")
+        | (df["name"] == "OD2")
+        | (df["name"] == "ND1")
+        | (df["name"] == "ND2") & (df["resname"] != "PRO")
+    ).to_numpy()
 
     return types_dict
 
@@ -161,16 +178,17 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    ("backbone_carbonyl", "sidechain_cb", 0.275, None, 1),
-    ("backbone_oxygen", "sidechain_cb", 0.2, None, 0),
-    ("ct_oxygen", "sidechain_cb", 0.2, None, 0),
-    ("backbone_nitrogen", "sidechain_cb", 0.65, None, -1),
+    ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
+    ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("ct_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("backbone_nitrogen", "sidechain_cb", 1, 2.7e-6, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
     ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
     ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
-    ("sidechain_cgs", "backbone_carbonyl", 0.078, None, 0),
-    ("sidechain_cgs", "backbone_nitrogen", 0.087, None, 0),
-    ("sidechain_cgs", "first_backbone_nitrogen", 0.087, None, 0),
+    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
+    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
+    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
+    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
 ]
 
 # List of amino acids and nucleic acids

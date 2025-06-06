@@ -14,8 +14,8 @@ O1	C	O2	ga_38
 CA	C	O1	ga_22
 CA	C	O2	ga_22
 [ dihedrals ]
-N	CA	C	O2	gd_45
-N       CA      C       O2      gd_42
+N	CA	C	O2	gd_45A
+N       CA      C       O2      gd_42A
 [ impropers ]
 C	CA	O2	O1	gi_1
 
