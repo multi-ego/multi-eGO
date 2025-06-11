@@ -873,7 +873,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[H_mask, "mg_epsilon"] = 0.0
     train_dataset.loc[HH_mask, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep
     train_dataset.loc[NN_mask, "mg_epsilon"] = -type_definitions.mg_NN_c12_rep
-    train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps
+    train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps_ch3
 
     # final cleaning
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
@@ -923,12 +923,12 @@ def generate_MG_LJ(meGO_ensemble):
     ]
     combinations = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
     HO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    HO_LJ["c12"] = 4.0 * type_definitions.mg_eps * type_definitions.mg_HO_sigma**12.0
-    HO_LJ["c6"] = 4.0 * type_definitions.mg_eps * type_definitions.mg_HO_sigma**6.0
-    HO_LJ["epsilon"] = type_definitions.mg_eps
+    HO_LJ["c12"] = 4.0 * type_definitions.mg_eps_ch3 * type_definitions.mg_HO_sigma**12.0
+    HO_LJ["c6"] = 4.0 * type_definitions.mg_eps_ch3 * type_definitions.mg_HO_sigma**6.0
+    HO_LJ["epsilon"] = type_definitions.mg_eps_ch3
     HO_LJ["sigma"] = type_definitions.mg_HO_sigma
     HO_LJ["mg_sigma"] = type_definitions.mg_HO_sigma
-    HO_LJ["mg_epsilon"] = type_definitions.mg_eps
+    HO_LJ["mg_epsilon"] = type_definitions.mg_eps_ch3
 
     # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
     NL_NZ_sbtype = [

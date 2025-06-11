@@ -462,7 +462,7 @@
  [ atoms ]
     N     N       0.000     0
    H      H       0.000     0
-   CA   CH2       0.000     0
+   CA  CAH2       0.000     0
     C     C       0.000     0
     O     O       0.000     0
  [ bonds ]

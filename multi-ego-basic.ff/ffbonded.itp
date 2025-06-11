@@ -604,13 +604,13 @@
 ;;;;;;;;;;;;;;;;;;;;
 ;GLY
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_48G 180.0 5 2
+#define gd_48G 180.0 5.0 2
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
-#define gd_49G -180 11 1
+#define gd_49G -180 5.0 1
 ; Backbone dihedral angle -C-N-CA-C  GLY
 ;
-#define gd_51G -180 2.6 1
+#define gd_51G -180 2.9 1
 ; Backbone dihedral angle -N-CA-C-N  GLY
 ;
 ;;;;;;;;;;;;;;;;;;;;
