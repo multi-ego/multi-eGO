@@ -694,7 +694,7 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f"""
-; Multi-eGO force field version beta.4
+; Multi-eGO force field version beta.6
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
