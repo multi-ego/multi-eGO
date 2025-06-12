@@ -563,7 +563,7 @@
 #define gd_43S 15.0000 2.500 3
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
-#define gd_44S -120.000 3.80 1
+#define gd_44S -140.000 3.80 1
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
 #define gd_45S 180.00 1.70 1
@@ -578,10 +578,10 @@
 #define gd_43T 15.0000 2.50 3
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_44T   -90.000 4.3 1
+#define gd_44T   -95.000 4.3 1
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_45T 180.00 1.7 1
+#define gd_45T 180.00 2.1 1
 ; Backbone dihedral angle -N-CA-C-N- THR
 ;
 ;;;;;;;;;;;;;;;;;;;;

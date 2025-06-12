@@ -1576,12 +1576,10 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                 (
                     (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
                     | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OA")
                 )
                 & (
                     (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
                     | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OA")
                 ),
                 "c12",
             ] = type_definitions.mg_OO_c12_rep
