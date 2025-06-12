@@ -1254,57 +1254,32 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = meGO_LJ.loc[(meGO_LJ["1-4"] != "1_4")]
 
     if not parameters.single_molecule:
-        # if an attractive intramolecular interactions is associated with a large rc_probability then it is moved to meGO_LJ_14 to
-        # avoid its use as intermolecular, the same for repulsive with rc < or in the neigbour window
+        # neighbour intramolecular interactions are not used as intermolecular
         copy_intra = meGO_LJ.loc[
             (meGO_LJ["same_chain"])
-            & (
-                ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
-                | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
-                | (
-                    (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-                    & (meGO_LJ["epsilon"] < 0.0)
-                )
-            )
+            & (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
         ]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
         meGO_LJ = meGO_LJ.loc[
             ~(
                 (meGO_LJ["same_chain"])
-                & (
-                    ((meGO_LJ["rc_probability"] > meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] > 0.0))
-                    | ((meGO_LJ["rc_probability"] < meGO_LJ["rc_threshold"]) & (meGO_LJ["epsilon"] < 0.0))
-                    | (
-                        (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
-                        & (meGO_LJ["epsilon"] < 0.0)
-                    )
-                )
+                & (abs(meGO_LJ["ai"].apply(get_residue_number) - meGO_LJ["aj"].apply(get_residue_number)) < 3)
             )
         ]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones
     # to do this is enough to remove it from meGO_LJ_14, in this way the value used for the contact is the one meGO_LJ
     if not parameters.force_split:
-        # Reset index of meGO_LJ_14
-        meGO_LJ_14_reset_index = meGO_LJ_14.reset_index()
         # Filter rows in meGO_LJ_14 that meet the condition
-        filtered_meGO_LJ_14 = meGO_LJ_14_reset_index.loc[
-            (~meGO_LJ_14_reset_index["same_chain"])
-            & (meGO_LJ_14_reset_index["molecule_name_ai"] == meGO_LJ_14_reset_index["molecule_name_aj"])
-            & (meGO_LJ_14_reset_index["epsilon"] > 0.0)
-            & (meGO_LJ_14_reset_index["rc_probability"] <= meGO_LJ_14_reset_index["rc_threshold"])
+        meGO_LJ_14 = meGO_LJ_14.loc[
+            ~(
+                (~meGO_LJ_14["same_chain"])
+                & (meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"])
+                & (meGO_LJ_14["epsilon"] > 0.0)
+                & (abs(meGO_LJ_14["ai"].apply(get_residue_number) - meGO_LJ_14["aj"].apply(get_residue_number)) > 2)
+            )
         ]
-        filtered_train_dataset = train_dataset.loc[train_dataset["same_chain"]].copy()
-        filtered_train_dataset.sort_values(by=["ai", "aj", "rc_threshold"], ascending=[True, True, True], inplace=True)
-        filtered_train_dataset = filtered_train_dataset.drop_duplicates(subset=["ai", "aj"], keep="first")[
-            ["ai", "aj", "rc_probability", "rc_threshold"]
-        ]
-        # Merge filtered_meGO_LJ_14 with train_dataset based on ai and aj columns
-        merged = pd.merge(filtered_meGO_LJ_14, filtered_train_dataset, on=["ai", "aj"], how="inner")
-        # Filter rows where rc_probability is less than or equal to rc_threshold
-        to_remove_indices = merged[merged["rc_probability_y"] <= merged["rc_threshold_y"]]["index"]
-        meGO_LJ_14.drop(to_remove_indices, inplace=True)
     else:
         split_ii = meGO_LJ.loc[(meGO_LJ["same_chain"])]
         # move the intramolecular interaction in the topology
@@ -1561,7 +1536,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     )
                     or (
                         meGO_ensemble["sbtype_type_dict"][aj] == "H"
-                        and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM", "AO"}
+                        and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM", "OA"}
                     )
                 )
             ]
