@@ -801,17 +801,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         type_aj_mapped.to_numpy(),
         [
             ("O", "N"),
-            ("O", "NT"),
-            ("O", "NZ"),
-            ("O", "NL"),
             ("OM", "N"),
-            ("OM", "NT"),
-            ("OM", "NZ"),
-            ("OM", "NL"),
-            ("OA", "N"),
-            ("OA", "NT"),
-            ("OA", "NZ"),
-            ("OA", "NL"),
         ],
         symmetrize=True,
     )
@@ -1580,26 +1570,14 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                     (
                         (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
                         | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OA")
                     )
-                    & (
-                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    )
+                    & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
                 )
                 | (
-                    (
-                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NT")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    )
+                    ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
                     & (
                         (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
                         | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OA")
                     )
                 ),
                 "c12",

@@ -629,17 +629,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         topology_df_j["mego_type"].to_numpy(),
         [
             ("O", "N"),
-            ("O", "NT"),
-            ("O", "NZ"),
-            ("O", "NL"),
             ("OM", "N"),
-            ("OM", "NT"),
-            ("OM", "NZ"),
-            ("OM", "NL"),
-            ("OA", "N"),
-            ("OA", "NT"),
-            ("OA", "NZ"),
-            ("OA", "NL"),
         ],
         symmetrize=True,
     )
