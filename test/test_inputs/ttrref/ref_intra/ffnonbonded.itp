@@ -1,10 +1,10 @@
 
-; Multi-eGO force field version beta.4
+; Multi-eGO force field version beta.6
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
 ; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 03-06-2025 15:27
+; Created on the 13-06-2025 14:35
 ; With the following parameters:
 ;	- system                     = ttrref              
 ;	- egos                       = mg                  
