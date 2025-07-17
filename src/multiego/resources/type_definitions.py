@@ -2,10 +2,12 @@ import pandas as pd
 import json
 import sys
 
-mg_OO_c12_rep = 3e-6
-mg_HH_c12_rep = 1.2e-8
-mg_ON_c12_rep = 3e-6
-mg_NN_c12_rep = 2.5e-5
+mg_OO_c12_rep = 1.5e-6
+#mg_HH_c12_rep = 1.2e-8
+mg_HH_c12_rep = 3e-9
+mg_ON_c12_rep = 1.5e-6
+#mg_NN_c12_rep = 2.5e-5
+mg_NN_c12_rep = 5e-6
 mg_HO_sigma = 0.169500
 mg_eps_ch3 = 0.13
 mg_eps_ch2 = 0.10
