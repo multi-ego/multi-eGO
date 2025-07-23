@@ -938,6 +938,62 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     return train_dataset
 
+def generate_MG_LJ_pairs_rep(sbtype1, sbtype2,dictionary_name_rc_c12, c12_rep=None ):
+   
+    # if sbtype1==sbtype2: use repeat 
+    if sbtype1 == sbtype2:
+        combinations = list(itertools.product(sbtype1, repeat=2))
+    else:
+        combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))    
+    # print("Combinations:", combinations)
+    if c12_rep is None:
+        # TODO: map the c12_rep to the sbtype1 and sbtype2
+        # define c12_rep as combination rule of all combinations pairs
+        c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai]*dictionary_name_rc_c12[aj]) for ai, aj in combinations])
+
+    pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    pairs_LJ["c12"] = c12_rep
+    pairs_LJ["c6"] = 0.0
+    pairs_LJ["epsilon"] = -c12_rep
+    pairs_LJ["sigma"] = c12_rep ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    pairs_LJ["mg_sigma"] = pairs_LJ["sigma"]
+    pairs_LJ["mg_epsilon"] = -c12_rep
+
+    return pairs_LJ.reset_index(drop=True)
+
+def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12,dictionary_name_mg_c6, epsilon=None, sigma=None ):
+    
+    if sbtype1 == sbtype2:
+        combinations = list(itertools.product(sbtype1, repeat=2))
+    else:
+        combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))    
+    
+    # TODO remove this case: is usless (already handled in gromacs combination rule)
+    # if epsilon is None and sigma is None:
+    #     c6 = np.array([np.sqrt(dictionary_name_mg_c6[ai]*dictionary_name_mg_c6[aj]) for ai, aj in combinations])
+    #     c12_rep = np.array([np.sqrt(dictionary_name_mg_c12[ai]*dictionary_name_mg_c12[aj]) for ai, aj in combinations])
+    #     epsilon = c6 ** 2.0 / (4.0 * c12_rep)
+    #     sigma = (c12_rep/c6) ** (1.0 / 6.0) 
+    if epsilon is not None and sigma is None:
+        # define sigma as combination rule of all combinations pairs
+        c6 = np.array([np.sqrt(dictionary_name_mg_c6[ai]*dictionary_name_mg_c6[aj]) for ai, aj in combinations])
+        c12_rep = np.array([np.sqrt(dictionary_name_mg_c12[ai]*dictionary_name_mg_c12[aj]) for ai, aj in combinations])
+        sigma = (c12_rep/c6) ** (1.0 / 6.0) 
+    
+    elif epsilon is None and sigma is not None:
+        # raise error
+        raise ValueError("You can provide a custom value for epsilon but not for sigma alone")
+    
+    pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
+    pairs_LJ["c12"] = 4.0 * epsilon * sigma**12.0
+    pairs_LJ["c6"] = 4.0 * epsilon * sigma**6.0
+    pairs_LJ["epsilon"] = epsilon
+    pairs_LJ["sigma"] = sigma
+    pairs_LJ["mg_sigma"] = sigma
+    pairs_LJ["mg_epsilon"] = epsilon
+
+    return pairs_LJ.reset_index(drop=True)
+
 
 def generate_MG_LJ(meGO_ensemble):
     """
@@ -945,60 +1001,62 @@ def generate_MG_LJ(meGO_ensemble):
     TODO: define them by means of an external dictionary instead of hardcoding them. This dictionary should be used also from make_mat
     these are generate in the following
     """
-
-    # TODO: unify the method to generate the combinations
+    # reconstruct mapping dictionaries for c12 and c6 which are already mapped in topology_dataframe
+    dictionary_name_rc_c12 = {
+    name: rc12 for name, rc12 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["rc_c12"])
+    }
+    dictionary_name_mg_c12 = {
+        name: mg12 for name, mg12 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["mg_c12"])
+    }
+    dictionary_name_mg_c6 = {
+        name: mg6 for name, mg6 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["mg_c6"])
+    }
 
     # OO in MG are repulsive (Ramachandran and negatively charged sidechains)
     O_OM_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "O" or atomtype == "OM"
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["O", "OM"]
     ]
-    combinations = list(itertools.product(O_OM_sbtype, repeat=2))
-    OO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    OO_LJ["c12"] = type_definitions.mg_OO_c12_rep
-    OO_LJ["c6"] = 0.0
-    OO_LJ["epsilon"] = -OO_LJ["c12"]
-    OO_LJ["sigma"] = OO_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    OO_LJ["mg_sigma"] = OO_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    OO_LJ["mg_epsilon"] = -OO_LJ["c12"]
+    OO_LJ = generate_MG_LJ_pairs_rep(O_OM_sbtype, O_OM_sbtype, dictionary_name_rc_c12, type_definitions.mg_OO_c12_rep)
 
     # HH in MG are repulsive (Ramachandran)
     H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
-    combinations = list(itertools.product(H_H_sbtype, repeat=2))
-    HH_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    HH_LJ["c12"] = type_definitions.mg_HH_c12_rep
-    HH_LJ["c6"] = 0.0
-    HH_LJ["epsilon"] = -HH_LJ["c12"]
-    HH_LJ["sigma"] = HH_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    HH_LJ["mg_sigma"] = HH_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    HH_LJ["mg_epsilon"] = -HH_LJ["c12"]
+    HH_LJ = generate_MG_LJ_pairs_rep(H_H_sbtype, H_H_sbtype,dictionary_name_rc_c12, type_definitions.mg_HH_c12_rep)
 
     # HO in MG are attractive (H-bonds)
     O_OM_OA_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype == "O" or atomtype == "OM" or atomtype == "OA"
+        if atomtype in ["O", "OM", "OA"]
     ]
-    combinations = list(itertools.product(H_H_sbtype, O_OM_OA_sbtype)) + list(itertools.product(O_OM_OA_sbtype, H_H_sbtype))
-    HO_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    HO_LJ["c12"] = 4.0 * type_definitions.mg_eps_ch3 * type_definitions.mg_HO_sigma**12.0
-    HO_LJ["c6"] = 4.0 * type_definitions.mg_eps_ch3 * type_definitions.mg_HO_sigma**6.0
-    HO_LJ["epsilon"] = type_definitions.mg_eps_ch3
-    HO_LJ["sigma"] = type_definitions.mg_HO_sigma
-    HO_LJ["mg_sigma"] = type_definitions.mg_HO_sigma
-    HO_LJ["mg_epsilon"] = type_definitions.mg_eps_ch3
+    HO_LJ = generate_MG_LJ_pairs_attr(
+        O_OM_OA_sbtype, H_H_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6,
+        epsilon=type_definitions.mg_eps_ch3,
+        sigma=type_definitions.mg_HO_sigma  
+    )
+
+    pol_sbtype = [
+        sbtype
+        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
+        if atomtype in ["O", "OM", "OA", "N","NT", "NL", "NR", "NZ", "NE","CAH", "C","S", "P", "OE", "CR1"]
+    ]
+    # CAH in pol --> deve diventare sidechain-backbone weak attr
+    hyd_sbtype = [
+        sbtype
+        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
+        if atomtype in  ["CH", "CH3", "CH3p", "CH2", "CH2r", "CH1"]
+    ]
+    # pol_hyd_LJ = generate_MG_LJ_pairs_rep(
+    #     pol_sbtype, hyd_sbtype, dictionary_name_rc_c12)
+    pol_hyd_LJ = generate_MG_LJ_pairs_attr(
+        pol_sbtype, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6,
+        epsilon=0.1#type_definitions.mg_eps_ch1
+    )
 
     # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
     NL_NZ_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "NL" or atomtype == "NZ"
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["NL", "NZ"]
     ]
-    combinations = list(itertools.product(NL_NZ_sbtype, repeat=2))
-    NN_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    NN_LJ["c12"] = type_definitions.mg_NN_c12_rep
-    NN_LJ["c6"] = 0.0
-    NN_LJ["epsilon"] = -NN_LJ["c12"]
-    NN_LJ["sigma"] = NN_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    NN_LJ["mg_sigma"] = NN_LJ["c12"] ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
-    NN_LJ["mg_epsilon"] = -NN_LJ["c12"]
+    NN_LJ = generate_MG_LJ_pairs_rep(NL_NZ_sbtype, NL_NZ_sbtype, dictionary_name_rc_c12, type_definitions.mg_NN_c12_rep)
 
     # combine them:
     rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ], axis=0)
