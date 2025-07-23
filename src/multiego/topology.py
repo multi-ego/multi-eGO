@@ -3,7 +3,7 @@ import numpy as np
 from collections import defaultdict, deque
 import networkx as nx
 from itertools import combinations
-
+from .resources import type_definitions
 
 
 def get_bonds(topology):
@@ -269,7 +269,7 @@ def compute_bond_distances(reduced_topology, bond_pair, max_distance=6):
     # Build atom number ↔ sb_type mapping
     atnum_to_sbtype = reduced_topology.set_index("number")["sb_type"].to_dict()
     sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
-    
+
     sbtypes = list(sbtype_to_atnum.keys())
 
     # Build graph from bond pairs
@@ -428,10 +428,22 @@ def get_14_interaction_list(reduced_topology, bond_pair):
                             else:
                                 continue
                             for tttttt in bond_pair:
-                                if (tttttt[0] == fifth) & (tttttt[1] != first) & (tttttt[1] != second) & (tttttt[1] != third) & (tttttt[1] != fourth):
+                                if (
+                                    (tttttt[0] == fifth)
+                                    & (tttttt[1] != first)
+                                    & (tttttt[1] != second)
+                                    & (tttttt[1] != third)
+                                    & (tttttt[1] != fourth)
+                                ):
                                     sixth = tttttt[1]
                                     ex6.append(tttttt[1])
-                                elif (tttttt[1] == fifth) & (tttttt[0] != first) & (tttttt[0] != second) & (tttttt[0] != third) & (tttttt[0] != fourth):
+                                elif (
+                                    (tttttt[1] == fifth)
+                                    & (tttttt[0] != first)
+                                    & (tttttt[0] != second)
+                                    & (tttttt[0] != third)
+                                    & (tttttt[0] != fourth)
+                                ):
                                     sixth = tttttt[0]
                                     ex6.append(tttttt[0])
                                 else:
@@ -645,148 +657,38 @@ def protein_LJ14(reduced_topology):
         | (reduced_topology["name"] == "ND1")
         | (reduced_topology["name"] == "ND2") & (reduced_topology["resname"] != "PRO")
     ]
-    pairs = pd.DataFrame()
 
-    # For backbone carbonyl take the CB of the next residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=backbone_carbonyl,
-                atomtype2=sidechain_cb,
-                constant=3.5e-07,
-                prefactor=0.070,
-                shift=+1,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For backbone oxygen take the CB of the same residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(atomtype1=backbone_oxygen, atomtype2=sidechain_cb, constant=5e-7, prefactor=1),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # now we add the pair between the last CB and the two OCT ones
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(atomtype1=ct_oxygen, atomtype2=sidechain_cb, constant=5e-7, prefactor=1),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-   ## For each backbone nitrogen take the CB of the previuos residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=backbone_nitrogen,
-                atomtype2=sidechain_cb,
-                constant=5.0e-7,
-                prefactor=1.00,
-                shift=-1,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For the first backbone nitrogen take the N of the next residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=first_backbone_nitrogen,
-                atomtype2=backbone_nitrogen,
-                constant=1.0e-06,
-                shift=+1,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For each backbone nitrogen take the N of the next residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=backbone_nitrogen,
-                atomtype2=backbone_nitrogen,
-                constant=1e-7,
-                shift=+1,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For each backbone carbonyl take the carbonyl of the next residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=backbone_carbonyl,
-                atomtype2=backbone_carbonyl,
-                constant=1e-7,
-                shift=-1,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For each backbone carbonyl take the CGs of the same residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_carbonyl, constant=3.5e-7, prefactor=0.06),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    # For each backbone nitrogen take the CGs of the same residue and save in a pairs tuple
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(atomtype1=sidechain_cgs, atomtype2=backbone_nitrogen, constant=3.5e-7, prefactor=0.12),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(
-                atomtype1=sidechain_cgs,
-                atomtype2=first_backbone_nitrogen,
-                constant=3.5e-7,
-                prefactor=0.12,
-            ),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
-    pairs = pd.concat(
-        [
-            pairs,
-            create_pairs_14_dataframe(atomtype1=sidechain_cds, atomtype2=backbone_calpha, constant=5e-7, prefactor=0.100),
-        ],
-        axis=0,
-        sort=False,
-        ignore_index=True,
-    )
+    loc_geom_atoms = {
+        "first_backbone_nitrogen": first_backbone_nitrogen,
+        "backbone_nitrogen": backbone_nitrogen,
+        "backbone_carbonyl": backbone_carbonyl,
+        "backbone_calpha": backbone_calpha,
+        "backbone_oxygen": backbone_oxygen,
+        "ct_oxygen": ct_oxygen,
+        "sidechain_cb": sidechain_cb,
+        "sidechain_cgs": sidechain_cgs,
+        "sidechain_cds": sidechain_cds,
+    }
+
+    pairs = pd.DataFrame()
+    # iterate over all atom type combinations defined in the type_definitions
+    # and create pairs for each combination
+    for element in type_definitions.atom_type_combinations:
+        pairs = pd.concat(
+            [
+                pairs,
+                create_pairs_14_dataframe(
+                    atomtype1=loc_geom_atoms[element[0]],
+                    atomtype2=loc_geom_atoms[element[1]],
+                    constant=element[3],
+                    prefactor=element[2],
+                    shift=element[4],
+                ),
+            ],
+            axis=0,
+            sort=False,
+            ignore_index=True,
+        )
 
     # make it symmetric
     inv_LJ = pairs[["aj", "ai", "func", "c6", "c12", "probability", "rc_probability", "source"]].copy()
