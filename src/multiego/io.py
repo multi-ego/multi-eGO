@@ -566,6 +566,8 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
     parameters : dict
         Contains the command-line parsed parameters
     """
+    meGO_LJ.loc[((meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["bond_distance"] > 3) & (meGO_LJ["bond_distance"] < 7)), ["; ai", "aj", "c12", "sigma", "epsilon"]].to_csv(f"{output_dir}/meGO_LJ_bond6.csv", index=False, sep=" ")
+
     repo = git.Repo(search_parent_directories=True)
     commit_hash = repo.head.object.hexsha
     with open(f"{output_dir}/meGO.log", "w") as f:

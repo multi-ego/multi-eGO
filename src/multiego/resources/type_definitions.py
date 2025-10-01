@@ -3,13 +3,13 @@ import json
 import sys
 
 mg_OO_c12_rep = 1.5e-6
-# mg_HH_c12_rep = 1.2e-8
-mg_HH_c12_rep = 3e-9
+mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 1.5e-6
-# mg_NN_c12_rep = 2.5e-5
-mg_NN_c12_rep = 5e-6
+mg_NN_c12_rep = 2.5e-5
+#mg_CC_c12_rep = 3e-5
 mg_HO_sigma = 0.169500
 mg_eps_ch3 = 0.13
+mg_eps_HO  = 0.13   # hydrogen bond strength
 mg_eps_ch2 = 0.10
 mg_eps_pol = 0.10
 mg_eps_ch1 = 0.09
@@ -70,58 +70,58 @@ gromos_atp = pd.DataFrame(
             9.148590e-10,  # "H",
             2.659360e-07,  # "C0",
         ],
-        # 4*sig^12*eps
+        # all to ch2 except ch e ch3
         "mg_c12": [
-            4.0 * 0.276007**12 * mg_eps_pol,  # "O",
-            4.0 * 0.262585**12 * mg_eps_pol,  # "OM",
-            4.0 * 0.295484**12 * mg_eps_pol,  # "OA",
-            4.0 * 0.313647**12 * mg_eps_pol,  # "N",
-            4.0 * 0.357220**12 * mg_eps_pol,  # "NT",
-            4.0 * 0.313647**12 * mg_eps_pol,  # "NL",
-            4.0 * 0.334113**12 * mg_eps_pol,  # "NR",
-            4.0 * 0.313647**12 * mg_eps_pol,  # "NZ",
-            4.0 * 0.313647**12 * mg_eps_pol,  # "NE",
-            4.0 * 0.358118**12 * mg_eps_pol,  # "C",
-            4.0 * 0.358118**12 * mg_eps_ch3,  # "CH"
-            4.0 * 0.501918**12 * mg_eps_ch1,  # "CH1"
-            4.0 * 0.501918**12 * mg_eps_ch1,  # "CAH"
-            4.0 * 0.407038**12 * mg_eps_ch2,  # "CH2"
-            4.0 * 0.407038**12 * mg_eps_ch2,  # "CAH2"
-            4.0 * 0.374792**12 * mg_eps_ch3,  # "CH3"
-            4.0 * 0.395474**12 * mg_eps_ch2,  # "CH2r"
-            4.0 * 0.330769**12 * mg_eps_pol,  # "S",
-            4.0 * 0.374792**12 * mg_eps_ch3,  # "CH3p"
-            4.0 * 0.338557**12 * mg_eps_pol,  # "P",
-            4.0 * 0.284916**12 * mg_eps_pol,  # "OE",
-            4.0 * 0.374119**12 * mg_eps_pol,  # "CR1",
-            0.0000000e-00 * mg_eps_pol,  # "H",
-            0.0000000e-00 * mg_eps_pol,  # "C0",
+            1.0000000e-06 / 1.27911 * mg_eps_pol,  # "O",
+            7.4149321e-07 / 1.72504 * mg_eps_pol,  # "OM",
+            1.5055290e-06 / 0.84961 * mg_eps_pol,  # "OA",
+            2.3195290e-06 / 0.63980 * mg_eps_pol,  # "N",
+            5.0625000e-06 / 0.29314 * mg_eps_pol,  # "NT",
+            2.3195290e-06 / 0.63980 * mg_eps_pol,  # "NL",
+            3.3892810e-06 / 0.43786 * mg_eps_pol,  # "NR",
+            2.3195290e-06 / 0.63980 * mg_eps_pol,  # "NZ",
+            2.3195290e-06 / 0.63980 * mg_eps_pol,  # "NE",
+            4.9372840e-06 / 0.27741 * mg_eps_pol,  # "C",
+            4.9372840e-06 / 0.27741 * mg_eps_ch3,  # "CH"
+            9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CH1"
+            9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CAH"
+            3.3965584e-05 / 0.41050 * mg_eps_ch2,  # "CH2"
+            3.3965584e-05 / 0.41050 * mg_eps_ch2,  # "CAH2"
+            2.6646244e-05 / 0.86710 * mg_eps_ch3,  # "CH3"
+            2.8058209e-05 / 0.47920 * mg_eps_ch2,  # "CH2r"
+            1.3075456e-05 / 1.90587 * mg_eps_pol,  # "S",
+            2.6646244e-05 / 0.86715 * mg_eps_ch3,  # "CH3p"
+            2.2193521e-05 / 2.44674 * mg_eps_pol,  # "P",
+            1.2100000e-06 / 1.05711 * mg_eps_pol,  # "OE",
+            1.5116544e-05 / 0.50266 * mg_eps_pol,  # "CR1",
+            0.0000000e-00 / 1.00000 * mg_eps_pol,  # "H",
+            0.0000000e-00 / 1.00000 * mg_eps_pol,  # "C0",
         ],
         "mg_c6": [
-            4.0 * 0.276007**6 * mg_eps_pol,  # "O",
-            4.0 * 0.262585**6 * mg_eps_pol,  # "OM",
-            4.0 * 0.295484**6 * mg_eps_pol,  # "OA",
-            4.0 * 0.313647**6 * mg_eps_pol,  # "N",
-            4.0 * 0.357220**6 * mg_eps_pol,  # "NT",
-            4.0 * 0.313647**6 * mg_eps_pol,  # "NL",
-            4.0 * 0.334113**6 * mg_eps_pol,  # "NR",
-            4.0 * 0.313647**6 * mg_eps_pol,  # "NZ",
-            4.0 * 0.313647**6 * mg_eps_pol,  # "NE",
-            4.0 * 0.358118**6 * mg_eps_pol,  # "C",
-            4.0 * 0.358118**6 * mg_eps_ch3,  # "CH"
-            4.0 * 0.501918**6 * mg_eps_ch1,  # "CH1"
-            4.0 * 0.501918**6 * mg_eps_ch1,  # "CAH"
-            4.0 * 0.407038**6 * mg_eps_ch2,  # "CH2"
-            4.0 * 0.407038**6 * mg_eps_ch2,  # "CAH2"
-            4.0 * 0.374792**6 * mg_eps_ch3,  # "CH3"
-            4.0 * 0.395474**6 * mg_eps_ch2,  # "CH2r"
-            4.0 * 0.330769**6 * mg_eps_pol,  # "S",
-            4.0 * 0.374792**6 * mg_eps_ch3,  # "CH3p"
-            4.0 * 0.338557**6 * mg_eps_pol,  # "P",
-            4.0 * 0.284916**6 * mg_eps_pol,  # "OE",
-            4.0 * 0.374119**6 * mg_eps_pol,  # "CR1",
-            0.0000000000 * mg_eps_pol,  # "H", # TODO
-            0.0000000000 * mg_eps_pol,  # "C0",
+            0.0022619536 / 1.27911 * mg_eps_pol,  # "O",
+            0.0022619536 / 1.72504 * mg_eps_pol,  # "OM",
+            0.0022619536 / 0.84961 * mg_eps_pol,  # "OA",
+            0.0024364096 / 0.63980 * mg_eps_pol,  # "N",
+            0.0024364096 / 0.29314 * mg_eps_pol,  # "NT",
+            0.0024364096 / 0.63980 * mg_eps_pol,  # "NL",
+            0.0024364096 / 0.43786 * mg_eps_pol,  # "NR",
+            0.0024364096 / 0.63980 * mg_eps_pol,  # "NZ",
+            0.0024364096 / 0.63980 * mg_eps_pol,  # "NE",
+            0.0023406244 / 0.27741 * mg_eps_pol,  # "C",
+            0.0023406244 / 0.27741 * mg_eps_ch3,  # "CH"
+            0.0060684100 / 0.09489 * mg_eps_ch1,  # "CH1"
+            0.0060684100 / 0.09489 * mg_eps_ch1,  # "CAH"
+            0.0074684164 / 0.41054 * mg_eps_ch2,  # "CH2"
+            0.0074684164 / 0.41054 * mg_eps_ch2,  # "CAH2"
+            0.0096138025 / 0.86715 * mg_eps_ch3,  # "CH3"
+            0.0073342096 / 0.47928 * mg_eps_ch2,  # "CH2r"
+            0.0099840064 / 1.90587 * mg_eps_pol,  # "S",
+            0.0096138025 / 0.86715 * mg_eps_ch3,  # "CH3p"
+            0.0147379600 / 2.44674 * mg_eps_pol,  # "P",
+            0.0022619536 / 1.05711 * mg_eps_pol,  # "OE",
+            0.0055130625 / 0.50266 * mg_eps_pol,  # "CR1",
+            0.0000000000 / 1.00000 * mg_eps_pol,  # "H", # TODO
+            0.0000000000 / 1.00000 * mg_eps_pol,  # "C0",
         ],
     }
 )
@@ -178,20 +178,38 @@ def lj14_generator(df):
     return types_dict
 
 
+# list of special non local repulsive and attractive atom type combinations 
+#TODO
+# this should define 
+# name_of interaction, sbtype_1, sbtype_2, type_of_interaction(rep, att), epsilon)
+
+special_non_local_repulsion = [
+("charged_oxygens",   ["O", "OM"],     ["O", "OM"],       mg_OO_c12_rep),
+("charged_nitrogens", ["N", "NZ","NL"],["N", "NZ", "NL"], mg_NN_c12_rep),
+("charged_ON",        ["O", "OM"],   ["N"],               mg_ON_c12_rep),
+]
+# Special local repulsion which can be asymmetric 
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    ("backbone_carbonyl", "sidechain_cb", 0.070, 3.5e-07, 1),
-    ("backbone_oxygen", "sidechain_cb", 1, 5e-7, 0),
-    ("ct_oxygen", "sidechain_cb", 1, 5e-7, 0),
-    ("backbone_nitrogen", "sidechain_cb", 1, 5e-7, -1),
-    ("first_backbone_nitrogen", "backbone_nitrogen", None, 1.0e-6, 1),
-    ("backbone_nitrogen", "backbone_nitrogen", None, 1e-7, 1),
-    ("backbone_carbonyl", "backbone_carbonyl", None, 1e-7, -1),
-    ("sidechain_cgs", "backbone_carbonyl", 0.06, 3.5e-7, 0),
-    ("sidechain_cgs", "backbone_nitrogen", 0.12, 3.5e-7, 0),
-    ("sidechain_cgs", "first_backbone_nitrogen", 0.12, 3.5e-7, 0),
+    ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
+    ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("ct_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    ("backbone_nitrogen", "sidechain_cb", 1, 2.7e-6, -1),
+    ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
+    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
+    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
+    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
+    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
+    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
     ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
+    # ("backbone_nitrogen", "backbone_carbonyl", 10,None, 1),
+    # ("backbone_carbonyl", "backbone_oxygen", 10, None, 1),
+    # ("backbone_nitrogen", "sidechain_cb", 2, None, 1),
+    # ("backbone_oxygen", "backbone_carbonyl", 0.2, None, 1),
+    # ("backbone_oxygen", "backbone_calpha", 4, None, 2),
+    # ("backbone_calpha", "backbone_oxygen", 4, None, 1),
+
 ]
 
 # List of amino acids and nucleic acids

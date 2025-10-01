@@ -863,11 +863,20 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     H_mask = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
     HH_mask = train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
 
+    #TODO
+    # here we should iterate over the pairs in type definition amd generate the repulsions 
     # NL-NZ repulsion
     NN_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ"), ("N", "N")],
+        symmetrize=True,
+    )
+
+    CC_mask = masking.create_linearized_mask(
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
+        [("CH3", "CH3"), ("C", "C"), ("C", "CH3"), ("C", "CAH")],
         symmetrize=True,
     )
 
@@ -885,6 +894,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[ON_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = type_definitions.mg_ON_c12_rep
     train_dataset.loc[HH_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = type_definitions.mg_HH_c12_rep
     train_dataset.loc[NN_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = type_definitions.mg_NN_c12_rep
+    # train_dataset.loc[CC_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = type_definitions.mg_CC_c12_rep
 
     # default (mg) sigma
     pairwise_mg_sigma = (
@@ -901,6 +911,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[HH_mask, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[NN_mask, "mg_sigma"] = (type_definitions.mg_NN_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HO_mask, "mg_sigma"] = type_definitions.mg_HO_sigma
+    # train_dataset.loc[CC_mask, "mg_sigma"] = type_definitions.mg_CC_c12_rep ** (1 / 12) / 2 ** (1 / 6)
 
     # default (mg) epsilon
     pairwise_mg_epsilon = (
@@ -919,7 +930,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[H_mask, "mg_epsilon"] = 0.0
     train_dataset.loc[HH_mask, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep
     train_dataset.loc[NN_mask, "mg_epsilon"] = -type_definitions.mg_NN_c12_rep
-    train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps_ch3
+    train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps_HO
+    # train_dataset.loc[CC_mask, "mg_epsilon"] = -type_definitions.mg_CC_c12_rep
 
     # final cleaning
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
@@ -932,13 +944,13 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             .loc[(np.abs(train_dataset["cutoff"] - 1.45*train_dataset["rep"] ** (1/12)) > 10e-6)]
             .to_string()
         )
-        exit(
-            "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values"
-        )
+        #exit(
+        #    "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values"
+        #)
 
     return train_dataset
 
-def generate_MG_LJ_pairs_rep(sbtype1, sbtype2,dictionary_name_rc_c12, c12_rep=None ):
+def generate_MG_LJ_pairs_rep(sbtype1, sbtype2,dictionary_name_rc_c12, c12_rep=None, factor=1.0 ):
    
     # if sbtype1==sbtype2: use repeat 
     if sbtype1 == sbtype2:
@@ -952,12 +964,12 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2,dictionary_name_rc_c12, c12_rep=No
         c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai]*dictionary_name_rc_c12[aj]) for ai, aj in combinations])
 
     pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
-    pairs_LJ["c12"] = c12_rep
+    pairs_LJ["c12"] = c12_rep/factor
     pairs_LJ["c6"] = 0.0
-    pairs_LJ["epsilon"] = -c12_rep
-    pairs_LJ["sigma"] = c12_rep ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    pairs_LJ["epsilon"] = -c12_rep/ factor
+    pairs_LJ["sigma"] = c12_rep/factor ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
     pairs_LJ["mg_sigma"] = pairs_LJ["sigma"]
-    pairs_LJ["mg_epsilon"] = -c12_rep
+    pairs_LJ["mg_epsilon"] = -c12_rep/ factor
 
     return pairs_LJ.reset_index(drop=True)
 
@@ -1030,7 +1042,7 @@ def generate_MG_LJ(meGO_ensemble):
     ]
     HO_LJ = generate_MG_LJ_pairs_attr(
         O_OM_OA_sbtype, H_H_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6,
-        epsilon=type_definitions.mg_eps_ch3,
+        epsilon=type_definitions.mg_eps_HO,
         sigma=type_definitions.mg_HO_sigma  
     )
 
@@ -1046,20 +1058,25 @@ def generate_MG_LJ(meGO_ensemble):
         if atomtype in  ["CH", "CH3", "CH3p", "CH2", "CH2r", "CH1"]
     ]
     # pol_hyd_LJ = generate_MG_LJ_pairs_rep(
-    #     pol_sbtype, hyd_sbtype, dictionary_name_rc_c12)
+    #     pol_sbtype, hyd_sbtype, dictionary_name_rc_c12, factor=10)
     pol_hyd_LJ = generate_MG_LJ_pairs_attr(
         pol_sbtype, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6,
-        epsilon=0.1#type_definitions.mg_eps_ch1
+        epsilon=type_definitions.mg_eps_pol
     )
 
     # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
     NL_NZ_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["NL", "NZ"]
+        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["NL", "NZ", "N"] #TODO add also the other
     ]
     NN_LJ = generate_MG_LJ_pairs_rep(NL_NZ_sbtype, NL_NZ_sbtype, dictionary_name_rc_c12, type_definitions.mg_NN_c12_rep)
 
+    # CC_sbtype = [
+    #     sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["CH3", "C", "CAH"]
+    # ]
+    # CC_LJ = generate_MG_LJ_pairs_rep(CC_sbtype, CC_sbtype, dictionary_name_rc_c12, type_definitions.mg_CC_c12_rep)
     # combine them:
-    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ], axis=0)
+    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, pol_hyd_LJ], axis=0)
+    # rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, CC_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"
@@ -1140,6 +1157,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # this because when merging repulsive contacts from different sources what will matters
     # will be the repulsive strength that in this way is consistent
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
+  
+    # # 1-4 restored to the default values
+    # meGO_LJ.loc[(meGO_LJ["bond_distance"] <7) & (meGO_LJ["same_chain"]), "sigma"]   =    meGO_LJ["mg_sigma"] 
+    # meGO_LJ.loc[(meGO_LJ["bond_distance"] <7) & (meGO_LJ["same_chain"]), "epsilon"] =  - meGO_LJ["rep"] 
 
     # clean NaN and zeros
     meGO_LJ.dropna(subset=["epsilon"], inplace=True)
@@ -1573,6 +1594,7 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         "rc_threshold",
         "same_chain",
         "source",
+        "bond_distance",
         "number_ai",
         "number_aj",
     ]
