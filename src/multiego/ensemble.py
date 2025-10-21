@@ -953,10 +953,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 10e-6)]
             .to_string()
         )
-        exit(
-
-            "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values"
-         )
+        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values")
 
     return train_dataset
 
@@ -1067,16 +1064,16 @@ def generate_MG_LJ(meGO_ensemble):
     hyd_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype in ["CH", "CH3", "CH3p", "CH2", "CH2r", "CH1", "CAH", "CAH2"]
+        # if atomtype in ["CH", "CH3", "CH3p", "CH2", "CH2r", "CH1", "CAH", "CAH2"]
+        # if atomtype in ["CH", "CH3", "CH3p", "CH2", "CH2r", "CH1"] # if mantain rep hyd-pol
+        if atomtype in ["CH3", "CH3p", "CH2", "CH2r", "CH1"]  # if pi interactions with polar
     ]
     # pol_hyd_LJ = generate_MG_LJ_pairs_rep(
     #     pol_sbtype, hyd_sbtype, dictionary_name_rc_c12, factor=10)
-    pol_hyd_LJ = generate_MG_LJ_pairs_attr(
-        pol_sbtype, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=type_definitions.mg_eps_ch1
-    )
-    # pol_hyd_LJ = generate_MG_LJ_pairs_rep(
-    #     pol_sbtype, hyd_sbtype, dictionary_name_mg_c12
+    # pol_hyd_LJ = generate_MG_LJ_pairs_attr(
+    # pol_sbtype, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=type_definitions.mg_eps_ch1
     # )
+    pol_hyd_LJ = generate_MG_LJ_pairs_rep(pol_sbtype, hyd_sbtype, dictionary_name_mg_c12)
 
     # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
     NL_NZ_sbtype = [
