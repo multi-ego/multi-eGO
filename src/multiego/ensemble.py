@@ -1058,7 +1058,13 @@ def generate_MG_LJ(meGO_ensemble):
     pol_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype in ["O", "OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
+        # if atomtype in ["O", "OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
+        if atomtype in ["OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
+    ]
+    pol_sbtype_bkbn = [
+        sbtype
+        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
+        if atomtype in ["O"]
     ]
     # CAH in pol --> deve diventare sidechain-backbone weak attr
     hyd_sbtype = [
@@ -1074,7 +1080,9 @@ def generate_MG_LJ(meGO_ensemble):
     # pol_sbtype, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=type_definitions.mg_eps_ch1
     # )
     pol_hyd_LJ = generate_MG_LJ_pairs_rep(pol_sbtype, hyd_sbtype, dictionary_name_mg_c12)
-
+    pol_bkbn_hyd_LJ = generate_MG_LJ_pairs_attr(
+    pol_sbtype_bkbn, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=type_definitions.mg_eps_bkbn_O_CB
+    )
     # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
     NL_NZ_sbtype = [
         sbtype
@@ -1088,7 +1096,7 @@ def generate_MG_LJ(meGO_ensemble):
     # ]
     # CC_LJ = generate_MG_LJ_pairs_rep(CC_sbtype, CC_sbtype, dictionary_name_rc_c12, type_definitions.mg_CC_c12_rep)
     # combine them:
-    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, pol_hyd_LJ], axis=0)
+    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, pol_hyd_LJ, pol_bkbn_hyd_LJ], axis=0)
     # rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, CC_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
