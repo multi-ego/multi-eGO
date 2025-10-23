@@ -10,9 +10,11 @@ mg_NN_c12_rep = 2.5e-5
 mg_HO_sigma = 0.169500
 mg_eps_ch3 = 0.15
 mg_eps_HO = 0.15  # hydrogen bond strength
-mg_eps_ch2 = 0.12
-mg_eps_pol = 0.13
+mg_eps_ch_aromatic = 0.15
+mg_eps_ch2 = 0.10
+mg_eps_pol = 0.12
 mg_eps_ch1 = 0.09
+mg_eps_bkbn_O_CB = 0.10
 
 # Dataframe with atom types and associated parameters
 gromos_atp = pd.DataFrame(
@@ -82,7 +84,7 @@ gromos_atp = pd.DataFrame(
             2.3195290e-06 / 0.63980 * mg_eps_pol,  # "NZ",
             2.3195290e-06 / 0.63980 * mg_eps_pol,  # "NE",
             4.9372840e-06 / 0.27741 * mg_eps_pol,  # "C",
-            4.9372840e-06 / 0.27741 * mg_eps_ch3,  # "CH"
+            4.9372840e-06 / 0.27741 * mg_eps_ch_aromatic,  # "CH"
             9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CH1"
             9.7022500e-05 / 0.09489 * mg_eps_ch1,  # "CAH"
             3.3965584e-05 / 0.41050 * mg_eps_ch2,  # "CH2"
@@ -108,7 +110,7 @@ gromos_atp = pd.DataFrame(
             0.0024364096 / 0.63980 * mg_eps_pol,  # "NZ",
             0.0024364096 / 0.63980 * mg_eps_pol,  # "NE",
             0.0023406244 / 0.27741 * mg_eps_pol,  # "C",
-            0.0023406244 / 0.27741 * mg_eps_ch3,  # "CH"
+            0.0023406244 / 0.27741 * mg_eps_ch_aromatic,  # "CH"
             0.0060684100 / 0.09489 * mg_eps_ch1,  # "CH1"
             0.0060684100 / 0.09489 * mg_eps_ch1,  # "CAH"
             0.0074684164 / 0.41054 * mg_eps_ch2,  # "CH2"
