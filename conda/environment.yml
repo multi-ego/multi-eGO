@@ -12,3 +12,4 @@ dependencies:
   - hdf5
   - h5py
   - pytables
+  - networkx
