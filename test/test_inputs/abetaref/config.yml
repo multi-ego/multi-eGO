@@ -16,4 +16,4 @@
   - reference: ref
     train: native_MD
     matrix: intramat_1_1
-    epsilon: 0.31
+    epsilon: 0.325
