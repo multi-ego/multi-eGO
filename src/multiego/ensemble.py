@@ -1071,6 +1071,14 @@ def set_sig_epsilon(meGO_LJ, parameters):
         1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
     )
     meGO_LJ.loc[condition, "learned"] = 1
+
+    # 1-4 interactions are special and cannot become attractive because they are part of the bonded-interactions
+    condition = (meGO_LJ["bond_distance"] < 4) & (meGO_LJ["same_chain"])
+    meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
+        1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
+    )
+    meGO_LJ.loc[condition, "learned"] = 1
+
     # for repulsive interaction we reset sigma to its effective value
     # this because when merging repulsive contacts from different sources what will matters
     # will be the repulsive strength that in this way is consistent
