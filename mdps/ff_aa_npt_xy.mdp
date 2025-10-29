@@ -60,7 +60,7 @@ periodic-molecules       = no
 ; a value of -1 means: use rlist
 verlet-buffer-tolerance  = -1 
 ; nblist cut-off        
-rlist                    = _SET_; around 10% more than cut-off 
+rlist                    = 2.75; around 10% more than cut-off 
 ; long-range cut-off for switched potentials
 
 ; OPTIONS FOR ELECTROSTATICS AND VDW
@@ -68,7 +68,7 @@ rlist                    = _SET_; around 10% more than cut-off
 coulombtype              = Cut-off
 coulomb-modifier         = Potential-shift-Verlet
 rcoulomb-switch          = 0
-rcoulomb                 = _SET_
+rcoulomb                 = 2.50
 ; Relative dielectric constant for the medium and the reaction field
 epsilon-r                = 1
 epsilon-rf               = 0
@@ -77,7 +77,7 @@ vdw-type                 = Cut-off
 vdw-modifier             = Potential-shift-Verlet
 ; cut-off lengths       
 rvdw-switch              = 0
-rvdw                     = _SET_ 
+rvdw                     = 2.50 
 ; Apply long range dispersion corrections for Energy and Pressure
 DispCorr                 = No
 ; Extension of the potential lookup tables beyond the cut-off
