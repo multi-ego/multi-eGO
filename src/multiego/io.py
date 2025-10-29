@@ -566,11 +566,6 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
     parameters : dict
         Contains the command-line parsed parameters
     """
-    meGO_LJ.loc[
-        ((meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["bond_distance"] > 3) & (meGO_LJ["bond_distance"] < 7)),
-        ["; ai", "aj", "c12", "sigma", "epsilon"],
-    ].to_csv(f"{output_dir}/meGO_LJ_bond6.csv", index=False, sep=" ")
-
     repo = git.Repo(search_parent_directories=True)
     commit_hash = repo.head.object.hexsha
     with open(f"{output_dir}/meGO.log", "w") as f:
@@ -635,8 +630,8 @@ def print_stats(meGO_LJ):
 \t- Sigma range is: [{intrad_a_s_min_contacts:5.3f}:{intrad_a_s_max_contacts:5.3f}] [{interm_a_s_min_contacts:5.3f}:{interm_a_s_max_contacts:5.3f}] nm
 
 \t- RELEVANT MDP PARAMETERS:
-\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 0.54):4.2f} nm
-\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 0.54):4.2f} nm
+\t- Suggested rlist value: {1.1*2.5*max(meGO_LJ['sigma'].max(), 1.00):4.2f} nm
+\t- Suggested cut-off value: {2.5*max(meGO_LJ['sigma'].max(), 1.00):4.2f} nm
     """
 
     return stat_str
@@ -699,7 +694,7 @@ def make_header(parameters):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
     header = f"""
-; Multi-eGO force field version beta.6
+; Multi-eGO force field version 1.0
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
@@ -832,28 +827,6 @@ def write_topology(
         file.write(footer)
         for molecule in molecule_footer:
             file.write(f"{molecule}\t\t\t1\n")
-
-
-# TODO is it ever used?
-def get_name(parameters):
-    """
-    Creates the output directory name.
-
-    Parameters
-    ----------
-    parameters : dict
-        Contains the parameters parsed from the terminal input
-
-    Returns
-    -------
-    name : str
-        The name of the output directory
-    """
-    if parameters.egos == "mg":
-        name = f"{parameters.system}_{parameters.egos}"
-    else:
-        name = f"{parameters.system}_{parameters.egos}_epsis_intra{'-'.join(np.array(parameters.multi_epsilon, dtype=str))}_{parameters.inter_epsilon}"
-    return name
 
 
 def create_output_directories(parameters, out_dir):

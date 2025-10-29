@@ -267,7 +267,6 @@ def get_pairs(topology):
 
 def compute_bond_distances(reduced_topology, bond_pair, max_distance=6):
     # Build atom number ↔ sb_type mapping
-    atnum_to_sbtype = reduced_topology.set_index("number")["sb_type"].to_dict()
     sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
 
     sbtypes = list(sbtype_to_atnum.keys())
@@ -347,121 +346,6 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
         for e in ex14:
             p14.append(f"{atom}_{e}")
             p14.append(f"{e}_{atom}")
-
-    return exclusion_bonds, p14, six_bonds
-
-
-def get_14_interaction_list(reduced_topology, bond_pair):
-    """
-    Creates lists containing a atoms involved in 1-4 interactions.
-
-    Parameters
-    ----------
-    reduced_topology: pandas.DataFrame
-        function
-    bond_bair: i don't know man
-        function
-
-    Returns
-    -------
-    exclusion_bonds: list
-        Contains interaction with distance up to 3 bonds
-    p14: list
-        Contains interactions with distance exactly 3 bonds
-    """
-    # Building the exclusion bonded list
-    # exclusion_bonds are all the interactions within 3 bonds
-    # p14 are specifically the interactions at exactly 3 bonds
-    ex, ex6, ex14, p14, exclusion_bonds, six_bonds = [], [], [], [], [], []
-    for atom in reduced_topology["number"].to_list():
-        for t in bond_pair:
-            if t[0] == atom:
-                first = t[1]
-                ex.append(t[1])
-                ex6.append(t[1])
-            elif t[1] == atom:
-                first = t[0]
-                ex.append(t[0])
-                ex6.append(t[0])
-            else:
-                continue
-            for tt in bond_pair:
-                if (tt[0] == first) & (tt[1] != atom):
-                    second = tt[1]
-                    ex.append(tt[1])
-                    ex6.append(tt[1])
-                elif (tt[1] == first) & (tt[0] != atom):
-                    second = tt[0]
-                    ex.append(tt[0])
-                    ex6.append(tt[0])
-                else:
-                    continue
-                for ttt in bond_pair:
-                    if (ttt[0] == second) & (ttt[1] != first):
-                        third = ttt[1]
-                        ex.append(ttt[1])
-                        ex6.append(ttt[1])
-                        ex14.append(ttt[1])
-                    elif (ttt[1] == second) & (ttt[0] != first):
-                        third = ttt[0]
-                        ex.append(ttt[0])
-                        ex6.append(ttt[0])
-                        ex14.append(ttt[0])
-                    else:
-                        continue
-                    for tttt in bond_pair:
-                        if (tttt[0] == third) & (tttt[1] != first) & (tttt[1] != second):
-                            fourth = tttt[1]
-                            ex6.append(tttt[1])
-                        elif (tttt[1] == third) & (tttt[0] != first) & (tttt[0] != second):
-                            fourth = tttt[0]
-                            ex6.append(tttt[0])
-                        else:
-                            continue
-                        for ttttt in bond_pair:
-                            if (ttttt[0] == fourth) & (ttttt[1] != first) & (ttttt[1] != second) & (ttttt[1] != third):
-                                fifth = ttttt[1]
-                                ex6.append(ttttt[1])
-                            elif (ttttt[1] == fourth) & (ttttt[0] != first) & (ttttt[0] != second) & (ttttt[0] != third):
-                                fifth = ttttt[0]
-                                ex6.append(ttttt[0])
-                            else:
-                                continue
-                            for tttttt in bond_pair:
-                                if (
-                                    (tttttt[0] == fifth)
-                                    & (tttttt[1] != first)
-                                    & (tttttt[1] != second)
-                                    & (tttttt[1] != third)
-                                    & (tttttt[1] != fourth)
-                                ):
-                                    sixth = tttttt[1]
-                                    ex6.append(tttttt[1])
-                                elif (
-                                    (tttttt[1] == fifth)
-                                    & (tttttt[0] != first)
-                                    & (tttttt[0] != second)
-                                    & (tttttt[0] != third)
-                                    & (tttttt[0] != fourth)
-                                ):
-                                    sixth = tttttt[0]
-                                    ex6.append(tttttt[0])
-                                else:
-                                    continue
-
-        for e in ex:
-            exclusion_bonds.append((str(str(atom) + "_" + str(e))))
-            exclusion_bonds.append((str(str(e) + "_" + str(atom))))
-
-        for e in ex6:
-            six_bonds.append((str(str(atom) + "_" + str(e))))
-            six_bonds.append((str(str(e) + "_" + str(atom))))
-
-        ex = []
-        for e in ex14:
-            p14.append((str(str(atom) + "_" + str(e))))
-            p14.append((str(str(e) + "_" + str(atom))))
-        ex14 = []
 
     return exclusion_bonds, p14, six_bonds
 

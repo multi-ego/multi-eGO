@@ -2,13 +2,13 @@ name: meGO
 channels:
   - conda-forge
 dependencies:
-  - python=3.12
-  - numpy
-  - pandas
-  - ParmEd
-  - GitPython
-  - PyYAML
-  - scipy
-  - hdf5
-  - h5py
-  - pytables
+  - python>=3.10
+  - gitpython>=3.1.44
+  - h5py>=3.11.0
+  - numpy>=2.2.2,<2.3
+  - pandas>=2.2.3
+  - parmed>=4.2.2
+  - pyyaml>=6.0.2
+  - scipy>=1.15.1
+  - pytables>=3.9.2
+  - networkx>=3.2.1

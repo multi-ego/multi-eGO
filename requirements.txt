@@ -6,3 +6,4 @@ ParmEd>=4.2.2
 PyYAML>=6.0.2
 scipy>=1.15.1
 tables>=3.9.2
+networkx>=3.2.1
