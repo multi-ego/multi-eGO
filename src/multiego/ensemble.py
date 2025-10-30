@@ -710,7 +710,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         # This is a debug check to avoid data inconsistencies
         if (np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"])).max() > 0:
             print(
-                temp_merged[["ai", "aj", "rc_ai", "rc_aj", "source", "rc_source", "cutoff", "rc_cutoff"]]
+                temp_merged[["ai", "aj", "rc_ai", "rc_aj", "source", "rc_source", "cutoff", "rc_cutoff", "same_chain"]]
                 .loc[(np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"]) > 0)]
                 .to_string()
             )
