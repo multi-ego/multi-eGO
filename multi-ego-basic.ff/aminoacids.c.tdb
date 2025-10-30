@@ -1,6 +1,6 @@
 [ COO- ]
 [ replace ]
-C	C	C	12.011	 0.000
+C	C	C	11.011	 0.000
 O	O1	OM	15.9994	 0.000
 OXT	O2	OM	15.9994	 0.000
 [ add ]
@@ -18,6 +18,16 @@ N	CA	C	O2	gd_45A
 N       CA      C       O2      gd_42A
 [ impropers ]
 C	CA	O2	O1	gi_1
+
+[ CO1 ]
+[ replace ]
+C	C	C	11.011	 0.000
+O	O 	O 	15.9994	 0.000
+[ delete ]
+OXT
+[ add ]
+1	8	O	C	CA	N
+	O 	15.9994	 0.000
 
 [ None ]
 
