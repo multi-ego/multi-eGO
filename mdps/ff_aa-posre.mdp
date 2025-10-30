@@ -77,26 +77,11 @@ vdw-type                 = Cut-off
 vdw-modifier             = Potential-shift-Verlet
 ; cut-off lengths       
 rvdw-switch              = 0
-rvdw                     = 2.50 
+rvdw                     = 2.50
 ; Apply long range dispersion corrections for Energy and Pressure
 DispCorr                 = No
 ; Extension of the potential lookup tables beyond the cut-off
 table-extension          = 1
-; Separate tables between energy group pairs
-energygrp-table          = 
-; Spacing for the PME/PPPM FFT grid
-fourierspacing           = 0.12
-; FFT grid size, when a value is 0 fourierspacing will be used
-fourier-nx               = 0
-fourier-ny               = 0
-fourier-nz               = 0
-; EWALD/PME/PPPM parameters
-pme-order                = 4
-ewald-rtol               = 1e-05
-ewald-rtol-lj            = 0.001
-lj-pme-comb-rule         = Geometric
-ewald-geometry           = 3d
-epsilon-surface          = 0
 
 ; OPTIONS FOR WEAK COUPLING ALGORITHMS
 ; Temperature coupling  
@@ -127,23 +112,3 @@ gen_seed                 = -1
 
 ; OPTIONS FOR BONDS    
 constraints              = none
-; Type of constraint algorithm
-constraint-algorithm     = Lincs
-; Do not constrain the start configuration
-continuation             = no
-; Use successive overrelaxation to reduce the number of shake iterations
-Shake-SOR                = no
-; Relative tolerance of shake
-shake-tol                = 0.0001
-; Highest order in the expansion of the constraint coupling matrix
-lincs-order              = 6
-; Number of iterations in the final step of LINCS. 1 is fine for
-; normal simulations, but use 2 to conserve energy in NVE runs.
-; For energy minimization with constraints it should be 4 to 8.
-lincs-iter               = 2
-; Lincs will write a warning to the stderr if in one step a bond
-; rotates over more degrees than
-lincs-warnangle          = 30
-; Convert harmonic bonds to morse potentials
-morse                    = no
-
