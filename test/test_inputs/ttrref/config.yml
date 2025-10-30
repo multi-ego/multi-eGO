@@ -11,17 +11,12 @@
   - TYR CD1 CD2
   - TYR CE1 CE2
   - SER O1 O2
-
 - input_refs:
-  - reference: ref_intra
-    train: native_MD
+  - reference: reference
+    train: native_MD,fibril
     matrix: intramat_1_1
-    epsilon: 0.30
-  - reference: ref_inter
-    train: fibril_MD
+    epsilon: 0.20
+  - reference: reference
+    train: fibril
     matrix: intermat_1_1
-    epsilon: 0.16
-  - reference: ref_inter
-    train: fibril_MD
-    matrix: intramat_1_1
-    epsilon: 0.16
+    epsilon: 0.29
