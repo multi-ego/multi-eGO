@@ -1,4 +1,4 @@
-# Multi-*e*GO: a multi-ensemble Gō model
+# Multi-*e*GO: data driven force-fields for molecular dynamics simulations
 [![Version](https://img.shields.io/badge/Version-1.0-blue)](https://github.com/multi-ego/multi-eGO/releases)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](http://www.gnu.org/licenses/gpl-3.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
