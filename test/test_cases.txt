@@ -1,6 +1,6 @@
 --system gpref --egos mg --no_header --explicit_name case
 --config TEST_ROOT/test_inputs/gpref/config.yml --explicit_name case # --system gpref --egos production
 --config TEST_ROOT/test_inputs/abetaref/config.yml --explicit_name case # --system abetaref --egos production
-#--config TEST_ROOT/test_inputs/ttrref/config.yml --explicit_name case # --system ttrref --egos production
+--config TEST_ROOT/test_inputs/ttrref/config.yml --explicit_name case # --system ttrref --egos production
 #--config TEST_ROOT/test_inputs/lyso-bnz_ref/config_1.yml --explicit_name case # --system lyso-bnz_ref --egos production
 #--config TEST_ROOT/test_inputs/lyso-bnz_ref/config.yml --explicit_name case # --system lyso-bnz_ref --egos production

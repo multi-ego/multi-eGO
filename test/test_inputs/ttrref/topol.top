@@ -1,8 +1,8 @@
 ;
 ;	File 'topol.top' was generated
 ;	By user: carlo (501)
-;	On host: dhcp-160-207.celoria26-16000022-smfn_biodip.unimi.it
-;	At date: Tue Jun  3 15:20:34 2025
+;	On host: dhcp-162-211.celoria26-16000022-smfn_biodip.unimi.it
+;	At date: Fri Oct 24 11:13:54 2025
 ;
 ;	This is a standalone topology file
 ;
@@ -13,7 +13,7 @@
 ;	Data prefix:  /Users/carlo/Codes/gromacs-2024.5/exe
 ;	Working dir:  /Users/carlo/Projects/meGO/TTR/setup
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f conf.gro
+;	  gmx_mpi pdb2gmx -f conf.gro -ignh
 ;	Force field data was read from:
 ;	/Users/carlo/Codes/multi-ego
 ;
@@ -683,7 +683,7 @@ TTR             3
 
 [ system ]
 ; Name
-TTR13
+TTR
 
 [ molecules ]
 ; Compound        #mols
