@@ -11,5 +11,10 @@ N		NT	16.0067	0.000
 [ dihedrals ]
 CD	N	CA	C	gd_39
 
+[ NH1 ]
+[ add ]
+ 1	4	H	N	CA	C
+ 	H	4.032	0.00	-1
+
 [ None ]
 
