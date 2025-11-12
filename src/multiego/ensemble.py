@@ -990,7 +990,12 @@ def generate_MG_LJ(meGO_ensemble):
     NL_NZ_sbtype = [
         sbtype
         for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype in ["NL", "NZ", "N"]  # TODO REMOVE "N" from this list. backbone N shouldn't be strong repulsion! should be mild attraction in mean field logic 
+        if atomtype
+        in [
+            "NL",
+            "NZ",
+            "N",
+        ]  # TODO REMOVE "N" from this list. backbone N shouldn't be strong repulsion! should be mild attraction in mean field logic
     ]
     NN_LJ = generate_MG_LJ_pairs_rep(NL_NZ_sbtype, NL_NZ_sbtype, dictionary_name_rc_c12, type_definitions.mg_NN_c12_rep)
 
