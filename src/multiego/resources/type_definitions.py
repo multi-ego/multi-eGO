@@ -179,16 +179,6 @@ def lj14_generator(df):
     return types_dict
 
 
-# list of special non local repulsive and attractive atom type combinations
-# TODO
-# this should define
-# name_of interaction, sbtype_1, sbtype_2, type_of_interaction(rep, att), epsilon)
-
-special_non_local_repulsion = [
-    ("charged_oxygens", ["O", "OM"], ["O", "OM"], mg_OO_c12_rep),
-    ("charged_nitrogens", ["N", "NZ", "NL"], ["N", "NZ", "NL"], mg_NN_c12_rep),
-    ("charged_ON", ["O", "OM"], ["N"], mg_ON_c12_rep),
-]
 # Special local repulsion which can be asymmetric
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
@@ -204,13 +194,49 @@ atom_type_combinations = [
     ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
     ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
     ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
-    # TODO the following lines were used in first test to improve secondary structure to be removed after main merge
-    # ("backbone_nitrogen", "backbone_carbonyl", 10,None, 1),
-    # ("backbone_carbonyl", "backbone_oxygen", 10, None, 1),
-    # ("backbone_nitrogen", "sidechain_cb", 2, None, 1),
-    # ("backbone_oxygen", "backbone_carbonyl", 0.2, None, 1),
-    # ("backbone_oxygen", "backbone_calpha", 4, None, 2),
-    # ("backbone_calpha", "backbone_oxygen", 4, None, 1),
+]
+
+# Special non-local interactions different from basic mg combination rules
+# PROTEIN
+polar_sbtype = ["OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
+hyd_sbtype = ["CH3", "CH3p", "CH2", "CH2r", "CH1"]
+special_non_local = [
+    {
+        "atomtypes": (["O", "OM"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": mg_OO_c12_rep,
+    },
+    {
+        "atomtypes": (["NZ", "NL"], ["NZ", "NL"]),  # charged nitrogen-nitrogen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": mg_NN_c12_rep,
+    },
+    {
+        "atomtypes": (["H"], ["H"]),  # hydrogen-hydrogen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": mg_HH_c12_rep,
+    },
+    {
+        "atomtypes": (polar_sbtype, hyd_sbtype),  # polar - hydrophobic repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": None,
+    },  # If None use default rc c12 repulsion
+    {
+        "atomtypes": (["O", "OM", "OA"], ["H"]),  # hydrogen bond attraction
+        "interaction": "att",
+        "sigma": mg_HO_sigma,
+        "epsilon": mg_eps_HO,
+    },
+    {
+        "atomtypes": (["O"], hyd_sbtype),  # bkbn_polar - hydrophobic repulsion
+        "interaction": "att",
+        "sigma": None,  # If None use default mg value of sigma
+        "epsilon": mg_eps_bkbn_O_CB,
+    },
 ]
 
 # List of amino acids and nucleic acids
