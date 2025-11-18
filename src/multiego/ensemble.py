@@ -887,7 +887,6 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
         combinations = list(itertools.product(sbtype1, repeat=2))
     else:
         combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
-    # print("Combinations:", combinations)
     if c12_rep is None:
         c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations])
 
@@ -916,7 +915,6 @@ def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictiona
         sigma = (c12_rep / c6) ** (1.0 / 6.0)
 
     elif epsilon is None and sigma is not None:
-        # raise error
         raise ValueError("You can provide a custom value for epsilon but not for sigma alone")
 
     pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
@@ -933,8 +931,6 @@ def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictiona
 def generate_MG_LJ(meGO_ensemble):
     """
     The multi-eGO molten-globule force-field includes special repulsive and attractive interaction pairs like O-O, H-H, and O-H.
-    TODO: define them by means of an external dictionary instead of hardcoding them. This dictionary should be used also from make_mat
-    these are generate in the following
     """
     # reconstruct mapping dictionaries for c12 and c6 which are already mapped in topology_dataframe
     dictionary_name_rc_c12 = {
@@ -950,57 +946,38 @@ def generate_MG_LJ(meGO_ensemble):
         for name, mg6 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["mg_c6"])
     }
 
-    # OO in MG are repulsive (Ramachandran and negatively charged sidechains)
-    O_OM_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["O", "OM"]]
-    OO_LJ = generate_MG_LJ_pairs_rep(O_OM_sbtype, O_OM_sbtype, dictionary_name_rc_c12, type_definitions.mg_OO_c12_rep)
+    # define special non-local mg interaction (different from default mg combination rules)
+    # The interactions are defined in type_definitions and can be either repulsive or attractive
+    rc_LJ = pd.DataFrame()
+    for special in type_definitions.special_non_local:
+        sbtype_a = [
+            sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in special["atomtypes"][0]
+        ]
+        sbtype_b = [
+            sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in special["atomtypes"][1]
+        ]
+        if special["interaction"] == "rep":
+            temp_LJ = generate_MG_LJ_pairs_rep(
+                sbtype_a,
+                sbtype_b,
+                dictionary_name_rc_c12,  # use rc12 if no c12_rep specified
+                c12_rep=special["epsilon"],
+                factor=special.get("factor", 1.0),  # if factor is not specified in the dictionary use 1
+            )
+        elif special["interaction"] == "att":
+            temp_LJ = generate_MG_LJ_pairs_attr(
+                sbtype_a,
+                sbtype_b,
+                dictionary_name_mg_c12,  # this are the one used if epsilon and/or sigma are None in type_definition.special_non_local
+                dictionary_name_mg_c6,  # this are the one used if epsilon and/or sigma are None in type_definition.special_non_local
+                epsilon=special["epsilon"],
+                sigma=special["sigma"],
+            )
+        else:
+            raise ValueError(f"Unknown interaction type {special['interaction']} in special_non_local definition")
 
-    # HH in MG are repulsive (Ramachandran)
-    H_H_sbtype = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype == "H"]
-    HH_LJ = generate_MG_LJ_pairs_rep(H_H_sbtype, H_H_sbtype, dictionary_name_rc_c12, type_definitions.mg_HH_c12_rep)
+        rc_LJ = pd.concat([rc_LJ, temp_LJ], axis=0)
 
-    # HO in MG are attractive (H-bonds)
-    O_OM_OA_sbtype = [
-        sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["O", "OM", "OA"]
-    ]
-    HO_LJ = generate_MG_LJ_pairs_attr(
-        O_OM_OA_sbtype,
-        H_H_sbtype,
-        dictionary_name_mg_c12,
-        dictionary_name_mg_c6,
-        epsilon=type_definitions.mg_eps_HO,
-        sigma=type_definitions.mg_HO_sigma,
-    )
-
-    pol_sbtype = [
-        sbtype
-        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype in ["OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
-    ]
-    pol_sbtype_bkbn = [sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in ["O"]]
-    hyd_sbtype = [
-        sbtype
-        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype in ["CH3", "CH3p", "CH2", "CH2r", "CH1"]  # if pi interactions with polar
-    ]
-    pol_hyd_LJ = generate_MG_LJ_pairs_rep(pol_sbtype, hyd_sbtype, dictionary_name_mg_c12)
-    pol_bkbn_hyd_LJ = generate_MG_LJ_pairs_attr(
-        pol_sbtype_bkbn, hyd_sbtype, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=type_definitions.mg_eps_bkbn_O_CB
-    )
-    # NL/NZ in MG are repulsive (positevely charged sidechains and N-terminus)
-    NL_NZ_sbtype = [
-        sbtype
-        for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items()
-        if atomtype
-        in [
-            "NL",
-            "NZ",
-            "N",
-        ]  # TODO REMOVE "N" from this list. backbone N shouldn't be strong repulsion! should be mild attraction in mean field logic
-    ]
-    NN_LJ = generate_MG_LJ_pairs_rep(NL_NZ_sbtype, NL_NZ_sbtype, dictionary_name_rc_c12, type_definitions.mg_NN_c12_rep)
-
-    # combine them:
-    rc_LJ = pd.concat([OO_LJ, HH_LJ, HO_LJ, NN_LJ, pol_hyd_LJ, pol_bkbn_hyd_LJ], axis=0)
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False
     rc_LJ["source"] = "mg"
