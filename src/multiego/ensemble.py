@@ -1231,7 +1231,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     # now we can remove contacts with default c6/c12 becasue these
     # are uninformative and predefined. This also allow to replace them with contact learned
     # by either intra/inter training. We cannot remove 1-4 interactions.
-    # we should not remove default interactions in the window of 2 neighor AA to
+    # we should not remove default interactions in the window of the 6 bonds rule to
     # avoid replacing them with unwanted interactions
 
     # this removes attractive/repulsive contacts that are default
@@ -1242,7 +1242,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
             & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
             & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
-            # & (meGO_LJ["1-4"] == "1>4")
         )
     ]
     meGO_LJ = meGO_LJ.loc[
@@ -1250,7 +1249,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             (meGO_LJ["epsilon"] < 0)
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
-            # & (meGO_LJ["1-4"] == "1>4")
             & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
             & ~((meGO_LJ["bond_distance"] < 7) & (meGO_LJ["same_chain"]))
         )
@@ -1618,7 +1616,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             df["rc_probability"] = 1.0
             df["source"] = "mg"
             df["rep"] = df["c12"]
-            df["1-4"] = "1>4"
             # The exclusion list was made based on the atom number
             df["check"] = df["ai"].map(atnum_type_dict).astype(str) + "_" + df["aj"].map(atnum_type_dict).astype(str)
             # Here the drop the contacts which are already defined by GROMACS, including the eventual 1-4 exclusion defined in the LJ_df
