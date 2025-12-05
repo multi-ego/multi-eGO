@@ -894,7 +894,7 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     pairs_LJ["c12"] = c12_rep / factor
     pairs_LJ["c6"] = 0.0
     pairs_LJ["epsilon"] = -c12_rep / factor
-    pairs_LJ["sigma"] = c12_rep / factor ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    pairs_LJ["sigma"] = (c12_rep / factor) ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
     pairs_LJ["mg_sigma"] = pairs_LJ["sigma"]
     pairs_LJ["mg_epsilon"] = -c12_rep / factor
 
