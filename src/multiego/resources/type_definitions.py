@@ -2,9 +2,9 @@ import pandas as pd
 import json
 import sys
 
-mg_OO_c12_rep = 1.5e-6
+mg_OO_c12_rep = 7.5e-7
 mg_HH_c12_rep = 1.2e-8
-mg_ON_c12_rep = 1.5e-6
+mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
 mg_HO_sigma = 0.169500
 mg_eps_ch3 = 0.15
@@ -84,8 +84,8 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**12 * mg_eps_pol,  # "NE", sig=0.31365
             4.0 * 0.35812**12 * mg_eps_pol,  # "C",  sig=0.35812
             4.0 * 0.35812**12 * mg_eps_ch_aromatic,  # "CH", sig=0.35812
-            4.0 * 0.50192**12 * mg_eps_ch1,  # "CH1",  sig=0.50192
-            4.0 * 0.50192**12 * mg_eps_ch1,  # "CAH",  sig=0.50192
+            4.0 * 0.44592**12 * mg_eps_ch1,  # "CH1",  sig=0.50192
+            4.0 * 0.44592**12 * mg_eps_ch1,  # "CAH",  sig=0.50192
             4.0 * 0.40704**12 * mg_eps_ch2,  # "CH2",  sig=0.40704
             4.0 * 0.40704**12 * mg_eps_ch2,  # "CAH2", sig=0.40704
             4.0 * 0.37479**12 * mg_eps_ch3,  # "CH3",  sig=0.37479
@@ -110,8 +110,8 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**6 * mg_eps_pol,  # "NE",
             4.0 * 0.35812**6 * mg_eps_pol,  # "C",
             4.0 * 0.35812**6 * mg_eps_ch_aromatic,  # "CH"
-            4.0 * 0.50192**6 * mg_eps_ch1,  # "CH1"
-            4.0 * 0.50192**6 * mg_eps_ch1,  # "CAH"
+            4.0 * 0.44592**6 * mg_eps_ch1,  # "CH1"
+            4.0 * 0.44592**6 * mg_eps_ch1,  # "CAH"
             4.0 * 0.40704**6 * mg_eps_ch2,  # "CH2"
             4.0 * 0.40704**6 * mg_eps_ch2,  # "CAH2"
             4.0 * 0.37479**6 * mg_eps_ch3,  # "CH3"
@@ -183,22 +183,22 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-    ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
-    ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
-    ("ct_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
-    ("backbone_nitrogen", "sidechain_cb", 1, 2.7e-6, -1),
+#   ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
+#   ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+#   ("ct_oxygen", "sidechain_cb", None, 5.0e-7, 0),
+    ("backbone_nitrogen", "sidechain_cb", None, 5.0e-7, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
-    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
-    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
-    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
-    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
-    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
-    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
+#    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
+#    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
+#    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
+#    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
+#    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
+#    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
 ]
 
 # Special non-local interactions different from basic mg combination rules
 # PROTEIN
-polar_sbtype = ["OM", "OA", "N", "NT", "NL", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
+polar_sbtype = ["OA", "OM", "N", "NL", "NT", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
 hyd_sbtype = ["CH3", "CH3p", "CH2", "CH2r", "CH1"]
 special_non_local = [
     {
@@ -230,12 +230,6 @@ special_non_local = [
         "interaction": "att",
         "sigma": mg_HO_sigma,
         "epsilon": mg_eps_HO,
-    },
-    {
-        "atomtypes": (["O"], hyd_sbtype),  # bkbn_polar - hydrophobic repulsion
-        "interaction": "att",
-        "sigma": None,  # If None use default mg value of sigma
-        "epsilon": mg_eps_bkbn_O_CB,
     },
 ]
 

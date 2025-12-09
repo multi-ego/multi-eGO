@@ -394,11 +394,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14
-   -C     N    CA     C     gd_44QK
-   -C     N    CA     C     gd_43QK
+   -C     N    CA     C     gd_44Q
+   -C     N    CA     C     gd_43Q
     N    CA    CB    CG     gd_34
-    N    CA     C    +N     gd_45QK
-    N    CA     C    +N     gd_42QK
+    N    CA     C    +N     gd_45Q
+    N    CA     C    +N     gd_42Q
    CA    CB    CG    CD     gd_34
    CB    CG    CD   NE2     gd_40
 
@@ -707,11 +707,11 @@
  [ dihedrals ]
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14
-   -C     N    CA     C     gd_44QK
-   -C     N    CA     C     gd_43QK
+   -C     N    CA     C     gd_44K
+   -C     N    CA     C     gd_43K
     N    CA    CB    CG     gd_34
-    N    CA     C    +N     gd_45QK
-    N    CA     C    +N     gd_42QK
+    N    CA     C    +N     gd_45K
+    N    CA     C    +N     gd_42K
    CA    CB    CG    CD     gd_34
    CB    CG    CD    CE     gd_34
    CG    CD    CE    NZ     gd_34
