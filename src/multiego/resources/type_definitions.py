@@ -183,17 +183,17 @@ def lj14_generator(df):
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
     # Tuple of atom type combinations for LJ14 pairs
-#   ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
-#   ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
-#   ("ct_oxygen", "sidechain_cb", None, 5.0e-7, 0),
+    #   ("backbone_carbonyl", "sidechain_cb", 0.275, 1.299682e-06, 1),
+    #   ("backbone_oxygen", "sidechain_cb", 1, 1.5e-6, 0),
+    #   ("ct_oxygen", "sidechain_cb", None, 5.0e-7, 0),
     ("backbone_nitrogen", "sidechain_cb", None, 5.0e-7, -1),
     ("first_backbone_nitrogen", "backbone_nitrogen", None, 4.0e-6, 1),
-#    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
-#    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
-#    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
-#    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
-#    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
-#    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
+    #    ("backbone_nitrogen", "backbone_nitrogen", 0.343, None, 1),
+    #    ("backbone_carbonyl", "backbone_carbonyl", 0.5, None, -1),
+    #    ("sidechain_cgs", "backbone_carbonyl", 0.250, 1.2e-6, 0),
+    #    ("sidechain_cgs", "backbone_nitrogen", 0.200, 5.5e-7, 0),
+    #    ("sidechain_cgs", "first_backbone_nitrogen", 0.200, 5.5e-7, 0),
+    #    ("sidechain_cds", "backbone_calpha", 0.100, 5e-7, 0),
 ]
 
 # Special non-local interactions different from basic mg combination rules

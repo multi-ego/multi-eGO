@@ -1049,12 +1049,12 @@ def set_sig_epsilon(meGO_LJ, parameters):
     condition = (
         meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
     ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    #meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
+    # meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
     #    1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
-    #)
-    meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
-       meGO_LJ["distance"]/meGO_LJ["rc_distance"] 
-    ) ** 12
+    # )
+    meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
+        lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
+    )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
     # 1-4 interactions are special and cannot become attractive because they are part of the bonded-interactions
