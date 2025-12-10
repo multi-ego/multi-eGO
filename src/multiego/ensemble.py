@@ -1047,8 +1047,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
     # negative epsilon are used to identify non-attractive interactions
     condition = (
-        meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+    )
     # meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
     #    1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
     # )
