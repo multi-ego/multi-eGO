@@ -894,7 +894,7 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     pairs_LJ["c12"] = c12_rep / factor
     pairs_LJ["c6"] = 0.0
     pairs_LJ["epsilon"] = -c12_rep / factor
-    pairs_LJ["sigma"] = c12_rep / factor ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    pairs_LJ["sigma"] = (c12_rep / factor) ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
     pairs_LJ["mg_sigma"] = pairs_LJ["sigma"]
     pairs_LJ["mg_epsilon"] = -c12_rep / factor
 
@@ -1047,11 +1047,16 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
     # negative epsilon are used to identify non-attractive interactions
     condition = (
-        meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
-        1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
+        (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
     )
+    # meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
+    #    1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
+    # )
+    meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
+        lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
+    )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
     # 1-4 interactions are special and cannot become attractive because they are part of the bonded-interactions
@@ -1250,7 +1255,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
             & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
-            & ~((meGO_LJ["bond_distance"] < 7) & (meGO_LJ["same_chain"]))
+            & ~((meGO_LJ["bond_distance"] < 6) & (meGO_LJ["same_chain"]))
         )
     ]
 
@@ -1291,10 +1296,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     if not parameters.single_molecule:
         # neighbour intramolecular interactions are not used as intermolecular
-        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 7)]
+        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6)]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
-        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 7))]
+        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6))]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones
     # to do this is enough to remove it from meGO_LJ_14, in this way the value used for the contact is the one meGO_LJ
@@ -1305,7 +1310,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
                 (~meGO_LJ_14["same_chain"])
                 & (meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"])
                 & (meGO_LJ_14["epsilon"] > 0.0)
-                & (meGO_LJ_14["bond_distance"] > 6)
+                & (meGO_LJ_14["bond_distance"] > 5)
             )
         ]
     else:
@@ -1650,30 +1655,30 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             # this need to be the default repulsion if within two residue
             if not pairs.empty:
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 7),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 6),
                     "c6",
                 ] = 0.0
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 7),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 6),
                     "c12",
                 ] = pairs["rep"]
                 # else it should be default mg
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] < 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0),
                     "c6",
                 ] = 0.0
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] < 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0),
                     "c12",
                 ] = -pairs["mg_epsilon"]
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] > 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0),
                     "c6",
                 ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
                 )
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] > 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0),
                     "c12",
                 ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
