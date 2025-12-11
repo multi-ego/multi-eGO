@@ -513,31 +513,31 @@
 ; GLN
 ;;;;;;;;;;;;;;;;;;;;
 #define gd_42Q 150.0000 1.5000 2
-; Backbone dihedral angle -N-CA-C-N- GLN/LYS
+; Backbone dihedral angle -N-CA-C-N- GLN
 ;
 #define gd_43Q 15.0000 2.000 3
-; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+; Backbone dihedral angle -C-N-CA-C- GLN
 ;
 #define gd_44Q  -120.000 1.00 1
-; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+; Backbone dihedral angle -C-N-CA-C- GLN
 ;
 #define gd_45Q 180.000 3.00 1
-; Backbone dihedral angle -N-CA-C-N- GLN/LYS
+; Backbone dihedral angle -N-CA-C-N- GLN
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; LYS
 ;;;;;;;;;;;;;;;;;;;;
 #define gd_42K 150.0000 1.5000 2
-; Backbone dihedral angle -N-CA-C-N- GLN/LYS
+; Backbone dihedral angle -N-CA-C-N- LYS
 ;
 #define gd_43K 15.0000 2.000 3
-; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+; Backbone dihedral angle -C-N-CA-C- LYS
 ;
 #define gd_44K  -120.000 1.00 1
-; Backbone dihedral angle -C-N-CA-C- GLN/LYS
+; Backbone dihedral angle -C-N-CA-C- LYS
 ;
-#define gd_45K 180.000 0.00 1
-; Backbone dihedral angle -N-CA-C-N- GLN/LYS
+#define gd_45K 180.000 3.00 1
+; Backbone dihedral angle -N-CA-C-N- LYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; VAL/ILE
