@@ -536,7 +536,7 @@
 #define gd_44K  -120.000 1.00 1
 ; Backbone dihedral angle -C-N-CA-C- LYS
 ;
-#define gd_45K 180.000 3.00 1
+#define gd_45K 180.000 2.00 1
 ; Backbone dihedral angle -N-CA-C-N- LYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
