@@ -24,13 +24,13 @@ ARG*
 ASP**
 GLU*
 LEU
-LYS*
 GLN*
 MET
 
 Intermediate (50%-50%)
 HIS*
 ASN**
+LYS*
 SER*
 
 Beta preference (Pb ~ 65%)
