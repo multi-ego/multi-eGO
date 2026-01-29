@@ -6,13 +6,15 @@ mg_OO_c12_rep = 7.5e-7
 mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
+
 mg_HO_sigma = 0.169500
-mg_eps_ch3 = 0.15
-mg_eps_HO = 0.15  # hydrogen bond strength
-mg_eps_ch_aromatic = 0.15
+mg_eps_ch3 = 0.10
+mg_eps_HO = 0.13  # hydrogen bond strength
+mg_eps_ch_aromatic = 0.13
 mg_eps_ch2 = 0.10
-mg_eps_pol = 0.12
-mg_eps_ch1 = 0.09
+mg_eps_pol_nz = 0.11
+mg_eps_pol = 0.09
+mg_eps_ch1 = 0.07
 mg_eps_bkbn_O_CB = 0.10
 
 # Dataframe with atom types and associated parameters
@@ -80,7 +82,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.35722**12 * mg_eps_pol,  # "NT", sig=0.35722
             4.0 * 0.31365**12 * mg_eps_pol,  # "NL", sig=0.31365
             4.0 * 0.33411**12 * mg_eps_pol,  # "NR", sig=0.33411
-            4.0 * 0.31365**12 * mg_eps_pol,  # "NZ", sig=0.31365
+            4.0 * 0.31365**12 * mg_eps_pol_nz,  # "NZ", sig=0.31365
             4.0 * 0.31365**12 * mg_eps_pol,  # "NE", sig=0.31365
             4.0 * 0.35812**12 * mg_eps_pol,  # "C",  sig=0.35812
             4.0 * 0.35812**12 * mg_eps_ch_aromatic,  # "CH", sig=0.35812
@@ -106,7 +108,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.35722**6 * mg_eps_pol,  # "NT",
             4.0 * 0.31365**6 * mg_eps_pol,  # "NL",
             4.0 * 0.33411**6 * mg_eps_pol,  # "NR",
-            4.0 * 0.31365**6 * mg_eps_pol,  # "NZ",
+            4.0 * 0.31365**6 * mg_eps_pol_nz,  # "NZ",
             4.0 * 0.31365**6 * mg_eps_pol,  # "NE",
             4.0 * 0.35812**6 * mg_eps_pol,  # "C",
             4.0 * 0.35812**6 * mg_eps_ch_aromatic,  # "CH"
@@ -198,17 +200,29 @@ atom_type_combinations = [
 
 # Special non-local interactions different from basic mg combination rules
 # PROTEIN
-polar_sbtype = ["OA", "OM", "N", "NL", "NT", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
-hyd_sbtype = ["CH3", "CH3p", "CH2", "CH2r", "CH1"]
+polar_sbtype = ["O", "OA", "OM", "N", "NL", "NT", "NR", "NZ", "NE", "C", "S"]
+hyd_sbtype = ["CH3", "CH2", "CH2r", "CH1", "CAH", "CAH2"]
 special_non_local = [
+    #{
+    #    "atomtypes": (["O", "OM"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
+    #    "interaction": "rep",
+    #    "sigma": None,  # not needed for repulsion
+    #    "epsilon": mg_OO_c12_rep,
+    #},
     {
-        "atomtypes": (["O", "OM"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
+        "atomtypes": (["O"], ["O"]),  # charged oxygen-oxygen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_OO_c12_rep,
     },
+    #{
+    #    "atomtypes": (["NZ", "NL"], ["NZ", "NL"]),  # charged nitrogen-nitrogen repulsion
+    #    "interaction": "rep",
+    #    "sigma": None,  # not needed for repulsion
+    #    "epsilon": mg_NN_c12_rep,
+    #},
     {
-        "atomtypes": (["NZ", "NL"], ["NZ", "NL"]),  # charged nitrogen-nitrogen repulsion
+        "atomtypes": (["NZ"], ["NZ"]),  # charged nitrogen-nitrogen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_NN_c12_rep,
@@ -219,18 +233,36 @@ special_non_local = [
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_HH_c12_rep,
     },
-    {
-        "atomtypes": (polar_sbtype, hyd_sbtype),  # polar - hydrophobic repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": None,
-    },  # If None use default rc c12 repulsion
+    #{
+    #    "atomtypes": (polar_sbtype, hyd_sbtype),  # polar - hydrophobic repulsion
+    #    "interaction": "att",
+    #    "sigma": None,  # not needed for repulsion
+    #    "epsilon": 0.09,
+    #},  # If None use default rc c12 repulsion
     {
         "atomtypes": (["O", "OM", "OA"], ["H"]),  # hydrogen bond attraction
         "interaction": "att",
         "sigma": mg_HO_sigma,
         "epsilon": mg_eps_HO,
     },
+    {
+        "atomtypes": (["NL"], ["N", "NT", "NL", "NR", "NZ", "NE", "C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),  # hydrogen bond attraction
+        "interaction": "rep",
+        "sigma": None,
+        "epsilon": None,
+    },
+    {
+        "atomtypes": (["OM"], ["O", "OM", "C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),  # hydrogen bond attraction
+        "interaction": "rep",
+        "sigma": None,
+        "epsilon": None,
+    },
+    #{
+    #    "atomtypes": (["CH1", "CAH"], ["CH1", "CAH"]),  # hydrogen bond attraction
+    #    "interaction": "rep",
+    #    "sigma": None,
+    #    "epsilon": None,
+    #},
 ]
 
 # List of amino acids and nucleic acids
