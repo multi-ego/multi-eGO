@@ -352,7 +352,6 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
         # TODO: probabilities of equivalent atoms should be averaged
 
-
         reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
         reference_contact_matrices[name]["c6_i"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_ai"]]
         reference_contact_matrices[name]["c6_j"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_aj"]]
@@ -1038,8 +1037,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
     condition = (
-        meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["epsilon_prior"] > 0.)
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["epsilon_prior"] > 0.0)
+    )
 
     meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
         (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
@@ -1048,20 +1049,23 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
 
     condition = (
-        meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["epsilon_prior"] < 0.) & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["epsilon_prior"] < 0.0)
+        & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+    )
     meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
         lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
     )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
-    #condition = (
+    # condition = (
     #    meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    #) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["epsilon_prior"] < 0.) & (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"])
-    #meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
+    # ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"]) & (meGO_LJ["epsilon_prior"] < 0.) & (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"])
+    # meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
     #   1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
-    #)
-    #meGO_LJ.loc[condition, "learned"] = 1
+    # )
+    # meGO_LJ.loc[condition, "learned"] = 1
 
     # Not-attractive interactions
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
@@ -1076,15 +1080,15 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
-    #condition = (
+    # condition = (
     #    (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
     #    & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
     #    & (meGO_LJ["rc_probability"] <= meGO_LJ["md_threshold"])
-    #)
-    #meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
+    # )
+    # meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
     #   1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
-    #)
-    #meGO_LJ.loc[condition, "learned"] = 1
+    # )
+    # meGO_LJ.loc[condition, "learned"] = 1
 
     # 1-4 interactions are special and cannot become attractive because they are part of the bonded-interactions
     condition = (meGO_LJ["bond_distance"] < 4) & (meGO_LJ["same_chain"])
