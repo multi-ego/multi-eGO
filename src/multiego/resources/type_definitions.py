@@ -3,17 +3,38 @@ import json
 import sys
 
 mg_OO_c12_rep = 7.5e-7
+mg_OMOM_c12_rep = 2.5e-5
 mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
+
 mg_HO_sigma = 0.169500
-mg_eps_ch3 = 0.15
-mg_eps_HO = 0.15  # hydrogen bond strength
-mg_eps_ch_aromatic = 0.15
-mg_eps_ch2 = 0.10
-mg_eps_pol = 0.12
-mg_eps_ch1 = 0.09
-mg_eps_bkbn_O_CB = 0.10
+mg_eps_HO = 0.12
+
+eps_O = 0.085
+eps_OM = 0.085
+eps_OA = 0.13
+eps_N = 0.085
+eps_NT = 0.085
+eps_NL = 0.085
+eps_NR = 0.07
+eps_NZ = 0.11
+eps_NE = 0.085
+eps_C = 0.085
+eps_CH = 0.11
+eps_CH1 = 0.085
+eps_CAH = 0.085
+eps_CH2 = 0.11
+eps_CAH2 = 0.11
+eps_CH3 = 0.12
+eps_CH2r = 0.11
+eps_S = 0.14
+eps_CH3p = 0.00
+eps_P = 0.00
+eps_OE = 0.00
+eps_CR1 = 0.00
+eps_H = 0.00
+eps_C0 = 0.00
 
 # Dataframe with atom types and associated parameters
 gromos_atp = pd.DataFrame(
@@ -73,56 +94,56 @@ gromos_atp = pd.DataFrame(
         ],
         # all to ch2 except ch e ch3
         "mg_c12": [
-            4.0 * 0.27601**12 * mg_eps_pol,  # "O",  sig=0.27601
-            4.0 * 0.26259**12 * mg_eps_pol,  # "OM", sig=0.26259
-            4.0 * 0.29548**12 * mg_eps_pol,  # "OA", sig=0.29548
-            4.0 * 0.31365**12 * mg_eps_pol,  # "N",  sig=0.31365
-            4.0 * 0.35722**12 * mg_eps_pol,  # "NT", sig=0.35722
-            4.0 * 0.31365**12 * mg_eps_pol,  # "NL", sig=0.31365
-            4.0 * 0.33411**12 * mg_eps_pol,  # "NR", sig=0.33411
-            4.0 * 0.31365**12 * mg_eps_pol,  # "NZ", sig=0.31365
-            4.0 * 0.31365**12 * mg_eps_pol,  # "NE", sig=0.31365
-            4.0 * 0.35812**12 * mg_eps_pol,  # "C",  sig=0.35812
-            4.0 * 0.35812**12 * mg_eps_ch_aromatic,  # "CH", sig=0.35812
-            4.0 * 0.44592**12 * mg_eps_ch1,  # "CH1",  sig=0.50192
-            4.0 * 0.44592**12 * mg_eps_ch1,  # "CAH",  sig=0.50192
-            4.0 * 0.40704**12 * mg_eps_ch2,  # "CH2",  sig=0.40704
-            4.0 * 0.40704**12 * mg_eps_ch2,  # "CAH2", sig=0.40704
-            4.0 * 0.37479**12 * mg_eps_ch3,  # "CH3",  sig=0.37479
-            4.0 * 0.39547**12 * mg_eps_ch2,  # "CH2r", sig=0.39547
-            4.0 * 0.33077**12 * mg_eps_pol,  # "S",    sig=0.33077
-            4.0 * 0.37479**12 * mg_eps_ch3,  # "CH3p", sig=0.37479
-            4.0 * 0.33856**12 * mg_eps_pol,  # "P",    sig=0.33856
-            4.0 * 0.28492**12 * mg_eps_pol,  # "OE",   sig=0.28492
-            4.0 * 0.37412**12 * mg_eps_pol,  # "CR1",  sig=0.37412
-            4.0 * 0.000000000 * mg_eps_pol,  # "H",
-            4.0 * 0.000000000 * mg_eps_pol,  # "C0",
+            4.0 * 0.27601**12 * eps_O,  # "O",  sig=0.27601
+            4.0 * 0.26259**12 * eps_OM,  # "OM", sig=0.26259
+            4.0 * 0.29548**12 * eps_OA,  # "OA", sig=0.29548
+            4.0 * 0.31365**12 * eps_N,  # "N",  sig=0.31365
+            4.0 * 0.35722**12 * eps_NT,  # "NT", sig=0.35722
+            4.0 * 0.31365**12 * eps_NL,  # "NL", sig=0.31365
+            4.0 * 0.33411**12 * eps_NR,  # "NR", sig=0.33411
+            4.0 * 0.31365**12 * eps_NZ,  # "NZ", sig=0.31365
+            4.0 * 0.31365**12 * eps_NE,  # "NE", sig=0.31365
+            4.0 * 0.35812**12 * eps_C,  # "C",  sig=0.35812
+            4.0 * 0.35812**12 * eps_CH,  # "CH", sig=0.35812
+            4.0 * 0.44592**12 * eps_CH1,  # "CH1",  sig=0.50192
+            4.0 * 0.44592**12 * eps_CAH,  # "CAH",  sig=0.50192
+            4.0 * 0.40704**12 * eps_CH2,  # "CH2",  sig=0.40704
+            4.0 * 0.40704**12 * eps_CAH2,  # "CAH2", sig=0.40704
+            4.0 * 0.37479**12 * eps_CH3,  # "CH3",  sig=0.37479
+            4.0 * 0.39547**12 * eps_CH2r,  # "CH2r", sig=0.39547
+            4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
+            4.0 * 0.37479**12 * eps_CH3p,  # "CH3p", sig=0.37479
+            4.0 * 0.33856**12 * eps_P,  # "P",    sig=0.33856
+            4.0 * 0.28492**12 * eps_OE,  # "OE",   sig=0.28492
+            4.0 * 0.37412**12 * eps_CR1,  # "CR1",  sig=0.37412
+            4.0 * 0.000000000 * eps_H,  # "H",
+            4.0 * 0.000000000 * eps_C0,  # "C0",
         ],
         "mg_c6": [
-            4.0 * 0.27601**6 * mg_eps_pol,  # "O",
-            4.0 * 0.26259**6 * mg_eps_pol,  # "OM",
-            4.0 * 0.29548**6 * mg_eps_pol,  # "OA",
-            4.0 * 0.31365**6 * mg_eps_pol,  # "N",
-            4.0 * 0.35722**6 * mg_eps_pol,  # "NT",
-            4.0 * 0.31365**6 * mg_eps_pol,  # "NL",
-            4.0 * 0.33411**6 * mg_eps_pol,  # "NR",
-            4.0 * 0.31365**6 * mg_eps_pol,  # "NZ",
-            4.0 * 0.31365**6 * mg_eps_pol,  # "NE",
-            4.0 * 0.35812**6 * mg_eps_pol,  # "C",
-            4.0 * 0.35812**6 * mg_eps_ch_aromatic,  # "CH"
-            4.0 * 0.44592**6 * mg_eps_ch1,  # "CH1"
-            4.0 * 0.44592**6 * mg_eps_ch1,  # "CAH"
-            4.0 * 0.40704**6 * mg_eps_ch2,  # "CH2"
-            4.0 * 0.40704**6 * mg_eps_ch2,  # "CAH2"
-            4.0 * 0.37479**6 * mg_eps_ch3,  # "CH3"
-            4.0 * 0.39547**6 * mg_eps_ch2,  # "CH2r"
-            4.0 * 0.33077**6 * mg_eps_pol,  # "S",
-            4.0 * 0.37479**6 * mg_eps_ch3,  # "CH3p"
-            4.0 * 0.33856**6 * mg_eps_pol,  # "P",
-            4.0 * 0.28492**6 * mg_eps_pol,  # "OE",
-            4.0 * 0.37412**6 * mg_eps_pol,  # "CR1",
-            4.0 * 0.00000000 * mg_eps_pol,  # "H",
-            4.0 * 0.00000000 * mg_eps_pol,  # "C0",
+            4.0 * 0.27601**6 * eps_O,  # "O",
+            4.0 * 0.26259**6 * eps_OM,  # "OM",
+            4.0 * 0.29548**6 * eps_OA,  # "OA",
+            4.0 * 0.31365**6 * eps_N,  # "N",
+            4.0 * 0.35722**6 * eps_NT,  # "NT",
+            4.0 * 0.31365**6 * eps_NL,  # "NL",
+            4.0 * 0.33411**6 * eps_NR,  # "NR",
+            4.0 * 0.31365**6 * eps_NZ,  # "NZ",
+            4.0 * 0.31365**6 * eps_NE,  # "NE",
+            4.0 * 0.35812**6 * eps_C,  # "C",
+            4.0 * 0.35812**6 * eps_CH,  # "CH"
+            4.0 * 0.44592**6 * eps_CH1,  # "CH1"
+            4.0 * 0.44592**6 * eps_CAH,  # "CAH"
+            4.0 * 0.40704**6 * eps_CH2,  # "CH2"
+            4.0 * 0.40704**6 * eps_CAH2,  # "CAH2"
+            4.0 * 0.37479**6 * eps_CH3,  # "CH3"
+            4.0 * 0.39547**6 * eps_CH2r,  # "CH2r"
+            4.0 * 0.33077**6 * eps_S,  # "S",
+            4.0 * 0.37479**6 * eps_CH3p,  # "CH3p"
+            4.0 * 0.33856**6 * eps_P,  # "P",
+            4.0 * 0.28492**6 * eps_OE,  # "OE",
+            4.0 * 0.37412**6 * eps_CR1,  # "CR1",
+            4.0 * 0.00000000 * eps_H,  # "H",
+            4.0 * 0.00000000 * eps_C0,  # "C0",
         ],
     }
 )
@@ -198,17 +219,29 @@ atom_type_combinations = [
 
 # Special non-local interactions different from basic mg combination rules
 # PROTEIN
-polar_sbtype = ["OA", "OM", "N", "NL", "NT", "NR", "NZ", "NE", "C", "S", "P", "OE", "CR1"]
-hyd_sbtype = ["CH3", "CH3p", "CH2", "CH2r", "CH1"]
+polar_sbtype = ["O", "OA", "OM", "N", "NL", "NT", "NR", "NZ", "NE", "C", "S"]
+hyd_sbtype = ["CH3", "CH2", "CH2r", "CH1", "CAH", "CAH2"]
 special_non_local = [
     {
-        "atomtypes": (["O", "OM"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
+        "atomtypes": (["O"], ["O"]),  # charged oxygen-oxygen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_OO_c12_rep,
     },
     {
-        "atomtypes": (["NZ", "NL"], ["NZ", "NL"]),  # charged nitrogen-nitrogen repulsion
+        "atomtypes": (["O"], ["OM"]),  # charged oxygen-oxygen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": mg_OO_c12_rep,
+    },
+    {
+        "atomtypes": (["OM"], ["OM"]),  # charged oxygen-oxygen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": mg_OMOM_c12_rep,
+    },
+    {
+        "atomtypes": (["NL"], ["NL"]),  # charged nitrogen-nitrogen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_NN_c12_rep,
@@ -220,16 +253,22 @@ special_non_local = [
         "epsilon": mg_HH_c12_rep,
     },
     {
-        "atomtypes": (polar_sbtype, hyd_sbtype),  # polar - hydrophobic repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": None,
-    },  # If None use default rc c12 repulsion
-    {
         "atomtypes": (["O", "OM", "OA"], ["H"]),  # hydrogen bond attraction
         "interaction": "att",
         "sigma": mg_HO_sigma,
         "epsilon": mg_eps_HO,
+    },
+    {
+        "atomtypes": (["NL"], ["NZ", "N", "NT", "NR", "NE", "C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),
+        "interaction": "rep",
+        "sigma": None,
+        "epsilon": None,
+    },
+    {
+        "atomtypes": (["OM"], ["C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),
+        "interaction": "rep",
+        "sigma": None,
+        "epsilon": None,
     },
 ]
 
