@@ -16,8 +16,13 @@ These are the guiding lines to parametrize the backbone dihedral angles:
 Jiang, et al. Biopolymers 1998
 Hayward, et al. J Struct Biol 2021
 
+Different Peptide construction for sinlge residue helicity:  Robert J. Moreau, Christian R. Schubert, Khaled A. Nasr, Marianna Török, Justin S. Miller, Robert J. Kennedy, and Daniel S. Kemp
+Journal of the American Chemical Society 2009 131 (36), 13107-13116
+DOI: 10.1021/ja904271k 
+
 3. 3J coupling are matched using Karplus relation with parameters from:
 #https://imserc.northwestern.edu/guide/eNMR/proteins/J/HNHA.html
+
 
 J coupling experimental table from https://doi.org/10.1073/pnas.0510420103:
 ALA  6.06 
