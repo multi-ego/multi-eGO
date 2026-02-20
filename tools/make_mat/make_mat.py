@@ -609,7 +609,13 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     OO_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
-        [("OM", "OM"), ("O", "O"), ("OM", "O")],
+        [("O", "O"), ("OM", "O")],
+        symmetrize=True,
+    )
+    OMOM_mask = masking.create_matrix_mask(
+        topology_df_i["mego_type"].to_numpy(),
+        topology_df_j["mego_type"].to_numpy(),
+        [("OM", "OM")],
         symmetrize=True,
     )
     HH_mask = masking.create_matrix_mask(
@@ -621,16 +627,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     NN_mask = masking.create_matrix_mask(
         topology_df_i["mego_type"].to_numpy(),
         topology_df_j["mego_type"].to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
-        symmetrize=True,
-    )
-    ON_mask = masking.create_matrix_mask(
-        topology_df_i["mego_type"].to_numpy(),
-        topology_df_j["mego_type"].to_numpy(),
-        [
-            ("O", "N"),
-            ("OM", "N"),
-        ],
+        [("NL", "NL")],
         symmetrize=True,
     )
 
@@ -665,10 +662,10 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
         # define all cutoff using combination rule values and OO_mask
         c12_cutoff = CUTOFF_FACTOR * np.power(np.where(OO_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
+        # apply OMOM correction
+        c12_cutoff = np.where(OMOM_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_OMOM_c12_rep, 1.0 / 12.0), c12_cutoff)
         # apply HH correction
         c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
-        # apply ON correction
-        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
         # apply NN correction
         c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
@@ -691,8 +688,8 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
                 1.0 / 12.0,
             ),
         )
+        c12_cutoff = np.where(OMOM_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_OMOM_c12_rep, 1.0 / 12.0), c12_cutoff)
         c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
-        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
         c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]

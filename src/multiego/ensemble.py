@@ -775,7 +775,13 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     OO_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("O", "O"), ("OM", "OM"), ("O", "OM")],
+        [("O", "O"), ("O", "OM")],
+        symmetrize=True,
+    )
+    OMOM_mask = masking.create_linearized_mask(
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
+        [("OM", "OM")],
         symmetrize=True,
     )
 
@@ -787,17 +793,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         symmetrize=True,
     )
 
-    # oxygen-nitrogen repulsion (when not attractive)
-    ON_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [
-            ("O", "N"),
-            ("OM", "N"),
-        ],
-        symmetrize=True,
-    )
-
     # hydrogen-hydrogen repulsion
     # Define condition where only ai or aj (but not both) starts with "H"
     H_mask = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
@@ -805,11 +800,11 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     # TODO
     # here we should iterate over the pairs in type definition amd generate the repulsions
-    # NL-NZ repulsion
+    # NL-NL repulsion
     NN_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        [("NL", "NL")],
         symmetrize=True,
     )
 
@@ -822,8 +817,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset.loc[OO_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_OO_c12_rep
     )
-    train_dataset.loc[ON_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_ON_c12_rep
+    train_dataset.loc[OMOM_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
+        type_definitions.mg_OMOM_c12_rep
     )
     train_dataset.loc[HH_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_HH_c12_rep
@@ -844,6 +839,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
     # special mg sigma cases:
     train_dataset.loc[OO_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
+    train_dataset.loc[OMOM_mask, "mg_sigma"] = (type_definitions.mg_OMOM_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HH_mask, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[NN_mask, "mg_sigma"] = (type_definitions.mg_NN_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HO_mask, "mg_sigma"] = type_definitions.mg_HO_sigma
@@ -1074,6 +1070,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
         (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["epsilon_prior"] < 0.0)
     )
     meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
         lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
@@ -1612,12 +1609,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_OO_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                ),
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")),
                 "c12",
             ] = type_definitions.mg_OMOM_c12_rep
 
@@ -1628,29 +1621,19 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_HH_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                ),
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")),
                 "c12",
             ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
                 (
-                    (
-                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
-                    & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
                 )
                 | (
-                    ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
-                    & (
-                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                 ),
                 "c12",
             ] = type_definitions.mg_ON_c12_rep
