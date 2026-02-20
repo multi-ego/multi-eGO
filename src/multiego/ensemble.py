@@ -775,7 +775,13 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     OO_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("O", "O"), ("OM", "OM"), ("O", "OM")],
+        [("O", "O"), ("O", "OM")],
+        symmetrize=True,
+    )
+    OMOM_mask = masking.create_linearized_mask(
+        type_ai_mapped.to_numpy(),
+        type_aj_mapped.to_numpy(),
+        [("OM", "OM")],
         symmetrize=True,
     )
 
@@ -793,7 +799,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         type_aj_mapped.to_numpy(),
         [
             ("O", "N"),
-            ("OM", "N"),
         ],
         symmetrize=True,
     )
@@ -805,11 +810,11 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     # TODO
     # here we should iterate over the pairs in type definition amd generate the repulsions
-    # NL-NZ repulsion
+    # NL-NL repulsion
     NN_mask = masking.create_linearized_mask(
         type_ai_mapped.to_numpy(),
         type_aj_mapped.to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
+        [("NL", "NL")],
         symmetrize=True,
     )
 
@@ -821,6 +826,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # special REP cases:
     train_dataset.loc[OO_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_OO_c12_rep
+    )
+    train_dataset.loc[OMOM_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
+        type_definitions.mg_OMOM_c12_rep
     )
     train_dataset.loc[ON_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_ON_c12_rep
@@ -844,6 +852,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
     # special mg sigma cases:
     train_dataset.loc[OO_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
+    train_dataset.loc[OMOM_mask, "mg_sigma"] = (type_definitions.mg_OMOM_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HH_mask, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[NN_mask, "mg_sigma"] = (type_definitions.mg_NN_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
     train_dataset.loc[HO_mask, "mg_sigma"] = type_definitions.mg_HO_sigma
@@ -1612,12 +1621,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_OO_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                ),
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")),
                 "c12",
             ] = type_definitions.mg_OMOM_c12_rep
 
@@ -1628,29 +1633,19 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_HH_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                ),
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")),
                 "c12",
             ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
                 (
-                    (
-                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
-                    & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
                 )
                 | (
-                    ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
-                    & (
-                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                 ),
                 "c12",
             ] = type_definitions.mg_ON_c12_rep
