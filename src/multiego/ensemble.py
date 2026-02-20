@@ -1612,6 +1612,16 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_OO_c12_rep
 
             df.loc[
+                (
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                )
+                & (
+                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
+                ),
+                "c12",
+            ] = type_definitions.mg_OMOM_c12_rep
+
+            df.loc[
                 ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "H"))
                 & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "H")),
                 "c12",
@@ -1620,11 +1630,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             df.loc[
                 (
                     (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
                 )
                 & (
                     (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
                 ),
                 "c12",
             ] = type_definitions.mg_NN_c12_rep
