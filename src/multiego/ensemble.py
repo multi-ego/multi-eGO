@@ -793,16 +793,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         symmetrize=True,
     )
 
-    # oxygen-nitrogen repulsion (when not attractive)
-    ON_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [
-            ("O", "N"),
-        ],
-        symmetrize=True,
-    )
-
     # hydrogen-hydrogen repulsion
     # Define condition where only ai or aj (but not both) starts with "H"
     H_mask = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
@@ -829,9 +819,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     )
     train_dataset.loc[OMOM_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_OMOM_c12_rep
-    )
-    train_dataset.loc[ON_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_ON_c12_rep
     )
     train_dataset.loc[HH_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
         type_definitions.mg_HH_c12_rep
