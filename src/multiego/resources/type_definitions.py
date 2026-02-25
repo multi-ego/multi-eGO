@@ -9,26 +9,26 @@ mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
 
 mg_HO_sigma = 0.169500
-mg_eps_HO = 0.12
+mg_eps_HO = 0.17
 
 eps_O = 0.085
 eps_OM = 0.085
-eps_OA = 0.13
+eps_OA = 0.085
 eps_N = 0.085
 eps_NT = 0.085
 eps_NL = 0.085
-eps_NR = 0.07
-eps_NZ = 0.11
+eps_NR = 0.085
+eps_NZ = 0.085
 eps_NE = 0.085
 eps_C = 0.085
-eps_CH = 0.11
+eps_CH = 0.15
 eps_CH1 = 0.085
 eps_CAH = 0.085
-eps_CH2 = 0.11
-eps_CAH2 = 0.11
-eps_CH3 = 0.12
-eps_CH2r = 0.11
-eps_S = 0.14
+eps_CH2 = 0.13
+eps_CAH2 = 0.13
+eps_CH3 = 0.13
+eps_CH2r = 0.085
+eps_S = 0.085
 eps_CH3p = 0.00
 eps_P = 0.00
 eps_OE = 0.00
@@ -230,7 +230,7 @@ special_non_local = [
         "epsilon": mg_OMOM_c12_rep,
     },
     {
-        "atomtypes": (["NL"], ["NL"]),  # charged nitrogen-nitrogen repulsion
+        "atomtypes": (["NL", "NZ"], ["NL", "NZ"]),  # charged nitrogen-nitrogen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_NN_c12_rep,
@@ -248,17 +248,53 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["NL"], ["NZ", "N", "NT", "NR", "NE", "C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),
+        "atomtypes": (["NL","NZ"], [ "N", "NT", "NR", "NE", "C", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["OM"], ["C", "CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),
+        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),   # no charged GLU/ASP rest
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
+    {
+        "atomtypes": (["NZ", "C", "NE", "NL", "NR"], ["CH"]), # catyon-pi generic (including also C and NR)
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.13,
+    },
+    {
+        "atomtypes": (["NT", "S", "N", "O"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions 
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.07,
+    },
+    {
+        "atomtypes": (["OA","C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.07,
+    },
+    {
+        "atomtypes": (["OA"], ["CH"]),  # weaker OA-CH catyon-pi interaction
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.11,
+    },
+    {
+        "atomtypes": (["OA"], ["NR","NT", "NE", "S", "O", "OA", "OM", "NZ", "NL"]),  # H-bond of OA with polar and charged
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": mg_eps_HO,
+    },  
+    {
+        "atomtypes": (["OM"], ["NL", "NZ"]), # salt bridges
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.10,
+    }
 ]
 
 # List of amino acids and nucleic acids
