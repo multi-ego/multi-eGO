@@ -21,14 +21,16 @@ eps_NR = 0.085
 eps_NZ = 0.085
 eps_NE = 0.085
 eps_C = 0.085
+eps_CZ = 0.085
 eps_CH = 0.15
 eps_CH1 = 0.085
 eps_CAH = 0.085
 eps_CH2 = 0.13
-eps_CAH2 = 0.13
+eps_CAH2 = 0.15
 eps_CH3 = 0.13
 eps_CH2r = 0.085
 eps_S = 0.085
+eps_SH = 0.085
 eps_CH3p = 0.00
 eps_P = 0.00
 eps_OE = 0.00
@@ -50,6 +52,7 @@ gromos_atp = pd.DataFrame(
             "NZ",
             "NE",
             "C",
+            "CZ",
             "CH",
             "CH1",
             "CAH",
@@ -58,6 +61,7 @@ gromos_atp = pd.DataFrame(
             "CH3",
             "CH2r",
             "S",
+            "SH",
             "CH3p",
             "P",
             "OE",
@@ -65,7 +69,7 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6,6, 6, 6, 6, 6, 16,16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
@@ -77,6 +81,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.289746**12,  # "NZ",  8.752940e-07
             2.5 * 0.289746**12,  # "NE",  8.752940e-07
             2.5 * 0.317248**12,  # "C",   2.598570e-06
+            2.5 * 0.317248**12,  # "CZ",   2.598570e-06
             2.5 * 0.317248**12,  # "CH",  2.598570e-06
             2.5 * 0.415167**12,  # "CH1", 6.555574e-05
             2.5 * 0.415167**12,  # "CAH", 6.555574e-05
@@ -85,6 +90,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.350505**12,  # "CH3", 8.595562e-06
             2.5 * 0.360236**12,  # "CH2r",1.193966e-05
             2.5 * 0.318498**12,  # "S",   2.724050e-06
+            2.5 * 0.318498**12,  # "SH",   2.724050e-06
             2.5 * 0.350981**12,  # "CH3p",8.736473e-06
             2.5 * 0.328121**12,  # "P",   3.893600e-06
             2.5 * 0.268811**12,  # "OE",  3.558824e-07
@@ -104,6 +110,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**12 * eps_NZ,  # "NZ", sig=0.31365
             4.0 * 0.31365**12 * eps_NE,  # "NE", sig=0.31365
             4.0 * 0.35812**12 * eps_C,  # "C",  sig=0.35812
+            4.0 * 0.35812**12 * eps_CZ,  # "CZ",  sig=0.35812
             4.0 * 0.35812**12 * eps_CH,  # "CH", sig=0.35812
             4.0 * 0.44592**12 * eps_CH1,  # "CH1",  sig=0.50192
             4.0 * 0.44592**12 * eps_CAH,  # "CAH",  sig=0.50192
@@ -112,6 +119,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.37479**12 * eps_CH3,  # "CH3",  sig=0.37479
             4.0 * 0.39547**12 * eps_CH2r,  # "CH2r", sig=0.39547
             4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
+            4.0 * 0.33077**12 * eps_SH,  # "SH",    sig=0.33077
             4.0 * 0.37479**12 * eps_CH3p,  # "CH3p", sig=0.37479
             4.0 * 0.33856**12 * eps_P,  # "P",    sig=0.33856
             4.0 * 0.28492**12 * eps_OE,  # "OE",   sig=0.28492
@@ -130,6 +138,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**6 * eps_NZ,  # "NZ",
             4.0 * 0.31365**6 * eps_NE,  # "NE",
             4.0 * 0.35812**6 * eps_C,  # "C",
+            4.0 * 0.35812**6 * eps_CZ,  # "C",
             4.0 * 0.35812**6 * eps_CH,  # "CH"
             4.0 * 0.44592**6 * eps_CH1,  # "CH1"
             4.0 * 0.44592**6 * eps_CAH,  # "CAH"
@@ -138,6 +147,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.37479**6 * eps_CH3,  # "CH3"
             4.0 * 0.39547**6 * eps_CH2r,  # "CH2r"
             4.0 * 0.33077**6 * eps_S,  # "S",
+            4.0 * 0.33077**6 * eps_SH,  # "S",
             4.0 * 0.37479**6 * eps_CH3p,  # "CH3p"
             4.0 * 0.33856**6 * eps_P,  # "P",
             4.0 * 0.28492**6 * eps_OE,  # "OE",
@@ -230,10 +240,16 @@ special_non_local = [
         "epsilon": mg_OMOM_c12_rep,
     },
     {
-        "atomtypes": (["NL", "NZ"], ["NL", "NZ"]),  # charged nitrogen-nitrogen repulsion
+        "atomtypes": (["NL", "NZ"], ["NL"]),  # charged nitrogen-nitrogen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_NN_c12_rep,
+    },
+    {
+        "atomtypes": (["NZ"], ["NZ"]),  # charged nitrogen-nitrogen repulsion
+        "interaction": "rep",
+        "sigma": None,  # not needed for repulsion
+        "epsilon": None,   
     },
     {
         "atomtypes": (["H"], ["H"]),  # hydrogen-hydrogen repulsion
@@ -248,7 +264,13 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["NL","NZ"], [ "N", "NT", "NR", "NE", "C", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH
+        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"]), # Repulsion of charged N with all but CH
+        "interaction": "rep",
+        "sigma": None,
+        "epsilon": None,
+    },
+    {
+        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
@@ -260,25 +282,37 @@ special_non_local = [
         "epsilon": None,
     },
     {
-        "atomtypes": (["NZ", "C", "NE", "NL", "NR"], ["CH"]), # catyon-pi generic (including also C and NR)
+        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # catyon-pi generic (including also C and NR)
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.13,
     },
     {
-        "atomtypes": (["NT", "S", "N", "O"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions 
+        "atomtypes": (["NL"], ["CH"]), # catyon-pi generic (including also C and NR)
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.10,     
+    },
+    {
+        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions 
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["OA","C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
+        "atomtypes": (["NR"], ["CH"]),  # polar-hyd weak interactions 
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.085,    
+    },
+    {
+        "atomtypes": (["CZ","C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["OA"], ["CH"]),  # weaker OA-CH catyon-pi interaction
+        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH catyon-pi interaction
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.11,
@@ -290,10 +324,10 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },  
     {
-        "atomtypes": (["OM"], ["NL", "NZ"]), # salt bridges
+        "atomtypes": (["OM"], ["NL", "NZ", "NE"]), # salt bridges
         "interaction": "att",
         "sigma": None,
-        "epsilon": 0.10,
+        "epsilon": 0.15,
     }
 ]
 

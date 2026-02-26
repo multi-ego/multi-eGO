@@ -10,6 +10,7 @@
    NE  15.00670 ;     Arg NE (NH)
 ;    C  12.01100 ;     bare carbon
     C  11.01100 ;     bare carbon
+   CZ  11.01100 ;     bare carbon
    CH  13.01900 ;     aromatic CH
   CAH  12.01100 ;     aliphatic or sugar CH-group
   CH1  13.01900 ;     aliphatic or sugar CH-group
@@ -18,6 +19,7 @@
   CH3  15.03500 ;     aliphatic CH3-group
  CH2r  14.02700 ;     CH2-group in a ring
     S  32.06000 ;     sulfur
+   SH  32.06000 ;     sulfur
     H   4.03200 ;     backbone Hydrogen
 ; LIPIDS
  CH3p  15.03500 ;     Polar aliphatic CH3-group
