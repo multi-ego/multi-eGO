@@ -222,13 +222,7 @@ atom_type_combinations = [
 # PROTEIN
 special_non_local = [
     {
-        "atomtypes": (["O"], ["O"]),  # charged oxygen-oxygen repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": mg_OO_c12_rep,
-    },
-    {
-        "atomtypes": (["O"], ["OM"]),  # charged oxygen-oxygen repulsion
+        "atomtypes": (["O"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": mg_OO_c12_rep,
@@ -246,7 +240,7 @@ special_non_local = [
         "epsilon": mg_NN_c12_rep,
     },
     {
-        "atomtypes": (["NZ"], ["NZ"]),  # charged nitrogen-nitrogen repulsion
+        "atomtypes": (["NZ"], ["NZ"]),  # less repulsive to allow ARG-ARG pi stacking
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
         "epsilon": None,   
@@ -264,43 +258,43 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"]), # Repulsion of charged N with all but CH
+        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"]), # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH
+        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),   # no charged GLU/ASP rest
+        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),   # repulsion of charged O with hydrophobic
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # catyon-pi generic (including also C and NR)
+        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # catyon-pi generic
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.13,
     },
     {
-        "atomtypes": (["NL"], ["CH"]), # catyon-pi generic (including also C and NR)
+        "atomtypes": (["NL"], ["CH"]), # catyon-pi generic 
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.10,     
     },
     {
-        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions 
+        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # weak interactions of polar N 
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["NR"], ["CH"]),  # polar-hyd weak interactions 
+        "atomtypes": (["NR"], ["CH"]),  # weak cation-pi 
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.085,    
@@ -312,7 +306,7 @@ special_non_local = [
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH catyon-pi interaction
+        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH  and SH-CH catyon-pi interaction
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.11,

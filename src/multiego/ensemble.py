@@ -886,6 +886,8 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
         combinations = list(itertools.product(sbtype1, repeat=2))
     else:
         combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
+        # remove duplicates if any (cleaner ffnonbonded, but should not metter in terms of gromacs implementation: only last entry of doubled definition is used)
+        combinations = list(set(combinations))
     if c12_rep is None:
         c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations])
 
@@ -906,6 +908,8 @@ def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictiona
         combinations = list(itertools.product(sbtype1, repeat=2))
     else:
         combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
+        # remove duplicates if any (cleaner ffnonbonded, but should not metter in terms of gromacs implementation: only last entry of doubled definition is used)
+        combinations = list(set(combinations))
 
     if epsilon is not None and sigma is None:
         # define sigma as combination rule of all combinations pairs
