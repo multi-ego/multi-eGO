@@ -69,7 +69,7 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6,6, 6, 6, 6, 6, 16,16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
@@ -243,7 +243,7 @@ special_non_local = [
         "atomtypes": (["NZ"], ["NZ"]),  # less repulsive to allow ARG-ARG pi stacking
         "interaction": "rep",
         "sigma": None,  # not needed for repulsion
-        "epsilon": None,   
+        "epsilon": None,
     },
     {
         "atomtypes": (["H"], ["H"]),  # hydrogen-hydrogen repulsion
@@ -258,49 +258,58 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"]), # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
+        "atomtypes": (
+            ["NZ"],
+            ["N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"],
+        ),  # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"]), # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
+        "atomtypes": (
+            ["NL"],
+            ["N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"],
+        ),  # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"]),   # repulsion of charged O with hydrophobic
+        "atomtypes": (
+            ["OM"],
+            ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"],
+        ),  # repulsion of charged O with hydrophobic
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # catyon-pi generic
+        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]),  # catyon-pi generic
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.13,
     },
     {
-        "atomtypes": (["NL"], ["CH"]), # catyon-pi generic 
+        "atomtypes": (["NL"], ["CH"]),  # catyon-pi generic
         "interaction": "att",
         "sigma": None,
-        "epsilon": 0.10,     
+        "epsilon": 0.10,
     },
     {
-        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # weak interactions of polar N 
+        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # weak interactions of polar N
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["NR"], ["CH"]),  # weak cation-pi 
+        "atomtypes": (["NR"], ["CH"]),  # weak cation-pi
         "interaction": "att",
         "sigma": None,
-        "epsilon": 0.085,    
+        "epsilon": 0.085,
     },
     {
-        "atomtypes": (["CZ","C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
+        "atomtypes": (["CZ", "C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.07,
@@ -312,17 +321,17 @@ special_non_local = [
         "epsilon": 0.11,
     },
     {
-        "atomtypes": (["OA"], ["NR","NT", "NE", "S", "O", "OA", "OM", "NZ", "NL"]),  # H-bond of OA with polar and charged
+        "atomtypes": (["OA"], ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL"]),  # H-bond of OA with polar and charged
         "interaction": "att",
         "sigma": None,
         "epsilon": mg_eps_HO,
-    },  
+    },
     {
-        "atomtypes": (["OM"], ["NL", "NZ", "NE"]), # salt bridges
+        "atomtypes": (["OM"], ["NL", "NZ", "NE"]),  # salt bridges
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.15,
-    }
+    },
 ]
 
 # List of amino acids and nucleic acids
