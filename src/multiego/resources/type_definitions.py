@@ -3,13 +3,13 @@ import json
 import sys
 
 mg_OO_c12_rep = 7.5e-7
-mg_OMOM_c12_rep = 2.5e-5
+mg_OMOM_c12_rep = 2.5e-6 # This might be shifted down looking at ATDhisto
 mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
 
 mg_HO_sigma = 0.169500
-mg_eps_HO = 0.17
+mg_eps_HO = 0.15
 
 eps_O = 0.085
 eps_OM = 0.085
@@ -258,40 +258,43 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (
-            ["NZ"],
-            ["N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CAH2", "CH3"],
-        ),  # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
+        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CH3"]), # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (
-            ["NL"],
-            ["N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r"],
-        ),  # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
+        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2",  "CH3", "CH2r"]), # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (
-            ["OM"],
-            ["CH", "CH1", "CAH", "CH2", "CAH2", "CH3", "CH2r", "S"],
-        ),  # repulsion of charged O with hydrophobic
+        "atomtypes": (["NL", "NZ"], [ "CAH2"]), # Weak interaction of charged N based on hyd of CAH2  from local fingerprint Parrinello and ATDhisto contact probability
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.085,
+    },
+    {
+        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH3", "CH2r", "S"]),   # repulsion of charged O with hydrophobic
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]),  # catyon-pi generic
+        "atomtypes": (["OM"], ["CAH2", "CH2"]), # Weak interaction of OM based on hyd of CAH2 and CH2 (Not sure about CH2) from local fingerprint Parrinello and ATDhisto contact probability
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.085,
+    },
+    {
+        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # cation-pi generic
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.13,
     },
     {
-        "atomtypes": (["NL"], ["CH"]),  # catyon-pi generic
+        "atomtypes": (["NL"], ["CH"]), # cation-pi generic 
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.10,
@@ -315,10 +318,10 @@ special_non_local = [
         "epsilon": 0.07,
     },
     {
-        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH  and SH-CH catyon-pi interaction
+        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH  and SH-CH cation-pi interaction
         "interaction": "att",
         "sigma": None,
-        "epsilon": 0.11,
+        "epsilon": 0.10,
     },
     {
         "atomtypes": (["OA"], ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL"]),  # H-bond of OA with polar and charged
@@ -327,7 +330,13 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["OM"], ["NL", "NZ", "NE"]),  # salt bridges
+        "atomtypes": (["OA"], ["CH2", "CH3", "CAH2"]),  # H-bond of OA with polar and charged
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.085,
+    },  
+    {
+        "atomtypes": (["OM"], ["NL", "NZ", "NE"]), # salt bridges
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.15,
