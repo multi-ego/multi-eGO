@@ -3,7 +3,7 @@ import json
 import sys
 
 mg_OO_c12_rep = 7.5e-7
-mg_OMOM_c12_rep = 2.5e-6 # This might be shifted down looking at ATDhisto
+mg_OMOM_c12_rep = 2.5e-6  # This might be shifted down looking at ATDhisto
 mg_HH_c12_rep = 1.2e-8
 mg_ON_c12_rep = 7.5e-7
 mg_NN_c12_rep = 2.5e-5
@@ -23,7 +23,8 @@ eps_NE = 0.085
 eps_C = 0.085
 eps_CZ = 0.085
 eps_CH = 0.15
-eps_CH1 = 0.085
+eps_CH1 = 0.010
+eps_CH1t = 0.085
 eps_CAH = 0.085
 eps_CH2 = 0.13
 eps_CAH2 = 0.15
@@ -55,6 +56,7 @@ gromos_atp = pd.DataFrame(
             "CZ",
             "CH",
             "CH1",
+            "CH1t",
             "CAH",
             "CH2",
             "CAH2",
@@ -69,7 +71,7 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
@@ -84,6 +86,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.317248**12,  # "CZ",   2.598570e-06
             2.5 * 0.317248**12,  # "CH",  2.598570e-06
             2.5 * 0.415167**12,  # "CH1", 6.555574e-05
+            2.5 * 0.415167**12,  # "CH1t", 6.555574e-05
             2.5 * 0.415167**12,  # "CAH", 6.555574e-05
             2.5 * 0.368035**12,  # "CH2", 1.543890e-05
             2.5 * 0.368035**12,  # "CAH2",1.543890e-05
@@ -113,6 +116,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.35812**12 * eps_CZ,  # "CZ",  sig=0.35812
             4.0 * 0.35812**12 * eps_CH,  # "CH", sig=0.35812
             4.0 * 0.44592**12 * eps_CH1,  # "CH1",  sig=0.50192
+            4.0 * 0.44592**12 * eps_CH1t,  # "CH1t",  sig=0.50192
             4.0 * 0.44592**12 * eps_CAH,  # "CAH",  sig=0.50192
             4.0 * 0.40704**12 * eps_CH2,  # "CH2",  sig=0.40704
             4.0 * 0.40704**12 * eps_CAH2,  # "CAH2", sig=0.40704
@@ -141,6 +145,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.35812**6 * eps_CZ,  # "C",
             4.0 * 0.35812**6 * eps_CH,  # "CH"
             4.0 * 0.44592**6 * eps_CH1,  # "CH1"
+            4.0 * 0.44592**6 * eps_CH1t,  # "CH1t"
             4.0 * 0.44592**6 * eps_CAH,  # "CAH"
             4.0 * 0.40704**6 * eps_CH2,  # "CH2"
             4.0 * 0.40704**6 * eps_CAH2,  # "CAH2"
@@ -258,43 +263,55 @@ special_non_local = [
         "epsilon": mg_eps_HO,
     },
     {
-        "atomtypes": (["NZ"], [ "N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CH3"]), # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
+        "atomtypes": (
+            ["NZ"],
+            ["N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CH3"],
+        ),  # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NL"], [ "N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2",  "CH3", "CH2r"]), # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
+        "atomtypes": (
+            ["NL"],
+            ["N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CH3", "CH2r"],
+        ),  # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["NL", "NZ"], [ "CAH2"]), # Weak interaction of charged N based on hyd of CAH2  from local fingerprint Parrinello and ATDhisto contact probability
+        "atomtypes": (
+            ["NL", "NZ"],
+            ["CAH2", "CH1t"],
+        ),  # Weak interaction of charged N based on hyd of CAH2  from local fingerprint Parrinello and ATDhisto contact probability
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.085,
     },
     {
-        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH3", "CH2r", "S"]),   # repulsion of charged O with hydrophobic
+        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH3", "CH2r", "S"]),  # repulsion of charged O with hydrophobic
         "interaction": "rep",
         "sigma": None,
         "epsilon": None,
     },
     {
-        "atomtypes": (["OM"], ["CAH2", "CH2"]), # Weak interaction of OM based on hyd of CAH2 and CH2 (Not sure about CH2) from local fingerprint Parrinello and ATDhisto contact probability
+        "atomtypes": (
+            ["OM"],
+            ["CAH2", "CH2", "CH1t"],
+        ),  # Weak interaction of OM based on hyd of CAH2 and CH2 (Not sure about CH2) from local fingerprint Parrinello and ATDhisto contact probability
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.085,
     },
     {
-        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]), # cation-pi generic
+        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]),  # cation-pi generic
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.13,
     },
     {
-        "atomtypes": (["NL"], ["CH"]), # cation-pi generic 
+        "atomtypes": (["NL"], ["CH"]),  # cation-pi generic
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.10,
@@ -324,7 +341,10 @@ special_non_local = [
         "epsilon": 0.10,
     },
     {
-        "atomtypes": (["OA"], ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL"]),  # H-bond of OA with polar and charged
+        "atomtypes": (
+            ["OA"],
+            ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL", "CH1t"],
+        ),  # H-bond of OA with polar and charged
         "interaction": "att",
         "sigma": None,
         "epsilon": mg_eps_HO,
@@ -334,9 +354,15 @@ special_non_local = [
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.085,
-    },  
+    },
     {
-        "atomtypes": (["OM"], ["NL", "NZ", "NE"]), # salt bridges
+        "atomtypes": (["CH1t"], ["CH2", "CH3", "CAH2", "CH1", "CH"]),  # H-bond of OA with polar and charged
+        "interaction": "att",
+        "sigma": None,
+        "epsilon": 0.085,
+    },
+    {
+        "atomtypes": (["OM"], ["NL", "NZ", "NE"]),  # salt bridges
         "interaction": "att",
         "sigma": None,
         "epsilon": 0.15,
