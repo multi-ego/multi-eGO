@@ -325,14 +325,14 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
   const std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_maxcdf_mol
 )
 {
-  std::string file_name = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
-  std::string file_name_c = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(i + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  std::string file_name = output_prefix + "inter_mol_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
+  std::string file_name_c = output_prefix + "inter_mol_c_" + std::to_string(i + 1) + "_" + std::to_string(j + 1) + "_aa_" + std::to_string(ii + 1) + ".h5";
   // Create a new HDF5 file using the default settings.
   H5File file(file_name.c_str(), H5F_ACC_TRUNC);
   H5File file_c(file_name_c.c_str(), H5F_ACC_TRUNC);
 
   // Define the dimensions of the dataset
-  hsize_t dims[2] = {static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(natmol2[i]+1)};
+  hsize_t dims[2] = {static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(natmol2[j]+1)};
   DataSpace dataspace(2, dims);
 
   // Create dataset creation property list with compression
@@ -340,7 +340,7 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
   plist.setDeflate(6);  // Set compression level (0-9, where 9 is maximum compression)
   hsize_t chunk_dims[2] = {
     std::min(static_cast<hsize_t>(density_bins.size()), static_cast<hsize_t>(300)),
-    std::min(static_cast<hsize_t>(natmol2[i] + 1), static_cast<hsize_t>(512))
+    std::min(static_cast<hsize_t>(natmol2[j] + 1), static_cast<hsize_t>(512))
   };
   plist.setChunk(2, chunk_dims);
  
