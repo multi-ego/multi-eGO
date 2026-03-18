@@ -3,7 +3,7 @@
 
 // gromacs includes
 #include <gromacs/trajectoryanalysis/topologyinformation.h>
-#include <gromacs/math/vec.h>
+#include <gromacs/utility/vec.h>
 #include <gromacs/pbcutil/pbc.h>
 #include <gromacs/fileio/tpxio.h>
 #include <gromacs/fileio/confio.h>

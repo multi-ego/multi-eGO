@@ -1,8 +1,8 @@
 #ifndef _XTC_FRAME_HPP
 #define _XTC_FRAME_HPP
 
-#include "gromacs/math/vec.h"
-#include "gromacs/math/vectypes.h"
+#include "gromacs/utility/vec.h"
+#include "gromacs/utility/vectypes.h"
 #include <gromacs/pbcutil/pbc.h>
 
 #include <xdrfile_xtc.h>
