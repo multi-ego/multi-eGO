@@ -10,6 +10,7 @@ import os
 import warnings
 import itertools
 import time
+import sys
 
 
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
@@ -523,7 +524,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         print(
             f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
         )
-        exit()
+        sys.exit()
 
     return ensemble, matrices
 
@@ -644,7 +645,7 @@ def generate_14_data(meGO_ensemble):
                         "\nERROR: you have 1-4 pairs defined in your reference topology without the associated C6/C12 values"
                     )
                     print("       user provided 1-4 pairs need to define also the C6/C12\n")
-                    exit()
+                    sys.exit()
                 nonprotein_c12.append(float(test.epsilon) * 4.184)
 
             pairs["func"] = 1
@@ -719,7 +720,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
                 .loc[(np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"]) > 0)]
                 .to_string()
             )
-            exit(
+            sys.exit(
                 "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data"
             )
 
@@ -727,7 +728,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         if not temp_merged["rc_same_chain"].equals(temp_merged["rc_same_chain"]):
             diff_indices = temp_merged.index[temp_merged["same_chain"] != temp_merged["rc_same_chain"]].tolist()
             print(f"Difference found at indices: {diff_indices}")
-            exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
+            sys.exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
 
         temp_merged = temp_merged[td_fields]
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
@@ -841,7 +842,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 10e-6)]
             .to_string()
         )
-        exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values")
+        sys.exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values")
 
     return train_dataset
 

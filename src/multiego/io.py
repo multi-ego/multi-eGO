@@ -5,8 +5,7 @@ import os
 import yaml
 import git
 import time
-
-# import sys
+import sys
 import re
 
 
@@ -662,7 +661,7 @@ def get_outdir_name(output_dir, explicit_name, egos):
         index += 1
         if index > 100:
             print(f"ERROR: too many directories in {output_dir}")
-            exit()
+            sys.exit()
     output_dir = f"{output_dir}/{out}_{index}"
 
     return output_dir
@@ -899,7 +898,7 @@ def check_files_existence(args):
 def read_intra_file(file_path):
     if not os.path.exists(file_path):
         print(f"File {file_path} does not exist.")
-        exit()
+        sys.exit()
 
     names = []
     epsilons = []
@@ -915,7 +914,7 @@ def read_intra_file(file_path):
 def read_inter_file(file_path):
     if not os.path.exists(file_path):
         print(f"File {file_path} does not exist.")
-        exit()
+        sys.exit()
 
     with open(file_path, "r") as file:
         lines = file.readlines()
@@ -933,13 +932,13 @@ def read_inter_file(file_path):
               Please fix to be sure to avoid silly mistakes
               """
         )
-        exit()
+        sys.exit()
 
     epsilons = [line.split()[1:] for line in lines[1:]]
     epsilons = np.array(epsilons, dtype=float)
     if np.any(epsilons != epsilons.T):
         print(f"ERROR: the matrix of inter epsilon must be symmetric, check the input file {file_path}")
-        exit()
+        sys.exit()
     return names_row, epsilons
 
 
