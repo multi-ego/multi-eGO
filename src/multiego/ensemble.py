@@ -801,8 +801,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     type_ai = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
     type_aj = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
 
-    special_masks = []
-
     for rule in type_definitions.special_non_local:
 
         types_i, types_j = rule["atomtypes"]
