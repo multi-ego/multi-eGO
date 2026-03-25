@@ -11,12 +11,6 @@ _args_dict_shared = {
         "help": "mg: creates a force-field for molten globule simulations."
         "production: creates a force-field combining random coil simulations and training simulations.",
     },
-    "--input_refs": {
-        "type": list,
-        "default": [],
-        "help": "A list of the training simulations to be included in multi-eGO, "
-        "corresponding to the subfolders to process and where the contacts are learned.",
-    },
     "--p_to_learn": {
         "type": float,
         "default": 0.9995,

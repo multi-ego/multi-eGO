@@ -19,12 +19,17 @@ def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference
             print("WARNING: Configuration file was parsed, but the dictionary is empty")
         else:
             args = combine_configurations(config_yaml, args, args_dict_global)
+            # input_refs is a YAML-only block not handled by combine_configurations,
+            # so we extract it directly from the raw YAML before passing to read_new_input
+            args.input_refs = next(
+                (e["input_refs"] for e in config_yaml if isinstance(e, dict) and "input_refs" in e),
+                [],
+            )
             args = read_new_input(args, args_dict_single_reference)
 
-    # if config does not exists convert command line to input_ref dictionary format
+    # if config does not exist convert command line to input_ref dictionary format
     else:
-        if args.input_refs:
-            raise ValueError("ERROR: input_refs should be used only with a configuration file")
+        args.input_refs = []
 
         if args.egos == "production" and not args.reference:
             args.reference = ["reference"]
@@ -51,11 +56,15 @@ def read_config(file, args_dict):
     with open(file, "r") as f:
         yml = yaml.safe_load(f)
     # check if the keys in the yaml file are valid
+    # input_refs is a YAML-only key assembled by read_new_input, not an argparse argument
+    yaml_only_keys = {"input_refs"}
     for element in yml:
         if type(element) is not dict:
             key = element
         else:
             key = list(element.keys())[0]
+        if key in yaml_only_keys:
+            continue
         if f"--{key}" not in args_dict:
             raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
     return yml
@@ -161,9 +170,12 @@ def combine_configurations(yml, args, args_dict):
     dict
         The combined configuration
     """
+    yaml_only_keys = {"input_refs"}
     for element in yml:
         if type(element) is dict:
             key, value = list(element.items())[0]
+            if key in yaml_only_keys:
+                continue
             value = args_dict[f"--{key}"]["type"](value)
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
