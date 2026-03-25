@@ -1,19 +1,13 @@
-;
-;	File 'topol.top' was generated
-;	By user: carlo (501)
-;	On host: dhcp-160-207.celoria26-16000022-smfn_biodip.unimi.it
-;	At date: Tue Jun  3 15:20:34 2025
-;
 ;	This is a standalone topology file
 ;
 ;	Created by:
-;	                    :-) GROMACS - gmx pdb2gmx, 2024.5 (-:
+;	                    :-) GROMACS - gmx pdb2gmx, 2025.4 (-:
 ;	
-;	Executable:   /Users/carlo/Codes/gromacs-2024.5/exe/bin/gmx_mpi
-;	Data prefix:  /Users/carlo/Codes/gromacs-2024.5/exe
+;	Executable:   /Users/carlo/Codes/gromacs-2025.4/exe/bin/gmx_mpi
+;	Data prefix:  /Users/carlo/Codes/gromacs-2025.4/exe
 ;	Working dir:  /Users/carlo/Projects/meGO/TTR/setup
 ;	Command line:
-;	  gmx_mpi pdb2gmx -f conf.gro
+;	  gmx_mpi pdb2gmx -f conf.gro -ignh
 ;	Force field data was read from:
 ;	/Users/carlo/Codes/multi-ego
 ;
@@ -49,7 +43,7 @@ TTR             3
     13          N      2    THR      N      2          0    13.0067
     14          H      2    THR      H      2          0      4.032
     15        CAH      2    THR     CA      2          0     12.011
-    16        CH1      2    THR     CB      2          0     13.019
+    16       CH1t      2    THR     CB      2          0     13.019
     17         OA      2    THR    OG1      2          0    16.9994
     18        CH3      2    THR    CG2      2          0     15.035
     19          C      2    THR      C      2          0     11.011
@@ -134,7 +128,7 @@ TTR             3
     89        CAH     11    SER     CA     11          0     12.011
     90        CH2     11    SER     CB     11          0     14.027
     91         OA     11    SER     OG     11          0    16.9994
-    92          C     11    SER      C     11          0     12.011
+    92          C     11    SER      C     11          0     11.011
     93         OM     11    SER     O1     11          0    15.9994
     94         OM     11    SER     O2     11          0    15.9994   ; qtot 0
 
@@ -563,11 +557,11 @@ TTR             3
    13    15    19    21     1    gd_42T
    13    15    19    21     1    gd_45T
    15    19    21    23     1    gd_14
-   19    21    23    28     1    gd_43VI
-   19    21    23    28     1    gd_44VI
+   19    21    23    28     1    gd_43I
+   19    21    23    28     1    gd_44I
    21    23    24    25     1    gd_34
-   21    23    28    30     1    gd_42VI
-   21    23    28    30     1    gd_45VI
+   21    23    28    30     1    gd_42I
+   21    23    28    30     1    gd_45I
    23    24    25    27     1    gd_34
    23    28    30    32     1    gd_14
    28    30    32    34     1    gd_43A
@@ -683,7 +677,7 @@ TTR             3
 
 [ system ]
 ; Name
-TTR13
+TTR
 
 [ molecules ]
 ; Compound        #mols
