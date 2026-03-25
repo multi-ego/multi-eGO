@@ -606,33 +606,9 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         d.update(d_appo)
 
     topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
-    OO_mask = masking.create_matrix_mask(
-        topology_df_i["mego_type"].to_numpy(),
-        topology_df_j["mego_type"].to_numpy(),
-        [("OM", "OM"), ("O", "O"), ("OM", "O")],
-        symmetrize=True,
-    )
-    HH_mask = masking.create_matrix_mask(
-        topology_df_i["mego_type"].to_numpy(),
-        topology_df_j["mego_type"].to_numpy(),
-        [("H", "H")],
-        symmetrize=True,
-    )
-    NN_mask = masking.create_matrix_mask(
-        topology_df_i["mego_type"].to_numpy(),
-        topology_df_j["mego_type"].to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
-        symmetrize=True,
-    )
-    ON_mask = masking.create_matrix_mask(
-        topology_df_i["mego_type"].to_numpy(),
-        topology_df_j["mego_type"].to_numpy(),
-        [
-            ("O", "N"),
-            ("OM", "N"),
-        ],
-        symmetrize=True,
-    )
+
+    type_i = topology_df_i["mego_type"].to_numpy()
+    type_j = topology_df_j["mego_type"].to_numpy()
 
     if mat_type == "intra":
         first_aminoacid = topology_mego.residues[0].name
@@ -662,15 +638,26 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
             ]
 
         c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
+        c12_matrix = c12_values.copy()
 
-        # define all cutoff using combination rule values and OO_mask
-        c12_cutoff = CUTOFF_FACTOR * np.power(np.where(OO_mask, type_definitions.mg_OO_c12_rep, c12_values), 1.0 / 12.0)
-        # apply HH correction
-        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
-        # apply ON correction
-        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
-        # apply NN correction
-        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
+        # special repulsive rules
+        for rule in type_definitions.special_non_local:
+            if rule["interaction"] != "rep":
+                continue
+            if rule["epsilon"] is None:
+                continue
+
+            types_i, types_j = rule["atomtypes"]
+            pair_list = [(a, b) for a in types_i for b in types_j]
+            mask = masking.create_matrix_mask(
+                type_i,
+                type_j,
+                pair_list,
+                symmetrize=True,
+            )
+            c12_matrix = np.where(mask, rule["epsilon"], c12_matrix)
+
+        c12_cutoff = CUTOFF_FACTOR * np.power(c12_matrix, 1.0 / 12.0)
 
         # apply the user pairs (overwrite all other rules)
         if molecule_type == "other":
@@ -682,18 +669,25 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
     if mat_type == "inter":
-        # define all cutoff
-        c12_cutoff = CUTOFF_FACTOR * np.where(
-            OO_mask,
-            np.power(type_definitions.mg_OO_c12_rep, 1.0 / 12.0),
-            np.power(
-                np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis]),
-                1.0 / 12.0,
-            ),
-        )
-        c12_cutoff = np.where(HH_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_HH_c12_rep, 1.0 / 12.0), c12_cutoff)
-        c12_cutoff = np.where(ON_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_ON_c12_rep, 1.0 / 12.0), c12_cutoff)
-        c12_cutoff = np.where(NN_mask, CUTOFF_FACTOR * np.power(type_definitions.mg_NN_c12_rep, 1.0 / 12.0), c12_cutoff)
+        c12_matrix = np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis])
+        # special repulsive rules
+        for rule in type_definitions.special_non_local:
+            if rule["interaction"] != "rep":
+                continue
+            if rule["epsilon"] is None:
+                continue
+
+            types_i, types_j = rule["atomtypes"]
+            pair_list = [(a, b) for a in types_i for b in types_j]
+            mask = masking.create_matrix_mask(
+                type_i,
+                type_j,
+                pair_list,
+                symmetrize=True,
+            )
+            c12_matrix = np.where(mask, rule["epsilon"], c12_matrix)
+
+        c12_cutoff = CUTOFF_FACTOR * np.power(c12_matrix, 1.0 / 12.0)
 
     mismatched = topology_df_i.loc[topology_df_i["ref_type"].str[0] != topology_df_i["mego_name"].str[0]]
     if not mismatched.empty:

@@ -330,7 +330,7 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
                 ex6.add(current_atom)
 
             # Stop traversal after depth 6
-            if depth < 6:
+            if depth < 5:
                 for neighbor in graph[current_atom]:
                     if neighbor not in visited:
                         visited.add(neighbor)

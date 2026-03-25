@@ -349,6 +349,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         reference_contact_matrices[name] = io.read_molecular_contacts(
             path, ensemble["molecules_idx_sbtype_dictionary"], reference["reference"], path.endswith(".h5")
         )
+
+        # TODO: probabilities of equivalent atoms should be averaged
+
         reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
         reference_contact_matrices[name]["c6_i"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_ai"]]
         reference_contact_matrices[name]["c6_j"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_aj"]]
@@ -764,70 +767,11 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
         type_to_c12.update(type_to_c12_appo)
 
-    type_ai_mapped = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"])
-    type_aj_mapped = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"])
-
-    # set of interactions with parameters not resulting from the combination rule
-    # oxygen-oxygen repulsion
-    OO_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [("O", "O"), ("OM", "OM"), ("O", "OM")],
-        symmetrize=True,
-    )
-
-    # hydrongen-oxygen attraction
-    HO_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [("H", "O"), ("H", "OM"), ("H", "OA")],
-        symmetrize=True,
-    )
-
-    # oxygen-nitrogen repulsion (when not attractive)
-    ON_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [
-            ("O", "N"),
-            ("OM", "N"),
-        ],
-        symmetrize=True,
-    )
-
-    # hydrogen-hydrogen repulsion
-    # Define condition where only ai or aj (but not both) starts with "H"
-    H_mask = train_dataset["ai"].str.startswith("H") ^ train_dataset["aj"].str.startswith("H")
-    HH_mask = train_dataset["ai"].str.startswith("H") & train_dataset["aj"].str.startswith("H")
-
-    # TODO
-    # here we should iterate over the pairs in type definition amd generate the repulsions
-    # NL-NZ repulsion
-    NN_mask = masking.create_linearized_mask(
-        type_ai_mapped.to_numpy(),
-        type_aj_mapped.to_numpy(),
-        [("NL", "NL"), ("NZ", "NZ"), ("NL", "NZ")],
-        symmetrize=True,
-    )
-
     # default repulsive C12 (rep)
     pairwise_c12 = np.sqrt(
         train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
-    # special REP cases:
-    train_dataset.loc[OO_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_OO_c12_rep
-    )
-    train_dataset.loc[ON_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_ON_c12_rep
-    )
-    train_dataset.loc[HH_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_HH_c12_rep
-    )
-    train_dataset.loc[NN_mask & ((train_dataset["bond_distance"] != 3) | (~train_dataset["same_chain"])), "rep"] = (
-        type_definitions.mg_NN_c12_rep
-    )
 
     # default (mg) sigma
     pairwise_mg_sigma = (
@@ -839,11 +783,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         )
     ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
-    # special mg sigma cases:
-    train_dataset.loc[OO_mask, "mg_sigma"] = (type_definitions.mg_OO_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
-    train_dataset.loc[HH_mask, "mg_sigma"] = type_definitions.mg_HH_c12_rep ** (1 / 12) / 2 ** (1 / 6)
-    train_dataset.loc[NN_mask, "mg_sigma"] = (type_definitions.mg_NN_c12_rep) ** (1 / 12) / 2 ** (1 / 6)
-    train_dataset.loc[HO_mask, "mg_sigma"] = type_definitions.mg_HO_sigma
 
     # default (mg) epsilon
     pairwise_mg_epsilon = (
@@ -857,12 +796,39 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         )
     )
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
+
     # special cases:
-    train_dataset.loc[OO_mask, "mg_epsilon"] = -type_definitions.mg_OO_c12_rep
-    train_dataset.loc[H_mask, "mg_epsilon"] = 0.0
-    train_dataset.loc[HH_mask, "mg_epsilon"] = -type_definitions.mg_HH_c12_rep
-    train_dataset.loc[NN_mask, "mg_epsilon"] = -type_definitions.mg_NN_c12_rep
-    train_dataset.loc[HO_mask, "mg_epsilon"] = type_definitions.mg_eps_HO
+    type_ai = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
+    type_aj = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
+
+    special_masks = []
+
+    for rule in type_definitions.special_non_local:
+
+        types_i, types_j = rule["atomtypes"]
+        pair_list = [(i, j) for i in types_i for j in types_j]
+        mask = masking.create_linearized_mask(
+            type_ai,
+            type_aj,
+            pair_list,
+            symmetrize=True,
+        )
+
+        if rule["interaction"] == "rep":
+            if rule["epsilon"] is not None:
+                train_dataset.loc[mask, "rep"] = rule["epsilon"]
+                train_dataset.loc[mask, "mg_epsilon"] = -rule["epsilon"]
+                train_dataset.loc[mask, "mg_sigma"] = rule["epsilon"] ** (1 / 12) / 2 ** (1 / 6)
+            else:
+                rep_vals = train_dataset.loc[mask, "rep"]
+                train_dataset.loc[mask, "mg_epsilon"] = -rep_vals
+                train_dataset.loc[mask, "mg_sigma"] = rep_vals ** (1 / 12) / 2 ** (1 / 6)
+
+        elif rule["interaction"] == "att":
+            if rule["epsilon"] is not None:
+                train_dataset.loc[mask, "mg_epsilon"] = rule["epsilon"]
+            if rule["sigma"] is not None:
+                train_dataset.loc[mask, "mg_sigma"] = rule["sigma"]
 
     # final cleaning
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
@@ -887,6 +853,8 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
         combinations = list(itertools.product(sbtype1, repeat=2))
     else:
         combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
+        # remove duplicates if any (cleaner ffnonbonded, but should not metter in terms of gromacs implementation: only last entry of doubled definition is used)
+        combinations = list(set(combinations))
     if c12_rep is None:
         c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations])
 
@@ -894,7 +862,7 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     pairs_LJ["c12"] = c12_rep / factor
     pairs_LJ["c6"] = 0.0
     pairs_LJ["epsilon"] = -c12_rep / factor
-    pairs_LJ["sigma"] = c12_rep / factor ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
+    pairs_LJ["sigma"] = (c12_rep / factor) ** (1.0 / 12.0) / 2.0 ** (1.0 / 6.0)
     pairs_LJ["mg_sigma"] = pairs_LJ["sigma"]
     pairs_LJ["mg_epsilon"] = -c12_rep / factor
 
@@ -907,6 +875,8 @@ def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictiona
         combinations = list(itertools.product(sbtype1, repeat=2))
     else:
         combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
+        # remove duplicates if any (cleaner ffnonbonded, but should not metter in terms of gromacs implementation: only last entry of doubled definition is used)
+        combinations = list(set(combinations))
 
     if epsilon is not None and sigma is None:
         # define sigma as combination rule of all combinations pairs
@@ -1034,8 +1004,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
     condition = (
-        meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        # & (meGO_LJ["mg_epsilon"] > 0.0)
+    )
 
     meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
         (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
@@ -1043,15 +1015,42 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ.loc[condition, "learned"] = 1
     meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
 
-    # Not-attractive interactions
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
+    # condition = (
+    #    (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+    #    & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+    #    & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+    #    & (meGO_LJ["mg_epsilon"] > 0.0)
+    # )
+    # meGO_LJ.loc[condition, "epsilon"] = parameters.epsilon_min
+    # meGO_LJ.loc[condition, "learned"] = 1
+    # meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
+
+    # Repulsive interactions
     # negative epsilon are used to identify non-attractive interactions
+    # These are defined only if the training probability is greater than MD_threshold and
+    # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
+    # condition = (
+    #    (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+    #    & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+    #    & (meGO_LJ["mg_epsilon"] < 0.0)
+    #    & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+    # )
+    # meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
+    #    lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
+    # )[condition]
+    # meGO_LJ.loc[condition, "learned"] = 1
+
+    # this is used only when MD_th < MD_p < limit_rc_att*RC_p
     condition = (
-        meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"] * (
-        1.0 + (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]) - meGO_LJ["probability"])
+        (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
+        & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
+        # & (meGO_LJ["mg_epsilon"] < 0.0)
     )
+    meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
+        lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
+    )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
     # 1-4 interactions are special and cannot become attractive because they are part of the bonded-interactions
@@ -1250,7 +1249,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
             & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
-            & ~((meGO_LJ["bond_distance"] < 7) & (meGO_LJ["same_chain"]))
+            & ~((meGO_LJ["bond_distance"] < 6) & (meGO_LJ["same_chain"]))
         )
     ]
 
@@ -1291,10 +1290,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     if not parameters.single_molecule:
         # neighbour intramolecular interactions are not used as intermolecular
-        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 7)]
+        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6)]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
         # remove them from the default force-field
-        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 7))]
+        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6))]
 
     # now we can decide to keep intermolecular interactions as intramolecular ones
     # to do this is enough to remove it from meGO_LJ_14, in this way the value used for the contact is the one meGO_LJ
@@ -1305,7 +1304,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
                 (~meGO_LJ_14["same_chain"])
                 & (meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"])
                 & (meGO_LJ_14["epsilon"] > 0.0)
-                & (meGO_LJ_14["bond_distance"] > 6)
+                & (meGO_LJ_14["bond_distance"] > 5)
             )
         ]
     else:
@@ -1576,37 +1575,31 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_OO_c12_rep
 
             df.loc[
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")),
+                "c12",
+            ] = type_definitions.mg_OMOM_c12_rep
+
+            df.loc[
                 ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "H"))
                 & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "H")),
                 "c12",
             ] = type_definitions.mg_HH_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")
-                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NZ")
-                ),
+                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL"))
+                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")),
                 "c12",
             ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
                 (
-                    (
-                        (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
-                    & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
                 )
                 | (
-                    ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N"))
-                    & (
-                        (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                        | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    )
+                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
+                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
                 ),
                 "c12",
             ] = type_definitions.mg_ON_c12_rep
@@ -1650,30 +1643,30 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             # this need to be the default repulsion if within two residue
             if not pairs.empty:
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 7),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 6),
                     "c6",
                 ] = 0.0
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 7),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] < 6),
                     "c12",
                 ] = pairs["rep"]
                 # else it should be default mg
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] < 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0),
                     "c6",
                 ] = 0.0
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] < 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0),
                     "c12",
                 ] = -pairs["mg_epsilon"]
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] > 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0),
                     "c6",
                 ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
                 )
                 pairs.loc[
-                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 6) & (pairs["mg_epsilon"] > 0.0),
+                    (~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0),
                     "c12",
                 ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
