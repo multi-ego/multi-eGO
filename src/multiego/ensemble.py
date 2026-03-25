@@ -81,7 +81,7 @@ def initialize_topology(topology, custom_dict, args):
 
     # Extending the from_ff_to_multiego dictionary to include the custom dictionary for special molecules
     # (if none is present the extended dictionary is equivalent to the standard one)
-    from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego
+    from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego.copy()
     from_ff_to_multiego_extended.update(custom_dict)
 
     ensemble_topology_dataframe = ensemble_topology_dataframe.replace({"name": from_ff_to_multiego_extended})
