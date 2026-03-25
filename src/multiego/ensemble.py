@@ -140,7 +140,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     """
 
     # remove un-learned contacts (intra-inter domain)
-    contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
+    # contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
@@ -391,11 +391,13 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
         # Update sigma values where they exist in lj_pairs
         reference_contact_matrices[name].loc[common_indices, "sigma_prior"] = lj_sigma_map.astype("float64")
-        reference_contact_matrices[name].loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
+        if not common_indices_14.empty:
+            reference_contact_matrices[name].loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
 
         # Update epsilon values where they exist in lj_pairs
         reference_contact_matrices[name].loc[common_indices, "epsilon_prior"] = lj_epsilon_map.astype("float64")
-        reference_contact_matrices[name].loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
+        if not common_indices_14.empty:
+            reference_contact_matrices[name].loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
 
         reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
 
@@ -800,8 +802,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     # special cases:
     type_ai = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
     type_aj = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
-
-    special_masks = []
 
     for rule in type_definitions.special_non_local:
 
