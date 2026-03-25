@@ -13,10 +13,14 @@
   - SER O1 O2
 - input_refs:
   - reference: reference
-    train: native_MD,fibril
+    train: native_MD
     matrix: intramat_1_1
-    epsilon: 0.20
+    epsilon: 0.25
+  - reference: reference
+    train: fibril
+    matrix: intramat_1_1
+    epsilon: 0.25
   - reference: reference
     train: fibril
     matrix: intermat_1_1
-    epsilon: 0.29
+    epsilon: 0.25
