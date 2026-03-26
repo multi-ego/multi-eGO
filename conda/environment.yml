@@ -12,3 +12,4 @@ dependencies:
   - scipy>=1.15.1
   - pytables>=3.9.2
   - networkx>=3.2.1
+  - pytest
