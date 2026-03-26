@@ -1,4 +1,4 @@
-from .resources import type_definitions
+from . import type_definitions
 
 import numpy as np
 import pandas as pd

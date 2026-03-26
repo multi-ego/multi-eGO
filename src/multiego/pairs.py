@@ -1,4 +1,4 @@
-from .resources import type_definitions
+from . import type_definitions
 
 from collections import defaultdict, deque
 import numpy as np

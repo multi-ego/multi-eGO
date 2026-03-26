@@ -1,5 +1,4 @@
-from .resources import type_definitions
-from .util import masking
+from . import type_definitions
 from .mg import generate_MG_LJ
 from . import io
 
@@ -8,6 +7,41 @@ import pandas as pd
 import itertools
 import sys
 import time
+
+
+def create_linearized_mask(
+    set1,
+    set2,
+    types,
+    symmetrize=False,
+    inner_op=lambda x, y: x == y,
+    outer_op=lambda x, y: x * y,
+):
+    """
+    Creates a linearized boolean mask based on comparison operations between two sets.
+
+    Args:
+    - set1 (numpy.ndarray): First set of values.
+    - set2 (numpy.ndarray): Second set of values.
+    - types (list): List of tuples representing types for comparison.
+    - symmetrize (bool): Flag to determine whether to symmetrize type selection.
+    - inner_op (function): Operation for element-wise comparison within each set.
+    - outer_op (function): Operation for the combination of comparisons between sets.
+
+    Returns:
+    - numpy.ndarray: A linearized boolean mask reflecting the comparison operations.
+
+    Note:
+    - This function does not provide a flattened mask array but operates on a 1D array.
+    """
+    if symmetrize:
+        types = list(set(types + [(t[1], t[0]) for t in types]))
+
+    mask = np.full(set1.shape[0], False)
+    for type1, type2 in types:
+        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2))
+
+    return mask
 
 
 def set_sig_epsilon(meGO_LJ, parameters):
@@ -315,7 +349,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
     for rule in type_definitions.special_non_local:
         types_i, types_j = rule["atomtypes"]
         pair_list = [(i, j) for i in types_i for j in types_j]
-        mask = masking.create_linearized_mask(type_ai, type_aj, pair_list, symmetrize=True)
+        mask = create_linearized_mask(type_ai, type_aj, pair_list, symmetrize=True)
 
         if rule["interaction"] == "rep":
             if rule["epsilon"] is not None:

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import networkx as nx
 from itertools import combinations
-from .resources import type_definitions
+from . import type_definitions
 
 
 def get_bonds(topology):
