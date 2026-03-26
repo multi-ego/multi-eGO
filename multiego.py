@@ -1,7 +1,6 @@
 import argparse
 import sys
 import os
-import pandas as pd
 import time
 import gc
 
@@ -17,15 +16,13 @@ from src.multiego.arguments import args_dict_global
 from src.multiego.arguments import args_dict_single_reference
 
 
-def meGO_parsing():
+def _build_parser():
     """
-    Parses command-line arguments for the multi-eGO model generation.
+    Constructs the argument parser for multi-eGO.
 
-    Returns:
-    argparse.Namespace: An object containing parsed arguments.
-
-    This function sets up an argument parser using the argparse library to handle command-line arguments
-    required for generating a multi-eGO model based on training simulations and reference simulations.
+    Returns
+    -------
+    argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
         prog="multiego.py",
@@ -48,26 +45,25 @@ for a contact pair.
 """,
     )
 
-    for arg, arg_dict in args_dict.items():
-        # necessary for the boolean flags
-        if "action" in arg_dict.keys() and (arg_dict["action"] == "store_true" or arg_dict["action"] == "store_false"):
-            arg_dict.pop("type")  # necessary for boolean flags
-        parser.add_argument(arg, **arg_dict)
+    for arg, arg_spec in args_dict.items():
+        # boolean flags must not carry a 'type' key when action is store_true/store_false
+        spec = arg_spec.copy()
+        if spec.get("action") in ("store_true", "store_false"):
+            spec.pop("type", None)
+        parser.add_argument(arg, **spec)
 
-    args, remaining = parser.parse_known_args()
-    args.root_dir = os.path.dirname(os.path.abspath(__file__))
-    # multi_flag = False
+    return parser
 
-    # Check if no arguments are provided
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
 
-    # read arguments depending on how they were parsed command line/config file (with or without multi-reference )
-    args = io.read_arguments(args, args_dict, args_dict_global, args_dict_single_reference)
+def _validate_args(args):
+    """
+    Validates parsed arguments and exits with a clear message on any error.
 
-    # TODO put all the checks in a function to have the code cleaner
-    # check if the configuration file is provided or if system, and egos rc are provided or if system, egos production, train and epsilon are provided
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Arguments as returned by io.read_arguments.
+    """
     if not args.system:
         print("ERROR: No system name found! Please provide a system name.")
         sys.exit()
@@ -75,7 +71,6 @@ for a contact pair.
         print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
 
-    # Checks and warnings for each reference
     if args.p_to_learn < 0.9:
         print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
 
@@ -83,19 +78,13 @@ for a contact pair.
         print("ERROR: --epsilon_min must be greater than 0.")
         sys.exit()
 
-    # controls that all reference entries contains correct arguments
     for ref in args.input_refs:
-
-        # Check for missing required keys (keys without a default)
-        input_keys = set(ref)
-        # required_keys = {key.lstrip("--") for key, value in args_dict_single_reference.items() if value.get("required", False)}
         required_keys = {"matrix", "epsilon", "train", "reference"}
-        missing_keys = required_keys - input_keys
+        missing_keys = required_keys - set(ref)
         if missing_keys:
-            raise ValueError(f"Missing required keys in {ref}: \n{missing_keys}")
+            raise ValueError(f"Missing required keys in {ref}:\n{missing_keys}")
 
-        # Check for empty required values
-        empty_required_keys = [key for key in required_keys if not ref[key]]  # Checks for None, empty string, or empty list
+        empty_required_keys = [key for key in required_keys if not ref[key]]
         if empty_required_keys:
             if "train" in empty_required_keys:
                 print("ERROR: No training simulations found! Please provide a list of training simulations.")
@@ -103,54 +92,80 @@ for a contact pair.
             if "epsilon" in empty_required_keys:
                 print("ERROR: No epsilon value found! Please provide an epsilon value.")
                 sys.exit()
+            raise ValueError(f"Empty values for required keys in {ref}.\nMissing {empty_required_keys}")
 
-            raise ValueError(f"Empty values for required keys in {ref}.\n Missing {empty_required_keys}")
-
-        # Checks and warnings for each reference
         if ref["epsilon"] < args.epsilon_min:
             print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({args.epsilon_min})")
             sys.exit()
 
-    custom_dict = {}
-    if args.custom_dict:
-        custom_dict = io.parse_json(args.custom_dict)
-        if custom_dict == None:
-            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
-            sys.exit()
-
-    print(f"Running Multi-eGO: {args.egos}\n")
-    print("- Processing Multi-eGO topology")
-    mego_ensemble = contacts.init_meGO_ensemble(args, custom_dict)
-
     if args.symmetry_file and args.symmetry:
         print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
         sys.exit()
-    if args.symmetry_file:
-        args.symmetry = io.read_symmetry_file(args.symmetry_file)
-    elif args.symmetry:
-        args.symmetry = io.parse_symmetry_list(args.symmetry)
 
-    custom_c12_dict = pd.DataFrame()
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         if custom_c12_dict is None or custom_c12_dict.empty:
-            print("ERROR: Custom c12 paramter file was parsed, but the dictionary is empty")
+            print("ERROR: Custom c12 parameter file was parsed, but the dictionary is empty")
             sys.exit()
+
+
+def meGO_parsing():
+    """
+    Parses and validates command-line arguments, resolves symmetry and custom
+    dictionaries, and initializes the meGO ensemble topology.
+
+    Returns
+    -------
+    args : argparse.Namespace
+        Fully resolved and validated arguments.
+    mego_ensemble : MeGOEnsemble
+        Initialized ensemble topology.
+    custom_dict : dict
+        Custom atom-name mapping dictionary (empty if not provided).
+    """
+    parser = _build_parser()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    args, remaining = parser.parse_known_args()
 
     if remaining:
         print("Unknown arguments provided: " + str(remaining))
         parser.print_usage()
         sys.exit()
 
+    args.root_dir = os.path.dirname(os.path.abspath(__file__))
+    args = io.read_arguments(args, args_dict, args_dict_global, args_dict_single_reference)
+
+    _validate_args(args)
+
+    custom_dict = {}
+    if args.custom_dict:
+        custom_dict = io.parse_json(args.custom_dict)
+        if custom_dict is None:
+            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
+            sys.exit()
+
+    if args.symmetry_file:
+        args.symmetry = io.read_symmetry_file(args.symmetry_file)
+    elif args.symmetry:
+        args.symmetry = io.parse_symmetry_list(args.symmetry)
+
+    print(f"Running Multi-eGO: {args.egos}\n")
+    print("- Processing Multi-eGO topology")
+    mego_ensemble = contacts.init_meGO_ensemble(args, custom_dict)
+
     return args, mego_ensemble, custom_dict
 
 
 def main():
     """
-    Parses command-line arguments and generates a multi-eGO model by invoking various functions
-    related to ensemble generation, LJ parameter computation, and writing the output.
+    Orchestrates the full multi-eGO model generation pipeline:
+    argument parsing, bonded interactions, contact matrix processing,
+    LJ parametrization, and output writing.
     """
-
     bt = time.time()
     generate_face.print_welcome()
     args, meGO_ensembles, custom_dict = meGO_parsing()
@@ -162,9 +177,13 @@ def main():
     if args.egos == "production":
         io.check_matrix_format(args)
 
-    print("\t- Generating bonded interactions")
+    print("- Generating bonded interactions")
     meGO_ensembles = bonded.generate_bonded_interactions(meGO_ensembles)
-    print("\t- Generating 1-4 data")
+    et = time.time()
+    print("- Done in:", et - st, "seconds")
+    st = et
+
+    print("- Generating 1-4 data")
     pairs14, exclusion_bonds14 = bonded.generate_14_data(meGO_ensembles)
     et = time.time()
     print("- Done in:", et - st, "seconds")
@@ -176,24 +195,25 @@ def main():
         et = time.time()
         print("- Done in:", et - st, "seconds")
         st = et
+
         print("- Initializing LJ dataset")
         train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
-        # force memory cleaning to decrease footprint in case of large dataset
         del matrices
         gc.collect()
         et = time.time()
         print("- Done in:", et - st, "seconds")
         st = et
-        print("- Generate LJ dataset")
+
+        print("- Generating LJ dataset")
         meGO_LJ, meGO_LJ_14, stat_str = lj.generate_LJ(meGO_ensembles, train_dataset, args)
-        # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
         gc.collect()
         et = time.time()
         print("- Done in:", et - st, "seconds")
         st = et
+
     elif args.egos == "mg":
-        print("- Generate the LJ dataset")
+        print("- Generating LJ dataset")
         meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         meGO_LJ_14 = pairs14
@@ -201,7 +221,7 @@ def main():
         print("- Done in:", et - st, "seconds")
         st = et
 
-    print("- Finalize pairs and exclusions")
+    print("- Finalizing pairs and exclusions")
     meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
     print("- Done in:", et - st, "seconds")
