@@ -40,6 +40,61 @@ def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference
     return args
 
 
+def validate_args(args):
+    """
+    Validates parsed and fully resolved arguments, exiting with a clear
+    message on any error. Should be called after read_arguments.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Arguments as returned by read_arguments.
+    """
+    if not args.system:
+        print("ERROR: No system name found! Please provide a system name.")
+        sys.exit()
+    if not args.egos:
+        print("ERROR: No egos mode found! Please provide an egos mode.")
+        sys.exit()
+
+    if args.p_to_learn < 0.9:
+        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
+
+    if args.epsilon_min <= 0.0:
+        print("ERROR: --epsilon_min must be greater than 0.")
+        sys.exit()
+
+    for ref in args.input_refs:
+        required_keys = {"matrix", "epsilon", "train", "reference"}
+        missing_keys = required_keys - set(ref)
+        if missing_keys:
+            raise ValueError(f"Missing required keys in {ref}:\n{missing_keys}")
+
+        empty_required_keys = [key for key in required_keys if not ref[key]]
+        if empty_required_keys:
+            if "train" in empty_required_keys:
+                print("ERROR: No training simulations found! Please provide a list of training simulations.")
+                sys.exit()
+            if "epsilon" in empty_required_keys:
+                print("ERROR: No epsilon value found! Please provide an epsilon value.")
+                sys.exit()
+            raise ValueError(f"Empty values for required keys in {ref}.\nMissing {empty_required_keys}")
+
+        if ref["epsilon"] < args.epsilon_min:
+            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({args.epsilon_min})")
+            sys.exit()
+
+    if args.symmetry_file and args.symmetry:
+        print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
+        sys.exit()
+
+    if args.custom_c12 is not None:
+        custom_c12_dict = read_custom_c12_parameters(args.custom_c12)
+        if custom_c12_dict is None or custom_c12_dict.empty:
+            print("ERROR: Custom c12 parameter file was parsed, but the dictionary is empty")
+            sys.exit()
+
+
 def read_config(file, args_dict):
     """
     Reads a YAML file and returns its content as a dictionary.

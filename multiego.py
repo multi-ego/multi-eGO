@@ -1,4 +1,3 @@
-import argparse
 import sys
 import os
 import time
@@ -14,99 +13,7 @@ from src.multiego import generate_face
 from src.multiego.arguments import args_dict
 from src.multiego.arguments import args_dict_global
 from src.multiego.arguments import args_dict_single_reference
-
-
-def _build_parser():
-    """
-    Constructs the argument parser for multi-eGO.
-
-    Returns
-    -------
-    argparse.ArgumentParser
-    """
-    parser = argparse.ArgumentParser(
-        prog="multiego.py",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="""\
-Generates a multi-eGO model based on one or more training simulations
-and their corresponding reference simulations. In most cases one single
-parameter is required, --epsilon, that sets the maximum interaction energy
-for a contact pair.
-""",
-        epilog="""\
-  example usage:
-
-  1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
-     > python multiego.py --system GB1 --egos rc
-
-  2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
-     interaction energy is set to 0.3 kJ/mol
-     > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
-""",
-    )
-
-    for arg, arg_spec in args_dict.items():
-        # boolean flags must not carry a 'type' key when action is store_true/store_false
-        spec = arg_spec.copy()
-        if spec.get("action") in ("store_true", "store_false"):
-            spec.pop("type", None)
-        parser.add_argument(arg, **spec)
-
-    return parser
-
-
-def _validate_args(args):
-    """
-    Validates parsed arguments and exits with a clear message on any error.
-
-    Parameters
-    ----------
-    args : argparse.Namespace
-        Arguments as returned by io.read_arguments.
-    """
-    if not args.system:
-        print("ERROR: No system name found! Please provide a system name.")
-        sys.exit()
-    if not args.egos:
-        print("ERROR: No egos mode found! Please provide an egos mode.")
-        sys.exit()
-
-    if args.p_to_learn < 0.9:
-        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-
-    if args.epsilon_min <= 0.0:
-        print("ERROR: --epsilon_min must be greater than 0.")
-        sys.exit()
-
-    for ref in args.input_refs:
-        required_keys = {"matrix", "epsilon", "train", "reference"}
-        missing_keys = required_keys - set(ref)
-        if missing_keys:
-            raise ValueError(f"Missing required keys in {ref}:\n{missing_keys}")
-
-        empty_required_keys = [key for key in required_keys if not ref[key]]
-        if empty_required_keys:
-            if "train" in empty_required_keys:
-                print("ERROR: No training simulations found! Please provide a list of training simulations.")
-                sys.exit()
-            if "epsilon" in empty_required_keys:
-                print("ERROR: No epsilon value found! Please provide an epsilon value.")
-                sys.exit()
-            raise ValueError(f"Empty values for required keys in {ref}.\nMissing {empty_required_keys}")
-
-        if ref["epsilon"] < args.epsilon_min:
-            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({args.epsilon_min})")
-            sys.exit()
-
-    if args.symmetry_file and args.symmetry:
-        print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
-        sys.exit()
-
-    if args.custom_c12 is not None:
-        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        if custom_c12_dict is None or custom_c12_dict.empty:
-            print("ERROR: Custom c12 parameter file was parsed, but the dictionary is empty")
-            sys.exit()
+from src.multiego.arguments import build_parser
 
 
 def meGO_parsing():
@@ -123,7 +30,7 @@ def meGO_parsing():
     custom_dict : dict
         Custom atom-name mapping dictionary (empty if not provided).
     """
-    parser = _build_parser()
+    parser = build_parser()
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -139,7 +46,7 @@ def meGO_parsing():
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
     args = io.read_arguments(args, args_dict, args_dict_global, args_dict_single_reference)
 
-    _validate_args(args)
+    io.validate_args(args)
 
     custom_dict = {}
     if args.custom_dict:

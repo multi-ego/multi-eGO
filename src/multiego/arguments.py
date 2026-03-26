@@ -129,3 +129,46 @@ args_dict_single_reference = {
         "required": True,
     },
 }
+
+
+import argparse
+
+
+def build_parser():
+    """
+    Constructs and returns the argument parser for multi-eGO, registering
+    all arguments from args_dict.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        prog="multiego.py",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="""\
+Generates a multi-eGO model based on one or more training simulations
+and their corresponding reference simulations. In most cases one single
+parameter is required, --epsilon, that sets the maximum interaction energy
+for a contact pair.
+""",
+        epilog="""\
+  example usage:
+
+  1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
+     > python multiego.py --system GB1 --egos rc
+
+  2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
+     interaction energy is set to 0.3 kJ/mol
+     > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
+""",
+    )
+
+    for arg, arg_spec in args_dict.items():
+        # boolean flags must not carry a 'type' key when action is store_true/store_false
+        spec = arg_spec.copy()
+        if spec.get("action") in ("store_true", "store_false"):
+            spec.pop("type", None)
+        parser.add_argument(arg, **spec)
+
+    return parser
