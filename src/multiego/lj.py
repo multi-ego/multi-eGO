@@ -1,5 +1,6 @@
 from . import type_definitions
 from .mg import generate_MG_LJ
+from .model_config import config
 from . import io
 
 import numpy as np
@@ -125,7 +126,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ.loc[condition, "learned"] = 1
 
     # 1-4 interactions are part of bonded interactions and cannot become attractive
-    condition = (meGO_LJ["bond_distance"] < 4) & (meGO_LJ["same_chain"])
+    condition = (meGO_LJ["bond_distance"] <= config.bond14_separation) & (meGO_LJ["same_chain"])
     meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"]
     meGO_LJ.loc[condition, "learned"] = 1
 
@@ -294,17 +295,22 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, all_bd, args):
         how="left",
         on=["ai", "aj"],
     )
-    train_dataset["bond_distance"] = train_dataset["bond_distance"].fillna(7).astype(int)
+    train_dataset["bond_distance"] = train_dataset["bond_distance"].fillna(config.max_bond_separation + 1).astype(int)
 
     train_dataset["ai"] = train_dataset["ai"].astype("category")
     train_dataset["aj"] = train_dataset["aj"].astype("category")
 
     # Remove 0_1_2_3 intramolecular interactions
-    train_dataset = train_dataset[~((train_dataset["same_chain"]) & (train_dataset["bond_distance"] < 3))]
+    train_dataset = train_dataset[
+        ~((train_dataset["same_chain"]) & (train_dataset["bond_distance"] < config.bond14_separation))
+    ]
     train_dataset.reset_index(inplace=True)
 
     train_dataset.loc[
-        (train_dataset["bond_distance"] == 3) & (train_dataset["same_chain"]) & (train_dataset["rep"].isnull()), "rep"
+        (train_dataset["bond_distance"] == config.bond14_separation)
+        & (train_dataset["same_chain"])
+        & (train_dataset["rep"].isnull()),
+        "rep",
     ] = 0.0
 
     type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
@@ -464,7 +470,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             & (meGO_LJ["mg_epsilon"] > 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.relative_c12d)
             & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.relative_c12d)
-            & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
+            & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
         )
     ]
     meGO_LJ = meGO_LJ.loc[
@@ -472,8 +478,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             (meGO_LJ["epsilon"] < 0)
             & (meGO_LJ["mg_epsilon"] < 0)
             & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.relative_c12d)
-            & ((meGO_LJ["bond_distance"] > 3) | (~meGO_LJ["same_chain"]))
-            & ~((meGO_LJ["bond_distance"] < 6) & (meGO_LJ["same_chain"]))
+            & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
+            & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
         )
     ]
 
@@ -498,14 +504,14 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
 
-    copy14 = meGO_LJ.loc[(meGO_LJ["bond_distance"] == 3) & (meGO_LJ["same_chain"])]
+    copy14 = meGO_LJ.loc[(meGO_LJ["bond_distance"] == config.bond14_separation) & (meGO_LJ["same_chain"])]
     meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
-    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["bond_distance"] == 3) & (meGO_LJ["same_chain"]))]
+    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["bond_distance"] == config.bond14_separation) & (meGO_LJ["same_chain"]))]
 
     if not parameters.single_molecule:
-        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6)]
+        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
-        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] < 6))]
+        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation))]
 
     if not parameters.force_split:
         meGO_LJ_14 = meGO_LJ_14.loc[
@@ -513,7 +519,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
                 (~meGO_LJ_14["same_chain"])
                 & (meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"])
                 & (meGO_LJ_14["epsilon"] > 0.0)
-                & (meGO_LJ_14["bond_distance"] > 5)
+                & (meGO_LJ_14["bond_distance"] > config.max_bond_separation)
             )
         ]
     else:

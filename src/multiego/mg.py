@@ -1,4 +1,5 @@
 from . import type_definitions
+from .model_config import config
 
 import numpy as np
 import pandas as pd
@@ -160,7 +161,7 @@ def generate_MG_LJ(meGO_ensemble):
     rc_LJ["rc_threshold"] = 1.0
     rc_LJ["md_threshold"] = 1.0
     rc_LJ["learned"] = 0
-    rc_LJ["bond_distance"] = 7
+    rc_LJ["bond_distance"] = config.max_bond_separation + 1
     molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble.molecules_idx_sbtype_dictionary}
     rc_LJ["molecule_name_ai"] = rc_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
     rc_LJ["molecule_name_aj"] = rc_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)

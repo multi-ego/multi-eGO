@@ -1,4 +1,5 @@
 from . import type_definitions
+from .model_config import config
 
 from collections import defaultdict, deque
 import numpy as np
@@ -16,9 +17,9 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
 
     for atom in reduced_topology["number"].to_list():
         visited = set([atom])
-        ex = set()
-        ex5 = set()
-        ex14 = set()
+        ex_tmp = set()
+        nth_tmp = set()
+        p14_tmp = set()
         queue = deque([(atom, 0)])
 
         while queue:
@@ -26,29 +27,29 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
 
             if depth == 0:
                 pass  # skip the origin atom
-            elif 1 <= depth <= 3:
-                ex.add(current_atom)
-                ex5.add(current_atom)
-                if depth == 3:
-                    ex14.add(current_atom)
-            elif 4 <= depth <= 5:
-                ex5.add(current_atom)
+            elif 0 < depth <= config.bond14_separation:
+                ex_tmp.add(current_atom)
+                nth_tmp.add(current_atom)
+                if depth == config.bond14_separation:
+                    p14_tmp.add(current_atom)
+            elif config.bond14_separation < depth <= config.max_bond_separation:
+                nth_tmp.add(current_atom)
 
             # Stop traversal after depth 5
-            if depth < 5:
+            if depth < config.max_bond_separation:
                 for neighbor in graph[current_atom]:
                     if neighbor not in visited:
                         visited.add(neighbor)
                         queue.append((neighbor, depth + 1))
 
         # Add bidirectional string identifiers
-        for e in ex:
+        for e in ex_tmp:
             exclusion_bonds.append(f"{atom}_{e}")
             exclusion_bonds.append(f"{e}_{atom}")
-        for e in ex5:
+        for e in nth_tmp:
             nth_bonds.append(f"{atom}_{e}")
             nth_bonds.append(f"{e}_{atom}")
-        for e in ex14:
+        for e in p14_tmp:
             p14.append(f"{atom}_{e}")
             p14.append(f"{e}_{atom}")
 
@@ -196,18 +197,38 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ].copy()
 
             if not pairs.empty:
-                # Within 6 bonds: use default repulsion
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] < 6), "c6"] = 0.0
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] < 6), "c12"] = pairs["rep"]
-                # Beyond 6 bonds: use MG prior
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0), "c6"] = 0.0
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] < 0.0), "c12"] = -pairs[
-                    "mg_epsilon"
+                # Within 5 bonds: use default repulsion
+                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c6"] = 0.0
+                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c12"] = pairs[
+                    "rep"
                 ]
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0), "c6"] = (
+                # Beyond 5 bonds: use MG prior
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (pairs["bond_distance"] > config.max_bond_separation)
+                    & (pairs["mg_epsilon"] < 0.0),
+                    "c6",
+                ] = 0.0
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (pairs["bond_distance"] > config.max_bond_separation)
+                    & (pairs["mg_epsilon"] < 0.0),
+                    "c12",
+                ] = -pairs["mg_epsilon"]
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (pairs["bond_distance"] > config.max_bond_separation)
+                    & (pairs["mg_epsilon"] > 0.0),
+                    "c6",
+                ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
                 )
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] > 5) & (pairs["mg_epsilon"] > 0.0), "c12"] = (
+                pairs.loc[
+                    (~pairs["same_chain"])
+                    & (pairs["bond_distance"] > config.max_bond_separation)
+                    & (pairs["mg_epsilon"] > 0.0),
+                    "c12",
+                ] = (
                     4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
                 )
 

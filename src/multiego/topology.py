@@ -3,6 +3,7 @@ import numpy as np
 import networkx as nx
 from itertools import combinations
 from . import type_definitions
+from .model_config import config
 
 
 def get_bonds(topology):
@@ -264,7 +265,7 @@ def get_pairs(topology):
     return pairs_dataframe
 
 
-def compute_bond_distances(reduced_topology, bond_pair, max_distance=6):
+def compute_bond_distances(reduced_topology, bond_pair, max_distance=config.max_bond_separation):
     # Build atom number ↔ sb_type mapping
     sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
 
@@ -284,9 +285,9 @@ def compute_bond_distances(reduced_topology, bond_pair, max_distance=6):
         ai_num = sbtype_to_atnum[ai]
         aj_num = sbtype_to_atnum[aj]
 
-        dist = all_lengths.get(ai_num, {}).get(aj_num, 7)
+        dist = all_lengths.get(ai_num, {}).get(aj_num, config.max_bond_separation + 1)
         if dist > max_distance:
-            dist = 7
+            dist = config.max_bond_separation + 1
 
         data.append((ai, aj, dist))
         data.append((aj, ai, dist))  # symmetric
