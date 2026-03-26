@@ -5,8 +5,7 @@ import tempfile
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from multiego.resources import type_definitions
-from multiego.util import masking
+from multiego import type_definitions
 from multiego import io
 
 import argparse
@@ -26,6 +25,43 @@ d = {
 }
 
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
+
+
+def create_matrix_mask(
+    set1,
+    set2,
+    types,
+    symmetrize=False,
+    inner_op=lambda x, y: x == y,
+    outer_op=lambda x, y: x * y,
+):
+    """
+    Creates a boolean matrix mask based on comparison operations between two sets.
+
+    Args:
+    - set1 (numpy.ndarray): First set of values.
+    - set2 (numpy.ndarray): Second set of values.
+    - types (list): List of tuples representing types for comparison.
+    - symmetrize (bool): Flag to determine whether to symmetrize type selection.
+    - inner_op (function): Operation for element-wise comparison within each set.
+    - outer_op (function): Operation for the combination of comparisons between sets.
+
+    Returns:
+    - numpy.ndarray: A boolean matrix mask reflecting the comparison operations.
+
+    Note:
+    - `inner_op` should be a function that compares an element of `set1` with a type.
+    - `outer_op` should be a function that combines comparisons between `set1` and `set2`.
+    """
+    # symmetrize type selection
+    if symmetrize:
+        types = list(set(types + [(t[1], t[0]) for t in types]))
+
+    mask = np.full((set1.shape[0], set2.shape[0]), False)
+    for type1, type2 in types:
+        mask |= outer_op(inner_op(set1, type1), inner_op(set2, type2)[:, np.newaxis]).T
+
+    return mask
 
 
 def write_mat(df, output_file):
@@ -649,7 +685,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
             types_i, types_j = rule["atomtypes"]
             pair_list = [(a, b) for a in types_i for b in types_j]
-            mask = masking.create_matrix_mask(
+            mask = create_matrix_mask(
                 type_i,
                 type_j,
                 pair_list,
@@ -679,7 +715,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
 
             types_i, types_j = rule["atomtypes"]
             pair_list = [(a, b) for a in types_i for b in types_j]
-            mask = masking.create_matrix_mask(
+            mask = create_matrix_mask(
                 type_i,
                 type_j,
                 pair_list,
