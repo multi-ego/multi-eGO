@@ -41,9 +41,11 @@ def meGO_parsing():
         sys.exit()
 
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
-    args = io.read_arguments(args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference)
+    args = arguments.read_arguments(
+        args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
+    )
 
-    io.validate_args(args)
+    arguments.validate_args(args)
 
     custom_dict = {}
     if args.custom_dict:
