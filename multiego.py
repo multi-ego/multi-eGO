@@ -3,17 +3,14 @@ import os
 import time
 import gc
 
+from src.multiego import arguments
 from src.multiego import bonded
 from src.multiego import contacts
+from src.multiego import generate_face
 from src.multiego import io
 from src.multiego import lj
 from src.multiego import mg
 from src.multiego import pairs
-from src.multiego import generate_face
-from src.multiego.arguments import args_dict
-from src.multiego.arguments import args_dict_global
-from src.multiego.arguments import args_dict_single_reference
-from src.multiego.arguments import build_parser
 
 
 def meGO_parsing():
@@ -30,7 +27,7 @@ def meGO_parsing():
     custom_dict : dict
         Custom atom-name mapping dictionary (empty if not provided).
     """
-    parser = build_parser()
+    parser = arguments.build_parser()
 
     if len(sys.argv) == 1:
         parser.print_help()
@@ -44,7 +41,7 @@ def meGO_parsing():
         sys.exit()
 
     args.root_dir = os.path.dirname(os.path.abspath(__file__))
-    args = io.read_arguments(args, args_dict, args_dict_global, args_dict_single_reference)
+    args = io.read_arguments(args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference)
 
     io.validate_args(args)
 
