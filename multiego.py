@@ -90,7 +90,7 @@ def main():
     st = et
 
     print("- Generating 1-4 data")
-    pairs14, exclusion_bonds14 = bonded.generate_14_data(meGO_ensembles)
+    pairs14, all_bd = bonded.generate_14_data(meGO_ensembles)
     et = time.time()
     print("- Done in:", et - st, "seconds")
     st = et
@@ -103,7 +103,7 @@ def main():
         st = et
 
         print("- Initializing LJ dataset")
-        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
+        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, all_bd, args)
         del matrices
         gc.collect()
         et = time.time()

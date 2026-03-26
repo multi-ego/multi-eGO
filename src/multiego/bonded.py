@@ -50,11 +50,11 @@ def generate_14_data(meGO_ensemble):
     -------
     pairs14 : pd.DataFrame
         DataFrame containing information about 1-4 interactions.
-    exclusion_bonds14 : pd.DataFrame
-        DataFrame containing exclusion bonded interactions.
+    all_bd : pd.DataFrame
+        DataFrame containing bond distance information.
     """
     pairs14 = pd.DataFrame()
-    exclusion_bonds14 = pd.DataFrame()
+    all_bd = pd.DataFrame()
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
         if not bond_pair:
             continue
@@ -74,8 +74,9 @@ def generate_14_data(meGO_ensemble):
         reduced_topology["resnum"] = reduced_topology["resnum"].astype(int)
         type_atnum_dict = reduced_topology.set_index("number")["sb_type"].to_dict()
 
-        bd = topology.compute_bond_distances(reduced_topology, bond_pair)
-        exclusion_bonds14 = pd.concat([exclusion_bonds14, bd], axis=0, sort=False, ignore_index=True)
+        # this assigns a bond distance to any pairs of atom in a molecule
+        mol_bd = topology.compute_bond_distances(reduced_topology, bond_pair)
+        all_bd = pd.concat([all_bd, mol_bd], axis=0, sort=False, ignore_index=True)
 
         reduced_topology["c12"] = reduced_topology["sb_type"].map(meGO_ensemble.sbtype_c12_dict)
 
@@ -120,6 +121,7 @@ def generate_14_data(meGO_ensemble):
         pairs["molecule_name_aj"] = mol_ai
 
         if not pairs.empty:
+            # this collect only the interactions that are exactly 1-4
             pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
 
-    return pairs14, exclusion_bonds14
+    return pairs14, all_bd

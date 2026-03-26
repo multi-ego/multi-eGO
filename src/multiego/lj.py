@@ -200,7 +200,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     return tmp_df
 
 
-def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
+def init_LJ_datasets(meGO_ensemble, matrices, pairs14, all_bd, args):
     """
     Assembles the full training dataset by merging train/reference contact matrices
     with 1-4 pair data and computing default repulsive and MG sigma/epsilon values.
@@ -213,7 +213,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         Contains 'reference_matrices' and 'train_matrices'.
     pairs14 : pd.DataFrame
         1-4 pair interactions from generate_14_data.
-    exclusion_bonds14 : pd.DataFrame
+    all_bd : pd.DataFrame
         Bond distance table from generate_14_data.
     args : argparse.Namespace
         Parsed command-line arguments.
@@ -268,7 +268,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
                 .to_string()
             )
             sys.exit(
-                "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the MD and corresponding RC input data"
+                "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data"
             )
 
         if not temp_merged["rc_same_chain"].equals(temp_merged["rc_same_chain"]):
@@ -290,7 +290,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
             how="left",
             on=["ai", "aj", "same_chain"],
         ),
-        exclusion_bonds14[["ai", "aj", "bond_distance"]],
+        all_bd[["ai", "aj", "bond_distance"]],
         how="left",
         on=["ai", "aj"],
     )
