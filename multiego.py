@@ -11,7 +11,7 @@ from src.multiego import io
 from src.multiego import lj
 from src.multiego import mg
 from src.multiego import pairs
-from tools.face_generator import generate_face
+from src.multiego import generate_face
 from src.multiego.arguments import args_dict
 from src.multiego.arguments import args_dict_global
 from src.multiego.arguments import args_dict_single_reference
