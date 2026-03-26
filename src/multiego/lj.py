@@ -122,7 +122,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     pd.DataFrame
         DataFrame with applied symmetries.
     """
-    dict_sbtype_to_resname = meGO_ensemble["topology_dataframe"].set_index("sb_type")["resname"].to_dict()
+    dict_sbtype_to_resname = meGO_ensemble.topology_dataframe.set_index("sb_type")["resname"].to_dict()
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
     df_list = []
@@ -213,7 +213,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
         "learned",
     ]
 
-    for name, ref_name in meGO_ensemble["train_matrix_tuples"]:
+    for name, ref_name in meGO_ensemble.train_matrix_tuples:
         if ref_name not in matrices["reference_matrices"].keys():
             raise RuntimeError(
                 f'Encountered error while trying to find {ref_name} in reference matrices {matrices["reference_matrices"].keys()}'
@@ -284,37 +284,33 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, exclusion_bonds14, args):
 
     # default repulsive C12
     pairwise_c12 = np.sqrt(
-        train_dataset["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * train_dataset["aj"].map(meGO_ensemble["sbtype_c12_dict"])
+        train_dataset["ai"].map(meGO_ensemble.sbtype_c12_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_c12_dict)
     )
     train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
 
     # default (mg) sigma
     pairwise_mg_sigma = (
-        train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-        * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-        / (
-            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-        )
+        train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c12_dict)
+        * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c12_dict)
+        / (train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict))
     ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
 
     # default (mg) epsilon
     pairwise_mg_epsilon = (
-        train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c6_dict"])
-        * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c6_dict"])
+        train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict)
     ) / (
         4
         * np.sqrt(
-            train_dataset["ai"].map(meGO_ensemble["sbtype_mg_c12_dict"])
-            * train_dataset["aj"].map(meGO_ensemble["sbtype_mg_c12_dict"])
+            train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c12_dict)
+            * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c12_dict)
         )
     )
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
 
     # special cases from type_definitions
-    type_ai = train_dataset["ai"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
-    type_aj = train_dataset["aj"].map(meGO_ensemble["sbtype_type_dict"]).to_numpy()
+    type_ai = train_dataset["ai"].map(meGO_ensemble.sbtype_type_dict).to_numpy()
+    type_aj = train_dataset["aj"].map(meGO_ensemble.sbtype_type_dict).to_numpy()
 
     for rule in type_definitions.special_non_local:
         types_i, types_j = rule["atomtypes"]
@@ -562,8 +558,8 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         Sorted and deduplicated LJ DataFrame ready for writing.
     """
     meGO_LJ["type"] = 1
-    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
-    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble["sbtype_number_dict"]).astype(int)
+    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble.sbtype_number_dict).astype(int)
+    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble.sbtype_number_dict).astype(int)
 
     meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)].copy()
 

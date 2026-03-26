@@ -556,14 +556,14 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     )
     create_output_directories(parameters, output_dir)
     write_topology(
-        meGO_ensemble["topology_dataframe"],
-        meGO_ensemble["molecule_type_dict"],
-        meGO_ensemble["meGO_bonded_interactions"],
+        meGO_ensemble.topology_dataframe,
+        meGO_ensemble.molecule_type_dict,
+        meGO_ensemble.meGO_bonded_interactions,
         meGO_LJ_14,
         parameters,
         output_dir,
     )
-    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
+    write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
     print("\t- " f"Output files written to {output_dir}")
     print(stat_str)

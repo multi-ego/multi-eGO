@@ -74,22 +74,18 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         Write-ready pairs/exclusions interactions keyed by molecule name.
     """
     pairs_molecule_dict = {}
-    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
-        reduced_topology = (
-            meGO_ensemble["topology_dataframe"]
-            .loc[meGO_ensemble["topology_dataframe"]["molecule_name"] == molecule][
-                [
-                    "number",
-                    "sb_type",
-                    "resnum",
-                    "name",
-                    "type",
-                    "resname",
-                    "molecule_type",
-                ]
+    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
+        reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
+            [
+                "number",
+                "sb_type",
+                "resnum",
+                "name",
+                "type",
+                "resname",
+                "molecule_type",
             ]
-            .copy()
-        )
+        ].copy()
 
         reduced_topology["number"] = reduced_topology["number"].astype(str)
 
@@ -113,11 +109,11 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                 aj = type_atnum_dict[b]
 
                 if (
-                    meGO_ensemble["sbtype_type_dict"][ai] == "H"
-                    and meGO_ensemble["sbtype_type_dict"][aj] not in {"H", "O", "OM", "OA"}
+                    meGO_ensemble.sbtype_type_dict[ai] == "H"
+                    and meGO_ensemble.sbtype_type_dict[aj] not in {"H", "O", "OM", "OA"}
                 ) or (
-                    meGO_ensemble["sbtype_type_dict"][aj] == "H"
-                    and meGO_ensemble["sbtype_type_dict"][ai] not in {"H", "O", "OM", "OA"}
+                    meGO_ensemble.sbtype_type_dict[aj] == "H"
+                    and meGO_ensemble.sbtype_type_dict[ai] not in {"H", "O", "OM", "OA"}
                 ):
                     continue
 
@@ -125,48 +121,43 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
 
             df = pd.DataFrame(filtered_combinations, columns=["ai", "aj"])
             df["c6"] = 0.0
-            df["c12"] = np.sqrt(
-                df["ai"].map(meGO_ensemble["sbtype_c12_dict"]) * df["aj"].map(meGO_ensemble["sbtype_c12_dict"])
-            )
+            df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble.sbtype_c12_dict) * df["aj"].map(meGO_ensemble.sbtype_c12_dict))
 
             df.loc[
                 (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                    | (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "OM")
+                    | (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O")
                 )
                 & (
-                    (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")
-                    | (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "OM")
+                    | (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "O")
                 ),
                 "c12",
             ] = type_definitions.mg_OO_c12_rep
 
             df.loc[
-                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "OM"))
-                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "OM")),
+                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "OM"))
+                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "OM")),
                 "c12",
             ] = type_definitions.mg_OMOM_c12_rep
 
             df.loc[
-                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "H"))
-                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "H")),
+                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "H"))
+                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "H")),
                 "c12",
             ] = type_definitions.mg_HH_c12_rep
 
             df.loc[
-                ((df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "NL"))
-                & ((df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "NL")),
+                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "NL"))
+                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "NL")),
                 "c12",
             ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
-                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                )
+                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O") & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "N"))
                 | (
-                    (df["ai"].map(meGO_ensemble["sbtype_type_dict"]) == "N")
-                    & (df["aj"].map(meGO_ensemble["sbtype_type_dict"]) == "O")
+                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "N")
+                    & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "O")
                 ),
                 "c12",
             ] = type_definitions.mg_ON_c12_rep

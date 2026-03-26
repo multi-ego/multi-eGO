@@ -110,24 +110,23 @@ def generate_MG_LJ(meGO_ensemble):
     """
     dictionary_name_rc_c12 = {
         name: rc12
-        for name, rc12 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["rc_c12"])
+        for name, rc12 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["rc_c12"])
     }
     dictionary_name_mg_c12 = {
         name: mg12
-        for name, mg12 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["mg_c12"])
+        for name, mg12 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c12"])
     }
     dictionary_name_mg_c6 = {
-        name: mg6
-        for name, mg6 in zip(meGO_ensemble["topology_dataframe"]["sb_type"], meGO_ensemble["topology_dataframe"]["mg_c6"])
+        name: mg6 for name, mg6 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c6"])
     }
 
     rc_LJ = pd.DataFrame()
     for special in type_definitions.special_non_local:
         sbtype_a = [
-            sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in special["atomtypes"][0]
+            sbtype for sbtype, atomtype in meGO_ensemble.sbtype_type_dict.items() if atomtype in special["atomtypes"][0]
         ]
         sbtype_b = [
-            sbtype for sbtype, atomtype in meGO_ensemble["sbtype_type_dict"].items() if atomtype in special["atomtypes"][1]
+            sbtype for sbtype, atomtype in meGO_ensemble.sbtype_type_dict.items() if atomtype in special["atomtypes"][1]
         ]
         if special["interaction"] == "rep":
             temp_LJ = generate_MG_LJ_pairs_rep(
@@ -162,7 +161,7 @@ def generate_MG_LJ(meGO_ensemble):
     rc_LJ["md_threshold"] = 1.0
     rc_LJ["learned"] = 0
     rc_LJ["bond_distance"] = 7
-    molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble["molecules_idx_sbtype_dictionary"]}
+    molecule_names_dictionary = {name.split("_", 1)[1]: name for name in meGO_ensemble.molecules_idx_sbtype_dictionary}
     rc_LJ["molecule_name_ai"] = rc_LJ["ai"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
     rc_LJ["molecule_name_aj"] = rc_LJ["aj"].apply(lambda x: "_".join(x.split("_")[1:-1])).map(molecule_names_dictionary)
     rc_LJ["ai"] = rc_LJ["ai"].astype("category")

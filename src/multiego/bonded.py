@@ -18,15 +18,12 @@ def generate_bonded_interactions(meGO_ensemble):
     meGO_ensemble : dict
         The updated meGO_ensemble object with updated/added bonded parameters
     """
-    if "meGO_bonded_interactions" not in meGO_ensemble.keys():
-        meGO_ensemble["meGO_bonded_interactions"] = {}
-    if "bond_pairs" not in meGO_ensemble.keys():
-        meGO_ensemble["bond_pairs"] = {}
-    if "user_pairs" not in meGO_ensemble.keys():
-        meGO_ensemble["user_pairs"] = {}
+    meGO_ensemble.meGO_bonded_interactions = {}
+    meGO_ensemble.bond_pairs = {}
+    meGO_ensemble.user_pairs = {}
 
-    for molecule, topol in meGO_ensemble["topology"].molecules.items():
-        meGO_ensemble["meGO_bonded_interactions"][molecule] = {
+    for molecule, topol in meGO_ensemble.topology.molecules.items():
+        meGO_ensemble.meGO_bonded_interactions[molecule] = {
             "bonds": topology.get_bonds(topol[0].bonds),
             "angles": topology.get_angles(topol[0].angles),
             "dihedrals": topology.get_dihedrals(topol[0].dihedrals),
@@ -34,8 +31,8 @@ def generate_bonded_interactions(meGO_ensemble):
             "pairs": topology.get_pairs(topol[0].adjusts),
         }
         # The following bonds are used in the parametrization of LJ 1-4
-        meGO_ensemble["bond_pairs"][molecule] = topology.get_bond_pairs(topol[0].bonds)
-        meGO_ensemble["user_pairs"][molecule] = topology.get_pairs(topol[0].adjusts)
+        meGO_ensemble.bond_pairs[molecule] = topology.get_bond_pairs(topol[0].bonds)
+        meGO_ensemble.user_pairs[molecule] = topology.get_pairs(topol[0].adjusts)
 
     return meGO_ensemble
 
@@ -58,24 +55,20 @@ def generate_14_data(meGO_ensemble):
     """
     pairs14 = pd.DataFrame()
     exclusion_bonds14 = pd.DataFrame()
-    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble["bond_pairs"].items(), start=1):
+    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
         if not bond_pair:
             continue
-        reduced_topology = (
-            meGO_ensemble["topology_dataframe"]
-            .loc[meGO_ensemble["topology_dataframe"]["molecule_name"] == molecule][
-                [
-                    "number",
-                    "sb_type",
-                    "resnum",
-                    "name",
-                    "type",
-                    "resname",
-                    "molecule_type",
-                ]
+        reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
+            [
+                "number",
+                "sb_type",
+                "resnum",
+                "name",
+                "type",
+                "resname",
+                "molecule_type",
             ]
-            .copy()
-        )
+        ].copy()
 
         reduced_topology["number"] = reduced_topology["number"].astype(str)
         reduced_topology["resnum"] = reduced_topology["resnum"].astype(int)
@@ -84,10 +77,10 @@ def generate_14_data(meGO_ensemble):
         bd = topology.compute_bond_distances(reduced_topology, bond_pair)
         exclusion_bonds14 = pd.concat([exclusion_bonds14, bd], axis=0, sort=False, ignore_index=True)
 
-        reduced_topology["c12"] = reduced_topology["sb_type"].map(meGO_ensemble["sbtype_c12_dict"])
+        reduced_topology["c12"] = reduced_topology["sb_type"].map(meGO_ensemble.sbtype_c12_dict)
 
         pairs = pd.DataFrame()
-        if meGO_ensemble["molecule_type_dict"][molecule] == "protein":
+        if meGO_ensemble.molecule_type_dict[molecule] == "protein":
             pairs = topology.protein_LJ14(reduced_topology)
             pairs["ai"] = pairs["ai"].map(type_atnum_dict).astype("category")
             pairs["aj"] = pairs["aj"].map(type_atnum_dict).astype("category")
@@ -95,13 +88,13 @@ def generate_14_data(meGO_ensemble):
             pairs["source"] = pairs["source"].astype("category")
             pairs["same_chain"] = True
         else:
-            pairs["ai"] = meGO_ensemble["user_pairs"][molecule].ai.astype(str)
-            pairs["aj"] = meGO_ensemble["user_pairs"][molecule].aj.astype(str)
+            pairs["ai"] = meGO_ensemble.user_pairs[molecule].ai.astype(str)
+            pairs["aj"] = meGO_ensemble.user_pairs[molecule].aj.astype(str)
             pairs["ai"] = pairs["ai"].map(type_atnum_dict).astype("category")
             pairs["aj"] = pairs["aj"].map(type_atnum_dict).astype("category")
 
             nonprotein_c12 = []
-            for test in meGO_ensemble["user_pairs"][molecule].type:
+            for test in meGO_ensemble.user_pairs[molecule].type:
                 if test is None:
                     print(
                         "\nERROR: you have 1-4 pairs defined in your reference topology without the associated C6/C12 values"

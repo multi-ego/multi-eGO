@@ -1,5 +1,6 @@
 from . import io
 from . import contacts_init
+from .ensemble_data import MeGOEnsemble
 
 import numpy as np
 import pandas as pd
@@ -121,8 +122,8 @@ def _load_reference_matrix(reference, ensemble, args):
 
     lj_data = contacts_init.get_lj_params(topol)
     lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
-    ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
-    ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
+    ensemble.topology_dataframe["c6"] = lj_data["c6"].to_numpy()
+    ensemble.topology_dataframe["c12"] = lj_data["c12"].to_numpy()
 
     def _make_symmetric(df):
         return (
@@ -145,7 +146,7 @@ def _load_reference_matrix(reference, ensemble, args):
     path = matrix_paths[0]
     name = _path_to_matrix_name(path, args.root_dir)
     contact_matrix = io.read_molecular_contacts(
-        path, ensemble["molecules_idx_sbtype_dictionary"], reference["reference"], path.endswith(".h5")
+        path, ensemble.molecules_idx_sbtype_dictionary, reference["reference"], path.endswith(".h5")
     )
 
     contact_matrix = contact_matrix.add_prefix("rc_")
@@ -241,7 +242,7 @@ def _load_train_matrix(
         warnings.simplefilter("ignore")
         topol = parmed.load_file(topology_path)
 
-    temp_topology_dataframe, ensemble["molecules_idx_sbtype_dictionary"], *_ = contacts_init.initialize_topology(
+    temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary, *_ = contacts_init.initialize_topology(
         topol, custom_dict, args
     )
 
@@ -259,7 +260,7 @@ def _load_train_matrix(
 
     if train_name not in computed_contact_matrices:
         train_contact_matrices_general[train_name] = io.read_molecular_contacts(
-            path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
+            path, ensemble.molecules_idx_sbtype_dictionary, simulation, path.endswith(".h5")
         )
         computed_contact_matrices.append(train_name)
 
@@ -321,7 +322,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     # TODO check intra domain complementarity
     # check_intra_domain_complementarity(reference_contact_matrices)
 
-    reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
+    reference_set = set(ensemble.topology_dataframe["name"].to_list())
 
     for reference in args.input_refs:
         for simulation in reference["train"]:
@@ -338,7 +339,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             )
             train_contact_matrices[name] = contact_matrix
             train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
-            ensemble["train_matrix_tuples"].append((name, ref_name))
+            ensemble.train_matrix_tuples.append((name, ref_name))
             et = time.time()
             print("\t- Done in:", et - st, "seconds")
             st = et
@@ -346,7 +347,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     del train_contact_matrices_general
 
     comparison_set = set()
-    for number, molecule in enumerate(ensemble["topology"].molecules, 1):
+    for number, molecule in enumerate(ensemble.topology.molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
             comparison_set = set(
@@ -397,24 +398,16 @@ def init_meGO_ensemble(args, custom_dict):
         molecule_type_dict,
     ) = contacts_init.initialize_topology(base_reference_topology, custom_dict, args)
 
-    ensemble = {}
-    ensemble["topology"] = base_reference_topology
-    ensemble["topology_dataframe"] = topology_dataframe
-    ensemble["molecules_idx_sbtype_dictionary"] = (
-        molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
+    return MeGOEnsemble(
+        topology=base_reference_topology,
+        topology_dataframe=topology_dataframe,
+        molecules_idx_sbtype_dictionary=molecules_idx_sbtype_dictionary,
+        sbtype_c12_dict=sbtype_c12_dict,
+        sbtype_mg_c12_dict=sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict=sbtype_mg_c6_dict,
+        sbtype_name_dict=sbtype_name_dict,
+        sbtype_moltype_dict=sbtype_moltype_dict,
+        sbtype_number_dict=topology_dataframe[["sb_type", "number"]].set_index("sb_type")["number"].to_dict(),
+        sbtype_type_dict={key: name for key, name in topology_dataframe[["sb_type", "type"]].values},
+        molecule_type_dict=molecule_type_dict,
     )
-    ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_mg_c12_dict"] = sbtype_mg_c12_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_mg_c6_dict"] = sbtype_mg_c6_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
-    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
-    ensemble["sbtype_number_dict"] = (
-        ensemble["topology_dataframe"][["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    )  # {mego_type: atomnumer} N_mol_resnum: 1
-    # {mego_type: atomtype} N_mol_resnum: NL
-    ensemble["sbtype_type_dict"] = {key: name for key, name in ensemble["topology_dataframe"][["sb_type", "type"]].values}
-    # {molecule: moltype} mol: protein
-    ensemble["molecule_type_dict"] = molecule_type_dict
-    ensemble["train_matrix_tuples"] = []
-
-    return ensemble
