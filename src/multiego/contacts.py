@@ -39,11 +39,9 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     p_sort = np.sort(contact_matrix["probability"].loc[(contact_matrix["learned"])].to_numpy())[::-1]
     norm = np.sum(p_sort)
     if norm == 0:
-        p_sort_normalized = 0
         md_threshold = 1
     else:
-        p_sort_normalized = np.cumsum(p_sort) / norm
-        md_threshold = p_sort[np.min(np.where(p_sort_normalized > args.p_to_learn)[0])]
+        md_threshold = p_sort[np.min(np.where(np.cumsum(p_sort) / norm > args.p_to_learn)[0])]
 
     contact_matrix["epsilon_0"] = reference["epsilon"]
     contact_matrix["md_threshold"] = md_threshold
@@ -82,6 +80,205 @@ def _path_to_matrix_name(path, root_dir):
     return name
 
 
+def _load_reference_matrix(reference, ensemble, args):
+    """
+    Loads and enriches a single reference contact matrix with prior sigma/epsilon values.
+
+    Reads the reference topology to obtain per-atom and pairwise LJ parameters, reads
+    the contact matrix file, and annotates it with sigma_prior and epsilon_prior derived
+    from the force-field topology and any explicit nonbonded/pair entries.
+
+    Parameters
+    ----------
+    reference : dict
+        Single input_refs entry with keys 'reference', 'matrix', 'epsilon', 'train'.
+    ensemble : dict
+        The initialized meGO ensemble; topology_dataframe is updated in-place with
+        the reference c6/c12 columns.
+    args : argparse.Namespace
+        Parsed arguments providing root_dir and system.
+
+    Returns
+    -------
+    name : str
+        Unique flat key for this reference matrix.
+    contact_matrix : pd.DataFrame
+        Enriched reference contact matrix with rc_ prefix and prior columns.
+    """
+    reference_path = f"{args.root_dir}/inputs/{args.system}/{reference['reference']}"
+    topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
+    if len(topol_files) > 1:
+        raise RuntimeError(f"More than 1 topology file found in {reference_path}. Only one should be used")
+
+    topology_path = f"{reference_path}/{topol_files[0]}"
+    if not os.path.isfile(topology_path):
+        raise FileNotFoundError(f"{topology_path} not found.")
+
+    print("\t\t-", f"Reading {topology_path}")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        topol = parmed.load_file(topology_path)
+
+    lj_data = contacts_init.get_lj_params(topol)
+    lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
+    ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
+    ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
+
+    def _make_symmetric(df):
+        return (
+            pd.concat([df, df.rename(columns={"ai": "aj", "aj": "ai"})])
+            .drop_duplicates(subset=["ai", "aj"])
+            .reset_index(drop=True)
+        )
+
+    symmetric_lj_pairs = _make_symmetric(contacts_init.get_lj_pairs(topol))
+    symmetric_lj14_pairs = _make_symmetric(contacts_init.get_lj14_pairs(topol))
+
+    matrix_paths = [f"{reference_path}/{a}" for a in os.listdir(reference_path) if reference["matrix"] in a]
+    if len(matrix_paths) > 1:
+        raise ValueError(f"More than 1 matrix found in {reference_path}: {matrix_paths}")
+    if not matrix_paths:
+        raise FileNotFoundError(
+            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead: {reference['matrix']}"
+        )
+
+    path = matrix_paths[0]
+    name = _path_to_matrix_name(path, args.root_dir)
+    contact_matrix = io.read_molecular_contacts(
+        path, ensemble["molecules_idx_sbtype_dictionary"], reference["reference"], path.endswith(".h5")
+    )
+
+    contact_matrix = contact_matrix.add_prefix("rc_")
+    contact_matrix["c6_i"] = [lj_data_dict[x][0] for x in contact_matrix["rc_ai"]]
+    contact_matrix["c6_j"] = [lj_data_dict[x][0] for x in contact_matrix["rc_aj"]]
+    contact_matrix["c6"] = np.sqrt(contact_matrix["c6_i"] * contact_matrix["c6_j"])
+    contact_matrix["c12_i"] = [lj_data_dict[x][1] for x in contact_matrix["rc_ai"]]
+    contact_matrix["c12_j"] = [lj_data_dict[x][1] for x in contact_matrix["rc_aj"]]
+    contact_matrix["c12"] = np.sqrt(contact_matrix["c12_i"] * contact_matrix["c12_j"])
+    contact_matrix["sigma_prior"] = np.where(
+        contact_matrix["c6"] > 0,
+        (contact_matrix["c12"] / contact_matrix["c6"]) ** (1 / 6),
+        contact_matrix["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
+    )
+    contact_matrix["epsilon_prior"] = np.where(
+        contact_matrix["c6"] > 0,
+        contact_matrix["c6"] ** 2 / (4 * contact_matrix["c12"]),
+        -contact_matrix["c12"],
+    )
+
+    lj_sigma_map = symmetric_lj_pairs.set_index(["ai", "aj"])["sigma"]
+    lj_epsilon_map = symmetric_lj_pairs.set_index(["ai", "aj"])["epsilon"]
+    lj14_sigma_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["sigma"]
+    lj14_epsilon_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["epsilon"]
+
+    common_indices = lj_sigma_map.index.intersection(contact_matrix.set_index(["rc_ai", "rc_aj"]).index)
+    common_indices_14 = lj14_sigma_map.index.intersection(
+        contact_matrix[contact_matrix["rc_same_chain"]].set_index(["rc_ai", "rc_aj"]).index
+    )
+
+    contact_matrix.loc[common_indices, "sigma_prior"] = lj_sigma_map.astype("float64")
+    contact_matrix.loc[common_indices, "epsilon_prior"] = lj_epsilon_map.astype("float64")
+    if not common_indices_14.empty:
+        contact_matrix.loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
+        contact_matrix.loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
+
+    contact_matrix.drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
+
+    return name, contact_matrix
+
+
+def _load_train_matrix(
+    simulation,
+    reference,
+    ensemble,
+    args,
+    custom_dict,
+    reference_contact_matrices,
+    computed_contact_matrices,
+    train_contact_matrices_general,
+):
+    """
+    Loads a single training contact matrix, pairs it with its reference, and
+    initializes the adaptive probability thresholds.
+
+    Parameters
+    ----------
+    simulation : str
+        Name of the training simulation folder.
+    reference : dict
+        Single input_refs entry owning this simulation.
+    ensemble : dict
+        The meGO ensemble; molecules_idx_sbtype_dictionary is updated in-place.
+    args : argparse.Namespace
+        Parsed arguments.
+    custom_dict : dict
+        Custom atom-name mapping dictionary.
+    reference_contact_matrices : dict
+        Already-populated reference matrices keyed by flat name.
+    computed_contact_matrices : list
+        Tracks which raw training matrices have already been read (modified in-place).
+    train_contact_matrices_general : dict
+        Cache of raw (un-initialized) training matrices (modified in-place).
+
+    Returns
+    -------
+    name : str
+        Unique flat key for this (reference, simulation, matrix) combination.
+    ref_name : str
+        Flat key of the corresponding reference matrix.
+    contact_matrix : pd.DataFrame
+        Initialized training contact matrix with threshold columns set.
+    topology_dataframe : pd.DataFrame
+        Topology DataFrame for this training simulation (for atom-type validation).
+    """
+    simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+    topology_path = f"{simulation_path}/topol.top"
+    if not os.path.isfile(topology_path):
+        raise FileNotFoundError(f"{topology_path} not found.")
+
+    print("\t\t-", f"Reading {topology_path}")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        topol = parmed.load_file(topology_path)
+
+    temp_topology_dataframe, ensemble["molecules_idx_sbtype_dictionary"], *_ = contacts_init.initialize_topology(
+        topol, custom_dict, args
+    )
+
+    matrix_paths = [f"{simulation_path}/{a}" for a in os.listdir(simulation_path) if reference["matrix"] in a]
+    if len(matrix_paths) > 1:
+        raise ValueError(f"More than 1 matrix found in {simulation_path}: {matrix_paths}")
+    if not matrix_paths:
+        raise FileNotFoundError(
+            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead {reference['matrix']}"
+        )
+
+    path = matrix_paths[0]
+    train_name = _path_to_matrix_name(path, args.root_dir)
+    name = f"{args.system}/{reference['reference']}/{simulation}/{reference['matrix']}".replace("/", "_")
+
+    if train_name not in computed_contact_matrices:
+        train_contact_matrices_general[train_name] = io.read_molecular_contacts(
+            path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
+        )
+        computed_contact_matrices.append(train_name)
+
+    contact_matrix = train_contact_matrices_general[train_name].copy()
+
+    ref_name = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
+    if not ref_name:
+        raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
+
+    contact_matrix = initialize_molecular_contacts(
+        contact_matrix,
+        reference_contact_matrices[ref_name],
+        args,
+        reference,
+    )
+
+    return name, ref_name, contact_matrix, temp_topology_dataframe
+
+
 def init_meGO_matrices(ensemble, args, custom_dict):
     """
     Initializes meGO contact matrices.
@@ -93,7 +290,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     Parameters
     ----------
     ensemble : dict
-        The initialized meGO ensemble (from topology_init.init_meGO_ensemble).
+        The initialized meGO ensemble (from contacts.init_meGO_ensemble).
     args : argparse.Namespace
         Parsed command-line / config-file arguments.
     custom_dict : dict
@@ -108,185 +305,45 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     """
     st = time.time()
     reference_contact_matrices = {}
-    matrices = {}
-
-    for reference in args.input_refs:
-        print("\t-", f"Initializing {reference['reference']} ensemble data")
-        reference_path = f"{args.root_dir}/inputs/{args.system}/{reference['reference']}"
-        topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
-        if len(topol_files) > 1:
-            raise RuntimeError(f"More than 1 topology file found in {reference_path}. Only one should be used")
-
-        topology_path = f"{reference_path}/{topol_files[0]}"
-        if not os.path.isfile(topology_path):
-            raise FileNotFoundError(f"{topology_path} not found.")
-
-        print("\t\t-", f"Reading {topology_path}")
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            topol = parmed.load_file(topology_path)
-
-        lj_data = contacts_init.get_lj_params(topol)
-        lj_pairs = contacts_init.get_lj_pairs(topol)
-        reversed_lj_pairs = lj_pairs.rename(columns={"ai": "aj", "aj": "ai"})
-        symmetric_lj_pairs = pd.concat([lj_pairs, reversed_lj_pairs])
-        symmetric_lj_pairs = symmetric_lj_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
-
-        lj14_pairs = contacts_init.get_lj14_pairs(topol)
-        reversed_lj14_pairs = lj14_pairs.rename(columns={"ai": "aj", "aj": "ai"})
-        symmetric_lj14_pairs = pd.concat([lj14_pairs, reversed_lj14_pairs])
-        symmetric_lj14_pairs = symmetric_lj14_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
-
-        lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
-
-        ensemble["topology_dataframe"]["c6"] = lj_data["c6"].to_numpy()
-        ensemble["topology_dataframe"]["c12"] = lj_data["c12"].to_numpy()
-
-        matrix_paths = [f"{reference_path}/{a}" for a in os.listdir(reference_path) if reference["matrix"] in a]
-
-        if len(matrix_paths) > 1:
-            raise ValueError(f"More than 1 matrix found in {reference_path}: {matrix_paths}")
-        if matrix_paths == []:
-            raise FileNotFoundError(
-                f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead: {reference['matrix']}"
-            )
-
-        path = matrix_paths[0]
-        name = _path_to_matrix_name(path, args.root_dir)
-        reference_contact_matrices[name] = io.read_molecular_contacts(
-            path, ensemble["molecules_idx_sbtype_dictionary"], reference["reference"], path.endswith(".h5")
-        )
-
-        reference_contact_matrices[name] = reference_contact_matrices[name].add_prefix("rc_")
-        reference_contact_matrices[name]["c6_i"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_ai"]]
-        reference_contact_matrices[name]["c6_j"] = [lj_data_dict[x][0] for x in reference_contact_matrices[name]["rc_aj"]]
-        reference_contact_matrices[name]["c6"] = np.sqrt(
-            reference_contact_matrices[name]["c6_i"] * reference_contact_matrices[name]["c6_j"]
-        )
-        reference_contact_matrices[name]["c12_i"] = [lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_ai"]]
-        reference_contact_matrices[name]["c12_j"] = [lj_data_dict[x][1] for x in reference_contact_matrices[name]["rc_aj"]]
-        reference_contact_matrices[name]["c12"] = np.sqrt(
-            reference_contact_matrices[name]["c12_i"] * reference_contact_matrices[name]["c12_j"]
-        )
-        reference_contact_matrices[name]["sigma_prior"] = np.where(
-            reference_contact_matrices[name]["c6"] > 0,
-            (reference_contact_matrices[name]["c12"] / reference_contact_matrices[name]["c6"]) ** (1 / 6),
-            reference_contact_matrices[name]["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
-        )
-        reference_contact_matrices[name]["epsilon_prior"] = np.where(
-            reference_contact_matrices[name]["c6"] > 0,
-            reference_contact_matrices[name]["c6"] ** 2 / (4 * reference_contact_matrices[name]["c12"]),
-            -reference_contact_matrices[name]["c12"],
-        )
-
-        lj_sigma_map = symmetric_lj_pairs.set_index(["ai", "aj"])["sigma"]
-        lj_epsilon_map = symmetric_lj_pairs.set_index(["ai", "aj"])["epsilon"]
-        lj14_sigma_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["sigma"]
-        lj14_epsilon_map = symmetric_lj14_pairs.set_index(["ai", "aj"])["epsilon"]
-
-        common_indices = lj_sigma_map.index.intersection(reference_contact_matrices[name].set_index(["rc_ai", "rc_aj"]).index)
-        common_indices_14 = lj14_sigma_map.index.intersection(
-            reference_contact_matrices[name][reference_contact_matrices[name]["rc_same_chain"]]
-            .set_index(["rc_ai", "rc_aj"])
-            .index
-        )
-
-        reference_contact_matrices[name].loc[common_indices, "sigma_prior"] = lj_sigma_map.astype("float64")
-        if not common_indices_14.empty:
-            reference_contact_matrices[name].loc[common_indices_14, "sigma_prior"] = lj14_sigma_map.astype("float64")
-        reference_contact_matrices[name].loc[common_indices, "epsilon_prior"] = lj_epsilon_map.astype("float64")
-        if not common_indices_14.empty:
-            reference_contact_matrices[name].loc[common_indices_14, "epsilon_prior"] = lj14_epsilon_map.astype("float64")
-
-        reference_contact_matrices[name].drop(columns=["c6_i", "c6_j", "c12_i", "c12_j", "c6", "c12"], inplace=True)
-
-        et = time.time()
-        elapsed_time = et - st
-        st = et
-        print("\t- Done in:", elapsed_time, "seconds")
-
-    matrices["reference_matrices"] = reference_contact_matrices
-    reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
-
-    # TODO check intra domain complementarity
-    # check_intra_domain_complementarity(matrices["reference_matrices"])
-
-    computed_contact_matrices = []
-    train_contact_matrices_general = {}
     train_contact_matrices = {}
+    train_contact_matrices_general = {}
+    computed_contact_matrices = []
     train_topology_dataframe = pd.DataFrame()
 
     for reference in args.input_refs:
-        trainings = reference["train"]
-        for simulation in trainings:
+        print("\t-", f"Initializing {reference['reference']} ensemble data")
+        name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
+        reference_contact_matrices[name] = contact_matrix
+        et = time.time()
+        print("\t- Done in:", et - st, "seconds")
+        st = et
+
+    # TODO check intra domain complementarity
+    # check_intra_domain_complementarity(reference_contact_matrices)
+
+    reference_set = set(ensemble["topology_dataframe"]["name"].to_list())
+
+    for reference in args.input_refs:
+        for simulation in reference["train"]:
             print("\t-", f"Initializing {simulation} ensemble data")
-            simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
-            topology_path = f"{simulation_path}/topol.top"
-            if not os.path.isfile(topology_path):
-                raise FileNotFoundError(f"{topology_path} not found.")
-
-            print("\t\t-", f"Reading {topology_path}")
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                topol = parmed.load_file(topology_path)
-
-            (
-                temp_topology_dataframe,
-                ensemble["molecules_idx_sbtype_dictionary"],
-                _,
-                _,
-                _,
-                _,
-                _,
-                _,
-            ) = contacts_init.initialize_topology(topol, custom_dict, args)
-
-            train_topology_dataframe = pd.concat(
-                [train_topology_dataframe, temp_topology_dataframe],
-                axis=0,
-                ignore_index=True,
-            )
-
-            matrix_paths = [f"{simulation_path}/{a}" for a in os.listdir(simulation_path) if reference["matrix"] in a]
-            if len(matrix_paths) > 1:
-                raise ValueError(f"More than 1 matrix found in {simulation_path}: {matrix_paths}")
-            if matrix_paths == []:
-                raise FileNotFoundError(
-                    f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead {reference['matrix']}"
-                )
-
-            path = matrix_paths[0]
-            train_name = _path_to_matrix_name(path, args.root_dir)
-            name = f"{args.system}/{reference['reference']}/{simulation}/{reference['matrix']}".replace("/", "_")
-
-            if train_name not in computed_contact_matrices:
-                train_contact_matrices_general[train_name] = io.read_molecular_contacts(
-                    path, ensemble["molecules_idx_sbtype_dictionary"], simulation, path.endswith(".h5")
-                )
-                computed_contact_matrices.append(train_name)
-                train_contact_matrices[name] = train_contact_matrices_general[train_name]
-            else:
-                train_contact_matrices[name] = train_contact_matrices_general[train_name].copy()
-
-            ref_name = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
-
-            if ref_name == []:
-                raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
-            ensemble["train_matrix_tuples"].append((name, ref_name))
-            train_contact_matrices[name] = initialize_molecular_contacts(
-                train_contact_matrices[name],
-                reference_contact_matrices[ref_name],
-                args,
+            name, ref_name, contact_matrix, topology_df = _load_train_matrix(
+                simulation,
                 reference,
+                ensemble,
+                args,
+                custom_dict,
+                reference_contact_matrices,
+                computed_contact_matrices,
+                train_contact_matrices_general,
             )
-
+            train_contact_matrices[name] = contact_matrix
+            train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
+            ensemble["train_matrix_tuples"].append((name, ref_name))
             et = time.time()
-            elapsed_time = et - st
+            print("\t- Done in:", et - st, "seconds")
             st = et
-            print("\t- Done in:", elapsed_time, "seconds")
 
     del train_contact_matrices_general
-    matrices["train_matrices"] = train_contact_matrices
 
     comparison_set = set()
     for number, molecule in enumerate(ensemble["topology"].molecules, 1):
@@ -294,7 +351,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         if not comparison_dataframe.empty:
             comparison_set = set(
                 comparison_dataframe[
-                    # TODO use a nicer way to do this (Use a list of possible "H" or dictionary of names external to multiego.py and import it)
+                    # TODO use a nicer way to do this
                     (~comparison_dataframe["name"].str.startswith("H"))
                     | (comparison_dataframe["name"].str == "H")
                 ]["name"].to_list()
@@ -309,6 +366,10 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         )
         sys.exit()
 
+    matrices = {
+        "reference_matrices": reference_contact_matrices,
+        "train_matrices": train_contact_matrices,
+    }
     return ensemble, matrices
 
 
