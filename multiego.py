@@ -5,10 +5,14 @@ import pandas as pd
 import time
 import gc
 
-from src.multiego import ensemble
+from src.multiego import bonded
+from src.multiego import contacts
 from src.multiego import io
+from src.multiego import lj
+from src.multiego import mg
+from src.multiego import pairs
+from src.multiego import topology_init
 from tools.face_generator import generate_face
-from src.multiego.resources.type_definitions import parse_json
 from src.multiego.arguments import args_dict
 from src.multiego.arguments import args_dict_global
 from src.multiego.arguments import args_dict_single_reference
@@ -110,14 +114,14 @@ for a contact pair.
 
     custom_dict = {}
     if args.custom_dict:
-        custom_dict = parse_json(args.custom_dict)
+        custom_dict = io.parse_json(args.custom_dict)
         if custom_dict == None:
             print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
             sys.exit()
 
     print(f"Running Multi-eGO: {args.egos}\n")
     print("- Processing Multi-eGO topology")
-    mego_ensemble = ensemble.init_meGO_ensemble(args, custom_dict)
+    mego_ensemble = topology_init.init_meGO_ensemble(args, custom_dict)
 
     if args.symmetry_file and args.symmetry:
         print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
@@ -161,9 +165,9 @@ def main():
         io.check_matrix_format(args)
 
     print("\t- Generating bonded interactions")
-    meGO_ensembles = ensemble.generate_bonded_interactions(meGO_ensembles)
+    meGO_ensembles = bonded.generate_bonded_interactions(meGO_ensembles)
     print("\t- Generating 1-4 data")
-    pairs14, exclusion_bonds14 = ensemble.generate_14_data(meGO_ensembles)
+    pairs14, exclusion_bonds14 = bonded.generate_14_data(meGO_ensembles)
     et = time.time()
     elapsed_time = et - st
     st = et
@@ -171,13 +175,13 @@ def main():
 
     if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
-        meGO_ensembles, matrices = ensemble.init_meGO_matrices(meGO_ensembles, args, custom_dict)
+        meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
         elapsed_time = et - st
         st = et
         print("- Done in:", elapsed_time, "seconds")
         print("- Initializing LJ dataset")
-        train_dataset = ensemble.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
+        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del matrices
         gc.collect()
@@ -186,7 +190,7 @@ def main():
         st = et
         print("- Done in:", elapsed_time, "seconds")
         print("- Generate LJ dataset")
-        meGO_LJ, meGO_LJ_14, stat_str = ensemble.generate_LJ(meGO_ensembles, train_dataset, args)
+        meGO_LJ, meGO_LJ_14, stat_str = lj.generate_LJ(meGO_ensembles, train_dataset, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
         gc.collect()
@@ -196,7 +200,7 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
     elif args.egos == "mg":
         print("- Generate the LJ dataset")
-        meGO_LJ = ensemble.generate_MG_LJ(meGO_ensembles)
+        meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         meGO_LJ_14 = pairs14
         et = time.time()
@@ -205,14 +209,14 @@ def main():
         print("- Done in:", elapsed_time, "seconds")
 
     print("- Finalize pairs and exclusions")
-    meGO_LJ_14 = ensemble.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
+    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
     elapsed_time = et - st
     st = et
     print("- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
-    meGO_LJ = ensemble.sort_LJ(meGO_ensembles, meGO_LJ)
+    meGO_LJ = lj.sort_LJ(meGO_ensembles, meGO_LJ)
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
     elapsed_time = et - st

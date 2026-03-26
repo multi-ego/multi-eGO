@@ -7,6 +7,7 @@ import git
 import time
 import sys
 import re
+import json
 
 
 def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
@@ -956,3 +957,18 @@ def read_inter_file(file_path):
 
 def read_custom_c12_parameters(file):
     return pd.read_csv(file, names=["name", "at.num", "c12"], usecols=[0, 1, 6], header=0)
+
+
+def parse_json(file_path):
+    if file_path:
+        try:
+            with open(file_path, "r") as file:
+                custom_dict = json.load(file)
+                if not isinstance(custom_dict, dict):
+                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
+                return custom_dict
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error in reading the custom dictionary: {e}")
+            sys.exit()
+    else:
+        return {}

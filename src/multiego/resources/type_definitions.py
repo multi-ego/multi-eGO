@@ -1,6 +1,4 @@
 import pandas as pd
-import json
-import sys
 
 mg_OO_c12_rep = 7.5e-7
 mg_OMOM_c12_rep = 2.5e-6  # This might be shifted down looking at ATDhisto
@@ -396,18 +394,3 @@ aminoacids_list = [
 ]
 # TODO to check
 nucleic_acid_list = ["A", "C", "G", "T"]
-
-
-def parse_json(file_path):
-    if file_path:
-        try:
-            with open(file_path, "r") as file:
-                custom_dict = json.load(file)
-                if not isinstance(custom_dict, dict):
-                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
-                return custom_dict
-        except (json.JSONDecodeError, ValueError) as e:
-            print(f"Error in reading the custom dictionary: {e}")
-            sys.exit()
-    else:
-        return {}
