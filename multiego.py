@@ -156,8 +156,7 @@ def main():
     args, meGO_ensembles, custom_dict = meGO_parsing()
 
     st = time.time()
-    elapsed_time = st - bt
-    print("- Done in:", elapsed_time, "seconds")
+    print("- Done in:", st - bt, "seconds")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
     if args.egos == "production":
@@ -168,58 +167,51 @@ def main():
     print("\t- Generating 1-4 data")
     pairs14, exclusion_bonds14 = bonded.generate_14_data(meGO_ensembles)
     et = time.time()
-    elapsed_time = et - st
+    print("- Done in:", et - st, "seconds")
     st = et
-    print("- Done in:", elapsed_time, "seconds")
 
     if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
-        elapsed_time = et - st
+        print("- Done in:", et - st, "seconds")
         st = et
-        print("- Done in:", elapsed_time, "seconds")
         print("- Initializing LJ dataset")
         train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, exclusion_bonds14, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del matrices
         gc.collect()
         et = time.time()
-        elapsed_time = et - st
+        print("- Done in:", et - st, "seconds")
         st = et
-        print("- Done in:", elapsed_time, "seconds")
         print("- Generate LJ dataset")
         meGO_LJ, meGO_LJ_14, stat_str = lj.generate_LJ(meGO_ensembles, train_dataset, args)
         # force memory cleaning to decrease footprint in case of large dataset
         del train_dataset
         gc.collect()
         et = time.time()
-        elapsed_time = et - st
+        print("- Done in:", et - st, "seconds")
         st = et
-        print("- Done in:", elapsed_time, "seconds")
     elif args.egos == "mg":
         print("- Generate the LJ dataset")
         meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         meGO_LJ_14 = pairs14
         et = time.time()
-        elapsed_time = et - st
+        print("- Done in:", et - st, "seconds")
         st = et
-        print("- Done in:", elapsed_time, "seconds")
 
     print("- Finalize pairs and exclusions")
     meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
-    elapsed_time = et - st
+    print("- Done in:", et - st, "seconds")
     st = et
-    print("- Done in:", elapsed_time, "seconds")
 
     print("- Writing Multi-eGO model")
     meGO_LJ = lj.sort_LJ(meGO_ensembles, meGO_LJ)
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
-    elapsed_time = et - st
-    print("- Done in:", elapsed_time, "seconds")
+    print("- Done in:", et - st, "seconds")
     print("- Ran in:", et - bt, "seconds")
 
     generate_face.print_goodbye()
