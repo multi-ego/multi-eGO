@@ -1,5 +1,6 @@
 from . import type_definitions
 from .mg import generate_MG_LJ
+from .bonded import generate_bond_distance_data
 from .model_config import config
 from . import io
 
@@ -201,7 +202,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     return tmp_df
 
 
-def init_LJ_datasets(meGO_ensemble, matrices, pairs14, all_bd, args):
+def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     """
     Assembles the full training dataset by merging train/reference contact matrices
     with 1-4 pair data and computing default repulsive and MG sigma/epsilon values.
@@ -214,8 +215,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, all_bd, args):
         Contains 'reference_matrices' and 'train_matrices'.
     pairs14 : pd.DataFrame
         1-4 pair interactions from generate_14_data.
-    all_bd : pd.DataFrame
-        Bond distance table from generate_14_data.
     args : argparse.Namespace
         Parsed command-line arguments.
 
@@ -283,6 +282,8 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, all_bd, args):
     train_dataset["molecule_name_ai"] = train_dataset["molecule_name_ai"].astype("category")
     train_dataset["molecule_name_aj"] = train_dataset["molecule_name_aj"].astype("category")
     train_dataset["source"] = train_dataset["source"].astype("category")
+
+    all_bd = generate_bond_distance_data(meGO_ensemble)
 
     train_dataset = pd.merge(
         pd.merge(

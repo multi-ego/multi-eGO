@@ -89,12 +89,6 @@ def main():
     print("- Done in:", et - st, "seconds")
     st = et
 
-    print("- Generating 1-4 data")
-    pairs14, all_bd = bonded.generate_14_data(meGO_ensembles)
-    et = time.time()
-    print("- Done in:", et - st, "seconds")
-    st = et
-
     if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
@@ -102,8 +96,14 @@ def main():
         print("- Done in:", et - st, "seconds")
         st = et
 
+        print("- Generating 1-4 data")
+        pairs14 = bonded.generate_14_data(meGO_ensembles)
+        et = time.time()
+        print("- Done in:", et - st, "seconds")
+        st = et
+
         print("- Initializing LJ dataset")
-        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, all_bd, args)
+        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, args)
         del matrices
         gc.collect()
         et = time.time()
@@ -122,7 +122,7 @@ def main():
         print("- Generating LJ dataset")
         meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
-        meGO_LJ_14 = pairs14
+        meGO_LJ_14 = bonded.generate_14_data(meGO_ensembles)
         et = time.time()
         print("- Done in:", et - st, "seconds")
         st = et
