@@ -1,14 +1,13 @@
 from . import io
 from . import contacts_init
-from .ensemble_data import MeGOEnsemble
 
 import numpy as np
+import os
 import pandas as pd
 import parmed
-import warnings
-import os
 import sys
 import time
+import warnings
 
 
 def check_intra_domain_complementarity(matrices):
@@ -291,7 +290,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     Parameters
     ----------
     ensemble : dict
-        The initialized meGO ensemble (from contacts.init_meGO_ensemble).
+        The initialized meGO ensemble (from MeGOEnsemble.from_topology).
     args : argparse.Namespace
         Parsed command-line / config-file arguments.
     custom_dict : dict
@@ -372,42 +371,3 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         "train_matrices": train_contact_matrices,
     }
     return ensemble, matrices
-
-
-def init_meGO_ensemble(args, custom_dict):
-    print("\t-", "Initializing system topology")
-    base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
-
-    if not os.path.isfile(base_topology_path):
-        raise FileNotFoundError(f"{base_topology_path} not found.")
-
-    print("\t\t-", f"Reading {base_topology_path}")
-    # ignore the dihedral type overriding in parmed
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        defines = {"DISULFIDE": 1}
-        base_reference_topology = parmed.load_file(base_topology_path, defines)
-    (
-        topology_dataframe,
-        molecules_idx_sbtype_dictionary,
-        sbtype_c12_dict,
-        sbtype_mg_c12_dict,
-        sbtype_mg_c6_dict,
-        sbtype_name_dict,
-        sbtype_moltype_dict,
-        molecule_type_dict,
-    ) = contacts_init.initialize_topology(base_reference_topology, custom_dict, args)
-
-    return MeGOEnsemble(
-        topology=base_reference_topology,
-        topology_dataframe=topology_dataframe,
-        molecules_idx_sbtype_dictionary=molecules_idx_sbtype_dictionary,
-        sbtype_c12_dict=sbtype_c12_dict,
-        sbtype_mg_c12_dict=sbtype_mg_c12_dict,
-        sbtype_mg_c6_dict=sbtype_mg_c6_dict,
-        sbtype_name_dict=sbtype_name_dict,
-        sbtype_moltype_dict=sbtype_moltype_dict,
-        sbtype_number_dict=topology_dataframe[["sb_type", "number"]].set_index("sb_type")["number"].to_dict(),
-        sbtype_type_dict={key: name for key, name in topology_dataframe[["sb_type", "type"]].values},
-        molecule_type_dict=molecule_type_dict,
-    )

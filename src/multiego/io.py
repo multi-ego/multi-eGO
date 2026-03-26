@@ -381,6 +381,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
         parameters,
         output_dir,
     )
+    meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
     write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
     print("\t- " f"Output files written to {output_dir}")
@@ -790,3 +791,115 @@ def parse_json(file_path):
             sys.exit()
     else:
         return {}
+
+
+def sort_LJ(meGO_ensemble, meGO_LJ):
+    """
+    Sorts and deduplicates the final LJ DataFrame for output, ensuring ai <= aj
+    ordering both within and across molecules.
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        The initialized meGO ensemble.
+    meGO_LJ : pd.DataFrame
+        The LJ DataFrame from generate_LJ.
+
+    Returns
+    -------
+    pd.DataFrame
+        Sorted and deduplicated LJ DataFrame ready for writing.
+    """
+    meGO_LJ["type"] = 1
+    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble.sbtype_number_dict).astype(int)
+    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble.sbtype_number_dict).astype(int)
+
+    meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)].copy()
+
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        (meGO_LJ["molecule_name_ai"].astype(str) <= meGO_LJ["molecule_name_aj"].astype(str)),
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+        [
+            meGO_LJ["aj"],
+            meGO_LJ["ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["number_aj"],
+            meGO_LJ["number_ai"],
+        ],
+    )
+
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"],
+        np.where(
+            meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],
+            [
+                meGO_LJ["ai"],
+                meGO_LJ["aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["number_ai"],
+                meGO_LJ["number_aj"],
+            ],
+            [
+                meGO_LJ["aj"],
+                meGO_LJ["ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["number_aj"],
+                meGO_LJ["number_ai"],
+            ],
+        ),
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+    )
+
+    meGO_LJ.sort_values(by=["molecule_name_ai", "molecule_name_aj", "number_ai", "number_aj"], inplace=True)
+
+    final_fields = [
+        "ai",
+        "aj",
+        "type",
+        "c6",
+        "c12",
+        "sigma",
+        "epsilon",
+        "probability",
+        "rc_probability",
+        "md_threshold",
+        "rc_threshold",
+        "same_chain",
+        "source",
+        "bond_distance",
+        "number_ai",
+        "number_aj",
+    ]
+
+    return meGO_LJ[final_fields]

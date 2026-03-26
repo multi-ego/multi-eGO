@@ -11,6 +11,7 @@ from src.multiego import io
 from src.multiego import lj
 from src.multiego import mg
 from src.multiego import pairs
+from src.multiego.ensemble_data import MeGOEnsemble
 
 
 def meGO_parsing():
@@ -61,7 +62,7 @@ def meGO_parsing():
 
     print(f"Running Multi-eGO: {args.egos}\n")
     print("- Processing Multi-eGO topology")
-    mego_ensemble = contacts.init_meGO_ensemble(args, custom_dict)
+    mego_ensemble = MeGOEnsemble.from_topology(args, custom_dict)
 
     return args, mego_ensemble, custom_dict
 
@@ -82,12 +83,6 @@ def main():
     io.check_files_existence(args)
     if args.egos == "production":
         io.check_matrix_format(args)
-
-    print("- Generating bonded interactions")
-    meGO_ensembles = bonded.generate_bonded_interactions(meGO_ensembles)
-    et = time.time()
-    print("- Done in:", et - st, "seconds")
-    st = et
 
     if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
@@ -134,7 +129,6 @@ def main():
     st = et
 
     print("- Writing Multi-eGO model")
-    meGO_LJ = lj.sort_LJ(meGO_ensembles, meGO_LJ)
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
     print("- Done in:", et - st, "seconds")
