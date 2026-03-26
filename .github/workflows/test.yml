@@ -56,8 +56,8 @@ jobs:
     - name: Run tests
       shell: bash -el {0}
       run: |
-        $CONDA/bin/python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        $CONDA/bin/python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
 
   build-linux-pip:
     runs-on: ubuntu-latest
@@ -71,8 +71,8 @@ jobs:
       run: pip install -r requirements.txt
     - name: Run tests
       run: |
-        python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
 
   build-macos-conda:
     runs-on: macos-14
@@ -92,8 +92,8 @@ jobs:
     - name: Run tests
       shell: bash -el {0}
       run: |
-        $CONDA/bin/python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        $CONDA/bin/python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
 
   build-macos-pip:
     runs-on: macos-latest
@@ -107,5 +107,5 @@ jobs:
       run: pip install -r requirements.txt
     - name: Run tests
       run: |
-        python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
