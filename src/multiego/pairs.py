@@ -12,12 +12,12 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
         graph[a].add(b)
         graph[b].add(a)
 
-    exclusion_bonds, p14, six_bonds = [], [], []
+    exclusion_bonds, p14, nth_bonds = [], [], []
 
     for atom in reduced_topology["number"].to_list():
         visited = set([atom])
         ex = set()
-        ex6 = set()
+        ex5 = set()
         ex14 = set()
         queue = deque([(atom, 0)])
 
@@ -28,13 +28,13 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
                 pass  # skip the origin atom
             elif 1 <= depth <= 3:
                 ex.add(current_atom)
-                ex6.add(current_atom)
+                ex5.add(current_atom)
                 if depth == 3:
                     ex14.add(current_atom)
-            elif 4 <= depth <= 6:
-                ex6.add(current_atom)
+            elif 4 <= depth <= 5:
+                ex5.add(current_atom)
 
-            # Stop traversal after depth 6
+            # Stop traversal after depth 5
             if depth < 5:
                 for neighbor in graph[current_atom]:
                     if neighbor not in visited:
@@ -45,14 +45,14 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
         for e in ex:
             exclusion_bonds.append(f"{atom}_{e}")
             exclusion_bonds.append(f"{e}_{atom}")
-        for e in ex6:
-            six_bonds.append(f"{atom}_{e}")
-            six_bonds.append(f"{e}_{atom}")
+        for e in ex5:
+            nth_bonds.append(f"{atom}_{e}")
+            nth_bonds.append(f"{e}_{atom}")
         for e in ex14:
             p14.append(f"{atom}_{e}")
             p14.append(f"{e}_{atom}")
 
-    return exclusion_bonds, p14, six_bonds
+    return exclusion_bonds, p14, nth_bonds
 
 
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
