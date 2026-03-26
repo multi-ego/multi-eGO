@@ -1,6 +1,6 @@
 #!/bin/bash
 MEGO_ROOT=$(realpath ..)
-TEST_DIR=${MEGO_ROOT}/test
+TEST_DIR=${MEGO_ROOT}/tests
 TEST_CASES="${TEST_DIR}/test_cases.txt"
 
 # TODO make dependent on set parameters and loop etc
