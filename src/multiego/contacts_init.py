@@ -1,10 +1,8 @@
 from .resources import type_definitions
 from . import io
 
+import numpy as np
 import pandas as pd
-import parmed
-import warnings
-import os
 
 
 def assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology):
@@ -128,48 +126,84 @@ def initialize_topology(topology, custom_dict, args):
     )
 
 
-def init_meGO_ensemble(args, custom_dict):
-    print("\t-", "Initializing system topology")
-    base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
+def get_lj_params(topology):
+    lj_params = pd.DataFrame(columns=["ai", "c6", "c12"], index=np.arange(len(topology.atoms)))
+    for i, atom in enumerate(topology.atoms):
+        c6, c12 = atom.sigma * 0.1, atom.epsilon * 4.184
+        lj_params.loc[i] = [atom.atom_type, c6, c12]
 
-    if not os.path.isfile(base_topology_path):
-        raise FileNotFoundError(f"{base_topology_path} not found.")
+    return lj_params
 
-    print("\t\t-", f"Reading {base_topology_path}")
-    # ignore the dihedral type overriding in parmed
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        defines = {"DISULFIDE": 1}
-        base_reference_topology = parmed.load_file(base_topology_path, defines)
-    (
-        topology_dataframe,
-        molecules_idx_sbtype_dictionary,
-        sbtype_c12_dict,
-        sbtype_mg_c12_dict,
-        sbtype_mg_c6_dict,
-        sbtype_name_dict,
-        sbtype_moltype_dict,
-        molecule_type_dict,
-    ) = initialize_topology(base_reference_topology, custom_dict, args)
 
-    ensemble = {}
-    ensemble["topology"] = base_reference_topology
-    ensemble["topology_dataframe"] = topology_dataframe
-    ensemble["molecules_idx_sbtype_dictionary"] = (
-        molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
+def get_lj_pairs(topology):
+    """
+    Extracts Lennard-Jones pair information from a molecular topology.
+
+    Parameters
+    ----------
+    topology: parmed.topology object
+        Contains the molecular topology information
+
+    Returns
+    -------
+    pairs_dataframe: pd.DataFrame
+        DataFrame containing Lennard-Jones pair information
+    """
+    lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(topology.parameterset.nbfix_types)))
+    for i, (sbtype_i, sbtype_j) in enumerate(topology.parameterset.nbfix_types):
+        key = (sbtype_i, sbtype_j)
+        # This is read as rmin not as sigma --> must be scaled by 1/2**(1/6)
+        # Any contact present more then once is overwritten by the last one in the nonbond_params
+        c12, c6 = topology.parameterset.nbfix_types[key][0] * 4.184, topology.parameterset.nbfix_types[key][1] * 0.1 / (
+            2 ** (1 / 6)
+        )
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
+        sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
+        lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
+
+    return lj_pairs
+
+
+def get_lj14_pairs(topology):
+    """
+    Extracts Lennard-Jones pair information from a molecular topology.
+
+    Parameters
+    ----------
+    topology: parmed.topology object
+        Contains the molecular topology information
+
+    Returns
+    -------
+    pairs_dataframe: pd.DataFrame
+        DataFrame containing Lennard-Jones pair information
+    """
+    lj14_pairs = pd.DataFrame()
+    for mol, top in topology.molecules.items():
+        pair14 = [
+            {
+                "ai": pair.atom1.type,
+                "aj": pair.atom2.type,
+                "c6": pair.type.sigma * 0.1,
+                "c12": pair.type.epsilon * 4.184,
+            }
+            for pair in top[0].adjusts
+        ]
+        df = pd.DataFrame(pair14)
+        lj14_pairs = pd.concat([lj14_pairs, df])
+
+    lj14_pairs = lj14_pairs.reset_index()
+
+    # Calculate "epsilon" using a vectorized conditional expression
+    lj14_pairs["epsilon"] = np.where(lj14_pairs["c6"] > 0, lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]), -lj14_pairs["c12"])
+
+    # Calculate "sigma" using a vectorized conditional expression
+    lj14_pairs["sigma"] = np.where(
+        lj14_pairs["c6"] > 0,
+        (lj14_pairs["c12"] / lj14_pairs["c6"]) ** (1 / 6),
+        lj14_pairs["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
     )
-    ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_mg_c12_dict"] = sbtype_mg_c12_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_mg_c6_dict"] = sbtype_mg_c6_dict  # {mego_type: c12} N_mol_resnum: c12
-    ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
-    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
-    ensemble["sbtype_number_dict"] = (
-        ensemble["topology_dataframe"][["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
-    )  # {mego_type: atomnumer} N_mol_resnum: 1
-    # {mego_type: atomtype} N_mol_resnum: NL
-    ensemble["sbtype_type_dict"] = {key: name for key, name in ensemble["topology_dataframe"][["sb_type", "type"]].values}
-    # {molecule: moltype} mol: protein
-    ensemble["molecule_type_dict"] = molecule_type_dict
-    ensemble["train_matrix_tuples"] = []
 
-    return ensemble
+    lj14_pairs.drop(columns=["c6", "c12"], inplace=True)
+
+    return lj14_pairs

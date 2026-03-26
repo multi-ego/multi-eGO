@@ -1,6 +1,5 @@
 from . import io
-from . import topology
-from .topology_init import initialize_topology
+from . import contacts_init
 
 import numpy as np
 import pandas as pd
@@ -127,13 +126,13 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             warnings.simplefilter("ignore")
             topol = parmed.load_file(topology_path)
 
-        lj_data = topology.get_lj_params(topol)
-        lj_pairs = topology.get_lj_pairs(topol)
+        lj_data = contacts_init.get_lj_params(topol)
+        lj_pairs = contacts_init.get_lj_pairs(topol)
         reversed_lj_pairs = lj_pairs.rename(columns={"ai": "aj", "aj": "ai"})
         symmetric_lj_pairs = pd.concat([lj_pairs, reversed_lj_pairs])
         symmetric_lj_pairs = symmetric_lj_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
 
-        lj14_pairs = topology.get_lj14_pairs(topol)
+        lj14_pairs = contacts_init.get_lj14_pairs(topol)
         reversed_lj14_pairs = lj14_pairs.rename(columns={"ai": "aj", "aj": "ai"})
         symmetric_lj14_pairs = pd.concat([lj14_pairs, reversed_lj14_pairs])
         symmetric_lj14_pairs = symmetric_lj14_pairs.drop_duplicates(subset=["ai", "aj"]).reset_index(drop=True)
@@ -240,7 +239,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 _,
                 _,
                 _,
-            ) = initialize_topology(topol, custom_dict, args)
+            ) = contacts_init.initialize_topology(topol, custom_dict, args)
 
             train_topology_dataframe = pd.concat(
                 [train_topology_dataframe, temp_topology_dataframe],
@@ -311,3 +310,50 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         sys.exit()
 
     return ensemble, matrices
+
+
+def init_meGO_ensemble(args, custom_dict):
+    print("\t-", "Initializing system topology")
+    base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
+
+    if not os.path.isfile(base_topology_path):
+        raise FileNotFoundError(f"{base_topology_path} not found.")
+
+    print("\t\t-", f"Reading {base_topology_path}")
+    # ignore the dihedral type overriding in parmed
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        defines = {"DISULFIDE": 1}
+        base_reference_topology = parmed.load_file(base_topology_path, defines)
+    (
+        topology_dataframe,
+        molecules_idx_sbtype_dictionary,
+        sbtype_c12_dict,
+        sbtype_mg_c12_dict,
+        sbtype_mg_c6_dict,
+        sbtype_name_dict,
+        sbtype_moltype_dict,
+        molecule_type_dict,
+    ) = contacts_init.initialize_topology(base_reference_topology, custom_dict, args)
+
+    ensemble = {}
+    ensemble["topology"] = base_reference_topology
+    ensemble["topology_dataframe"] = topology_dataframe
+    ensemble["molecules_idx_sbtype_dictionary"] = (
+        molecules_idx_sbtype_dictionary  # molecule, {index, mego_type} -> 1: N_mol_resnum
+    )
+    ensemble["sbtype_c12_dict"] = sbtype_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c12_dict"] = sbtype_mg_c12_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_mg_c6_dict"] = sbtype_mg_c6_dict  # {mego_type: c12} N_mol_resnum: c12
+    ensemble["sbtype_name_dict"] = sbtype_name_dict  # {mego_type: atom_name} N_mol_resnum: N
+    ensemble["sbtype_moltype_dict"] = sbtype_moltype_dict  # {mego_type: moltype} N_mol_resnum: protein
+    ensemble["sbtype_number_dict"] = (
+        ensemble["topology_dataframe"][["sb_type", "number"]].set_index("sb_type")["number"].to_dict()
+    )  # {mego_type: atomnumer} N_mol_resnum: 1
+    # {mego_type: atomtype} N_mol_resnum: NL
+    ensemble["sbtype_type_dict"] = {key: name for key, name in ensemble["topology_dataframe"][["sb_type", "type"]].values}
+    # {molecule: moltype} mol: protein
+    ensemble["molecule_type_dict"] = molecule_type_dict
+    ensemble["train_matrix_tuples"] = []
+
+    return ensemble

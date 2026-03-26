@@ -1,8 +1,58 @@
 from .resources import type_definitions
-from . import topology
 
+from collections import defaultdict, deque
 import numpy as np
 import pandas as pd
+
+
+def generate_bond_exclusions(reduced_topology, bond_pair):
+    # Build the connectivity graph
+    graph = defaultdict(set)
+    for a, b in bond_pair:
+        graph[a].add(b)
+        graph[b].add(a)
+
+    exclusion_bonds, p14, six_bonds = [], [], []
+
+    for atom in reduced_topology["number"].to_list():
+        visited = set([atom])
+        ex = set()
+        ex6 = set()
+        ex14 = set()
+        queue = deque([(atom, 0)])
+
+        while queue:
+            current_atom, depth = queue.popleft()
+
+            if depth == 0:
+                pass  # skip the origin atom
+            elif 1 <= depth <= 3:
+                ex.add(current_atom)
+                ex6.add(current_atom)
+                if depth == 3:
+                    ex14.add(current_atom)
+            elif 4 <= depth <= 6:
+                ex6.add(current_atom)
+
+            # Stop traversal after depth 6
+            if depth < 5:
+                for neighbor in graph[current_atom]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append((neighbor, depth + 1))
+
+        # Add bidirectional string identifiers
+        for e in ex:
+            exclusion_bonds.append(f"{atom}_{e}")
+            exclusion_bonds.append(f"{e}_{atom}")
+        for e in ex6:
+            six_bonds.append(f"{atom}_{e}")
+            six_bonds.append(f"{e}_{atom}")
+        for e in ex14:
+            p14.append(f"{atom}_{e}")
+            p14.append(f"{e}_{atom}")
+
+    return exclusion_bonds, p14, six_bonds
 
 
 def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
@@ -46,7 +96,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         type_atnum_dict = reduced_topology.astype({"number": int}).set_index("number")["sb_type"].to_dict()
         atnum_type_dict = reduced_topology.set_index("sb_type")["number"].to_dict()
 
-        exclusion_bonds, p14, b6 = topology.generate_bond_exclusions(reduced_topology, bond_pair)
+        exclusion_bonds, p14, b6 = generate_bond_exclusions(reduced_topology, bond_pair)
 
         pairs = pd.DataFrame()
 

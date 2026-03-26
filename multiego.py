@@ -11,7 +11,6 @@ from src.multiego import io
 from src.multiego import lj
 from src.multiego import mg
 from src.multiego import pairs
-from src.multiego import topology_init
 from tools.face_generator import generate_face
 from src.multiego.arguments import args_dict
 from src.multiego.arguments import args_dict_global
@@ -121,7 +120,7 @@ for a contact pair.
 
     print(f"Running Multi-eGO: {args.egos}\n")
     print("- Processing Multi-eGO topology")
-    mego_ensemble = topology_init.init_meGO_ensemble(args, custom_dict)
+    mego_ensemble = contacts.init_meGO_ensemble(args, custom_dict)
 
     if args.symmetry_file and args.symmetry:
         print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
