@@ -15,6 +15,7 @@ from scipy.special import logsumexp
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
+from multiego import bonded
 from multiego import type_definitions
 from multiego import io
 
@@ -655,7 +656,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         else:
             molecule_type = "other"
 
-        types = type_definitions.lj14_generator(topology_df_i)
+        types = bonded.proteins_atoms_mask(topology_df_i)
 
         if molecule_type == "other":
             # read user pairs

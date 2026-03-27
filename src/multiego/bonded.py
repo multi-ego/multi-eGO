@@ -168,6 +168,47 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
     return pairs_14
 
 
+def proteins_atoms_mask(df):
+    """
+    Generates types dictionary based on the provided DataFrame.
+
+    Args:
+    - df (pd.DataFrame): DataFrame containing atom types and parameters.
+
+    Returns:
+    - types_dict (dict): Dictionary containing different atom type combinations.
+    """
+    types_dict = {}
+    types_dict["first_backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] == "NL")).to_numpy()
+    types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
+    types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
+    types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
+    types_dict["backbone_calpha"] = (df["name"] == "CA").to_numpy()
+    types_dict["ct_oxygen"] = ((df["name"] == "O1") | (df["name"] == "O2")).to_numpy()
+    types_dict["sidechain_cb"] = (df["name"] == "CB").to_numpy()
+    types_dict["sidechain_cgs"] = (
+        (df["name"] == "CG")
+        | (df["name"] == "CG1")
+        | (df["name"] == "CG2")
+        | (df["name"] == "SG")
+        | (df["name"] == "OG")
+        | (df["name"] == "OG1") & (df["resname"] != "PRO")
+    ).to_numpy()
+    types_dict["sidechain_cds"] = (
+        (df["name"] == "CD")
+        | (df["name"] == "CD1")
+        | (df["name"] == "CD2")
+        | (df["name"] == "SD")
+        | (df["name"] == "OD")
+        | (df["name"] == "OD1")
+        | (df["name"] == "OD2")
+        | (df["name"] == "ND1")
+        | (df["name"] == "ND2") & (df["resname"] != "PRO")
+    ).to_numpy()
+
+    return types_dict
+
+
 def protein_LJ14(reduced_topology):
     """
     Generates multi-eGO-specific 1-4 LJ pairs for a protein molecule.
@@ -198,45 +239,8 @@ def protein_LJ14(reduced_topology):
         where ``source`` is always ``"1-4"``. Atom indices (``ai``, ``aj``)
         are returned as strings matching the ``number`` column.
     """
-    # Build named selections for the atom groups referenced in atom_type_combinations
-    first_backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] == "NL")]
-    backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] != "NL")]
-    backbone_carbonyl = reduced_topology.loc[reduced_topology["name"] == "C"]
-    backbone_calpha = reduced_topology.loc[reduced_topology["name"] == "CA"]
-    backbone_oxygen = reduced_topology.loc[reduced_topology["name"] == "O"]
-    ct_oxygen = reduced_topology.loc[(reduced_topology["name"] == "O1") | (reduced_topology["name"] == "O2")]
-    sidechain_cb = reduced_topology.loc[reduced_topology["name"] == "CB"]
-    sidechain_cgs = reduced_topology.loc[
-        (reduced_topology["name"] == "CG")
-        | (reduced_topology["name"] == "CG1")
-        | (reduced_topology["name"] == "CG2")
-        | (reduced_topology["name"] == "SG")
-        | (reduced_topology["name"] == "OG")
-        | (reduced_topology["name"] == "OG1") & (reduced_topology["resname"] != "PRO")
-    ]
-    sidechain_cds = reduced_topology.loc[
-        (reduced_topology["name"] == "CD")
-        | (reduced_topology["name"] == "CD1")
-        | (reduced_topology["name"] == "CD2")
-        | (reduced_topology["name"] == "SD")
-        | (reduced_topology["name"] == "OD")
-        | (reduced_topology["name"] == "OD1")
-        | (reduced_topology["name"] == "OD2")
-        | (reduced_topology["name"] == "ND1")
-        | (reduced_topology["name"] == "ND2") & (reduced_topology["resname"] != "PRO")
-    ]
-
-    loc_geom_atoms = {
-        "first_backbone_nitrogen": first_backbone_nitrogen,
-        "backbone_nitrogen": backbone_nitrogen,
-        "backbone_carbonyl": backbone_carbonyl,
-        "backbone_calpha": backbone_calpha,
-        "backbone_oxygen": backbone_oxygen,
-        "ct_oxygen": ct_oxygen,
-        "sidechain_cb": sidechain_cb,
-        "sidechain_cgs": sidechain_cgs,
-        "sidechain_cds": sidechain_cds,
-    }
+    types_dict = proteins_atoms_mask(reduced_topology)
+    loc_geom_atoms = {key: reduced_topology.loc[mask] for key, mask in types_dict.items()}
 
     pairs = pd.DataFrame()
     # iterate over all atom type combinations defined in the type_definitions

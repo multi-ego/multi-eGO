@@ -172,47 +172,6 @@ from_ff_to_multiego = {
 }
 
 
-def lj14_generator(df):
-    """
-    Generates types dictionary based on the provided DataFrame.
-
-    Args:
-    - df (pd.DataFrame): DataFrame containing atom types and parameters.
-
-    Returns:
-    - types_dict (dict): Dictionary containing different atom type combinations.
-    """
-    types_dict = {}
-    types_dict["first_backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] == "NL")).to_numpy()
-    types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
-    types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
-    types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
-    types_dict["backbone_calpha"] = (df["name"] == "CA").to_numpy()
-    types_dict["ct_oxygen"] = ((df["name"] == "O1") | (df["name"] == "O2")).to_numpy()
-    types_dict["sidechain_cb"] = (df["name"] == "CB").to_numpy()
-    types_dict["sidechain_cgs"] = (
-        (df["name"] == "CG")
-        | (df["name"] == "CG1")
-        | (df["name"] == "CG2")
-        | (df["name"] == "SG")
-        | (df["name"] == "OG")
-        | (df["name"] == "OG1") & (df["resname"] != "PRO")
-    ).to_numpy()
-    types_dict["sidechain_cds"] = (
-        (df["name"] == "CD")
-        | (df["name"] == "CD1")
-        | (df["name"] == "CD2")
-        | (df["name"] == "SD")
-        | (df["name"] == "OD")
-        | (df["name"] == "OD1")
-        | (df["name"] == "OD2")
-        | (df["name"] == "ND1")
-        | (df["name"] == "ND2") & (df["resname"] != "PRO")
-    ).to_numpy()
-
-    return types_dict
-
-
 # Special local repulsion which can be asymmetric
 # List of atom type combinations for LJ14 pairs
 atom_type_combinations = [
