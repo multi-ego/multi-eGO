@@ -127,7 +127,7 @@ inputs/
     ├── topol.top
     └── md_ensemble/
         ├── topol.top
-        ├── intramat_1_1.ndx
+        ├── intramat_1_1.ndx.h5
         └── all-atom.ff/
 ```
 
@@ -179,12 +179,12 @@ inputs/
     ├── topol.top
     ├── reference/
     │   ├── topol.top
-    │   ├── intramat_1_1.ndx
+    │   ├── intramat_1_1.ndx.h5
     │   ├── ffnonbonded.itp
     │   └── topol_mego.top 
     └── md_ensemble/
         ├── topol.top
-        ├── intramat_1_1.ndx
+        ├── intramat_1_1.ndx.h5
         └── all-atom.ff/
 ```
 
@@ -290,4 +290,4 @@ If you use multi-*e*GO in your work, please cite the relevant papers:
 
 5. Stegani, B. and Capelli, R. [Kinetic rates calculation via non-equilibrium dynamics.](https://doi.org/10.1063/5.0277524) *J. Chem. Phys.* 163, 104103 (2025).
 
-6. Kulshrestha, A., et al. [iMultiscale Simulations Elucidate the Mechanism of Polyglutamine Aggregation and the Role of Flanking Domains in Fibril Polymorphism](https://pubs.acs.org/doi/10.1021/acs.jpcb.5c06627) *J. Phys. Chem. B* 129, 43, 11205 (2025)
+6. Kulshrestha, A., et al. [Multiscale Simulations Elucidate the Mechanism of Polyglutamine Aggregation and the Role of Flanking Domains in Fibril Polymorphism](https://pubs.acs.org/doi/10.1021/acs.jpcb.5c06627) *J. Phys. Chem. B* 129, 43, 11205 (2025)
