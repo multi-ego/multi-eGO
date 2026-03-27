@@ -221,16 +221,25 @@ A typical config file looks like:
 ```yaml
 - system: SYSTEM_NAME
 - egos: production
+- symmetry: 
+  - ARG NH1 NH2
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ALA O1 O2
 - input_refs:
-  - reference: reference
+  - reference: reference_a
     train: native_MD
     matrix: intramat_1_1
     epsilon: 0.25
-  - reference: reference
+  - reference: reference_b
     train: fibril
     matrix: intramat_1_1
     epsilon: 0.25
-  - reference: reference
+  - reference: reference_a
     train: fibril
     matrix: intermat_1_1
     epsilon: 0.25
