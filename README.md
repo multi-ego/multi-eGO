@@ -288,6 +288,6 @@ If you use multi-*e*GO in your work, please cite the relevant papers:
 
 4. Stegani, B., et al. [Estimation of Ligand Binding Free Energy Using Multi-eGO.](https://doi.org/10.1021/acs.jcim.4c01545) *J. Chem. Inf. Model.* 65, 351–362 (2025). ([preprint](https://doi.org/10.26434/chemrxiv-2024-jcmgc-v2))
 
-5. Stegani, B. and Capelli, R. [Kinetic rates calculation via non-equilibrium dynamics.](https://arxiv.org/abs/2504.14329) *arXiv* (2025).
+5. Stegani, B. and Capelli, R. [Kinetic rates calculation via non-equilibrium dynamics.](https://doi.org/10.1063/5.0277524) *J. Chem. Phys.* 163, 104103 (2025).
 
 6. Kulshrestha, A., et al. [iMultiscale Simulations Elucidate the Mechanism of Polyglutamine Aggregation and the Role of Flanking Domains in Fibril Polymorphism](https://pubs.acs.org/doi/10.1021/acs.jpcb.5c06627) *J. Phys. Chem. B* 129, 43, 11205 (2025)
