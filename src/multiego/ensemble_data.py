@@ -14,6 +14,7 @@ The module-level helper :func:`_initialize_topology` (private, called by
 ``from_topology``) converts a parmed :class:`~parmed.Structure` into the
 DataFrames and dictionaries required by the rest of the pipeline.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field

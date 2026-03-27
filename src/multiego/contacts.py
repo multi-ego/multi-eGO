@@ -94,9 +94,7 @@ def _index_training_topology(topology, custom_dict):
     topology_dataframe["number"] = new_number
     topology_dataframe["molecule"] = col_molecule
     topology_dataframe["molecule_number"] = col_molecule
-    topology_dataframe[["molecule_number", "molecule_name"]] = topology_dataframe.molecule.str.split(
-        "_", expand=True, n=1
-    )
+    topology_dataframe[["molecule_number", "molecule_name"]] = topology_dataframe.molecule.str.split("_", expand=True, n=1)
     topology_dataframe["resnum"] = new_resnum
 
     from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego.copy()
@@ -104,18 +102,12 @@ def _index_training_topology(topology, custom_dict):
     topology_dataframe = topology_dataframe.replace({"name": from_ff_to_multiego_extended})
 
     topology_dataframe["sb_type"] = (
-        topology_dataframe["name"]
-        + "_"
-        + topology_dataframe["molecule_name"]
-        + "_"
-        + topology_dataframe["resnum"].astype(str)
+        topology_dataframe["name"] + "_" + topology_dataframe["molecule_name"] + "_" + topology_dataframe["resnum"].astype(str)
     )
 
     for molecule in molecules_idx_sbtype_dictionary:
         tmp = topology_dataframe.loc[topology_dataframe["molecule"] == molecule]
-        molecules_idx_sbtype_dictionary[molecule] = (
-            tmp[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
-        )
+        molecules_idx_sbtype_dictionary[molecule] = tmp[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
 
     return topology_dataframe, molecules_idx_sbtype_dictionary
 
