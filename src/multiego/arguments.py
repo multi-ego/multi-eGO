@@ -15,8 +15,8 @@ _args_dict_shared = {
     "--egos": {
         "type": str,
         "choices": ["mg", "production"],
-        "help": "mg: creates a force-field for molten globule simulations."
-        "production: creates a force-field combining random coil simulations and training simulations.",
+        "help": "mg: creates a force-field for molten globule simulations. "
+        "production: creates a force-field combining reference simulations and training simulations.",
     },
     "--p_to_learn": {
         "type": float,
@@ -29,13 +29,11 @@ _args_dict_shared = {
         "help": "The minimum meaningful epsilon value.",
     },
     "--force_split": {
-        "type": bool,
         "default": False,
         "action": "store_true",
         "help": "Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
     },
     "--single_molecule": {
-        "type": bool,
         "default": False,
         "action": "store_true",
         "help": "Enable optimisations valid if you are simulating a single molecule.",
@@ -49,7 +47,6 @@ _args_dict_shared = {
         "help": "Custom dictionary of c12 for special molecules",
     },
     "--no_header": {
-        "type": bool,
         "default": False,
         "action": "store_true",
         "help": "Removes headers from the output files when set",
@@ -64,10 +61,10 @@ _args_dict_shared = {
         "type": str,
         "help": "Symmetry file for the system",
     },
-    "--relative_c12d": {
+    "--learn_tolerance": {
         "default": 0.01,
         "type": float,
-        "help": "Relative deviation from default to set new replulsive c12",
+        "help": "Relative deviation from default to set new c6/c12",
     },
     "--explicit_name": {
         "default": "",
@@ -159,11 +156,11 @@ for a contact pair.
         epilog="""\
   example usage:
 
-  1) generate a random coil prior model to generate the reference data for a single domain intramolecular interactions
-     > python multiego.py --system GB1 --egos rc
+  1) generate a molten-globule prior model (reference data for intramolecular interactions)
+     > python multiego.py --system GB1 --egos mg
 
-  2) generate a production simulation using the reference data in the reference folder and the training data in the md_monomer folder
-     interaction energy is set to 0.3 kJ/mol
+  2) generate a production force-field using the reference data in the reference folder and
+     the training data in the md_monomer folder; interaction energy is set to 0.3 kJ/mol
      > python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
 """,
     )
@@ -179,6 +176,31 @@ for a contact pair.
 
 
 def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
+    """
+    Resolve final argument values from either a YAML config file or the
+    command line, and normalise them into the ``input_refs`` list format
+    expected by the rest of the pipeline.
+
+    If ``args.config`` is set the YAML file takes precedence for any argument
+    that was not explicitly overridden on the command line; otherwise the
+    command-line values are converted into the same ``input_refs`` structure.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Arguments as returned by ``build_parser().parse_args()``.
+    args_dict : dict
+        Full argument specification (single-reference CLI mode).
+    args_dict_global : dict
+        Argument specification for global (config-file) mode.
+    args_dict_single_reference : dict
+        Argument specification for per-reference blocks.
+
+    Returns
+    -------
+    argparse.Namespace
+        Resolved arguments with ``input_refs`` populated.
+    """
 
     if args.config:
 
@@ -274,8 +296,10 @@ def read_config(file, args_dict):
 
     Returns
     -------
-    args_dict : dict
-        The content of the YAML file as a dictionary
+    list
+        The parsed YAML content as a list of entries (scalars or single-key
+        dicts), ready to be consumed by ``combine_configurations`` and
+        ``read_new_input``.
     """
     with open(file, "r") as f:
         yml = yaml.safe_load(f)
@@ -296,19 +320,25 @@ def read_config(file, args_dict):
 
 def read_new_input(args, args_dict_single_input):
     """
-    Checks the input_ref dictionary has the correct keys, and combines it with the non-specified default arguments for each reference.
+    Validate and normalise the ``input_refs`` list parsed from a YAML config.
+
+    Each entry in ``args.input_refs`` is checked for unexpected keys and then
+    merged with per-reference defaults from ``args_dict_single_input``.  Type
+    coercion is applied to every value using the type callable from the spec.
 
     Parameters
     ----------
-    yml : dict
-        The configuration from the YAML file
-    args : dict
-        The command-line arguments with default values
+    args : argparse.Namespace
+        Arguments with ``args.input_refs`` populated from the YAML file.
+        ``args.egos`` must be ``"production"``.
+    args_dict_single_input : dict
+        Per-reference argument specification (keys, types, and defaults).
 
     Returns
     -------
-    dict
-        The combined configuration
+    argparse.Namespace
+        The same ``args`` object with ``input_refs`` replaced by the
+        validated and type-coerced list of per-reference dicts.
     """
 
     if args.egos != "production":
@@ -352,6 +382,28 @@ def read_new_input(args, args_dict_single_input):
 
 
 def convert_command_line_to_new_input(args, args_dict_single_input):
+    """
+    Convert flat command-line arguments into the ``input_refs`` list format.
+
+    Iterates over every reference folder in ``args.reference`` and every
+    matrix file found inside it, building one per-reference dict per matrix.
+    The result is stored in ``args.input_refs`` so the rest of the pipeline
+    can treat CLI-mode and config-file-mode identically.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command-line arguments.  Must have ``system``, ``reference``,
+        ``train``, ``epsilon``, and ``root_dir`` set.
+    args_dict_single_input : dict
+        Per-reference argument specification used to copy any additional
+        per-reference keys from ``args`` into each entry.
+
+    Returns
+    -------
+    argparse.Namespace
+        The same ``args`` object with ``input_refs`` populated.
+    """
     dict_input_ref = []
     appo = 0
     for reference in args.reference:
@@ -378,9 +430,9 @@ def convert_command_line_to_new_input(args, args_dict_single_input):
 def combine_configurations(yml, args, args_dict):
     """
     Combines the configuration from a YAML file with the command-line arguments. By overwriting
-    files from the YAML configuration with the command-line arguments, the function ensures that
+    values from the YAML configuration with the command-line arguments, the function ensures that
     the command-line arguments take precedence over the configuration file. Overwriting is done
-    directly on the args dictionary.
+    directly on the args namespace.
 
     Parameters
     ----------
@@ -404,7 +456,6 @@ def combine_configurations(yml, args, args_dict):
             parse_key = f"--{key}"
             default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
 
-            # TODO go back using is instead of ==
             if hasattr(args, key) and getattr(args, key) == default_value:
                 setattr(args, key, value)
         else:
