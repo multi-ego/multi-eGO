@@ -649,8 +649,8 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     reference_contact_matrices = {}
     train_contact_matrices = {}
     train_contact_matrices_general = {}
-    computed_contact_matrices = set()   # set for O(1) membership checks
-    computed_train_topologies = {}      # simulation_path → (topology_df, sbtype_dict)
+    computed_contact_matrices = set()  # set for O(1) membership checks
+    computed_train_topologies = {}  # simulation_path → (topology_df, sbtype_dict)
     train_topology_dataframe = pd.DataFrame()
 
     for reference in args.input_refs:
@@ -664,7 +664,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
         reference_contact_matrices[name] = contact_matrix
         et = time.time()
-        print("\t- Done in:", et - st, "seconds")
+        print(f"\t- Done in: {et - st:.2f} s")
         st = et
 
     # TODO: enable once all test cases support intra-domain splitting
@@ -690,7 +690,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
             ensemble.train_matrix_tuples.append((name, ref_name))
             et = time.time()
-            print("\t- Done in:", et - st, "seconds")
+            print(f"\t- Done in: {et - st:.2f} s")
             st = et
 
     del train_contact_matrices_general

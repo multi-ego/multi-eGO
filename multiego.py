@@ -78,7 +78,7 @@ def main():
     args, meGO_ensembles, custom_dict = meGO_parsing()
 
     st = time.time()
-    print("- Done in:", st - bt, "seconds")
+    print(f"- Done in: {st - bt:.2f} s")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
     if args.egos == "production":
@@ -86,13 +86,13 @@ def main():
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
-        print("- Done in:", et - st, "seconds")
+        print(f"- Done in: {et - st:.2f} s")
         st = et
 
         print("- Generating 1-4 data")
         pairs14 = bonded.generate_14_data(meGO_ensembles)
         et = time.time()
-        print("- Done in:", et - st, "seconds")
+        print(f"- Done in: {et - st:.2f} s")
         st = et
 
         print("- Initializing LJ dataset")
@@ -100,7 +100,7 @@ def main():
         del matrices
         gc.collect()
         et = time.time()
-        print("- Done in:", et - st, "seconds")
+        print(f"- Done in: {et - st:.2f} s")
         st = et
 
         print("- Generating LJ dataset")
@@ -108,7 +108,7 @@ def main():
         del train_dataset
         gc.collect()
         et = time.time()
-        print("- Done in:", et - st, "seconds")
+        print(f"- Done in: {et - st:.2f} s")
         st = et
 
     elif args.egos == "mg":
@@ -117,20 +117,20 @@ def main():
         stat_str = io.print_stats(meGO_LJ)
         meGO_LJ_14 = bonded.generate_14_data(meGO_ensembles)
         et = time.time()
-        print("- Done in:", et - st, "seconds")
+        print(f"- Done in: {et - st:.2f} s")
         st = et
 
     print("- Finalizing pairs and exclusions")
     meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
     et = time.time()
-    print("- Done in:", et - st, "seconds")
+    print(f"- Done in: {et - st:.2f} s")
     st = et
 
     print("- Writing Multi-eGO model")
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
-    print("- Done in:", et - st, "seconds")
-    print("- Ran in:", et - bt, "seconds")
+    print(f"- Done in: {et - st:.2f} s")
+    print(f"- Ran in: {et - bt:.2f} s")
 
     generate_face.print_goodbye()
 

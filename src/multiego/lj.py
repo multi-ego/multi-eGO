@@ -420,9 +420,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
 
     et = time.time()
-    elapsed_time = et - st
+    print(f"\t- Done in: {et - st:.2f} s")
     st = et
-    print("\t- Done in:", elapsed_time, "seconds")
 
     if parameters.symmetry:
         print("\t- Apply the defined atomic symmetries")
@@ -430,9 +429,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
-        elapsed_time = et - st
+        print(f"\t- Done in: {et - st:.2f} s")
         st = et
-        print("\t- Done in:", elapsed_time, "seconds")
 
     print("\t- Merging multiple states (training, symmetries, inter/intra)")
 
@@ -556,7 +554,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     )
 
     et = time.time()
-    elapsed_time = et - st
-    print("\t- Done in:", elapsed_time, "seconds")
+    print(f"\t- Done in: {et - st:.2f} s")
 
     return meGO_LJ, meGO_LJ_14, stat_str
