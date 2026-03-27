@@ -1,5 +1,26 @@
+"""
+contacts.py — contact matrix processing for multi-eGO.
+
+This module covers two related stages of the pipeline:
+
+1. **Training topology indexing** (``_index_training_topology``):
+   Lightweight helper that builds only the per-atom DataFrame and the
+   atom-index → sb_type mapping needed when loading training contact matrices.
+   This is intentionally narrower than the full initialisation in
+   ``ensemble_data._initialize_topology`` — LJ parameter lookup and all
+   ``sbtype_*`` dict extractions are omitted because they are not needed for
+   training topologies.
+
+3. **Contact matrix loading** (``init_meGO_matrices`` and its private helpers):
+   Reads reference and training contact matrices, annotates them with prior LJ
+   parameters from the force-field topology, and computes the adaptive
+   probability thresholds used by ``lj.set_sig_epsilon``.
+
+Private helpers are prefixed with ``_`` and are not part of the public API.
+"""
+
 from . import io
-from . import contacts_init
+from . import type_definitions
 
 import numpy as np
 import os
@@ -10,33 +31,304 @@ import time
 import warnings
 
 
+# ---------------------------------------------------------------------------
+# Topology initialisation
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Training topology indexing (private — used only by _load_train_matrix)
+# ---------------------------------------------------------------------------
+
+
+def _index_training_topology(topology, custom_dict):
+    """
+    Build a per-atom DataFrame and the atom-index → sb_type mapping for a
+    training topology.
+
+    This is a lightweight subset of the full topology initialisation performed
+    by ``MeGOEnsemble.from_topology``. It only constructs the two data
+    structures that ``_load_train_matrix`` actually needs:
+
+    - the topology DataFrame (used later in ``init_meGO_matrices`` to check
+      that all non-hydrogen atom names have been mapped to multi-eGO sb_types)
+    - the ``molecules_idx_sbtype_dictionary`` (used by
+      ``io.read_molecular_contacts`` to remap raw atom indices to sb_type
+      labels)
+
+    LJ parameter lookup and all ``sbtype_*`` dict extractions are intentionally
+    omitted — those already live on the ``MeGOEnsemble`` built from the base
+    topology and are not needed here.
+
+    Parameters
+    ----------
+    topology : parmed.Structure
+        Loaded GROMACS training topology.
+    custom_dict : dict
+        Additional atom-name remappings for non-standard residues, merged on
+        top of ``type_definitions.from_ff_to_multiego``.
+
+    Returns
+    -------
+    topology_dataframe : pd.DataFrame
+        Per-atom DataFrame with columns ``number``, ``molecule``,
+        ``molecule_number``, ``molecule_name``, ``resnum``, ``name``,
+        and ``sb_type``.
+    molecules_idx_sbtype_dictionary : dict
+        ``{molecule_key: {atom_number_str: sb_type}}`` mapping atom indices
+        to sb_types per molecule, where ``molecule_key`` is
+        ``"{number}_{molecule_name}"``.
+    """
+    topology_dataframe = pd.DataFrame()
+    new_number, col_molecule, new_resnum = [], [], []
+    molecules_idx_sbtype_dictionary = {}
+
+    for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
+        molecules_idx_sbtype_dictionary[f"{molecule_number}_{molecule_name}"] = {}
+        topology_dataframe = pd.concat([topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        for atom in molecule_topology[0].atoms:
+            new_number.append(str(atom.idx + 1))
+            col_molecule.append(f"{molecule_number}_{molecule_name}")
+            new_resnum.append(str(atom.residue.number))
+
+    topology_dataframe["number"] = new_number
+    topology_dataframe["molecule"] = col_molecule
+    topology_dataframe["molecule_number"] = col_molecule
+    topology_dataframe[["molecule_number", "molecule_name"]] = topology_dataframe.molecule.str.split(
+        "_", expand=True, n=1
+    )
+    topology_dataframe["resnum"] = new_resnum
+
+    from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego.copy()
+    from_ff_to_multiego_extended.update(custom_dict)
+    topology_dataframe = topology_dataframe.replace({"name": from_ff_to_multiego_extended})
+
+    topology_dataframe["sb_type"] = (
+        topology_dataframe["name"]
+        + "_"
+        + topology_dataframe["molecule_name"]
+        + "_"
+        + topology_dataframe["resnum"].astype(str)
+    )
+
+    for molecule in molecules_idx_sbtype_dictionary:
+        tmp = topology_dataframe.loc[topology_dataframe["molecule"] == molecule]
+        molecules_idx_sbtype_dictionary[molecule] = (
+            tmp[["number", "sb_type"]].set_index("number")["sb_type"].to_dict()
+        )
+
+    return topology_dataframe, molecules_idx_sbtype_dictionary
+
+
+# ---------------------------------------------------------------------------
+# LJ parameter extraction (private — used only by _load_reference_matrix)
+# ---------------------------------------------------------------------------
+
+
+def _get_lj_params(topology):
+    """
+    Extract per-atom LJ parameters from a parmed topology.
+
+    Parameters are read from each atom's ``sigma`` (Angstrom to nm via x0.1)
+    and ``epsilon`` (kcal/mol to kJ/mol via x4.184) attributes and returned as
+    geometric-mean-ready c6/c12 values.
+
+    Parameters
+    ----------
+    topology : parmed.Structure
+        Loaded GROMACS topology.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ``ai`` (atom type string), ``c6``, and ``c12``,
+        indexed 0...N-1 for each atom in the topology.
+    """
+    lj_params = pd.DataFrame(columns=["ai", "c6", "c12"], index=np.arange(len(topology.atoms)))
+    for i, atom in enumerate(topology.atoms):
+        lj_params.loc[i] = [atom.atom_type, atom.sigma * 0.1, atom.epsilon * 4.184]
+    return lj_params
+
+
+def _get_lj_pairs(topology):
+    """
+    Extract explicit nonbonded pair parameters (``[nonbond_params]``) from a
+    parmed topology as LJ sigma/epsilon values.
+
+    Values are stored internally as rmin (not sigma), so the c6 column is
+    scaled by ``1 / 2^(1/6)`` on read. If a pair type appears more than once,
+    the last entry is used (consistent with GROMACS behaviour).
+
+    Parameters
+    ----------
+    topology : parmed.Structure
+        Loaded GROMACS topology.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ``ai``, ``aj``, ``epsilon``, and ``sigma``.
+    """
+    nbfix = topology.parameterset.nbfix_types
+    lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(nbfix)))
+    for i, (sbtype_i, sbtype_j) in enumerate(nbfix):
+        c12 = nbfix[(sbtype_i, sbtype_j)][0] * 4.184
+        c6 = nbfix[(sbtype_i, sbtype_j)][1] * 0.1 / (2 ** (1 / 6))
+        epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
+        sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
+        lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
+    return lj_pairs
+
+
+def _get_lj14_pairs(topology):
+    """
+    Extract 1-4 pair parameters (``[pairs]``) from all molecules in a parmed
+    topology as LJ sigma/epsilon values.
+
+    The parmed ``adjusts`` list stores sigma (Angstrom to nm via x0.1) and
+    epsilon (kcal/mol to kJ/mol via x4.184). Epsilon and sigma are derived from
+    c6/c12 using standard LJ formulae; when c6 = 0 the interaction is purely
+    repulsive and epsilon is set to -c12.
+
+    Parameters
+    ----------
+    topology : parmed.Structure
+        Loaded GROMACS topology containing one or more molecules.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with columns ``ai``, ``aj``, ``epsilon``, and ``sigma``,
+        concatenated across all molecules.
+    """
+    lj14_pairs = pd.DataFrame()
+    for mol, top in topology.molecules.items():
+        pair14 = [
+            {
+                "ai": pair.atom1.type,
+                "aj": pair.atom2.type,
+                "c6": pair.type.sigma * 0.1,
+                "c12": pair.type.epsilon * 4.184,
+            }
+            for pair in top[0].adjusts
+        ]
+        lj14_pairs = pd.concat([lj14_pairs, pd.DataFrame(pair14)])
+
+    lj14_pairs = lj14_pairs.reset_index(drop=True)
+    lj14_pairs["epsilon"] = np.where(
+        lj14_pairs["c6"] > 0,
+        lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]),
+        -lj14_pairs["c12"],
+    )
+    lj14_pairs["sigma"] = np.where(
+        lj14_pairs["c6"] > 0,
+        (lj14_pairs["c12"] / lj14_pairs["c6"]) ** (1 / 6),
+        lj14_pairs["c12"] ** (1 / 12) / (2.0 ** (1.0 / 6.0)),
+    )
+    lj14_pairs.drop(columns=["c6", "c12"], inplace=True)
+    return lj14_pairs
+
+
+def _make_symmetric(df):
+    """
+    Return a symmetrised copy of a pairwise DataFrame by concatenating the
+    original with its (ai<->aj)-swapped mirror and deduplicating.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame with at least columns ``ai`` and ``aj``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Deduplicated symmetric DataFrame with reset index.
+    """
+    return (
+        pd.concat([df, df.rename(columns={"ai": "aj", "aj": "ai"})])
+        .drop_duplicates(subset=["ai", "aj"])
+        .reset_index(drop=True)
+    )
+
+
+# ---------------------------------------------------------------------------
+# Contact matrix processing
+# ---------------------------------------------------------------------------
+
+
 def check_intra_domain_complementarity(matrices):
     """
-    Checks that each non-single reference matrix (double intramat_1_1 from two different
-    references) have non overlapping learning flags.
+    Verify that reference matrices covering the same molecule pair (e.g. two
+    separate intramat_1_1 entries from different references) have
+    non-overlapping ``rc_learned`` flags.
+
+    If any atom-pair position is marked as learned in more than one reference,
+    the domain splitting is inconsistent and a ``ValueError`` is raised.
+
+    Parameters
+    ----------
+    matrices : dict
+        Mapping of flat matrix name to contact matrix DataFrame. Each
+        DataFrame must contain a boolean ``rc_learned`` column.
+
+    Raises
+    ------
+    ValueError
+        If any position has ``rc_learned == True`` in more than one reference
+        matrix for the same molecule pair.
     """
-    mats_names = []
-    for key, _ in matrices.items():
-        mats_names.append("_".join(key.split("_")[-3:]))
-    to_check_names = list(set([a for a in mats_names if mats_names.count(a) > 1]))
-    to_check = [[k for k in matrices.keys() if "_".join(k.split("_")[-3:]) in check] for check in to_check_names]
-    for check in to_check:
-        intra_flags = []
-        for key in check:
-            intra_flags.append(matrices[key]["rc_learned"].to_numpy())
-        if np.any(np.sum(intra_flags, axis=0) > 1):
-            raise ValueError(f"Learning flag complementarity not satisfied for {check} (e.g. intra-inter domain splitting)")
+    mats_names = ["_".join(key.split("_")[-3:]) for key in matrices]
+    to_check_names = [n for n in set(mats_names) if mats_names.count(n) > 1]
+    to_check = [[k for k in matrices if "_".join(k.split("_")[-3:]) == name] for name in to_check_names]
+    for group in to_check:
+        flags = [matrices[k]["rc_learned"].to_numpy() for k in group]
+        if np.any(np.sum(flags, axis=0) > 1):
+            raise ValueError(f"Learning flag complementarity not satisfied for {group} " "(e.g. intra-inter domain splitting)")
 
 
 def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference):
     """
-    Initializes a contact matrix for a given simulation.
+    Annotate a training contact matrix with adaptive probability thresholds
+    and prior LJ parameters derived from the corresponding reference matrix.
+
+    The adaptive MD threshold ``md_threshold`` is the smallest probability
+    value such that the cumulative sum of sorted (descending) learned
+    probabilities covers ``args.p_to_learn`` of the total mass. When no
+    contacts are learned (norm = 0), the threshold defaults to 1.
+
+    Two per-contact threshold columns are added:
+
+    - ``rc_threshold``: the RC probability equivalent to ``md_threshold``,
+      scaled by the ratio of epsilon ranges.
+    - ``limit_rc_att``: the RC probability above which the MD contact is
+      considered genuinely attractive. Values below 1 arising from negative
+      ``epsilon_prior`` are clamped to 1.
+
+    Parameters
+    ----------
+    contact_matrix : pd.DataFrame
+        Training contact matrix with at least columns ``probability`` and
+        ``learned`` (boolean flag derived from the reference ``rc_learned``).
+    prior_matrix : pd.DataFrame
+        Corresponding reference contact matrix with column ``epsilon_prior``.
+    args : argparse.Namespace
+        Parsed arguments; ``args.p_to_learn`` and ``args.epsilon_min`` are
+        used.
+    reference : dict
+        Single input_refs entry; ``reference["reference"]`` (name string) and
+        ``reference["epsilon"]`` (= epsilon_0, the maximum interaction energy)
+        are used.
+
+    Returns
+    -------
+    pd.DataFrame
+        The input ``contact_matrix`` with added columns: ``reference``,
+        ``epsilon_0``, ``md_threshold``, ``rc_threshold``, and
+        ``limit_rc_att``.
     """
-    # remove un-learned contacts (intra-inter domain)
-    # contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
-    # calculate adaptive rc/md threshold
-    p_sort = np.sort(contact_matrix["probability"].loc[(contact_matrix["learned"])].to_numpy())[::-1]
+
+    p_sort = np.sort(contact_matrix["probability"].loc[contact_matrix["learned"]].to_numpy())[::-1]
     norm = np.sum(p_sort)
     if norm == 0:
         md_threshold = 1
@@ -53,57 +345,82 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
         (np.maximum(0, prior_matrix["epsilon_prior"]) - args.epsilon_min)
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
-    # this is for 0 : + eps
-    # contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
-    #    (np.maximum(0, prior_matrix["epsilon_prior"]))
-    #    / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-    # )
-    # this is for -eps : + eps
-    # contact_matrix["limit_rc_rep"] = contact_matrix["rc_threshold"] ** (
-    #     (np.maximum(0, prior_matrix["epsilon_prior"]) + args.epsilon_min)
-    #     / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-    # )
 
-    # modify limit_rc_att in the cases where epsilon_prior is negative and limit_rc_att is below 1
-    contact_matrix.loc[(contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0), "limit_rc_att"] = 1
+    # When epsilon_prior is negative the formula can produce limit_rc_att < 1,
+    # which would incorrectly suppress learning. Clamp to 1 in those cases.
+    contact_matrix.loc[
+        (contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0),
+        "limit_rc_att",
+    ] = 1
 
     return contact_matrix
 
 
 def _path_to_matrix_name(path, root_dir):
-    """Converts a full matrix file path to a flat unique name used as dict key."""
-    name = path.replace(f"{root_dir}/inputs/", "")
-    name = name.replace("/", "_")
-    name = name.replace(".ndx", "")
-    name = name.replace(".gz", "")
-    name = name.replace(".h5", "")
+    """
+    Convert a full matrix file path to a flat unique dict key by stripping
+    the root prefix, replacing path separators with underscores, and removing
+    all recognised file extensions (``.ndx``, ``.gz``, ``.h5``).
+
+    Parameters
+    ----------
+    path : str
+        Absolute path to the contact matrix file.
+    root_dir : str
+        Absolute path to the multi-eGO root directory.
+
+    Returns
+    -------
+    str
+        Flat name such as ``"GB1_reference_intramat_1_1"``.
+    """
+    name = path.replace(f"{root_dir}/inputs/", "").replace("/", "_")
+    for ext in (".ndx", ".gz", ".h5"):
+        name = name.replace(ext, "")
     return name
 
 
 def _load_reference_matrix(reference, ensemble, args):
     """
-    Loads and enriches a single reference contact matrix with prior sigma/epsilon values.
+    Load a single reference topology and contact matrix, then annotate the
+    matrix with per-contact prior sigma and epsilon values.
 
-    Reads the reference topology to obtain per-atom and pairwise LJ parameters, reads
-    the contact matrix file, and annotates it with sigma_prior and epsilon_prior derived
-    from the force-field topology and any explicit nonbonded/pair entries.
+    Prior parameters are derived in two steps:
+
+    1. **Combination-rule defaults** — geometric means of per-atom c6/c12
+       values read from the reference topology via ``_get_lj_params``.
+    2. **Explicit overrides** — where the topology defines explicit nonbonded
+       pairs (``[nonbond_params]``) or 1-4 pairs (``[pairs]``), the
+       combination-rule values are replaced by the explicit ones.
+
+    As a side effect, ``ensemble.topology_dataframe["c6"]`` and ``["c12"]``
+    are updated in-place with the reference topology per-atom values.
 
     Parameters
     ----------
     reference : dict
-        Single input_refs entry with keys 'reference', 'matrix', 'epsilon', 'train'.
-    ensemble : dict
-        The initialized meGO ensemble; topology_dataframe is updated in-place with
-        the reference c6/c12 columns.
+        Single ``input_refs`` entry with keys ``'reference'``, ``'matrix'``,
+        ``'epsilon'``, and ``'train'``.
+    ensemble : MeGOEnsemble
+        Initialised ensemble; ``topology_dataframe`` and
+        ``molecules_idx_sbtype_dictionary`` are accessed.
     args : argparse.Namespace
-        Parsed arguments providing root_dir and system.
+        Parsed arguments providing ``root_dir`` and ``system``.
 
     Returns
     -------
     name : str
         Unique flat key for this reference matrix.
     contact_matrix : pd.DataFrame
-        Enriched reference contact matrix with rc_ prefix and prior columns.
+        Enriched reference contact matrix with ``rc_`` prefix on all original
+        columns plus new columns ``sigma_prior`` and ``epsilon_prior``.
+
+    Raises
+    ------
+    RuntimeError
+        If more than one ``.top`` file is found in the reference directory.
+    FileNotFoundError
+        If the topology or contact matrix file cannot be located.
     """
     reference_path = f"{args.root_dir}/inputs/{args.system}/{reference['reference']}"
     topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
@@ -119,27 +436,21 @@ def _load_reference_matrix(reference, ensemble, args):
         warnings.simplefilter("ignore")
         topol = parmed.load_file(topology_path)
 
-    lj_data = contacts_init.get_lj_params(topol)
+    lj_data = _get_lj_params(topol)
     lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
     ensemble.topology_dataframe["c6"] = lj_data["c6"].to_numpy()
     ensemble.topology_dataframe["c12"] = lj_data["c12"].to_numpy()
 
-    def _make_symmetric(df):
-        return (
-            pd.concat([df, df.rename(columns={"ai": "aj", "aj": "ai"})])
-            .drop_duplicates(subset=["ai", "aj"])
-            .reset_index(drop=True)
-        )
-
-    symmetric_lj_pairs = _make_symmetric(contacts_init.get_lj_pairs(topol))
-    symmetric_lj14_pairs = _make_symmetric(contacts_init.get_lj14_pairs(topol))
+    symmetric_lj_pairs = _make_symmetric(_get_lj_pairs(topol))
+    symmetric_lj14_pairs = _make_symmetric(_get_lj14_pairs(topol))
 
     matrix_paths = [f"{reference_path}/{a}" for a in os.listdir(reference_path) if reference["matrix"] in a]
     if len(matrix_paths) > 1:
         raise ValueError(f"More than 1 matrix found in {reference_path}: {matrix_paths}")
     if not matrix_paths:
         raise FileNotFoundError(
-            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead: {reference['matrix']}"
+            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or "
+            f"intermat_X_Y.ndx(.gz/.h5). Found instead: {reference['matrix']}"
         )
 
     path = matrix_paths[0]
@@ -155,6 +466,8 @@ def _load_reference_matrix(reference, ensemble, args):
     contact_matrix["c12_i"] = [lj_data_dict[x][1] for x in contact_matrix["rc_ai"]]
     contact_matrix["c12_j"] = [lj_data_dict[x][1] for x in contact_matrix["rc_aj"]]
     contact_matrix["c12"] = np.sqrt(contact_matrix["c12_i"] * contact_matrix["c12_j"])
+
+    # Combination-rule defaults; overridden below where explicit entries exist.
     contact_matrix["sigma_prior"] = np.where(
         contact_matrix["c6"] > 0,
         (contact_matrix["c12"] / contact_matrix["c6"]) ** (1 / 6),
@@ -198,27 +511,34 @@ def _load_train_matrix(
     train_contact_matrices_general,
 ):
     """
-    Loads a single training contact matrix, pairs it with its reference, and
-    initializes the adaptive probability thresholds.
+    Load a single training contact matrix, pair it with its reference, and
+    initialise the adaptive probability thresholds.
+
+    Training matrices are cached in ``train_contact_matrices_general`` so that
+    the same trajectory data is not read from disk more than once when multiple
+    references share the same training simulation.
 
     Parameters
     ----------
     simulation : str
-        Name of the training simulation folder.
+        Name of the training simulation subfolder under ``inputs/SYSTEM/``.
     reference : dict
-        Single input_refs entry owning this simulation.
-    ensemble : dict
-        The meGO ensemble; molecules_idx_sbtype_dictionary is updated in-place.
+        Single ``input_refs`` entry owning this simulation.
+    ensemble : MeGOEnsemble
+        The meGO ensemble; ``molecules_idx_sbtype_dictionary`` is updated
+        in-place with the training topology atom-index mapping.
     args : argparse.Namespace
-        Parsed arguments.
+        Parsed arguments providing ``root_dir`` and ``system``.
     custom_dict : dict
-        Custom atom-name mapping dictionary.
+        Custom atom-name mapping dictionary forwarded to
+        ``initialize_topology``.
     reference_contact_matrices : dict
         Already-populated reference matrices keyed by flat name.
     computed_contact_matrices : list
-        Tracks which raw training matrices have already been read (modified in-place).
+        Tracks which raw training matrices have already been read; modified
+        in-place to avoid re-reading the same file.
     train_contact_matrices_general : dict
-        Cache of raw (un-initialized) training matrices (modified in-place).
+        Cache of raw (un-initialised) training matrices; modified in-place.
 
     Returns
     -------
@@ -227,9 +547,18 @@ def _load_train_matrix(
     ref_name : str
         Flat key of the corresponding reference matrix.
     contact_matrix : pd.DataFrame
-        Initialized training contact matrix with threshold columns set.
+        Initialised training contact matrix with threshold columns added by
+        ``initialize_molecular_contacts``.
     topology_dataframe : pd.DataFrame
-        Topology DataFrame for this training simulation (for atom-type validation).
+        Topology DataFrame for this training simulation, used for atom-type
+        validation in ``init_meGO_matrices``.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the training topology or contact matrix file cannot be located.
+    ValueError
+        If more than one contact matrix file matches the requested matrix name.
     """
     simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
     topology_path = f"{simulation_path}/topol.top"
@@ -241,16 +570,15 @@ def _load_train_matrix(
         warnings.simplefilter("ignore")
         topol = parmed.load_file(topology_path)
 
-    temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary, *_ = contacts_init.initialize_topology(
-        topol, custom_dict, args
-    )
+    temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = _index_training_topology(topol, custom_dict)
 
     matrix_paths = [f"{simulation_path}/{a}" for a in os.listdir(simulation_path) if reference["matrix"] in a]
     if len(matrix_paths) > 1:
         raise ValueError(f"More than 1 matrix found in {simulation_path}: {matrix_paths}")
     if not matrix_paths:
         raise FileNotFoundError(
-            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or intermat_X_Y.ndx(.gz/.h5). Found instead {reference['matrix']}"
+            f"Contact matrix file(s) must be named as intramat_X_X.ndx(.gz/.h5) or "
+            f"intermat_X_Y.ndx(.gz/.h5). Found instead {reference['matrix']}"
         )
 
     path = matrix_paths[0]
@@ -281,27 +609,43 @@ def _load_train_matrix(
 
 def init_meGO_matrices(ensemble, args, custom_dict):
     """
-    Initializes meGO contact matrices.
+    Load and initialise all reference and training contact matrices for the
+    system.
 
-    Reads reference and training contact matrices for all input references,
-    computes prior sigma/epsilon values, and pairs each training matrix with
-    its corresponding reference matrix.
+    For each entry in ``args.input_refs`` the corresponding reference topology
+    and contact matrix are loaded and enriched with prior LJ parameters
+    (``_load_reference_matrix``). Training matrices are then loaded, paired
+    with their reference, and annotated with adaptive probability thresholds
+    (``_load_train_matrix``).
+
+    After loading, atom names in the training topologies are compared against
+    those in the base topology. Any names not mapped to multi-eGO sb_types are
+    reported and the program exits, requiring the user to add the missing
+    entries to ``from_ff_to_multiego`` or ``custom_dict``.
 
     Parameters
     ----------
-    ensemble : dict
-        The initialized meGO ensemble (from MeGOEnsemble.from_topology).
+    ensemble : MeGOEnsemble
+        Fully initialised ensemble from ``MeGOEnsemble.from_topology``.
+        ``train_matrix_tuples`` is populated in-place during this call.
     args : argparse.Namespace
-        Parsed command-line / config-file arguments.
+        Parsed arguments; ``args.input_refs``, ``args.root_dir``, and
+        ``args.system`` are used.
     custom_dict : dict
-        Custom atom-name mapping dictionary.
+        Custom atom-name mapping dictionary forwarded to
+        ``initialize_topology`` for training topologies.
 
     Returns
     -------
-    ensemble : dict
-        Updated ensemble with train_matrix_tuples populated.
+    ensemble : MeGOEnsemble
+        The same ensemble object with ``train_matrix_tuples`` populated.
     matrices : dict
-        Contains 'reference_matrices' and 'train_matrices' keyed by unique names.
+        Dictionary with two keys:
+
+        - ``'reference_matrices'``: ``{flat_name: pd.DataFrame}`` enriched
+          reference contact matrices with prior sigma/epsilon columns.
+        - ``'train_matrices'``: ``{flat_name: pd.DataFrame}`` initialised
+          training contact matrices ready for ``lj.init_LJ_datasets``.
     """
     st = time.time()
     reference_contact_matrices = {}
@@ -318,7 +662,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         print("\t- Done in:", et - st, "seconds")
         st = et
 
-    # TODO check intra domain complementarity
+    # TODO: enable once all test cases support intra-domain splitting
     # check_intra_domain_complementarity(reference_contact_matrices)
 
     reference_set = set(ensemble.topology_dataframe["name"].to_list())
@@ -345,13 +689,16 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     del train_contact_matrices_general
 
+    # Verify that all non-hydrogen atom names in the training topologies have
+    # been mapped to multi-eGO sb_types. Unmapped names indicate missing entries
+    # in from_ff_to_multiego or custom_dict.
     comparison_set = set()
     for number, molecule in enumerate(ensemble.topology.molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
             comparison_set = set(
                 comparison_dataframe[
-                    # TODO use a nicer way to do this
+                    # TODO: replace with a cleaner filter using type_definitions
                     (~comparison_dataframe["name"].str.startswith("H"))
                     | (comparison_dataframe["name"].str == "H")
                 ]["name"].to_list()
@@ -362,12 +709,12 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     difference_set = comparison_set.difference(reference_set)
     if difference_set:
         print(
-            f'The following atomtypes are not converted:\n{difference_set} \nYou MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
+            f"The following atomtypes are not converted:\n{difference_set}\n"
+            f'You MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
         )
         sys.exit()
 
-    matrices = {
+    return ensemble, {
         "reference_matrices": reference_contact_matrices,
         "train_matrices": train_contact_matrices,
     }
-    return ensemble, matrices
