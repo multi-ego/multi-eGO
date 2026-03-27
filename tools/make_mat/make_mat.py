@@ -37,22 +37,37 @@ def create_matrix_mask(
     outer_op=lambda x, y: x * y,
 ):
     """
-    Creates a boolean matrix mask based on comparison operations between two sets.
+    Creates a 2-D boolean matrix mask based on comparison operations between two sets.
 
-    Args:
-    - set1 (numpy.ndarray): First set of values.
-    - set2 (numpy.ndarray): Second set of values.
-    - types (list): List of tuples representing types for comparison.
-    - symmetrize (bool): Flag to determine whether to symmetrize type selection.
-    - inner_op (function): Operation for element-wise comparison within each set.
-    - outer_op (function): Operation for the combination of comparisons between sets.
+    For each ``(type1, type2)`` pair in ``types``, ``inner_op`` is applied
+    element-wise to each set and the results are combined with ``outer_op``
+    into a 2-D outer-product mask.  The final mask is the logical OR across
+    all type pairs.  When ``symmetrize=True`` each ``(type1, type2)`` entry
+    is automatically complemented by ``(type2, type1)``.
 
-    Returns:
-    - numpy.ndarray: A boolean matrix mask reflecting the comparison operations.
+    Parameters
+    ----------
+    set1 : numpy.ndarray
+        First 1-D array of values (e.g. atom-type labels), shape ``(N,)``.
+    set2 : numpy.ndarray
+        Second 1-D array of values (e.g. atom-type labels), shape ``(M,)``.
+    types : list of tuple
+        Pairs ``(type1, type2)`` used for element-wise comparisons.
+    symmetrize : bool, optional
+        If ``True``, automatically add the reversed pair ``(type2, type1)``
+        for every entry in ``types`` (default ``False``).
+    inner_op : callable, optional
+        Element-wise comparison applied to each array against a type value
+        (default ``lambda x, y: x == y``).
+    outer_op : callable, optional
+        Combines the two per-set boolean vectors into a 2-D boolean matrix
+        (default ``lambda x, y: x * y``, i.e. outer logical AND via
+        broadcasting).
 
-    Note:
-    - `inner_op` should be a function that compares an element of `set1` with a type.
-    - `outer_op` should be a function that combines comparisons between `set1` and `set2`.
+    Returns
+    -------
+    numpy.ndarray
+        2-D boolean matrix of shape ``(N, M)``.
     """
     # symmetrize type selection
     if symmetrize:
@@ -131,7 +146,7 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
 
 def zero_probability_decorator(func, flag):
     """
-    Decorator of function to return 0 if flag is rased
+    Decorator of function to return 0 if flag is raised.
     """
 
     def wrapper(*args, **kwargs):
@@ -240,9 +255,9 @@ def read_topologies(mego_top, target_top):
     Parameters
     ----------
     mego_top : str
-        Path to the multi-eGO topology obtained from gmx pdb2gmx with multi-ego-basic force fields
+        Path to the multi-eGO topology obtained from gmx pdb2gmx with multi-ego-basic force fields.
     target_top : str
-        Path to the toplogy of the system on which the analysis is to be performed
+        Path to the topology of the system on which the analysis is to be performed.
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -297,10 +312,10 @@ def map_if_exists(atom_name):
     atom_name : str
         The atom name with which to attempt the mapping
 
-    Return
-    ------
+    Returns
+    -------
     atom_name : str
-        Mapped atom name. Equal to the input if mapping was not possible
+        Mapped atom name. Equal to the input if mapping was not possible.
     """
     if atom_name in type_definitions.from_ff_to_multiego.keys():
         return type_definitions.from_ff_to_multiego[atom_name]
@@ -371,6 +386,21 @@ def calculate_probability(values, weights):
 
 
 def get_cumulative_probability(values, weights):
+    """
+    Returns the cumulative probability at the cutoff index.
+
+    Parameters
+    ----------
+    values : numpy.ndarray
+        The array of histogram x values.
+    weights : numpy.ndarray
+        The array of histogram weights; the last element encodes the cutoff.
+
+    Returns
+    -------
+    float
+        The cumulative weight at the bin index corresponding to the cutoff.
+    """
     cutoff, i, norm, v, w = get_col_params(values, weights)
     return weights[i]
 
@@ -440,9 +470,33 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
 
 def generate_c12_values(df, types, combinations, molecule_type):
     """
-    TODO
-    ----
-    Change symmetric to be a variable
+    Compute the pairwise c12 cutoff matrix for a molecule.
+
+    For protein molecules, per-combination rules from ``combinations`` are
+    applied on top of the default geometric-mean c12 values.  Each rule
+    specifies two atom-group names, an optional ``factor`` (scales the
+    geometric mean), an optional ``constant`` (fixed ceiling), and a residue
+    index ``shift``.  Non-protein molecules use the geometric mean directly.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Per-atom topology slice.  Must contain columns ``c12`` and ``resnum``.
+    types : dict
+        Mapping from group name to a 1-D boolean numpy array (as returned by
+        ``bonded.proteins_atoms_mask``).
+    combinations : list of tuple
+        Each entry is ``(name_1, name_2, factor, constant, shift)`` defining
+        a pairwise c12 override rule.
+    molecule_type : str
+        ``'protein'``, ``'nucleic_acid'``, or ``'other'``.  Rules in
+        ``combinations`` are only applied when this is ``'protein'``.
+
+    Returns
+    -------
+    numpy.ndarray
+        2-D array of shape ``(N, N)`` containing the pairwise c12 values,
+        where ``N`` is the number of atoms in ``df``.
     """
     all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
     c12_map = np.full(all_c12.shape, np.nan, dtype=float)
@@ -451,8 +505,6 @@ def generate_c12_values(df, types, combinations, molecule_type):
     if molecule_type == "protein":
         for combination in combinations:
             (name_1, name_2, factor, constant, shift) = combination
-            # if factor is not None and constant is not None or factor == constant:
-            #    raise RuntimeError("constant and error should be defined and mutualy exclusive")
             if factor is not None and constant is not None:
                 operation = lambda x: np.minimum(factor * x, constant)
             elif factor is not None:
@@ -477,7 +529,7 @@ def calculate_matrices(args):
      - reading the topologies
      - figuring out all the interacting molecules
      - calculating the cutoffs
-     - and caclulating the probabilities
+     - and calculating the probabilities
     The operation is finalized by writing out a csv with the name pattern intermat<_name>_{mol_i}_{mol_j}.ndx
 
     Parameters
@@ -514,7 +566,7 @@ def calculate_matrices(args):
     for mol_i in mol_list:
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
-            main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix)
+            main_routine(mol_i, mol_i, topology_mego, topology_ref, molecules_name, prefix, args)
         # fmt: off
         for mol_j in mol_list[mol_i - 1:]:
             # fmt: on
@@ -524,11 +576,37 @@ def calculate_matrices(args):
                 continue
 
             prefix = f"inter_mol_{mol_i}_{mol_j}"
-            main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix)
+            main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix, args)
 
 
-def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix):
+def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, prefix, args):
+    """
+    Compute and write the intra- or inter-molecular contact matrix for a
+    pair of molecule species.
 
+    Builds per-atom topology DataFrames for both molecule species, computes
+    adaptive c12 cutoffs, dispatches histogram analysis to worker processes
+    via ``run_mat_``, reassembles the partial results, and writes the output
+    as a compressed HDF5 file.
+
+    Parameters
+    ----------
+    mol_i : int
+        1-based index of the first molecule species.
+    mol_j : int
+        1-based index of the second molecule species.
+    topology_mego : parmed.Structure
+        multi-eGO topology (defines atom types and bonded terms).
+    topology_ref : parmed.Structure
+        Reference all-atom topology (defines the histogram atom indices).
+    molecules_name : list of str
+        Ordered list of molecule species names from the topology.
+    prefix : str
+        File-name prefix for histogram look-up and output naming,
+        e.g. ``"intra_mol_1_1"`` or ``"inter_mol_1_2"``.
+    args : argparse.Namespace
+        Parsed command-line arguments.
+    """
     df = pd.DataFrame()
 
     topology_df_i = pd.DataFrame()
@@ -593,14 +671,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
     sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
 
-    # this is needed to build dictionaries that include hydrogens
-
-    sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
-    sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
-
-    sorter_j = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_j]
-    sorter_mego_j = [str(x.residue.number) + x.name for x in protein_mego_j]
-
     # preparing topology of molecule i
     topology_df_i["ref_ai"] = protein_ref_indices_i
     topology_df_i["ref_type"] = [a.name for a in protein_ref_i]
@@ -637,11 +707,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_j["type"] = topology_df_j["mego_type"]
     # need to sort back otherwise c12_cutoff are all wrong
     topology_df_j.sort_values(by="ref_ai", inplace=True)
-    if args.custom_c12 is not None:
-        custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
-        d.update(d_appo)
-
     topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
 
     type_i = topology_df_i["mego_type"].to_numpy()
@@ -801,12 +866,13 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         ########################
 
         # concatenate and remove partial dataframes
+        parts = []
         for name in results:
             try:
-                part_df = pd.read_csv(name)
-                df = pd.concat([df, part_df])
+                parts.append(pd.read_csv(name))
             except pd.errors.EmptyDataError:
                 print(f"Ignoring partial dataframe in {name} as csv is empty")
+        df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
         [os.remove(name) for name in results]
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
