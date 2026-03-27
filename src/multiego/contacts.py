@@ -501,6 +501,7 @@ def _load_train_matrix(
     reference_contact_matrices,
     computed_contact_matrices,
     train_contact_matrices_general,
+    computed_train_topologies,
 ):
     """
     Load a single training contact matrix, pair it with its reference, and
@@ -526,11 +527,15 @@ def _load_train_matrix(
         ``initialize_topology``.
     reference_contact_matrices : dict
         Already-populated reference matrices keyed by flat name.
-    computed_contact_matrices : list
+    computed_contact_matrices : set
         Tracks which raw training matrices have already been read; modified
         in-place to avoid re-reading the same file.
     train_contact_matrices_general : dict
         Cache of raw (un-initialised) training matrices; modified in-place.
+    computed_train_topologies : dict
+        Cache mapping simulation path → ``(topology_dataframe, sbtype_dict)``
+        so that the same training topology is not re-parsed when it appears in
+        more than one YAML input block; modified in-place.
 
     Returns
     -------
@@ -557,12 +562,15 @@ def _load_train_matrix(
     if not os.path.isfile(topology_path):
         raise FileNotFoundError(f"{topology_path} not found.")
 
-    print("\t\t-", f"Reading {topology_path}")
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        topol = parmed.load_file(topology_path)
-
-    temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = _index_training_topology(topol, custom_dict)
+    if simulation_path in computed_train_topologies:
+        temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = computed_train_topologies[simulation_path]
+    else:
+        print("\t\t-", f"Reading {topology_path}")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            topol = parmed.load_file(topology_path)
+        temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = _index_training_topology(topol, custom_dict)
+        computed_train_topologies[simulation_path] = (temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary)
 
     matrix_paths = [f"{simulation_path}/{a}" for a in os.listdir(simulation_path) if reference["matrix"] in a]
     if len(matrix_paths) > 1:
@@ -581,7 +589,7 @@ def _load_train_matrix(
         train_contact_matrices_general[train_name] = io.read_molecular_contacts(
             path, ensemble.molecules_idx_sbtype_dictionary, simulation, path.endswith(".h5")
         )
-        computed_contact_matrices.append(train_name)
+        computed_contact_matrices.add(train_name)
 
     contact_matrix = train_contact_matrices_general[train_name].copy()
 
@@ -641,10 +649,17 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     reference_contact_matrices = {}
     train_contact_matrices = {}
     train_contact_matrices_general = {}
-    computed_contact_matrices = []
+    computed_contact_matrices = set()   # set for O(1) membership checks
+    computed_train_topologies = {}      # simulation_path → (topology_df, sbtype_dict)
     train_topology_dataframe = pd.DataFrame()
 
     for reference in args.input_refs:
+        # Skip if this (reference, matrix) combination has already been loaded —
+        # two YAML blocks can legitimately share the same reference folder.
+        ref_key = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
+        if ref_key in reference_contact_matrices:
+            print("\t-", f"Reference {reference['reference']} already loaded, reusing.")
+            continue
         print("\t-", f"Initializing {reference['reference']} ensemble data")
         name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
         reference_contact_matrices[name] = contact_matrix
@@ -669,6 +684,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                 reference_contact_matrices,
                 computed_contact_matrices,
                 train_contact_matrices_general,
+                computed_train_topologies,
             )
             train_contact_matrices[name] = contact_matrix
             train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
@@ -678,6 +694,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             st = et
 
     del train_contact_matrices_general
+    del computed_train_topologies
 
     # Verify that all non-hydrogen atom names in the training topologies have
     # been mapped to multi-eGO sb_types. Unmapped names indicate missing entries
