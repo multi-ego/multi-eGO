@@ -239,7 +239,7 @@ A typical config file looks like:
     train: fibril
     matrix: intramat_1_1
     epsilon: 0.25
-  - reference: reference_a
+  - reference: reference_b
     train: fibril
     matrix: intermat_1_1
     epsilon: 0.25
