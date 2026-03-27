@@ -22,19 +22,34 @@ def create_linearized_mask(
     """
     Creates a linearized boolean mask based on comparison operations between two sets.
 
-    Args:
-    - set1 (numpy.ndarray): First set of values.
-    - set2 (numpy.ndarray): Second set of values.
-    - types (list): List of tuples representing types for comparison.
-    - symmetrize (bool): Flag to determine whether to symmetrize type selection.
-    - inner_op (function): Operation for element-wise comparison within each set.
-    - outer_op (function): Operation for the combination of comparisons between sets.
+    For each ``(type1, type2)`` pair in ``types``, ``inner_op`` is applied
+    element-wise to each set and the results are combined with ``outer_op``.
+    The final mask is the logical OR across all type pairs.  When
+    ``symmetrize=True`` each ``(type1, type2)`` entry is automatically
+    complemented by ``(type2, type1)``.
 
-    Returns:
-    - numpy.ndarray: A linearized boolean mask reflecting the comparison operations.
+    Parameters
+    ----------
+    set1 : numpy.ndarray
+        First 1-D array of values (e.g. atom-type labels).
+    set2 : numpy.ndarray
+        Second 1-D array of values, same length as ``set1``.
+    types : list of tuple
+        Pairs ``(type1, type2)`` used for element-wise comparisons.
+    symmetrize : bool, optional
+        If ``True``, automatically add the reversed pair ``(type2, type1)``
+        for every entry in ``types`` (default ``False``).
+    inner_op : callable, optional
+        Element-wise comparison applied to each array against a type value
+        (default ``lambda x, y: x == y``).
+    outer_op : callable, optional
+        Combines the two per-set results into a single boolean array
+        (default ``lambda x, y: x * y``, i.e. logical AND).
 
-    Note:
-    - This function does not provide a flattened mask array but operates on a 1D array.
+    Returns
+    -------
+    numpy.ndarray
+        1-D boolean mask of length ``set1.shape[0]``.
     """
     if symmetrize:
         types = list(set(types + [(t[1], t[0]) for t in types]))
@@ -77,41 +92,13 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
     condition = (
-        (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-        # & (meGO_LJ["mg_epsilon"] > 0.0)
-    )
+        meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
     meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
         (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
     ) * (np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))))
     meGO_LJ.loc[condition, "learned"] = 1
     meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
-
-    # this is used only when MD_th < MD_p < limit_rc_att*RC_p
-    # condition = (
-    #    (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-    #    & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    #    & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
-    #    & (meGO_LJ["mg_epsilon"] > 0.0)
-    # )
-    # meGO_LJ.loc[condition, "epsilon"] = parameters.epsilon_min
-    # meGO_LJ.loc[condition, "learned"] = 1
-    # meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
-
-    # Repulsive interactions
-    # negative epsilon are used to identify non-attractive interactions
-    # These are defined only if the training probability is greater than MD_threshold and
-    # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
-    # condition = (
-    #    (meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
-    #    & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    #    & (meGO_LJ["mg_epsilon"] < 0.0)
-    #    & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
-    # )
-    # meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
-    #    lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
-    # )[condition]
-    # meGO_LJ.loc[condition, "learned"] = 1
 
     # Repulsive interactions (probability above MD threshold but below attractive threshold)
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
@@ -119,7 +106,6 @@ def set_sig_epsilon(meGO_LJ, parameters):
         (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
-        # & (meGO_LJ["mg_epsilon"] < 0.0)
     )
     meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
         lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
@@ -272,9 +258,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
                 .loc[(np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"]) > 0)]
                 .to_string()
             )
-            sys.exit(
-                "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data"
-            )
+            sys.exit("ERROR: Inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data")
 
         if not temp_merged["same_chain"].equals(temp_merged["rc_same_chain"]):
             diff_indices = temp_merged.index[temp_merged["same_chain"] != temp_merged["rc_same_chain"]].tolist()
@@ -379,7 +363,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
             .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 10e-6)]
             .to_string()
         )
-        sys.exit("HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff and C12 repulsive values")
+        sys.exit("ERROR: Inconsistent cutoff and C12 repulsive values")
 
     return train_dataset
 

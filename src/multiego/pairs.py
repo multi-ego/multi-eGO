@@ -7,6 +7,39 @@ import pandas as pd
 
 
 def generate_bond_exclusions(reduced_topology, bond_pair):
+    """
+    Enumerate bond exclusions, 1-4 pairs, and nth-bond pairs for a molecule.
+
+    Performs a BFS from every atom up to ``config.max_bond_separation`` bonds.
+    Atoms within ``config.bond14_separation`` bonds are collected as exclusions;
+    atoms at exactly ``config.bond14_separation`` bonds form the 1-4 list; atoms
+    between ``config.bond14_separation + 1`` and ``config.max_bond_separation``
+    bonds form the nth-bond list.
+
+    Each entry in the returned lists is a ``"<atom_i>_<atom_j>"`` string
+    identifier, and every pair is recorded in both directions.
+
+    Parameters
+    ----------
+    reduced_topology : pd.DataFrame
+        Per-atom topology slice for a single molecule.  Must contain the
+        column ``number`` (atom index as string).
+    bond_pair : list of tuple
+        List of ``(atom_number_i, atom_number_j)`` pairs defining covalent
+        bonds, as integers.
+
+    Returns
+    -------
+    exclusion_bonds : list of str
+        Bidirectional ``"i_j"`` identifiers for all pairs within
+        ``config.bond14_separation`` bonds (1-2, 1-3, 1-4).
+    p14 : list of str
+        Bidirectional ``"i_j"`` identifiers for pairs at exactly
+        ``config.bond14_separation`` bonds (1-4 only).
+    nth_bonds : list of str
+        Bidirectional ``"i_j"`` identifiers for all pairs within
+        ``config.max_bond_separation`` bonds (superset of ``exclusion_bonds``).
+    """
     # Build the connectivity graph
     graph = defaultdict(set)
     for a, b in bond_pair:

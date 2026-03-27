@@ -83,8 +83,6 @@ def main():
     io.check_files_existence(args)
     if args.egos == "production":
         io.check_matrix_format(args)
-
-    if args.egos == "production":
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()

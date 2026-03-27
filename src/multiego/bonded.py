@@ -164,13 +164,23 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
 
 def proteins_atoms_mask(df):
     """
-    Generates types dictionary based on the provided DataFrame.
+    Builds boolean masks for the standard protein backbone and sidechain atom
+    groups used when generating 1-4 LJ pairs.
 
-    Args:
-    - df (pd.DataFrame): DataFrame containing atom types and parameters.
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Per-atom topology slice for a single protein molecule.  Must contain
+        at least the columns ``name``, ``type``, and ``resname``.
 
-    Returns:
-    - types_dict (dict): Dictionary containing different atom type combinations.
+    Returns
+    -------
+    dict
+        Mapping from group name (str) to a boolean numpy array of length
+        ``len(df)``.  Keys: ``first_backbone_nitrogen``,
+        ``backbone_nitrogen``, ``backbone_carbonyl``, ``backbone_oxygen``,
+        ``backbone_calpha``, ``ct_oxygen``, ``sidechain_cb``,
+        ``sidechain_cgs``, ``sidechain_cds``.
     """
     types_dict = {}
     types_dict["first_backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] == "NL")).to_numpy()
