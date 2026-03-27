@@ -444,7 +444,7 @@ def generate_c12_values(df, types, combinations, molecule_type):
     Change symmetric to be a variable
     """
     all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
-    c12_map = np.full(all_c12.shape, None)
+    c12_map = np.full(all_c12.shape, np.nan, dtype=float)
     resnums = df["resnum"].to_numpy()
 
     if molecule_type == "protein":
@@ -465,7 +465,7 @@ def generate_c12_values(df, types, combinations, molecule_type):
             combined_map = combined_map | combined_map.T
             c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
-    c12_map = np.where(c12_map is None, all_c12, c12_map)
+    c12_map = np.where(np.isnan(c12_map), all_c12, c12_map)
 
     return c12_map
 
