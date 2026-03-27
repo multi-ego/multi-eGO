@@ -9,6 +9,36 @@ import sys
 
 
 def compute_bond_distances(reduced_topology, bond_pair, max_distance=config.max_bond_separation):
+    """
+    Computes the shortest bond-path distance between every pair of atoms in a
+    molecule, up to a configurable maximum.
+
+    A graph is built from the provided bond pairs and shortest paths are
+    computed using NetworkX. Pairs separated by more than ``max_distance``
+    bonds — or not connected at all — are assigned a distance of
+    ``max_distance + 1``. Self-distances are always 0. The result is symmetric
+    (both (ai, aj) and (aj, ai) are present).
+
+    Parameters
+    ----------
+    reduced_topology : pd.DataFrame
+        Per-atom topology slice containing at least the columns ``sb_type``
+        and ``number`` (atom index as string).
+    bond_pair : list of tuple
+        List of (atom_number_i, atom_number_j) pairs defining covalent bonds,
+        as returned by ``topology.get_bond_pairs``.
+    max_distance : int, optional
+        Maximum bond separation to resolve; pairs beyond this distance are
+        capped at ``max_distance + 1``. Defaults to
+        ``config.max_bond_separation``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Symmetric DataFrame with columns ``ai`` (sb_type), ``aj`` (sb_type),
+        and ``bond_distance`` (int). Contains one row per ordered pair
+        including self-pairs.
+    """
     # Build atom number ↔ sb_type mapping
     sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
 
@@ -45,32 +75,56 @@ def compute_bond_distances(reduced_topology, bond_pair, max_distance=config.max_
 
 def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=None, constant=None):
     """
-    Used to create additional or modified, multi-eGO-specific 1-4 (like) interactions. Two sets of atomtypes with
-    specific shifts in the residue index can be fed to the function to obtain a new set of 1-4 interaction pairs.
+    Builds a DataFrame of multi-eGO-specific 1-4 (or 1-4-like) LJ interaction
+    pairs between two sets of atom types, optionally offset by a residue index
+    shift.
+
+    For each atom in ``atomtype1``, the matching atom in ``atomtype2`` is found
+    at residue index ``resnum + shift``. When a match exists, the c12 parameter
+    is determined by ``constant`` and/or ``prefactor``:
+
+    - If only ``constant`` is given, c12 is set to that value.
+    - If only ``prefactor`` is given, c12 is the combination-rule geometric mean
+      scaled by ``prefactor``: ``prefactor * sqrt(c12_i * c12_j)``.
+    - If both are given, c12 is the minimum of ``constant`` and the scaled
+      geometric mean, allowing ``constant`` to act as an upper bound.
+
+    At least one of ``prefactor`` or ``constant`` must be provided.
 
     Parameters
     ----------
-    atomtype1: list or list-like
-        Contains the first set of atomtypes
-    atomtype2: list or list-like
-        Contains the second set of atomtypes
-    c6: float
-        Sets a fixed c6 LJ parameters for the specificied type of interaction (default = 0.0)
-    shift: int
-        Defines the shift in residue index in which to apply the shift. Positive shifts apply the function
-        to the atom of the next residue. Negative shifts apply the function to the atom of the previous residue
-    prefactor: float
-        Factor which to multiply the c12 with after using the combination rule for LJ parameters
-    constant: float
-        A constant c12 value to use for LJ c12 parameters
+    atomtype1 : pd.DataFrame
+        Topology slice for the first atom group. Must contain columns
+        ``number``, ``resnum``, and ``c12``.
+    atomtype2 : pd.DataFrame
+        Topology slice for the second atom group. Must contain columns
+        ``number``, ``resnum``, and ``c12``.
+    c6 : float, optional
+        Fixed LJ c6 value applied to all pairs (default 0.0, i.e. purely
+        repulsive).
+    shift : int, optional
+        Residue index offset applied when matching atoms in ``atomtype2``
+        to those in ``atomtype1``. A positive shift matches the atom in the
+        *next* residue; a negative shift matches the *previous* residue
+        (default 0, same residue).
+    prefactor : float or None, optional
+        Multiplicative factor applied to the geometric-mean c12. If ``None``,
+        the geometric mean is not computed.
+    constant : float or None, optional
+        Fixed c12 value. Acts as a ceiling when ``prefactor`` is also given.
 
     Returns
     -------
-    pairs_14: pd.DataFrame
-        A DataFrame containing output containing the additional atom indices and LJ parameters
+    pd.DataFrame
+        DataFrame with columns ``ai``, ``aj``, ``func``, ``c6``, ``c12``,
+        ``probability``, ``rc_probability``, and ``source``. Contains one row
+        per matched pair; empty if no residue-shifted matches are found.
+
+    Raises
+    ------
+    ValueError
+        If neither ``prefactor`` nor ``constant`` is provided.
     """
-    # if prefactor is not None and constant is not None:
-    #    raise ValueError("Either prefactor or constant has to be set.")
     if prefactor is None and constant is None:
         raise ValueError("Neither prefactor nor constant has been set.")
     pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
@@ -116,15 +170,35 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
 
 def protein_LJ14(reduced_topology):
     """
-    Generates Lennard-Jones 14 (LJ14) pairs specific to protein structure.
+    Generates multi-eGO-specific 1-4 LJ pairs for a protein molecule.
 
-    Args:
-    - reduced_topology (pd.DataFrame): DataFrame containing reduced topology information.
+    Protein backbone and sidechain atom groups are extracted from the
+    topology and paired according to the rules defined in
+    ``type_definitions.atom_type_combinations``. Each rule specifies two
+    atom-group names, an optional prefactor applied to the combination-rule
+    c12, a constant c12 ceiling, and a residue-index shift. The resulting
+    pairs encode local geometric constraints specific to the multi-eGO
+    representation (e.g. N–CB repulsion across the peptide bond).
 
-    Returns:
-    - pairs (pd.DataFrame): DataFrame with LJ14 pairs for protein interactions.
+    The output is symmetrised so that both (ai, aj) and (aj, ai) directions
+    are present.
+
+    Parameters
+    ----------
+    reduced_topology : pd.DataFrame
+        Per-atom topology slice for a single protein molecule. Must contain
+        columns ``number``, ``sb_type``, ``resnum``, ``name``, ``type``,
+        ``resname``, ``molecule_type``, and ``c12``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Symmetric DataFrame with columns ``ai``, ``aj``, ``func``, ``c6``,
+        ``c12``, ``probability``, ``rc_probability``, and ``source``,
+        where ``source`` is always ``"1-4"``. Atom indices (``ai``, ``aj``)
+        are returned as strings matching the ``number`` column.
     """
-    # Here we make a dictionary of the atoms used for local geometry
+    # Build named selections for the atom groups referenced in atom_type_combinations
     first_backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] == "NL")]
     backbone_nitrogen = reduced_topology.loc[(reduced_topology["name"] == "N") & (reduced_topology["type"] != "NL")]
     backbone_carbonyl = reduced_topology.loc[reduced_topology["name"] == "C"]
@@ -206,17 +280,28 @@ def protein_LJ14(reduced_topology):
 
 def generate_14_data(meGO_ensemble):
     """
-    Generates data for 1-4 interactions within a molecular ensemble.
+    Generates 1-4 LJ interaction pairs for all molecules in the ensemble.
+
+    For protein molecules, pairs are generated by ``protein_LJ14`` using the
+    multi-eGO-specific local geometry rules. For non-protein molecules, pairs
+    are read directly from the ``[pairs]`` section of the GROMACS topology
+    (``meGO_ensemble.user_pairs``); those pairs must carry explicit C6/C12
+    values or the function exits with an error.
 
     Parameters
     ----------
-    meGO_ensemble : dict
-        A dictionary containing information about the molecular ensemble.
+    meGO_ensemble : MeGOEnsemble
+        Fully initialised ensemble. The following attributes are accessed:
+        ``bond_pairs``, ``topology_dataframe``, ``sbtype_c12_dict``,
+        ``molecule_type_dict``, and ``user_pairs``.
 
     Returns
     -------
     pairs14 : pd.DataFrame
-        DataFrame containing information about 1-4 interactions.
+        Combined 1-4 pairs for all molecules with columns ``ai``, ``aj``
+        (sb_type as category), ``func``, ``c6``, ``c12``, ``probability``,
+        ``rc_probability``, ``source``, ``rep``, ``same_chain``,
+        ``molecule_name_ai``, and ``molecule_name_aj``.
     """
     pairs14 = pd.DataFrame()
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
@@ -287,6 +372,28 @@ def generate_14_data(meGO_ensemble):
 
 
 def generate_bond_distance_data(meGO_ensemble):
+    """
+    Computes pairwise bond-path distances for all molecules in the ensemble.
+
+    Iterates over every molecule in ``meGO_ensemble.bond_pairs`` and calls
+    ``compute_bond_distances`` to build a symmetric distance table up to
+    ``config.max_bond_separation``. Results from all molecules are
+    concatenated into a single DataFrame.
+
+    Parameters
+    ----------
+    meGO_ensemble : MeGOEnsemble
+        Fully initialised ensemble. The following attributes are accessed:
+        ``bond_pairs`` and ``topology_dataframe``.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated bond-distance table for all molecules with columns
+        ``ai`` (sb_type), ``aj`` (sb_type), and ``bond_distance`` (int).
+        Pairs beyond ``config.max_bond_separation`` bonds are assigned
+        ``max_bond_separation + 1``.
+    """
     all_bd = pd.DataFrame()
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
         if not bond_pair:
