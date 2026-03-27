@@ -1,3 +1,10 @@
+import os
+import sys
+import yaml
+import argparse
+from . import io
+
+
 # Arguments shared between the single-reference CLI mode and the config-file (global) mode.
 # Add any new global argument here only — args_dict and args_dict_global are derived from this.
 _args_dict_shared = {
@@ -129,13 +136,6 @@ args_dict_single_reference = {
         "required": True,
     },
 }
-
-
-import os
-import sys
-import yaml
-import argparse
-from . import io
 
 
 def build_parser():
@@ -283,7 +283,7 @@ def read_config(file, args_dict):
     # input_refs is a YAML-only key assembled by read_new_input, not an argparse argument
     yaml_only_keys = {"input_refs"}
     for element in yml:
-        if type(element) is not dict:
+        if not isinstance(element, dict):
             key = element
         else:
             key = list(element.keys())[0]
@@ -396,7 +396,7 @@ def combine_configurations(yml, args, args_dict):
     """
     yaml_only_keys = {"input_refs"}
     for element in yml:
-        if type(element) is dict:
+        if isinstance(element, dict):
             key, value = list(element.items())[0]
             if key in yaml_only_keys:
                 continue

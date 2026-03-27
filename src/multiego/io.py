@@ -546,13 +546,13 @@ def make_header(parameters):
             tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
             continue
-        elif type(value) is list:
+        elif isinstance(value, list):
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif type(value) is np.ndarray:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-        elif type(value) is dict:
+        elif isinstance(value, dict):
             for key, val in value.items():
                 header += f";\t- {key} = {val}\n"
         elif not value:
