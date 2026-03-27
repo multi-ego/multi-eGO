@@ -158,6 +158,12 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     pd.DataFrame
         DataFrame with applied symmetries.
     """
+    if meGO_input.empty:
+        return pd.DataFrame(columns=meGO_input.columns)
+
+    if not symmetry:
+        return pd.DataFrame(columns=meGO_input.columns)
+
     dict_sbtype_to_resname = meGO_ensemble.topology_dataframe.set_index("sb_type")["resname"].to_dict()
     mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
     mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)

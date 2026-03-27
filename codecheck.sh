@@ -1,7 +1,7 @@
 # check for black
 pip show black
 if [ $? -eq 0 ]; then
-  python -m black -t py310 -t py311 -t py312 -t py313 --line-length=127 .
+  python -m black -t py310 -t py311 -t py312 -t py313 -t py314 --line-length=127 .
 else
   echo "black module not found!"
   echo "you can install it as pip install git+https://github.com/psf/black"
@@ -12,8 +12,16 @@ if [ $? -eq 1 ]; then
   echo $flak
   exit 1
 fi
-echo "Running unit tests"
+echo "Running unit tests part 1"
 pytest tests/test_multiego.py
+if [ $? -eq 1 ]; then
+  echo "UnitTests failing, you should not push your code"
+  exit 1
+else
+  echo "UnitTest passed"
+fi
+echo "Running unit tests part 2"
+pytest tests/test_test_apply_symmetries.py
 if [ $? -eq 1 ]; then
   echo "UnitTests failing, you should not push your code"
   exit 1

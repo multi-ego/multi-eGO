@@ -30,7 +30,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run unit tests
-        run: pytest tests/test_multiego.py -v
+        run: |
+         pytest tests/test_multiego.py -v
+         pytest tests/test_apply_symmetries.py -v
 
   build-linux-conda:
     runs-on: ubuntu-latest
