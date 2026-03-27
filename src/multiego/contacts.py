@@ -11,7 +11,7 @@ This module covers two related stages of the pipeline:
    ``sbtype_*`` dict extractions are omitted because they are not needed for
    training topologies.
 
-3. **Contact matrix loading** (``init_meGO_matrices`` and its private helpers):
+2. **Contact matrix loading** (``init_meGO_matrices`` and its private helpers):
    Reads reference and training contact matrices, annotates them with prior LJ
    parameters from the force-field topology, and computes the adaptive
    probability thresholds used by ``lj.set_sig_epsilon``.
@@ -29,11 +29,6 @@ import parmed
 import sys
 import time
 import warnings
-
-
-# ---------------------------------------------------------------------------
-# Topology initialisation
-# ---------------------------------------------------------------------------
 
 
 # ---------------------------------------------------------------------------
@@ -586,8 +581,6 @@ def _load_train_matrix(
     contact_matrix = train_contact_matrices_general[train_name].copy()
 
     ref_name = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
-    if not ref_name:
-        raise FileNotFoundError(f"No corresponding reference matrix found for {path}")
 
     contact_matrix = initialize_molecular_contacts(
         contact_matrix,

@@ -277,10 +277,10 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
                 "HERE SOMETHING BAD HAPPEND: There are inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data"
             )
 
-        if not temp_merged["rc_same_chain"].equals(temp_merged["rc_same_chain"]):
+        if not temp_merged["same_chain"].equals(temp_merged["rc_same_chain"]):
             diff_indices = temp_merged.index[temp_merged["same_chain"] != temp_merged["rc_same_chain"]].tolist()
             print(f"Difference found at indices: {diff_indices}")
-            sys.exit("HERE SOMETHING BAD HAPPEND: You are pairing intra and inter molecular training and reference data")
+            sys.exit("ERROR: You are pairing intra and inter molecular training and reference data")
 
         temp_merged = temp_merged[td_fields]
         train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
@@ -319,15 +319,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
         & (train_dataset["rep"].isnull()),
         "rep",
     ] = 0.0
-
-    type_to_c12 = {key: val for key, val in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)}
-
-    if args.custom_c12 is not None:
-        from . import io as _io
-
-        custom_c12_dict = _io.read_custom_c12_parameters(args.custom_c12)
-        type_to_c12_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.c12)}
-        type_to_c12.update(type_to_c12_appo)
 
     # default repulsive C12
     pairwise_c12 = np.sqrt(
