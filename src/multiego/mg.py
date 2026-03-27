@@ -121,7 +121,7 @@ def generate_MG_LJ(meGO_ensemble):
         name: mg6 for name, mg6 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c6"])
     }
 
-    rc_LJ = pd.DataFrame()
+    chunks = []
     for special in type_definitions.special_non_local:
         sbtype_a = [
             sbtype for sbtype, atomtype in meGO_ensemble.sbtype_type_dict.items() if atomtype in special["atomtypes"][0]
@@ -149,7 +149,9 @@ def generate_MG_LJ(meGO_ensemble):
         else:
             raise ValueError(f"Unknown interaction type {special['interaction']} in special_non_local definition")
 
-        rc_LJ = pd.concat([rc_LJ, temp_LJ], axis=0)
+        chunks.append(temp_LJ)
+
+    rc_LJ = pd.concat(chunks, axis=0, ignore_index=True)
 
     rc_LJ["type"] = 1
     rc_LJ["same_chain"] = False

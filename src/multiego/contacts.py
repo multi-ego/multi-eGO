@@ -74,18 +74,19 @@ def _index_training_topology(topology, custom_dict):
         to sb_types per molecule, where ``molecule_key`` is
         ``"{number}_{molecule_name}"``.
     """
-    topology_dataframe = pd.DataFrame()
+    frames = []
     new_number, col_molecule, new_resnum = [], [], []
     molecules_idx_sbtype_dictionary = {}
 
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecules_idx_sbtype_dictionary[f"{molecule_number}_{molecule_name}"] = {}
-        topology_dataframe = pd.concat([topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        frames.append(molecule_topology[0].to_dataframe())
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx + 1))
             col_molecule.append(f"{molecule_number}_{molecule_name}")
             new_resnum.append(str(atom.residue.number))
 
+    topology_dataframe = pd.concat(frames, axis=0, ignore_index=True)
     topology_dataframe["number"] = new_number
     topology_dataframe["molecule"] = col_molecule
     topology_dataframe["molecule_number"] = col_molecule
@@ -131,9 +132,13 @@ def _get_lj_params(topology):
         DataFrame with columns ``ai`` (atom type string), ``c6``, and ``c12``,
         indexed 0...N-1 for each atom in the topology.
     """
-    lj_params = pd.DataFrame(columns=["ai", "c6", "c12"], index=np.arange(len(topology.atoms)))
-    for i, atom in enumerate(topology.atoms):
-        lj_params.loc[i] = [atom.atom_type, atom.sigma * 0.1, atom.epsilon * 4.184]
+    lj_params = pd.DataFrame(
+        {
+            "ai": [atom.atom_type for atom in topology.atoms],
+            "c6": [atom.sigma * 0.1 for atom in topology.atoms],
+            "c12": [atom.epsilon * 4.184 for atom in topology.atoms],
+        }
+    )
     return lj_params
 
 

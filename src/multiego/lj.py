@@ -229,8 +229,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     train_dataset : pd.DataFrame
         Fully assembled and annotated training dataset ready for generate_LJ.
     """
-    train_dataset = pd.DataFrame()
-
     td_fields = [
         "molecule_name_ai",
         "ai",
@@ -253,6 +251,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
         "learned",
     ]
 
+    chunks = []
     for name, ref_name in meGO_ensemble.train_matrix_tuples:
         if ref_name not in matrices["reference_matrices"].keys():
             raise RuntimeError(
@@ -282,8 +281,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
             print(f"Difference found at indices: {diff_indices}")
             sys.exit("ERROR: You are pairing intra and inter molecular training and reference data")
 
-        temp_merged = temp_merged[td_fields]
-        train_dataset = pd.concat([train_dataset, temp_merged], axis=0, sort=False, ignore_index=True)
+        chunks.append(temp_merged[td_fields])
+
+    train_dataset = pd.concat(chunks, axis=0, sort=False, ignore_index=True) if chunks else pd.DataFrame(columns=td_fields)
 
     train_dataset["molecule_name_ai"] = train_dataset["molecule_name_ai"].astype("category")
     train_dataset["molecule_name_aj"] = train_dataset["molecule_name_aj"].astype("category")

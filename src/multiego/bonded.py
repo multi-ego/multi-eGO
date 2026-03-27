@@ -127,44 +127,38 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
     """
     if prefactor is None and constant is None:
         raise ValueError("Neither prefactor nor constant has been set.")
-    pairs_14_ai, pairs_14_aj, pairs_14_c6, pairs_14_c12 = [], [], [], []
 
-    for index, line_atomtype1 in atomtype1.iterrows():
-        line_atomtype2 = atomtype2.loc[(atomtype2["resnum"] == line_atomtype1["resnum"] + shift)].squeeze(axis=None)
-        if not line_atomtype2.empty:
-            pairs_14_ai.append(line_atomtype1["number"])
-            pairs_14_aj.append(line_atomtype2["number"])
-            pairs_14_c6.append(c6)
-            c12 = 1
-            if constant is not None:
-                c12 = constant
-            if prefactor is not None:
-                mixed_c12 = prefactor * np.sqrt(line_atomtype1["c12"] * line_atomtype2["c12"])
-                c12 = min(c12, mixed_c12)
+    _empty = pd.DataFrame(columns=["ai", "aj", "func", "c6", "c12", "probability", "rc_probability", "source"])
 
-            pairs_14_c12.append(c12)
+    at1 = atomtype1[["number", "resnum", "c12"]].copy()
+    at2 = atomtype2[["number", "resnum", "c12"]].copy()
+    at1 = at1.rename(columns={"number": "ai", "c12": "c12_i"})
+    at2 = at2.rename(columns={"number": "aj", "c12": "c12_j"})
+    at1["resnum_key"] = at1["resnum"] + shift
+
+    merged = at1.merge(at2, left_on="resnum_key", right_on="resnum", suffixes=("", "_j"))
+    if merged.empty:
+        return _empty
+
+    c12_vals = np.ones(len(merged))
+    if constant is not None:
+        c12_vals = np.full(len(merged), float(constant))
+    if prefactor is not None:
+        mixed = prefactor * np.sqrt(merged["c12_i"].to_numpy() * merged["c12_j"].to_numpy())
+        c12_vals = np.minimum(c12_vals, mixed)
 
     pairs_14 = pd.DataFrame(
-        columns=[
-            "ai",
-            "aj",
-            "func",
-            "c6",
-            "c12",
-            "probability",
-            "rc_probability",
-            "source",
-        ]
+        {
+            "ai": merged["ai"].to_numpy(),
+            "aj": merged["aj"].to_numpy(),
+            "func": 1,
+            "c6": c6,
+            "c12": c12_vals,
+            "probability": 1.0,
+            "rc_probability": 1.0,
+            "source": "1-4",
+        }
     )
-    pairs_14["ai"] = pairs_14_ai
-    pairs_14["aj"] = pairs_14_aj
-    pairs_14["func"] = 1
-    pairs_14["c6"] = pairs_14_c6
-    pairs_14["c12"] = pairs_14_c12
-    pairs_14["source"] = "1-4"
-    pairs_14["probability"] = 1.0
-    pairs_14["rc_probability"] = 1.0
-
     return pairs_14
 
 
@@ -313,7 +307,7 @@ def generate_14_data(meGO_ensemble):
         ``rc_probability``, ``source``, ``rep``, ``same_chain``,
         ``molecule_name_ai``, and ``molecule_name_aj``.
     """
-    pairs14 = pd.DataFrame()
+    chunks = []
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
         if not bond_pair:
             continue
@@ -376,9 +370,11 @@ def generate_14_data(meGO_ensemble):
 
         if not pairs.empty:
             # this collect only the interactions that are exactly 1-4
-            pairs14 = pd.concat([pairs14, pairs], axis=0, sort=False, ignore_index=True)
+            chunks.append(pairs)
 
-    return pairs14
+    if not chunks:
+        return pd.DataFrame()
+    return pd.concat(chunks, axis=0, sort=False, ignore_index=True)
 
 
 def generate_bond_distance_data(meGO_ensemble):
@@ -404,8 +400,8 @@ def generate_bond_distance_data(meGO_ensemble):
         Pairs beyond ``config.max_bond_separation`` bonds are assigned
         ``max_bond_separation + 1``.
     """
-    all_bd = pd.DataFrame()
-    for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
+    chunks = []
+    for molecule, bond_pair in meGO_ensemble.bond_pairs.items():
         if not bond_pair:
             continue
         reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
@@ -419,6 +415,8 @@ def generate_bond_distance_data(meGO_ensemble):
 
         # this assigns a bond distance to any pairs of atom in a molecule
         mol_bd = compute_bond_distances(reduced_topology, bond_pair)
-        all_bd = pd.concat([all_bd, mol_bd], axis=0, sort=False, ignore_index=True)
+        chunks.append(mol_bd)
 
-    return all_bd
+    if not chunks:
+        return pd.DataFrame()
+    return pd.concat(chunks, axis=0, sort=False, ignore_index=True)

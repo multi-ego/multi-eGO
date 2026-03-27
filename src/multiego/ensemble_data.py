@@ -157,7 +157,7 @@ def _initialize_topology(topology, custom_dict, args):
     molecule_type_dict : dict
         ``{molecule_name: molecule_type}`` — molecule-level classification.
     """
-    ensemble_topology_dataframe = pd.DataFrame()
+    frames = []
     new_number, col_molecule, new_resnum = [], [], []
     ensemble_molecules_idx_sbtype_dictionary = {}
     molecule_type_dict = {}
@@ -165,12 +165,13 @@ def _initialize_topology(topology, custom_dict, args):
     for molecule_number, (molecule_name, molecule_topology) in enumerate(topology.molecules.items(), 1):
         molecule_type_dict = _assign_molecule_type(molecule_type_dict, molecule_name, molecule_topology[0])
         ensemble_molecules_idx_sbtype_dictionary[f"{molecule_number}_{molecule_name}"] = {}
-        ensemble_topology_dataframe = pd.concat([ensemble_topology_dataframe, molecule_topology[0].to_dataframe()], axis=0)
+        frames.append(molecule_topology[0].to_dataframe())
         for atom in molecule_topology[0].atoms:
             new_number.append(str(atom.idx + 1))
             col_molecule.append(f"{molecule_number}_{molecule_name}")
             new_resnum.append(str(atom.residue.number))
 
+    ensemble_topology_dataframe = pd.concat(frames, axis=0, ignore_index=True)
     ensemble_topology_dataframe["number"] = new_number
     ensemble_topology_dataframe["molecule"] = col_molecule
     ensemble_topology_dataframe["molecule_number"] = col_molecule
