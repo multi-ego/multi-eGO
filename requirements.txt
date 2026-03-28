@@ -9,4 +9,5 @@ tables>=3.9.2
 networkx>=3.2.1
 pytest
 flake8
+flake8-pyproject
 black

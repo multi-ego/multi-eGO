@@ -9,7 +9,7 @@ max-line-length = 120
 # E731 lambda assignment: used intentionally in several places
 # E402 module-level import not at top: unavoidable in some entry-point patterns
 # E711 comparison to None: overly strict for pandas boolean indexing idioms
-extend-ignore = E501
+extend-ignore = ["E501","W605","E731","E402","E711"]
 count = true
 show-source = true
 statistics = true

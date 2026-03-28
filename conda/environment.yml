@@ -15,3 +15,5 @@ dependencies:
   - pytest
   - flake8
   - black
+  - pip:
+    - flake8-pyproject

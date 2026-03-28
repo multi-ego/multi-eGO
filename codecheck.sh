@@ -1,7 +1,7 @@
 # check for black
 pip show black
 if [ $? -eq 0 ]; then
-  python -m black -t py310 -t py311 -t py312 -t py313 --line-length=127 .
+  python -m black -t py310 -t py311 -t py312 -t py313 -t py314 --line-length=120 .
 else
   echo "black module not found!"
   echo "you can install it as pip install git+https://github.com/psf/black"
