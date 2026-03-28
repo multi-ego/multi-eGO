@@ -19,6 +19,14 @@ export default function Navbar() {
             Home
           </NavLink>
           <NavLink
+            to="/install"
+            className={({ isActive }) =>
+              isActive ? "text-brand-400" : "text-gray-400 hover:text-white transition"
+            }
+          >
+            Installation
+          </NavLink>
+          <NavLink
             to="/setup"
             className={({ isActive }) =>
               isActive ? "text-brand-400" : "text-gray-400 hover:text-white transition"

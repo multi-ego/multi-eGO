@@ -60,11 +60,6 @@ const features = [
   },
 ];
 
-const installSteps = [
-  { label: "Conda", code: "conda env create -f conda/environment.yml\nconda activate meGO" },
-  { label: "pip", code: "pip install -r requirements.txt" },
-];
-
 export default function Landing() {
   return (
     <div className="space-y-24 pb-24">
@@ -97,8 +92,14 @@ export default function Landing() {
               </svg>
               View on GitHub
             </a>
+            <Link to="/install" className="btn-secondary">
+              Installation →
+            </Link>
+            <Link to="/setup" className="btn-secondary">
+              Setup assistant →
+            </Link>
             <Link to="/config" className="btn-secondary">
-              Build a config file →
+              Config builder →
             </Link>
           </div>
           {/* Badges */}
@@ -142,35 +143,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Installation */}
-      <section className="mx-auto max-w-6xl px-6">
-        <h2 className="section-heading mb-4">Installation</h2>
-        <p className="mb-8 text-gray-400">
-          Requires Python ≥ 3.10. Choose your preferred environment manager:
-        </p>
-        <div className="grid gap-6 sm:grid-cols-2">
-          {installSteps.map((s) => (
-            <div key={s.label}>
-              <p className="label mb-2">{s.label}</p>
-              <pre className="code-block whitespace-pre">{s.code}</pre>
-            </div>
-          ))}
-        </div>
-        <p className="mt-6 text-sm text-gray-500">
-          The <code className="text-gray-300">cmdata</code> trajectory analysis tool requires a separate
-          installation — see the{" "}
-          <a
-            href="https://github.com/multi-ego/multi-eGO/blob/main/tools/cmdata/README.md"
-            className="text-brand-400 hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            cmdata README
-          </a>{" "}
-          for instructions.
-        </p>
-      </section>
-
       {/* Quick start */}
       <section className="mx-auto max-w-6xl px-6">
         <h2 className="section-heading mb-4">Quick start</h2>
@@ -193,9 +165,12 @@ export default function Landing() {
             <pre className="code-block">python multiego.py --config inputs/my_system/config.yml</pre>
           </div>
         </div>
-        <div className="mt-6">
-          <Link to="/config" className="btn-primary">
-            Build your config file →
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Link to="/setup" className="btn-primary">
+            Setup assistant →
+          </Link>
+          <Link to="/config" className="btn-secondary">
+            Config builder →
           </Link>
         </div>
       </section>

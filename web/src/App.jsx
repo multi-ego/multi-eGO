@@ -2,8 +2,9 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import Landing from "./pages/Landing.jsx";
-import ConfigBuilder from "./pages/ConfigBuilder.jsx";
+import Installation from "./pages/Installation.jsx";
 import SetupAssistant from "./pages/SetupAssistant.jsx";
+import ConfigBuilder from "./pages/ConfigBuilder.jsx";
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/install" element={<Installation />} />
           <Route path="/setup" element={<SetupAssistant />} />
           <Route path="/config" element={<ConfigBuilder />} />
         </Routes>

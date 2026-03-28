@@ -301,6 +301,17 @@ export default function ConfigBuilder() {
                   : "Generates a production force field from reference + training simulations."}
               </p>
             </div>
+            <div>
+              <label className="label">Output folder name</label>
+              <p className="text-xs text-gray-500 mb-1">Optional — leave blank to use the system name</p>
+              <input
+                type="text"
+                value={form.explicit_name}
+                placeholder="leave blank for auto"
+                onChange={(e) => set("explicit_name", e.target.value)}
+                className="input-field"
+              />
+            </div>
           </div>
 
           {/* input_refs */}
@@ -384,17 +395,6 @@ export default function ConfigBuilder() {
                 min={0}
                 max={1}
               />
-              <div>
-                <label className="label">explicit_name</label>
-                <p className="text-xs text-gray-500 mb-1">Optional name for the output directory</p>
-                <input
-                  type="text"
-                  value={form.explicit_name}
-                  placeholder="leave blank for auto"
-                  onChange={(e) => set("explicit_name", e.target.value)}
-                  className="input-field"
-                />
-              </div>
             </div>
           </Collapsible>
         </div>
