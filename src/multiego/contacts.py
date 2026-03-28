@@ -416,6 +416,8 @@ def _load_reference_matrix(reference, ensemble, args):
     """
     reference_path = f"{args.root_dir}/inputs/{args.system}/{reference['reference']}"
     topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
+    if not topol_files:
+        raise FileNotFoundError(f"No topology file (.top) found in {reference_path}")
     if len(topol_files) > 1:
         raise RuntimeError(f"More than 1 topology file found in {reference_path}. Only one should be used")
 
@@ -703,7 +705,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     for number, molecule in enumerate(ensemble.topology.molecules, 1):
         comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
         if not comparison_dataframe.empty:
-            comparison_set = set(
+            comparison_set |= set(
                 comparison_dataframe[
                     # TODO: replace with a cleaner filter using type_definitions
                     (~comparison_dataframe["name"].str.startswith("H"))
