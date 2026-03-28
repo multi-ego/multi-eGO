@@ -1,6 +1,6 @@
 [tool.black]
 line-length = 120
-target-version = ["py310", "py311", "py312", "py313", "py314"]
+target-version = ["py310", "py311", "py312", "py313"]
 
 [tool.flake8]
 max-line-length = 120
@@ -13,3 +13,6 @@ extend-ignore = ["E501","W605","E731","E402","E711"]
 count = true
 show-source = true
 statistics = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
