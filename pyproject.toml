@@ -1,3 +1,35 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mego"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "GitPython>=3.1.44",
+    "h5py>=3.11.0",
+    "numpy>=2.2.2,<2.3",
+    "pandas>=2.2.3",
+    "ParmEd>=4.2.2",
+    "PyYAML>=6.0.2",
+    "scipy>=1.15.1",
+    "tables>=3.9.2",
+    "networkx>=3.2.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "flake8", "flake8-pyproject", "black"]
+
+[project.scripts]
+mego = "mego:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 120
 target-version = ["py310", "py311", "py312", "py313"]
