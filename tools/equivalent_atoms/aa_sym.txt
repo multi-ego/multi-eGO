@@ -7,6 +7,7 @@ PHE CE1 CE2
 TYR CD1 CD2
 TYR CE1 CE2
 CTER O1 O2 
+>>>>>>> 901c4cc (WEB GUI draft)
 # lipids
 POPC C13 C14
 POPC C13 C15

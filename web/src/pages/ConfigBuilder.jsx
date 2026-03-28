@@ -11,27 +11,7 @@ const DEFAULT_SYMMETRIES = [
   "PHE CE1 CE2",
   "TYR CD1 CD2",
   "TYR CE1 CE2",
-  // Backbone O1/O2 terminal equivalences for all standard amino acids
-  "ALA O1 O2",
-  "ARG O1 O2",
-  "ASN O1 O2",
-  "ASP O1 O2",
-  "CYS O1 O2",
-  "GLN O1 O2",
-  "GLU O1 O2",
-  "GLY O1 O2",
-  "HIS O1 O2",
-  "ILE O1 O2",
-  "LEU O1 O2",
-  "LYS O1 O2",
-  "MET O1 O2",
-  "PHE O1 O2",
-  "PRO O1 O2",
-  "SER O1 O2",
-  "THR O1 O2",
-  "TRP O1 O2",
-  "TYR O1 O2",
-  "VAL O1 O2",
+  "CTER O1 O2",
 ];
 
 const MATRIX_OPTIONS = ["intramat_1_1", "intermat_1_1", "intramat_1_2", "intermat_1_2"];
