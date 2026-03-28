@@ -30,7 +30,6 @@ import sys
 import time
 import warnings
 
-
 # ---------------------------------------------------------------------------
 # Training topology indexing (private — used only by _load_train_matrix)
 # ---------------------------------------------------------------------------

@@ -28,7 +28,6 @@ from . import io
 from . import topology as _topology
 from . import type_definitions
 
-
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------

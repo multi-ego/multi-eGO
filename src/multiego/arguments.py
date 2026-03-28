@@ -4,7 +4,6 @@ import yaml
 import argparse
 from . import io
 
-
 # Arguments shared between the single-reference CLI mode and the config-file (global) mode.
 # Add any new global argument here only — args_dict and args_dict_global are derived from this.
 _args_dict_shared = {
