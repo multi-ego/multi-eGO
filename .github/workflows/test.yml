@@ -10,57 +10,97 @@ on:
 
 
 jobs:
-  build-linux-conda:
+  unit_test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.14"]
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run unit tests
+        run: |
+         pytest tests/test_multiego.py -v
+         pytest tests/test_apply_symmetries.py -v
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.12'
+        python-version: '3.13'
+        cache: 'pip'
+    - name: Install linters
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run flake8
+      run: flake8 .
+    - name: Run black (check only)
+      run: black --check .
+
+  build-linux-conda:
+    runs-on: ubuntu-latest
+    needs: lint
+
+    steps:
+    - uses: actions/checkout@v6
     - name: Add conda to system path
       uses: conda-incubator/setup-miniconda@v3
       with:
         environment-file: conda/environment.yml
         miniforge-version: latest
         activate-environment: test
-    - name: Run flake8 
-      run: |
-        # Flake8 exit on most issues
-        # we use blake to enforce formatting 
-        conda install flake8
-        $CONDA/bin/flake8 . --count --extend-ignore E501,W605,E731,E402,E711 --show-source --statistics
     - name: Run tests
       shell: bash -el {0}
       run: |
-        $CONDA/bin/python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
+    - name: Run unit tests
+      shell: bash -el {0}
+      run: |
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
 
   build-linux-pip:
     runs-on: ubuntu-latest
+    needs: lint
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python 3.13
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.13'
+        cache: 'pip'
     - name: Install requirements
       run: pip install -r requirements.txt
     - name: Run tests
       run: |
-        python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
+    - name: Run unit tests
+      run: |
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
 
   build-macos-conda:
     runs-on: macos-14
+    needs: lint
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+    - uses: actions/checkout@v6
     - name: Add conda to system path
       uses: conda-incubator/setup-miniconda@v3
       with:
@@ -70,20 +110,29 @@ jobs:
     - name: Run tests
       shell: bash -el {0}
       run: |
-        $CONDA/bin/python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
+    - name: Run unit tests
+      shell: bash -el {0}
+      run: |
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
 
   build-macos-pip:
     runs-on: macos-latest
+    needs: lint
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Set up Python 3.13
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: '3.13'
+        cache: 'pip'
     - name: Install requirements
       run: pip install -r requirements.txt
     - name: Run tests
       run: |
-        python test/run_tests.py
-        cd test; bash run_make_mat.sh; cd ..
+        python tests/run_tests.py
+        cd tests; bash run_make_mat.sh; cd ..
+    - name: Run unit tests
+      run: |
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v

@@ -1,0 +1,45 @@
+---
+- system: lyso-bnz_ref
+- egos: production
+
+- input_refs:
+    # LYZ
+  - reference: reference
+    train: md_ensemble
+    matrix: intramat_1_1
+    epsilon: 0.34
+    # LYZ
+  - reference: ref_1_1_interdom
+    train: md_ensemble
+    matrix: intramat_1_1
+    epsilon: 1.5
+    # BNZ
+  - reference: reference
+    train: md_ensemble
+    matrix: intramat_2_2
+    epsilon: 0.34
+    # LYZ-BNZ
+  - reference: reference
+    train: md_ensemble
+    matrix: intermat_1_2
+    epsilon: 0.53
+    # BNZ inter
+  - reference: reference
+    train: md_ensemble
+    matrix: intermat_2_2
+    epsilon: 0.53
+
+- single_molecule 
+- symmetry:
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - LEU CD1 CD2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ARG NH1 NH2
+  - VAL CG1 CG2
+  - LYS O1 O2
+  - BNZ CD1 CD2 CE1 CE2 CZ CG
+- no_header

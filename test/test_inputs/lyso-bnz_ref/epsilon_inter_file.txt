@@ -1,3 +1,0 @@
-        Lyso   BNZ
-Lyso      2     0.53
-BNZ       0.53    10

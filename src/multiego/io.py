@@ -2,180 +2,11 @@ import numpy as np
 import pandas as pd
 import glob
 import os
-import yaml
 import git
 import time
 import sys
 import re
-
-
-def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference):
-
-    if args.config:
-
-        config_yaml = read_config(args.config, args_dict)
-        # check if yaml file is empty
-        if not config_yaml:
-            print("WARNING: Configuration file was parsed, but the dictionary is empty")
-        else:
-            args = combine_configurations(config_yaml, args, args_dict_global)
-            args = read_new_input(args, args_dict_single_reference)
-
-    # if config does not exists convert command line to input_ref dictionary format
-    else:
-        if args.input_refs:
-            raise ValueError("ERROR: input_refs should be used only with a configuration file")
-
-        if args.egos == "production" and not args.reference:
-            args.reference = ["reference"]
-
-        args = convert_command_line_to_new_input(args, args_dict_single_reference)
-
-    return args
-
-
-def read_config(file, args_dict):
-    """
-    Reads a YAML file and returns its content as a dictionary.
-
-    Parameters
-    ----------
-    file : str
-        The path to the YAML file
-
-    Returns
-    -------
-    args_dict : dict
-        The content of the YAML file as a dictionary
-    """
-    with open(file, "r") as f:
-        yml = yaml.safe_load(f)
-    # check if the keys in the yaml file are valid
-    for element in yml:
-        if type(element) is not dict:
-            key = element
-        else:
-            key = list(element.keys())[0]
-        if f"--{key}" not in args_dict:
-            raise ValueError(f"ERROR: {key} in {file} is not a valid argument.")
-    return yml
-
-
-def read_new_input(args, args_dict_single_input):
-    """
-    Checks the input_ref dictionary has the correct keys, and combines it with the non-specified default arguments for each reference.
-
-    Parameters
-    ----------
-    yml : dict
-        The configuration from the YAML file
-    args : dict
-        The command-line arguments with default values
-
-    Returns
-    -------
-    dict
-        The combined configuration
-    """
-
-    if args.egos != "production":
-        raise ValueError("You should use 'input_refs' only with egos 'production'")
-
-    # Check for invalid keys in input_dict
-    input_refs = []
-    valid_keys = {key.lstrip("--") for key in args_dict_single_input.keys()}
-    for ref in args.input_refs:
-
-        input_keys = set(ref.keys())
-
-        # Raise an error if there are any unexpected keys
-        unexpected_keys = input_keys - valid_keys
-        if unexpected_keys:
-            raise ValueError(f"Unexpected keys in {ref}: \n{unexpected_keys}")
-
-        # Combine dictionaries with defaults
-        combined_dict = {}
-        for key, metadata in args_dict_single_input.items():
-            stripped_key = key.lstrip("--")
-            value = ref.get(stripped_key, metadata.get("default"))
-
-            expected_type = metadata["type"]
-            try:
-                if value is not None:
-                    value = expected_type(value)
-                    ref[stripped_key] = value
-            except (ValueError, TypeError):
-                raise ValueError(
-                    f"Invalid type for key '{stripped_key}'. Expected {expected_type}, got {type(value).__name__}."
-                )
-
-            combined_dict[stripped_key] = ref.get(stripped_key, metadata.get("default"))
-
-        input_refs.append(combined_dict)
-
-    args.input_refs = input_refs
-
-    return args
-
-
-def convert_command_line_to_new_input(args, args_dict_single_input):
-    dict_input_ref = []
-    appo = 0
-    for reference in args.reference:
-
-        matrices_intra = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intramat" in m]
-        matrices_inter = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intermat" in m]
-        matrices = matrices_intra + matrices_inter
-        # check that in reference folder only 1 matrix of the same pair is present
-        mat_type = [m.split(".ndx")[0] for m in matrices]
-        if len(set(mat_type)) != len(mat_type):
-            raise ValueError("In the reference folder, only one matrix of the same pair is allowed")
-
-        for mat in mat_type:
-            dict_input_ref.append({"reference": reference, "train": args.train, "matrix": mat, "epsilon": args.epsilon})
-            for var in vars(args):
-                if var in [key.lstrip("--") for key, _ in args_dict_single_input.items()]:
-                    if var not in ["reference", "train", "epsilon"]:
-                        dict_input_ref[appo].update({var: getattr(args, var)})
-            appo += 1
-    args.input_refs = dict_input_ref
-    return args
-
-
-def combine_configurations(yml, args, args_dict):
-    """
-    Combines the configuration from a YAML file with the command-line arguments. By overwriting
-    files from the YAML configuration with the command-line arguments, the function ensures that
-    the command-line arguments take precedence over the configuration file. Overwriting is done
-    directly on the args dictionary.
-
-    Parameters
-    ----------
-    yml : dict
-        The configuration from the YAML file
-    args : dict
-        The command-line arguments
-
-    Returns
-    -------
-    dict
-        The combined configuration
-    """
-    for element in yml:
-        if type(element) is dict:
-            key, value = list(element.items())[0]
-            value = args_dict[f"--{key}"]["type"](value)
-            parse_key = f"--{key}"
-            default_value = args_dict[parse_key]["default"] if "default" in args_dict[parse_key] else None
-
-            # TODO go back using is instead of ==
-            if hasattr(args, key) and getattr(args, key) == default_value:
-                setattr(args, key, value)
-        else:
-            if hasattr(args, element):
-                setattr(args, element, True)
-
-    return args
+import json
 
 
 def strip_gz_h5_suffix(filename):
@@ -406,7 +237,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix["learned"] = contact_matrix["learned"].astype(bool)
 
     t1 = time.time()
-    print("\t\t- Read in:", t1 - st)
+    print(f"\t\t- Read in: {t1 - st:.2f} s")
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -459,7 +290,9 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     aj_atoms = contact_matrix["aj"].str.split("_").str[0]
 
     # Create a mask for valid rows
-    valid_rows = ~((ai_atoms.str.startswith("H") & (ai_atoms != "H")) | (aj_atoms.str.startswith("H") & (aj_atoms != "H")))
+    valid_rows = ~(
+        (ai_atoms.str.startswith("H") & (ai_atoms != "H")) | (aj_atoms.str.startswith("H") & (aj_atoms != "H"))
+    )
 
     contact_matrix = contact_matrix[valid_rows]
 
@@ -472,7 +305,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
     t2 = time.time()
-    print("\t\t- Processesed in:", t2 - t1)
+    print(f"\t\t- Processed in: {t2 - t1:.2f} s")
 
     return contact_matrix
 
@@ -506,21 +339,27 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
 
         file.write("[ atomtypes ]\n")
         if parameters.egos == "mg":
-            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]].copy()
+            atomtypes = topology_dataframe[
+                ["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]
+            ].copy()
             atomtypes.rename(columns={"mg_c6": "c6", "mg_c12": "c12"}, inplace=True)
         else:
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
 
-        atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
-        atomtypes["c12"] = atomtypes["c12"].map(lambda x: "{:.6e}".format(x))
+        # Only c6/c12 use scientific notation; mass and charge must keep their
+        # default representation (e.g. "12.011" and "0"), so pre-format just
+        # those two columns and call dataframe_to_write without float_format.
+        # atomtypes is O(unique atom types) so the .map() overhead is negligible.
+        atomtypes["c6"] = atomtypes["c6"].map("{:.6e}".format)
+        atomtypes["c12"] = atomtypes["c12"].map("{:.6e}".format)
         file.write(dataframe_to_write(atomtypes))
 
         if not meGO_LJ.empty:
             file.write("\n\n[ nonbond_params ]\n")
-            meGO_LJ["c6"] = meGO_LJ["c6"].map(lambda x: "{:.6e}".format(x))
-            meGO_LJ["c12"] = meGO_LJ["c12"].map(lambda x: "{:.6e}".format(x))
             meGO_LJ.insert(5, ";", ";")
-            file.write(dataframe_to_write(meGO_LJ))
+            # float_format is passed through to to_string(), so c6/c12 are formatted
+            # at the C level without the Python-loop overhead of a prior .map() call.
+            file.write(dataframe_to_write(meGO_LJ, float_format="%.6e"))
 
 
 def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
@@ -543,14 +382,15 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     )
     create_output_directories(parameters, output_dir)
     write_topology(
-        meGO_ensemble["topology_dataframe"],
-        meGO_ensemble["molecule_type_dict"],
-        meGO_ensemble["meGO_bonded_interactions"],
+        meGO_ensemble.topology_dataframe,
+        meGO_ensemble.molecule_type_dict,
+        meGO_ensemble.meGO_bonded_interactions,
         meGO_LJ_14,
         parameters,
         output_dir,
     )
-    write_nonbonded(meGO_ensemble["topology_dataframe"], meGO_LJ, parameters, output_dir)
+    meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
+    write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
     print("\t- " f"Output files written to {output_dir}")
     print(stat_str)
@@ -667,18 +507,23 @@ def get_outdir_name(output_dir, explicit_name, egos):
     return output_dir
 
 
-def dataframe_to_write(df):
+def dataframe_to_write(df, float_format=None):
     """
-    Returns a stringified and formated dataframe and a message if the dataframe is empty.
+    Returns a stringified and formatted dataframe and a message if the dataframe is empty.
 
     Parameters
     ----------
     df : pd.DataFrame
         The input dataframe
+    float_format : str or callable, optional
+        Format string (e.g. ``"%.6e"``) passed to ``DataFrame.to_string`` for
+        float columns.  When provided the caller does not need to pre-format
+        float columns as strings before calling this function.
 
     Returns
     -------
-    The stringified dataframe
+    str
+        The stringified dataframe, or a warning comment string if *df* is empty.
     """
     if df.empty:
         # TODO insert and improve the following warning
@@ -686,7 +531,7 @@ def dataframe_to_write(df):
         return "; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology."
     else:
         df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace=True)
-        return df.to_string(index=False)
+        return df.to_string(index=False, float_format=float_format)
 
 
 def make_header(parameters):
@@ -714,13 +559,13 @@ def make_header(parameters):
             tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
             continue
-        elif type(value) is list:
+        elif isinstance(value, list):
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
         elif type(value) is np.ndarray:
             value = np.array(value, dtype=str)
             header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-        elif type(value) is dict:
+        elif isinstance(value, dict):
             for key, val in value.items():
                 header += f";\t- {key} = {val}\n"
         elif not value:
@@ -777,8 +622,6 @@ def write_topology(
             pairs = meGO_LJ_14[molecule]
             if not pairs.empty:
                 pairs.insert(5, ";", ";")
-                pairs["c6"] = pairs["c6"].map(lambda x: "{:.6e}".format(x))
-                pairs["c12"] = pairs["c12"].map(lambda x: "{:.6e}".format(x))
                 bonded_interactions_dict[molecule]["pairs"] = pairs
                 exclusions = pairs[["ai", "aj"]].copy()
 
@@ -795,17 +638,17 @@ def write_topology(
                 ["number", "sb_type", "resnum", "resname", "name", "cgnr"]
             ].copy()
             file.write(f"{dataframe_to_write(atom_selection_dataframe)}\n\n")
-            # Here are written bonds, angles, dihedrals and impropers
+            # Here are written bonds, angles, dihedrals, impropers, and pairs
             for bonded_type, interactions in bonded_interactions.items():
                 if interactions.empty:
                     continue
+                label = "dihedrals" if bonded_type == "impropers" else bonded_type
+                file.write(f"[ {label} ]\n")
+                if bonded_type == "pairs":
+                    file.write(dataframe_to_write(interactions, float_format="%.6e"))
                 else:
-                    if bonded_type == "impropers":
-                        file.write("[ dihedrals ]\n")
-                    else:
-                        file.write(f"[ {bonded_type} ]\n")
                     file.write(dataframe_to_write(interactions))
-                    file.write("\n\n")
+                file.write("\n\n")
             file.write("[ exclusions ]\n")
             file.write(dataframe_to_write(exclusions))
 
@@ -925,13 +768,11 @@ def read_inter_file(file_path):
 
     # Check that the names are consistent on rows and columns (avoid mistakes)
     if np.any(names_row != names_col):
-        print(
-            f"""ERROR: the names are inconsistent in the inter epsilon matrix:
+        print(f"""ERROR: the names are inconsistent in the inter epsilon matrix:
               Rows:{names_row}
               Columns:{names_col}
               Please fix to be sure to avoid silly mistakes
-              """
-        )
+              """)
         sys.exit()
 
     epsilons = [line.split()[1:] for line in lines[1:]]
@@ -944,3 +785,130 @@ def read_inter_file(file_path):
 
 def read_custom_c12_parameters(file):
     return pd.read_csv(file, names=["name", "at.num", "c12"], usecols=[0, 1, 6], header=0)
+
+
+def parse_json(file_path):
+    if file_path:
+        try:
+            with open(file_path, "r") as file:
+                custom_dict = json.load(file)
+                if not isinstance(custom_dict, dict):
+                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
+                return custom_dict
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"Error in reading the custom dictionary: {e}")
+            sys.exit()
+    else:
+        return {}
+
+
+def sort_LJ(meGO_ensemble, meGO_LJ):
+    """
+    Sorts and deduplicates the final LJ DataFrame for output, ensuring ai <= aj
+    ordering both within and across molecules.
+
+    Parameters
+    ----------
+    meGO_ensemble : dict
+        The initialized meGO ensemble.
+    meGO_LJ : pd.DataFrame
+        The LJ DataFrame from generate_LJ.
+
+    Returns
+    -------
+    pd.DataFrame
+        Sorted and deduplicated LJ DataFrame ready for writing.
+    """
+    meGO_LJ["type"] = 1
+    meGO_LJ["number_ai"] = meGO_LJ["ai"].map(meGO_ensemble.sbtype_number_dict).astype(int)
+    meGO_LJ["number_aj"] = meGO_LJ["aj"].map(meGO_ensemble.sbtype_number_dict).astype(int)
+
+    meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)].copy()
+
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        (meGO_LJ["molecule_name_ai"].astype(str) <= meGO_LJ["molecule_name_aj"].astype(str)),
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+        [
+            meGO_LJ["aj"],
+            meGO_LJ["ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["number_aj"],
+            meGO_LJ["number_ai"],
+        ],
+    )
+
+    (
+        meGO_LJ["ai"],
+        meGO_LJ["aj"],
+        meGO_LJ["molecule_name_ai"],
+        meGO_LJ["molecule_name_aj"],
+        meGO_LJ["number_ai"],
+        meGO_LJ["number_aj"],
+    ) = np.where(
+        meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"],
+        np.where(
+            meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],
+            [
+                meGO_LJ["ai"],
+                meGO_LJ["aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["number_ai"],
+                meGO_LJ["number_aj"],
+            ],
+            [
+                meGO_LJ["aj"],
+                meGO_LJ["ai"],
+                meGO_LJ["molecule_name_aj"],
+                meGO_LJ["molecule_name_ai"],
+                meGO_LJ["number_aj"],
+                meGO_LJ["number_ai"],
+            ],
+        ),
+        [
+            meGO_LJ["ai"],
+            meGO_LJ["aj"],
+            meGO_LJ["molecule_name_ai"],
+            meGO_LJ["molecule_name_aj"],
+            meGO_LJ["number_ai"],
+            meGO_LJ["number_aj"],
+        ],
+    )
+
+    meGO_LJ.sort_values(by=["molecule_name_ai", "molecule_name_aj", "number_ai", "number_aj"], inplace=True)
+
+    final_fields = [
+        "ai",
+        "aj",
+        "type",
+        "c6",
+        "c12",
+        "sigma",
+        "epsilon",
+        "probability",
+        "rc_probability",
+        "md_threshold",
+        "rc_threshold",
+        "same_chain",
+        "source",
+        "bond_distance",
+        "number_ai",
+        "number_aj",
+    ]
+
+    return meGO_LJ[final_fields]
