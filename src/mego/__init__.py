@@ -23,9 +23,7 @@ def main():
 
     # Put src/ at position 0 and strip the project root so that
     # ``import multiego`` finds src/multiego/ rather than multiego.py.
-    sys.path = [_src] + [
-        p for p in sys.path if os.path.realpath(p) != os.path.realpath(_root)
-    ]
+    sys.path = [_src] + [p for p in sys.path if os.path.realpath(p) != os.path.realpath(_root)]
 
     from multiego._run import main as _main  # noqa: E402
 
