@@ -263,13 +263,14 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
         # Restrict the check to contacts that appear in both matrices: the outer
         # merge leaves rc_same_chain = NaN for training contacts that have no
         # counterpart in the reference, and those rows must not trigger the error.
+        # Cast to bool before comparing: after an outer join, boolean columns that
+        # receive any NaN are upcast to object dtype, and Series.equals() is
+        # dtype-sensitive, so object([True]) != bool([True]) even though the
+        # values are identical. A plain != on bool-cast values avoids this.
         both_present = temp_merged["same_chain"].notna() & temp_merged["rc_same_chain"].notna()
-        if both_present.any() and not temp_merged.loc[both_present, "same_chain"].equals(
-            temp_merged.loc[both_present, "rc_same_chain"]
-        ):
-            diff_indices = temp_merged.index[
-                both_present & (temp_merged["same_chain"] != temp_merged["rc_same_chain"])
-            ].tolist()
+        mismatched = both_present & (temp_merged["same_chain"].astype(bool) != temp_merged["rc_same_chain"].astype(bool))
+        if mismatched.any():
+            diff_indices = temp_merged.index[mismatched].tolist()
             print(f"Difference found at indices: {diff_indices}")
             sys.exit("ERROR: You are pairing intra and inter molecular training and reference data")
 
