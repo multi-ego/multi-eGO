@@ -154,20 +154,49 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     if not symmetry:
         return pd.DataFrame(columns=meGO_input.columns)
 
-    dict_sbtype_to_resname = meGO_ensemble.topology_dataframe.set_index("sb_type")["resname"].to_dict()
-    mglj_resn_ai = meGO_input["ai"].map(dict_sbtype_to_resname)
-    mglj_resn_aj = meGO_input["aj"].map(dict_sbtype_to_resname)
+    topology_df = meGO_ensemble.topology_dataframe
+    dict_sbtype_to_resname = topology_df.set_index("sb_type")["resname"].to_dict()
+
+    # Pre-compute sb_types that belong to C-terminal (CTER) and N-terminal (NTER)
+    # residues — the last and first residue of each molecule respectively.
+    cter_sbtypes: set = set()
+    nter_sbtypes: set = set()
+    topology_df["_resnum_int"] = topology_df["resnum"].astype(int)
+    for _, mol_group in topology_df.groupby("molecule_name"):
+        resnums = mol_group["_resnum_int"]
+        cter_sbtypes |= set(mol_group.loc[resnums == resnums.max(), "sb_type"])
+        nter_sbtypes |= set(mol_group.loc[resnums == resnums.min(), "sb_type"])
+    topology_df.drop(columns=["_resnum_int"], inplace=True)
+
+    def _filter_and_masks(df, ai_col, aj_col, sym0):
+        """Return (filtered_df, ai_mask, aj_mask) for a given residue specifier."""
+        if sym0 == "CTER":
+            terminal = cter_sbtypes
+            ai_mask = df[ai_col].isin(terminal)
+            aj_mask = df[aj_col].isin(terminal)
+        elif sym0 == "NTER":
+            terminal = nter_sbtypes
+            ai_mask = df[ai_col].isin(terminal)
+            aj_mask = df[aj_col].isin(terminal)
+        else:
+            resn_ai = df[ai_col].map(dict_sbtype_to_resname)
+            resn_aj = df[aj_col].map(dict_sbtype_to_resname)
+            ai_mask = resn_ai == sym0
+            aj_mask = resn_aj == sym0
+        return df[ai_mask | aj_mask], ai_mask, aj_mask
+
     df_list = []
 
     for sym in symmetry:
         if not sym:
             continue
-        meGO_filtered = meGO_input[(mglj_resn_ai == sym[0]) | (mglj_resn_aj == sym[0])]
-        mgf_resn_ai = meGO_filtered["ai"].map(dict_sbtype_to_resname)
-        mgf_resn_aj = meGO_filtered["aj"].map(dict_sbtype_to_resname)
+        meGO_filtered, mgf_mask_ai, mgf_mask_aj = _filter_and_masks(meGO_input, "ai", "aj", sym[0])
+        # Reindex masks to match the filtered frame
+        mgf_mask_ai = mgf_mask_ai.reindex(meGO_filtered.index)
+        mgf_mask_aj = mgf_mask_aj.reindex(meGO_filtered.index)
         for atypes in itertools.permutations(sym[1:]):
-            t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & (mgf_resn_ai == sym[0])]
-            t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & (mgf_resn_aj == sym[0])]
+            t_df_ai = meGO_filtered[meGO_filtered["ai"].str.startswith(f"{atypes[0]}_") & mgf_mask_ai]
+            t_df_aj = meGO_filtered[meGO_filtered["aj"].str.startswith(f"{atypes[0]}_") & mgf_mask_aj]
             t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
             t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
             df_list.extend([t_df_ai, t_df_aj])
@@ -176,18 +205,15 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     df_list = []
     df_tmp.drop_duplicates(inplace=True)
 
-    df_resn_ai = df_tmp["ai"].map(dict_sbtype_to_resname)
-    df_resn_aj = df_tmp["aj"].map(dict_sbtype_to_resname)
-
     for sym in symmetry:
         if not sym:
             continue
-        df_tmp_filt = df_tmp[(df_resn_ai == sym[0]) | (df_resn_aj == sym[0])]
-        df_resn_ai_f = df_tmp_filt["ai"].map(dict_sbtype_to_resname)
-        df_resn_aj_f = df_tmp_filt["aj"].map(dict_sbtype_to_resname)
+        df_tmp_filt, df_mask_ai, df_mask_aj = _filter_and_masks(df_tmp, "ai", "aj", sym[0])
+        df_mask_ai = df_mask_ai.reindex(df_tmp_filt.index)
+        df_mask_aj = df_mask_aj.reindex(df_tmp_filt.index)
         for atypes in itertools.permutations(sym[1:]):
-            t_df_ai = df_tmp_filt[df_tmp_filt["ai"].str.startswith(f"{atypes[0]}_") & (df_resn_ai_f == sym[0])]
-            t_df_aj = df_tmp_filt[df_tmp_filt["aj"].str.startswith(f"{atypes[0]}_") & (df_resn_aj_f == sym[0])]
+            t_df_ai = df_tmp_filt[df_tmp_filt["ai"].str.startswith(f"{atypes[0]}_") & df_mask_ai]
+            t_df_aj = df_tmp_filt[df_tmp_filt["aj"].str.startswith(f"{atypes[0]}_") & df_mask_aj]
             t_df_ai.loc[:, "ai"] = t_df_ai["ai"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
             t_df_aj.loc[:, "aj"] = t_df_aj["aj"].str.replace(r"^(.*?)_", atypes[1] + "_", regex=True)
             df_list.extend([t_df_ai, t_df_aj])
@@ -351,29 +377,90 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     )
     train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
 
-    # special cases from type_definitions
-    type_ai = train_dataset["ai"].map(meGO_ensemble.sbtype_type_dict).to_numpy()
-    type_aj = train_dataset["aj"].map(meGO_ensemble.sbtype_type_dict).to_numpy()
+    # Apply special non-local interaction rules from type_definitions.
+    #
+    # The naive approach iterates over every rule, computes a boolean mask by
+    # scanning type_ai/type_aj for each (type_i, type_j) pair (186 scans total),
+    # then writes results with .loc — slow for large datasets.
+    #
+    # Instead we build two tiny 2D lookup tables indexed by integer atom-type
+    # codes, do a single vectorised fancy-index to get the per-row rule outcome,
+    # then apply all updates with np.where on bare numpy arrays.
+
+    # --- Step 1: assign a small integer code to every atom type in the rules ---
+    # Types absent from the rules get code 0 ("no rule applies").
+    all_rule_types = sorted(
+        {atomtype for rule in type_definitions.special_non_local for side in rule["atomtypes"] for atomtype in side}
+    )
+    type_to_code = {atomtype: code for code, atomtype in enumerate(all_rule_types, start=1)}
+    n_codes = len(all_rule_types) + 1  # +1 for the 0 sentinel
+
+    # Rule-outcome codes (int8 to keep the tables tiny):
+    #   1 = repulsive with a fixed epsilon value
+    #   2 = repulsive, derive mg parameters from the existing rep (epsilon=None)
+    #   3 = attractive
+    REP_FIXED, REP_NONE, ATT = np.int8(1), np.int8(2), np.int8(3)
+
+    # --- Step 2: fill the lookup tables (one entry per ordered type pair) ---
+    lut_outcome = np.zeros((n_codes, n_codes), dtype=np.int8)
+    lut_epsilon = np.full((n_codes, n_codes), np.nan)
+    lut_sigma = np.full((n_codes, n_codes), np.nan)
 
     for rule in type_definitions.special_non_local:
         types_i, types_j = rule["atomtypes"]
-        pair_list = [(i, j) for i in types_i for j in types_j]
-        mask = create_linearized_mask(type_ai, type_aj, pair_list, symmetrize=True)
-
+        epsilon = rule["epsilon"]
+        sigma = rule.get("sigma")
         if rule["interaction"] == "rep":
-            if rule["epsilon"] is not None:
-                train_dataset.loc[mask, "rep"] = rule["epsilon"]
-                train_dataset.loc[mask, "mg_epsilon"] = -rule["epsilon"]
-                train_dataset.loc[mask, "mg_sigma"] = rule["epsilon"] ** (1 / 12) / 2 ** (1 / 6)
-            else:
-                rep_vals = train_dataset.loc[mask, "rep"]
-                train_dataset.loc[mask, "mg_epsilon"] = -rep_vals
-                train_dataset.loc[mask, "mg_sigma"] = rep_vals ** (1 / 12) / 2 ** (1 / 6)
-        elif rule["interaction"] == "att":
-            if rule["epsilon"] is not None:
-                train_dataset.loc[mask, "mg_epsilon"] = rule["epsilon"]
-            if rule["sigma"] is not None:
-                train_dataset.loc[mask, "mg_sigma"] = rule["sigma"]
+            outcome = REP_FIXED if epsilon is not None else REP_NONE
+        else:
+            outcome = ATT
+        for ti in types_i:
+            for tj in types_j:
+                for ci, cj in ((type_to_code[ti], type_to_code[tj]), (type_to_code[tj], type_to_code[ti])):
+                    lut_outcome[ci, cj] = outcome
+                    lut_epsilon[ci, cj] = epsilon if epsilon is not None else np.nan
+                    lut_sigma[ci, cj] = sigma if sigma is not None else np.nan
+
+    # --- Step 3: encode every row's ai/aj type string as an integer code ---
+    # Two chained pandas .map() calls; no Python loop over rows.
+    ai_codes = (
+        train_dataset["ai"].map(meGO_ensemble.sbtype_type_dict).map(type_to_code).fillna(0).to_numpy(dtype=np.intp)
+    )
+    aj_codes = (
+        train_dataset["aj"].map(meGO_ensemble.sbtype_type_dict).map(type_to_code).fillna(0).to_numpy(dtype=np.intp)
+    )
+
+    # --- Step 4: single vectorised lookup — one numpy fancy-index per table ---
+    row_outcome = lut_outcome[ai_codes, aj_codes]
+    row_epsilon = lut_epsilon[ai_codes, aj_codes]
+    row_sigma = lut_sigma[ai_codes, aj_codes]
+
+    # --- Step 5: apply all rule outcomes in one pass with np.where on numpy arrays ---
+    # Working on raw arrays avoids the per-call pandas alignment overhead of .loc.
+    rep = train_dataset["rep"].to_numpy(dtype=float)
+    mg_epsilon = train_dataset["mg_epsilon"].to_numpy(dtype=float)
+    mg_sigma = train_dataset["mg_sigma"].to_numpy(dtype=float)
+
+    is_rep_fixed = row_outcome == REP_FIXED
+    is_rep_none = row_outcome == REP_NONE
+    is_att = row_outcome == ATT
+
+    # repulsive, fixed epsilon: override rep, mg_epsilon, and mg_sigma
+    rep = np.where(is_rep_fixed, row_epsilon, rep)
+    mg_epsilon = np.where(is_rep_fixed, -row_epsilon, mg_epsilon)
+    mg_sigma = np.where(is_rep_fixed, row_epsilon ** (1 / 12) / 2 ** (1 / 6), mg_sigma)
+
+    # repulsive, epsilon=None: derive mg_epsilon and mg_sigma from the existing rep
+    mg_epsilon = np.where(is_rep_none, -rep, mg_epsilon)
+    mg_sigma = np.where(is_rep_none, rep ** (1 / 12) / 2 ** (1 / 6), mg_sigma)
+
+    # attractive: override mg_epsilon and/or mg_sigma where the rule specifies them
+    mg_epsilon = np.where(is_att & ~np.isnan(row_epsilon), row_epsilon, mg_epsilon)
+    mg_sigma = np.where(is_att & ~np.isnan(row_sigma), row_sigma, mg_sigma)
+
+    train_dataset["rep"] = rep
+    train_dataset["mg_epsilon"] = mg_epsilon
+    train_dataset["mg_sigma"] = mg_sigma
 
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
     train_dataset = train_dataset.loc[train_dataset["rep"] > 0.0]

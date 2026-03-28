@@ -45,14 +45,26 @@ def apply_symmetries():
     return apply_symmetries
 
 
-def _make_ensemble(sbtype_resname_map):
+def _make_ensemble(sbtype_resname_map, molecule_name="MOL1"):
     """
-    Build a minimal mock ensemble whose topology_dataframe contains only the
-    sb_type → resname mapping needed by apply_symmetries.
+    Build a minimal mock ensemble whose topology_dataframe contains the
+    columns needed by apply_symmetries: sb_type, resname, molecule_name,
+    and resnum (parsed from the last '_'-delimited segment of sb_type).
+
+    sb_type format: atomname_molname_resnum  (e.g. "NH1_ARG_5" → resnum 5)
     """
-    topology_dataframe = pd.DataFrame(
-        {"sb_type": list(sbtype_resname_map.keys()), "resname": list(sbtype_resname_map.values())}
-    )
+    rows = []
+    for sb_type, resname in sbtype_resname_map.items():
+        resnum = int(sb_type.rsplit("_", 1)[-1])
+        rows.append(
+            {
+                "sb_type": sb_type,
+                "resname": resname,
+                "molecule_name": molecule_name,
+                "resnum": resnum,
+            }
+        )
+    topology_dataframe = pd.DataFrame(rows)
     ensemble = types.SimpleNamespace(topology_dataframe=topology_dataframe)
     return ensemble
 
@@ -300,3 +312,132 @@ class TestEdgeCases:
 
         result = apply_symmetries(ensemble, contacts, symmetry)
         assert set(result.columns) == set(contacts.columns)
+
+
+# ---------------------------------------------------------------------------
+# CTER / NTER terminal-residue keywords
+# ---------------------------------------------------------------------------
+
+
+class TestTerminalKeywords:
+    """
+    CTER resolves to atoms whose resnum equals the maximum resnum per molecule.
+    NTER resolves to atoms whose resnum equals the minimum resnum per molecule.
+    """
+
+    def _cter_ensemble(self):
+        # 3-residue chain: resnum 1 (N-term), 2 (middle), 3 (C-term)
+        return _make_ensemble(
+            {
+                "N_ALA_1": "ALA",  # NTER
+                "O1_ALA_1": "ALA",  # NTER
+                "O2_ALA_1": "ALA",  # NTER
+                "CA_GLY_2": "GLY",  # middle
+                "N_ALA_3": "ALA",  # CTER
+                "O1_ALA_3": "ALA",  # CTER
+                "O2_ALA_3": "ALA",  # CTER
+            }
+        )
+
+    def test_cter_applies_to_last_residue(self, apply_symmetries):
+        """CTER O1 O2 should rename O1→O2 (and vice versa) only for the C-terminal residue."""
+        ensemble = self._cter_ensemble()
+        contacts = _make_contacts([("O1_ALA_3", "CA_GLY_2")])
+        symmetry = [["CTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+
+        all_atoms = set(result["ai"]) | set(result["aj"])
+        # C-terminal O2 should appear
+        assert "O2_ALA_3" in all_atoms
+
+    def test_cter_does_not_affect_middle_residues(self, apply_symmetries):
+        """CTER should not rename atoms in non-terminal residues."""
+        ensemble = self._cter_ensemble()
+        # Contact involves only the middle residue — CTER should not touch it
+        contacts = _make_contacts([("CA_GLY_2", "CA_GLY_2")])
+        symmetry = [["CTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+        assert result.empty
+
+    def test_cter_does_not_affect_nter_residue(self, apply_symmetries):
+        """CTER should not rename atoms belonging to the N-terminal residue."""
+        ensemble = self._cter_ensemble()
+        contacts = _make_contacts([("O1_ALA_1", "CA_GLY_2")])
+        symmetry = [["CTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+        # No CTER atoms involved → result should be empty
+        assert result.empty
+
+    def test_nter_applies_to_first_residue(self, apply_symmetries):
+        """NTER O1 O2 should rename O1→O2 (and vice versa) only for the N-terminal residue."""
+        ensemble = self._cter_ensemble()
+        contacts = _make_contacts([("O1_ALA_1", "CA_GLY_2")])
+        symmetry = [["NTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+
+        all_atoms = set(result["ai"]) | set(result["aj"])
+        assert "O2_ALA_1" in all_atoms
+
+    def test_nter_does_not_affect_cter_residue(self, apply_symmetries):
+        """NTER should not rename atoms belonging to the C-terminal residue."""
+        ensemble = self._cter_ensemble()
+        contacts = _make_contacts([("O1_ALA_3", "CA_GLY_2")])
+        symmetry = [["NTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+        assert result.empty
+
+    def test_cter_and_nter_together(self, apply_symmetries):
+        """Both CTER and NTER rules can be active simultaneously without interference."""
+        ensemble = self._cter_ensemble()
+        contacts = _make_contacts(
+            [
+                ("O1_ALA_1", "CA_GLY_2"),  # NTER contact
+                ("O1_ALA_3", "CA_GLY_2"),  # CTER contact
+            ]
+        )
+        symmetry = [["NTER", "O1", "O2"], ["CTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+
+        all_atoms = set(result["ai"]) | set(result["aj"])
+        assert "O2_ALA_1" in all_atoms  # NTER swap present
+        assert "O2_ALA_3" in all_atoms  # CTER swap present
+
+    def test_cter_multi_molecule(self, apply_symmetries):
+        """Each molecule gets its own CTER independently."""
+        # Two separate molecules (different molecule_name) — build manually
+        import pandas as pd
+
+        topo = pd.DataFrame(
+            [
+                {"sb_type": "O1_ALA_2", "resname": "ALA", "molecule_name": "MOLA", "resnum": 2},
+                {"sb_type": "O2_ALA_2", "resname": "ALA", "molecule_name": "MOLA", "resnum": 2},
+                {"sb_type": "N_ALA_1", "resname": "ALA", "molecule_name": "MOLA", "resnum": 1},
+                {"sb_type": "O1_GLY_3", "resname": "GLY", "molecule_name": "MOLB", "resnum": 3},
+                {"sb_type": "O2_GLY_3", "resname": "GLY", "molecule_name": "MOLB", "resnum": 3},
+                {"sb_type": "N_GLY_1", "resname": "GLY", "molecule_name": "MOLB", "resnum": 1},
+            ]
+        )
+        ensemble = types.SimpleNamespace(topology_dataframe=topo)
+
+        # Contact between C-terminals of both molecules
+        contacts = _make_contacts(
+            [
+                ("O1_ALA_2", "N_GLY_1"),  # CTER of MOLA with non-CTER of MOLB
+                ("O1_GLY_3", "N_ALA_1"),  # CTER of MOLB with non-CTER of MOLA
+            ]
+        )
+        symmetry = [["CTER", "O1", "O2"]]
+
+        result = apply_symmetries(ensemble, contacts, symmetry)
+
+        all_atoms = set(result["ai"]) | set(result["aj"])
+        # C-terminal of MOLA (resnum 2) should be swapped
+        assert "O2_ALA_2" in all_atoms
+        # C-terminal of MOLB (resnum 3) should be swapped
+        assert "O2_GLY_3" in all_atoms
