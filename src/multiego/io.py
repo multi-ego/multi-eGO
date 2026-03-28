@@ -237,7 +237,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix["learned"] = contact_matrix["learned"].astype(bool)
 
     t1 = time.time()
-    print("\t\t- Read in:", t1 - st)
+    print(f"\t\t- Read in: {t1 - st:.2f} s")
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -303,7 +303,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
     t2 = time.time()
-    print("\t\t- Processesed in:", t2 - t1)
+    print(f"\t\t- Processed in: {t2 - t1:.2f} s")
 
     return contact_matrix
 
@@ -342,16 +342,20 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
         else:
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()
 
-        atomtypes["c6"] = atomtypes["c6"].map(lambda x: "{:.6e}".format(x))
-        atomtypes["c12"] = atomtypes["c12"].map(lambda x: "{:.6e}".format(x))
+        # Only c6/c12 use scientific notation; mass and charge must keep their
+        # default representation (e.g. "12.011" and "0"), so pre-format just
+        # those two columns and call dataframe_to_write without float_format.
+        # atomtypes is O(unique atom types) so the .map() overhead is negligible.
+        atomtypes["c6"] = atomtypes["c6"].map("{:.6e}".format)
+        atomtypes["c12"] = atomtypes["c12"].map("{:.6e}".format)
         file.write(dataframe_to_write(atomtypes))
 
         if not meGO_LJ.empty:
             file.write("\n\n[ nonbond_params ]\n")
-            meGO_LJ["c6"] = meGO_LJ["c6"].map(lambda x: "{:.6e}".format(x))
-            meGO_LJ["c12"] = meGO_LJ["c12"].map(lambda x: "{:.6e}".format(x))
             meGO_LJ.insert(5, ";", ";")
-            file.write(dataframe_to_write(meGO_LJ))
+            # float_format is passed through to to_string(), so c6/c12 are formatted
+            # at the C level without the Python-loop overhead of a prior .map() call.
+            file.write(dataframe_to_write(meGO_LJ, float_format="%.6e"))
 
 
 def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
@@ -499,18 +503,23 @@ def get_outdir_name(output_dir, explicit_name, egos):
     return output_dir
 
 
-def dataframe_to_write(df):
+def dataframe_to_write(df, float_format=None):
     """
-    Returns a stringified and formated dataframe and a message if the dataframe is empty.
+    Returns a stringified and formatted dataframe and a message if the dataframe is empty.
 
     Parameters
     ----------
     df : pd.DataFrame
         The input dataframe
+    float_format : str or callable, optional
+        Format string (e.g. ``"%.6e"``) passed to ``DataFrame.to_string`` for
+        float columns.  When provided the caller does not need to pre-format
+        float columns as strings before calling this function.
 
     Returns
     -------
-    The stringified dataframe
+    str
+        The stringified dataframe, or a warning comment string if *df* is empty.
     """
     if df.empty:
         # TODO insert and improve the following warning
@@ -518,7 +527,7 @@ def dataframe_to_write(df):
         return "; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology."
     else:
         df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace=True)
-        return df.to_string(index=False)
+        return df.to_string(index=False, float_format=float_format)
 
 
 def make_header(parameters):
@@ -609,8 +618,6 @@ def write_topology(
             pairs = meGO_LJ_14[molecule]
             if not pairs.empty:
                 pairs.insert(5, ";", ";")
-                pairs["c6"] = pairs["c6"].map(lambda x: "{:.6e}".format(x))
-                pairs["c12"] = pairs["c12"].map(lambda x: "{:.6e}".format(x))
                 bonded_interactions_dict[molecule]["pairs"] = pairs
                 exclusions = pairs[["ai", "aj"]].copy()
 
@@ -627,17 +634,17 @@ def write_topology(
                 ["number", "sb_type", "resnum", "resname", "name", "cgnr"]
             ].copy()
             file.write(f"{dataframe_to_write(atom_selection_dataframe)}\n\n")
-            # Here are written bonds, angles, dihedrals and impropers
+            # Here are written bonds, angles, dihedrals, impropers, and pairs
             for bonded_type, interactions in bonded_interactions.items():
                 if interactions.empty:
                     continue
+                label = "dihedrals" if bonded_type == "impropers" else bonded_type
+                file.write(f"[ {label} ]\n")
+                if bonded_type == "pairs":
+                    file.write(dataframe_to_write(interactions, float_format="%.6e"))
                 else:
-                    if bonded_type == "impropers":
-                        file.write("[ dihedrals ]\n")
-                    else:
-                        file.write(f"[ {bonded_type} ]\n")
                     file.write(dataframe_to_write(interactions))
-                    file.write("\n\n")
+                file.write("\n\n")
             file.write("[ exclusions ]\n")
             file.write(dataframe_to_write(exclusions))
 
