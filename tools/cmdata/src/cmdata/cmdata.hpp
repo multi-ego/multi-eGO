@@ -3,7 +3,11 @@
 
 // gromacs includes
 #include <gromacs/trajectoryanalysis/topologyinformation.h>
-#include <gromacs/utility/vec.h>
+#ifdef GMXVGE2026
+#include "gromacs/utility/vec.h"
+#else
+#include <gromacs/math/vec.h>
+#endif
 #include <gromacs/pbcutil/pbc.h>
 #include <gromacs/fileio/tpxio.h>
 

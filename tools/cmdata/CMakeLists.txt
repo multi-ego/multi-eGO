@@ -25,6 +25,20 @@ endif()
 
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
+
+# check if gromacs version is at least 2026
+set(GMX_VER ${GROMACS_VERSION})
+string(REPLACE "." ";" ${GROMACS_VERSION} ${GMX_VER})
+separate_arguments(${GMX_VER})
+list(GET ${GMX_VER} 0 GMX_MAJOR_VER)
+
+if(GMX_MAJOR_VER STRGREATER_EQUAL "2026")
+    message("Using GROMACS version greater-equal than 2026")
+    add_compile_definitions(GMXVGE2026)
+else()
+    message("Using GROMACS version less than 2026")
+endif()
+
 find_package(HDF5 COMPONENTS C CXX)
 if(HDF5_FOUND)
   message(STATUS "HDF5 found, enabling HDF5 support")
