@@ -33,7 +33,9 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
         combinations = list(set(combinations))
 
     if c12_rep is None:
-        c12_rep = np.array([np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations])
+        c12_rep = np.array(
+            [np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations]
+        )
 
     pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
     pairs_LJ["c12"] = c12_rep / factor
@@ -46,7 +48,9 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     return pairs_LJ.reset_index(drop=True)
 
 
-def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=None, sigma=None):
+def generate_MG_LJ_pairs_attr(
+    sbtype1, sbtype2, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=None, sigma=None
+):
     """
     Generates attractive LJ pairs for the MG prior force field.
 
@@ -76,7 +80,9 @@ def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, dictionary_name_mg_c12, dictiona
 
     if epsilon is not None and sigma is None:
         c6 = np.array([np.sqrt(dictionary_name_mg_c6[ai] * dictionary_name_mg_c6[aj]) for ai, aj in combinations])
-        c12_rep = np.array([np.sqrt(dictionary_name_mg_c12[ai] * dictionary_name_mg_c12[aj]) for ai, aj in combinations])
+        c12_rep = np.array(
+            [np.sqrt(dictionary_name_mg_c12[ai] * dictionary_name_mg_c12[aj]) for ai, aj in combinations]
+        )
         sigma = (c12_rep / c6) ** (1.0 / 6.0)
     elif epsilon is None and sigma is not None:
         raise ValueError("You can provide a custom value for epsilon but not for sigma alone")
@@ -118,7 +124,8 @@ def generate_MG_LJ(meGO_ensemble):
         for name, mg12 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c12"])
     }
     dictionary_name_mg_c6 = {
-        name: mg6 for name, mg6 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c6"])
+        name: mg6
+        for name, mg6 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c6"])
     }
 
     chunks = []

@@ -109,7 +109,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
     """
     pairs_molecule_dict = {}
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
-        reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
+        reduced_topology = meGO_ensemble.topology_dataframe.loc[
+            meGO_ensemble.topology_dataframe["molecule_name"] == molecule
+        ][
             [
                 "number",
                 "sb_type",
@@ -155,7 +157,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
 
             df = pd.DataFrame(filtered_combinations, columns=["ai", "aj"])
             df["c6"] = 0.0
-            df["c12"] = np.sqrt(df["ai"].map(meGO_ensemble.sbtype_c12_dict) * df["aj"].map(meGO_ensemble.sbtype_c12_dict))
+            df["c12"] = np.sqrt(
+                df["ai"].map(meGO_ensemble.sbtype_c12_dict) * df["aj"].map(meGO_ensemble.sbtype_c12_dict)
+            )
 
             df.loc[
                 (
@@ -188,7 +192,10 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ] = type_definitions.mg_NN_c12_rep
 
             df.loc[
-                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O") & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "N"))
+                (
+                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O")
+                    & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "N")
+                )
                 | (
                     (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "N")
                     & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "O")
@@ -232,9 +239,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             if not pairs.empty:
                 # Within 5 bonds: use default repulsion
                 pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c6"] = 0.0
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c12"] = pairs[
-                    "rep"
-                ]
+                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c12"] = (
+                    pairs["rep"]
+                )
                 # Beyond 5 bonds: use MG prior
                 pairs.loc[
                     (~pairs["same_chain"])

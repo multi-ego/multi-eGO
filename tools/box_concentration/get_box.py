@@ -17,7 +17,9 @@ if __name__ == "__main__":
         required=False,
         help="Concentration in Molar, to be combined with --n_mol or one from (--volume, --sphere_r, --cubic_side)",
     )
-    parser.add_argument("--volume", type=float, required=False, help="Volume in nm^3, to be combined with --n_mol or --conc")
+    parser.add_argument(
+        "--volume", type=float, required=False, help="Volume in nm^3, to be combined with --n_mol or --conc"
+    )
     parser.add_argument("--sphere_r", type=float, required=False, help="Radius of a sphere in nm")
     parser.add_argument("--cubic_side", type=float, required=False, help="Side of a cube in nm")
 

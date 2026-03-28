@@ -321,7 +321,9 @@ def generate_14_data(meGO_ensemble):
     for idx, (molecule, bond_pair) in enumerate(meGO_ensemble.bond_pairs.items(), start=1):
         if not bond_pair:
             continue
-        reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
+        reduced_topology = meGO_ensemble.topology_dataframe.loc[
+            meGO_ensemble.topology_dataframe["molecule_name"] == molecule
+        ][
             [
                 "number",
                 "sb_type",
@@ -414,7 +416,9 @@ def generate_bond_distance_data(meGO_ensemble):
     for molecule, bond_pair in meGO_ensemble.bond_pairs.items():
         if not bond_pair:
             continue
-        reduced_topology = meGO_ensemble.topology_dataframe.loc[meGO_ensemble.topology_dataframe["molecule_name"] == molecule][
+        reduced_topology = meGO_ensemble.topology_dataframe.loc[
+            meGO_ensemble.topology_dataframe["molecule_name"] == molecule
+        ][
             [
                 "number",
                 "sb_type",

@@ -92,7 +92,8 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
     condition = (
-        meGO_LJ["probability"] > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+        meGO_LJ["probability"]
+        > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
     ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
     meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
         (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
@@ -103,7 +104,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
     # Repulsive interactions (probability above MD threshold but below attractive threshold)
     # this is used only when MD_th < MD_p < limit_rc_att*RC_p
     condition = (
-        (meGO_LJ["probability"] <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))
+        (
+            meGO_LJ["probability"]
+            <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
+        )
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
     )
@@ -268,7 +272,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
         # dtype-sensitive, so object([True]) != bool([True]) even though the
         # values are identical. A plain != on bool-cast values avoids this.
         both_present = temp_merged["same_chain"].notna() & temp_merged["rc_same_chain"].notna()
-        mismatched = both_present & (temp_merged["same_chain"].astype(bool) != temp_merged["rc_same_chain"].astype(bool))
+        mismatched = both_present & (
+            temp_merged["same_chain"].astype(bool) != temp_merged["rc_same_chain"].astype(bool)
+        )
         if mismatched.any():
             diff_indices = temp_merged.index[mismatched].tolist()
             print(f"Difference found at indices: {diff_indices}")
@@ -276,7 +282,9 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
 
         chunks.append(temp_merged[td_fields])
 
-    train_dataset = pd.concat(chunks, axis=0, sort=False, ignore_index=True) if chunks else pd.DataFrame(columns=td_fields)
+    train_dataset = (
+        pd.concat(chunks, axis=0, sort=False, ignore_index=True) if chunks else pd.DataFrame(columns=td_fields)
+    )
 
     train_dataset["molecule_name_ai"] = train_dataset["molecule_name_ai"].astype("category")
     train_dataset["molecule_name_aj"] = train_dataset["molecule_name_aj"].astype("category")
@@ -323,13 +331,17 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     pairwise_mg_sigma = (
         train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c12_dict)
         * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c12_dict)
-        / (train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict))
+        / (
+            train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict)
+            * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict)
+        )
     ) ** (1 / 12)
     train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
 
     # default (mg) epsilon
     pairwise_mg_epsilon = (
-        train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict)
+        train_dataset["ai"].map(meGO_ensemble.sbtype_mg_c6_dict)
+        * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict)
     ) / (
         4
         * np.sqrt(
@@ -466,7 +478,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         ~(
             (meGO_LJ["epsilon"] < 0)
             & (meGO_LJ["mg_epsilon"] < 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < parameters.learn_tolerance)
+            & (
+                (abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"]))
+                < parameters.learn_tolerance
+            )
             & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
             & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
         )
@@ -555,9 +570,13 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
-    meGO_LJ["c12"] = np.where(meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12))
+    meGO_LJ["c12"] = np.where(
+        meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12)
+    )
 
-    meGO_LJ_14["c6"] = np.where(meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6))
+    meGO_LJ_14["c6"] = np.where(
+        meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
+    )
     meGO_LJ_14["c12"] = np.where(
         meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
     )

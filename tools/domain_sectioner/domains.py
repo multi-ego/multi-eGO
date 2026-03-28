@@ -84,7 +84,9 @@ def read_topologies(top):
         res.append([r.name for r in topology.molecules.values().mapping[name][0].residues])
         atoms.append([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])
         atoms_name.append([[a.type for a in r.atoms] for r in topology.molecules.values().mapping[name][0].residues])
-        tot_num_atoms.append(np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])))
+        tot_num_atoms.append(
+            np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues]))
+        )
     top_df["residues"] = res
     top_df["atoms_per_res"] = atoms
     top_df["tot_atoms"] = tot_num_atoms
@@ -138,7 +140,9 @@ if __name__ == "__main__":
     intra_md = np.loadtxt(intramat, unpack=True)
     dim = int(np.sqrt(len(intra_md[0])))
     if dim != n_atoms:
-        raise ValueError(f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})")
+        raise ValueError(
+            f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
+        )
 
     # define domain mask
     domain_mask_linear = np.full(dim**2, False)

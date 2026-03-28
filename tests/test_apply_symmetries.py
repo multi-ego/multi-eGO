@@ -64,7 +64,10 @@ def _make_contacts(rows):
     operations would not fail if called, but apply_symmetries only touches ai/aj.
     """
     return pd.DataFrame(
-        [{"ai": ai, "aj": aj, "epsilon": 0.1, "sigma": 0.35, "probability": 0.9, "rc_probability": 0.01} for ai, aj in rows]
+        [
+            {"ai": ai, "aj": aj, "epsilon": 0.1, "sigma": 0.35, "probability": 0.9, "rc_probability": 0.01}
+            for ai, aj in rows
+        ]
     )
 
 

@@ -47,11 +47,9 @@ jobs:
     - name: Install linters
       run: pip install flake8 black
     - name: Run flake8
-      run: |
-        flake8 . --count --extend-ignore E501,W605,E731,E402,E711 --show-source --statistics
+      run: flake8 .
     - name: Run black (check only)
-      run: |
-        black --check .
+      run: black --check .
 
   build-linux-conda:
     runs-on: ubuntu-latest

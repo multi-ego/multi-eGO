@@ -290,7 +290,9 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     aj_atoms = contact_matrix["aj"].str.split("_").str[0]
 
     # Create a mask for valid rows
-    valid_rows = ~((ai_atoms.str.startswith("H") & (ai_atoms != "H")) | (aj_atoms.str.startswith("H") & (aj_atoms != "H")))
+    valid_rows = ~(
+        (ai_atoms.str.startswith("H") & (ai_atoms != "H")) | (aj_atoms.str.startswith("H") & (aj_atoms != "H"))
+    )
 
     contact_matrix = contact_matrix[valid_rows]
 
@@ -337,7 +339,9 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
 
         file.write("[ atomtypes ]\n")
         if parameters.egos == "mg":
-            atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]].copy()
+            atomtypes = topology_dataframe[
+                ["sb_type", "atomic_number", "mass", "charge", "ptype", "mg_c6", "mg_c12"]
+            ].copy()
             atomtypes.rename(columns={"mg_c6": "c6", "mg_c12": "c12"}, inplace=True)
         else:
             atomtypes = topology_dataframe[["sb_type", "atomic_number", "mass", "charge", "ptype", "c6", "c12"]].copy()

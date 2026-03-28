@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 120
+target-version = ["py310", "py311", "py312", "py313", "py314"]
+
+[tool.flake8]
+max-line-length = 120
+# E501 line too long: enforced via max-line-length above, no need to ignore
+# W605 invalid escape sequence: noisy on regex strings, ignored
+# E731 lambda assignment: used intentionally in several places
+# E402 module-level import not at top: unavoidable in some entry-point patterns
+# E711 comparison to None: overly strict for pandas boolean indexing idioms
+extend-ignore = E501
+count = true
+show-source = true
+statistics = true

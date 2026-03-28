@@ -224,7 +224,9 @@ def get_impropers(topology):
             print("WARNING: there is an unparametrized improper in your reference topology:", improper)
 
         # Append the improper data to the impropers_data list as a dictionary
-        impropers_data.append({"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "psi_eq": psi_eq, "psi_k": psi_k})
+        impropers_data.append(
+            {"ai": ai, "aj": aj, "ak": ak, "al": al, "funct": funct, "psi_eq": psi_eq, "psi_k": psi_k}
+        )
 
     if impropers_data:
         # Create a pandas DataFrame from the impropers_data list

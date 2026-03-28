@@ -90,7 +90,9 @@ def _index_training_topology(topology, custom_dict):
     topology_dataframe["number"] = new_number
     topology_dataframe["molecule"] = col_molecule
     topology_dataframe["molecule_number"] = col_molecule
-    topology_dataframe[["molecule_number", "molecule_name"]] = topology_dataframe.molecule.str.split("_", expand=True, n=1)
+    topology_dataframe[["molecule_number", "molecule_name"]] = topology_dataframe.molecule.str.split(
+        "_", expand=True, n=1
+    )
     topology_dataframe["resnum"] = new_resnum
 
     from_ff_to_multiego_extended = type_definitions.from_ff_to_multiego.copy()
@@ -98,7 +100,11 @@ def _index_training_topology(topology, custom_dict):
     topology_dataframe = topology_dataframe.replace({"name": from_ff_to_multiego_extended})
 
     topology_dataframe["sb_type"] = (
-        topology_dataframe["name"] + "_" + topology_dataframe["molecule_name"] + "_" + topology_dataframe["resnum"].astype(str)
+        topology_dataframe["name"]
+        + "_"
+        + topology_dataframe["molecule_name"]
+        + "_"
+        + topology_dataframe["resnum"].astype(str)
     )
 
     for molecule in molecules_idx_sbtype_dictionary:
@@ -275,7 +281,9 @@ def check_intra_domain_complementarity(matrices):
     for group in to_check:
         flags = [matrices[k]["rc_learned"].to_numpy() for k in group]
         if np.any(np.sum(flags, axis=0) > 1):
-            raise ValueError(f"Learning flag complementarity not satisfied for {group} " "(e.g. intra-inter domain splitting)")
+            raise ValueError(
+                f"Learning flag complementarity not satisfied for {group} " "(e.g. intra-inter domain splitting)"
+            )
 
 
 def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference):
@@ -703,7 +711,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     # in from_ff_to_multiego or custom_dict.
     comparison_set = set()
     for number, molecule in enumerate(ensemble.topology.molecules, 1):
-        comparison_dataframe = train_topology_dataframe.loc[train_topology_dataframe["molecule"] == f"{number}_{molecule}"]
+        comparison_dataframe = train_topology_dataframe.loc[
+            train_topology_dataframe["molecule"] == f"{number}_{molecule}"
+        ]
         if not comparison_dataframe.empty:
             comparison_set |= set(
                 comparison_dataframe[
