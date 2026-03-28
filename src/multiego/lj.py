@@ -260,8 +260,16 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
             )
             sys.exit("ERROR: Inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data")
 
-        if not temp_merged["same_chain"].equals(temp_merged["rc_same_chain"]):
-            diff_indices = temp_merged.index[temp_merged["same_chain"] != temp_merged["rc_same_chain"]].tolist()
+        # Restrict the check to contacts that appear in both matrices: the outer
+        # merge leaves rc_same_chain = NaN for training contacts that have no
+        # counterpart in the reference, and those rows must not trigger the error.
+        both_present = temp_merged["same_chain"].notna() & temp_merged["rc_same_chain"].notna()
+        if both_present.any() and not temp_merged.loc[both_present, "same_chain"].equals(
+            temp_merged.loc[both_present, "rc_same_chain"]
+        ):
+            diff_indices = temp_merged.index[
+                both_present & (temp_merged["same_chain"] != temp_merged["rc_same_chain"])
+            ].tolist()
             print(f"Difference found at indices: {diff_indices}")
             sys.exit("ERROR: You are pairing intra and inter molecular training and reference data")
 
