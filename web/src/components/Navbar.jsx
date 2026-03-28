@@ -5,8 +5,7 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-gray-800 bg-gray-950/90 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
         <Link to="/" className="flex items-center gap-2 font-bold text-white text-lg">
-          <span className="text-brand-400">Multi-</span>
-          <em>e</em>GO
+          <span className="text-brand-400">Multi-<em>e</em>GO</span>
         </Link>
 
         <div className="flex items-center gap-6 text-sm font-medium">
