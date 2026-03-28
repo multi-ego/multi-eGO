@@ -229,7 +229,7 @@ A typical config file looks like:
   - PHE CE1 CE2
   - TYR CD1 CD2
   - TYR CE1 CE2
-  - ALA O1 O2
+  - CTER O1 O2
 - input_refs:
   - reference: reference_a
     train: native_MD
