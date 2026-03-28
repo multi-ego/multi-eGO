@@ -130,6 +130,10 @@ dmypy.json
 .pyre/
 .vscode/settings.json
 
+# web / node
+web/node_modules/
+web/dist/
+
 # more
 inputs/*
 outputs/*
