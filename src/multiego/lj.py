@@ -1,6 +1,6 @@
 from . import type_definitions
-from .mg import generate_MG_LJ
-from .bonded import generate_bond_distance_data
+from . import mg
+from . import bonded
 from .model_config import config
 from . import io
 
@@ -316,7 +316,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     train_dataset["molecule_name_aj"] = train_dataset["molecule_name_aj"].astype("category")
     train_dataset["source"] = train_dataset["source"].astype("category")
 
-    all_bd = generate_bond_distance_data(meGO_ensemble)
+    all_bd = bonded.generate_bond_distance_data(meGO_ensemble)
 
     train_dataset = pd.merge(
         pd.merge(
@@ -639,7 +639,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "rc_threshold",
         "learned",
     ]
-    basic_LJ = generate_MG_LJ(meGO_ensemble)[needed_fields_mg]
+    basic_LJ = mg.generate_MG_LJ(meGO_ensemble)[needed_fields_mg]
     meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
     # Symmetrize

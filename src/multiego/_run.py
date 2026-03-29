@@ -1,0 +1,154 @@
+"""
+Core pipeline logic shared by the root-level ``multiego.py`` launcher script
+and the ``multiego`` console command installed by pip.
+
+Neither caller should be imported directly; both invoke ``main(root_dir)``.
+"""
+
+import sys
+import gc
+import time
+
+from multiego import arguments
+from multiego import bonded
+from multiego import contacts
+from multiego import generate_face
+from multiego import io
+from multiego import lj
+from multiego import mg
+from multiego import pairs
+from multiego.ensemble_data import MeGOEnsemble
+
+
+def meGO_parsing(root_dir):
+    """
+    Parses and validates command-line arguments, resolves symmetry and custom
+    dictionaries, and initializes the meGO ensemble topology.
+
+    Parameters
+    ----------
+    root_dir : str
+        Directory that contains the ``inputs/`` and ``outputs/`` folders.
+        Pass ``os.path.dirname(os.path.abspath(__file__))`` when calling from
+        the repo-root launcher script, or ``os.getcwd()`` when calling from
+        the pip-installed console command.
+
+    Returns
+    -------
+    args : argparse.Namespace
+        Fully resolved and validated arguments.
+    mego_ensemble : MeGOEnsemble
+        Initialized ensemble topology.
+    custom_dict : dict
+        Custom atom-name mapping dictionary (empty if not provided).
+    """
+    parser = arguments.build_parser()
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    args, remaining = parser.parse_known_args()
+
+    if remaining:
+        print("Unknown arguments provided: " + str(remaining))
+        parser.print_usage()
+        sys.exit()
+
+    args.root_dir = root_dir
+    args = arguments.read_arguments(
+        args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
+    )
+
+    arguments.validate_args(args)
+
+    custom_dict = {}
+    if args.custom_dict:
+        custom_dict = io.parse_json(args.custom_dict)
+        if custom_dict is None:
+            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
+            sys.exit()
+
+    if args.symmetry_file:
+        args.symmetry = io.read_symmetry_file(args.symmetry_file)
+    elif args.symmetry:
+        args.symmetry = io.parse_symmetry_list(args.symmetry)
+
+    print(f"Running Multi-eGO: {args.egos}\n")
+    print("- Processing Multi-eGO topology")
+    mego_ensemble = MeGOEnsemble.from_topology(args, custom_dict)
+
+    return args, mego_ensemble, custom_dict
+
+
+def main(root_dir):
+    """
+    Orchestrates the full multi-eGO model generation pipeline:
+    argument parsing, bonded interactions, contact matrix processing,
+    LJ parametrization, and output writing.
+
+    Parameters
+    ----------
+    root_dir : str
+        Directory that contains the ``inputs/`` and ``outputs/`` folders.
+    """
+    bt = time.time()
+    generate_face.print_welcome()
+    args, meGO_ensembles, custom_dict = meGO_parsing(root_dir)
+
+    st = time.time()
+    print(f"- Done in: {st - bt:.2f} s")
+    print("- Checking for input files and folders")
+    io.check_files_existence(args)
+    if args.egos == "production":
+        io.check_matrix_format(args)
+        print("- Processing Multi-eGO contact matrices")
+        meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
+        et = time.time()
+        print(f"- Done in: {et - st:.2f} s")
+        st = et
+
+        print("- Generating 1-4 data")
+        pairs14 = bonded.generate_14_data(meGO_ensembles)
+        et = time.time()
+        print(f"- Done in: {et - st:.2f} s")
+        st = et
+
+        print("- Initializing LJ dataset")
+        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, args)
+        del matrices
+        gc.collect()
+        et = time.time()
+        print(f"- Done in: {et - st:.2f} s")
+        st = et
+
+        print("- Generating LJ dataset")
+        meGO_LJ, meGO_LJ_14, stat_str = lj.generate_LJ(meGO_ensembles, train_dataset, args)
+        del train_dataset
+        gc.collect()
+        et = time.time()
+        print(f"- Done in: {et - st:.2f} s")
+        st = et
+
+    elif args.egos == "mg":
+        print("- Generating LJ dataset")
+        meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
+        stat_str = io.print_stats(meGO_LJ)
+        meGO_LJ_14 = bonded.generate_14_data(meGO_ensembles)
+        et = time.time()
+        print(f"- Done in: {et - st:.2f} s")
+        st = et
+
+    print("- Finalizing pairs and exclusions")
+    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
+    et = time.time()
+    print(f"- Done in: {et - st:.2f} s")
+    st = et
+
+    print("- Writing Multi-eGO model")
+    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
+    et = time.time()
+    print(f"- Done in: {et - st:.2f} s")
+    print(f"- Ran in: {et - bt:.2f} s")
+
+    generate_face.print_goodbye()

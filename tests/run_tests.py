@@ -1,92 +1,114 @@
+import sys
 import unittest
 import subprocess
 import shutil
 import os
+import yaml
 
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 MEGO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, os.pardir))
-# sys.path.append(MEGO_ROOT)
+
+
+def _system_from_config(config_path):
+    """
+    Read the system name from a multi-eGO YAML config file.
+
+    The config is a YAML sequence whose items are either plain strings
+    (flags like ``no_header``) or single-key mappings (like ``system: gpref``).
+    """
+    with open(config_path) as f:
+        data = yaml.safe_load(f)
+    for item in data:
+        if isinstance(item, dict) and "system" in item:
+            return item["system"]
+    raise ValueError(f"No 'system' key found in {config_path}")
 
 
 def read_infile(path):
     """
-    Reads a test-case input file and parses the system name the multi-eGO
-    command line parameters.
+    Reads a test-case input file and returns the command-line argument lists
+    and corresponding system names.
+
+    Lines starting with ``#`` are skipped.  Each active line is split into
+    tokens and ``TEST_ROOT`` is expanded to the absolute tests directory.
+
+    The system name is resolved in order:
+    1. From a ``--system <name>`` token on the line itself.
+    2. From the ``system:`` key inside the file given by ``--config <path>``.
+
+    Lines with neither are skipped.
 
     Parameters
     ----------
     path : str
-        The path to the test-case text file
+        Path to the test-case text file.
 
     Returns
     -------
-    input_list : list of list
-        A list of the commands split at each whitespace
-    test_systems : list
-        A list containing the system names
+    input_list : list of list of str
+        Each entry is the argument list for one test run.
+    test_systems : list of str
+        The system name for each test run.
     """
     input_list = []
     test_systems = []
-    with open(path, "r") as f:
-        for line in f.readlines():
-            if line[0] == "#":
+    with open(path) as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#"):
                 continue
-            line = line.replace("\n", "").split(" ")
-            system_index = line.index("--system") + 1
+            parts = [arg.replace("TEST_ROOT", TEST_ROOT) for arg in line.split()]
 
-            input_list.append(line)
-            test_systems.append(line[system_index])
+            if "--system" in parts:
+                system_name = parts[parts.index("--system") + 1]
+            elif "--config" in parts:
+                config_path = parts[parts.index("--config") + 1]
+                system_name = _system_from_config(config_path)
+            else:
+                continue
 
+            input_list.append(parts)
+            test_systems.append(system_name)
     return input_list, test_systems
 
 
 def read_outfile(path):
     """
-    Reads multi-eGO output files ignoring the comments
+    Reads a multi-eGO output file, stripping inline comments (everything after
+    a ``;`` on each line).
 
     Parameters
     ----------
-    path : string
-        A path to the multi-eGO output file be it ffnonbonded or topology
+    path : str
+        Path to the multi-eGO output file (ffnonbonded or topology).
 
     Returns
     -------
     out_string : str
-        The file contents
+        The file contents with comments removed.
     """
     out_string = ""
-    with open(path, "r") as f:
-        for line in f.readlines():
-            line = line.split(";")[0] if ";" in line else line
-            out_string += line
-
+    with open(path) as f:
+        for line in f:
+            out_string += line.split(";")[0] if ";" in line else line
     return out_string
 
 
 def prep_system_data(name, index):
     """
-    Prepares system data to be compared and tested by reading all necessary files.
+    Reads the reference and freshly generated output files for one test case.
 
     Parameters
     ----------
     name : str
-        Represents the system name (--system parameter in multi-eGO)
-    egos : str or list
-        Can take two types of values:
-         - a string in the case of random coil
-         - a list in case of production
-        When egos is a list the list contains the two epsilon values for intra and inter.
+        System name.
+    index : int
+        Test-case index (1-based).
 
     Returns
     -------
-    topol_ref : str
-        The contents of the reference topology which needs to be matched
-    topol_test : str
-        The contents of the newly created topology which needs to match topol_ref
-    ffnonbonded_ref : str
-        The contents of the reference ffnonbonded which needs to be matched
-    ffnonbonded_test : str
-        The contents of the newly created ffnonbonded which needs to match ffnonbonded_ref
+    topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test : str
+        File contents ready for comparison.
     """
     topol_ref = read_outfile(f"{TEST_ROOT}/test_outputs/{name}/case_{index}/topol_mego.top")
     topol_test = read_outfile(f"{MEGO_ROOT}/outputs/{name}/case_{index}/topol_mego.top")
@@ -95,53 +117,49 @@ def prep_system_data(name, index):
     return topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test
 
 
-def create_test_cases(test_case):
+def create_test_cases(command, system_name):
     """
-    Creates a test function based on the parameters. The metafunctions can be used with TestOutputs
-    to automatically generate test cases.
+    Creates a test method for a single multi-eGO command-line invocation.
 
     Parameters
     ----------
-    test_case : list
-        Contains the multi-eGO command line flags followed by arguments.
+    command : list of str
+        The argument list for one test run.
+    system_name : str
+        The system name used to locate output files and name the test.
 
     Returns
     -------
     function_name : str
-        The name of the function in format 'test_<system_name>/case_<index>'
-    function_template : function(self)
-        A function taking only self as a parameter intended to be used as a unittest test case.
+        Name in the format ``test_<system>/case_<n>``.
+    function_template : callable
+        A method for use with ``unittest.TestCase``.
     """
-    # get system name
-    system_index = test_case.index("--system") + 1
-    system_name = test_case[system_index]
-
-    function_name_prefix = f"test_{system_name}/case_"
-
-    # check if self alread has the function function_name
+    prefix = f"test_{system_name}/case_"
     idx = 1
-    while hasattr(TestOutputs, f"{function_name_prefix}{idx}"):
+    while hasattr(TestOutputs, f"{prefix}{idx}"):
         idx += 1
-    function_name = f"{function_name_prefix}{idx}"
+    function_name = f"{prefix}{idx}"
 
     def function_template(self):
-        name = system_name
-
-        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(name=name, index=idx)
-        self.assertEqual(topol_ref, topol_test, f"{name} :: {function_name} topology not equal")
-        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{name} :: {function_name} nonbonded not equal")
+        topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(system_name, idx)
+        self.assertEqual(topol_ref, topol_test, f"{system_name} :: {function_name} topology not equal")
+        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{system_name} :: {function_name} nonbonded not equal")
 
     return function_name, function_template
 
 
+# ---------------------------------------------------------------------------
+# Build test methods at *module* level so both pytest and unittest discover them
+# ---------------------------------------------------------------------------
+
+test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
+
+
 class TestOutputs(unittest.TestCase):
     @classmethod
-    def setUpClass(self):
-        test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
-        # remake test_commands with only what comes before # if present
-        test_commands = [[arg for arg in command if arg != "#"] for command in test_commands]
-        # replace instances of TEST_ROOT in the commands with the actual path if TEST_ROOT is present
-        test_commands = [[arg.replace("TEST_ROOT", TEST_ROOT) for arg in command] for command in test_commands]
+    def setUpClass(cls):
+        """Run all multi-eGO commands once before any comparison test."""
         for system in test_systems:
             inputs_path = f"{MEGO_ROOT}/inputs/{system}"
             outputs_path = f"{MEGO_ROOT}/outputs/{system}"
@@ -151,15 +169,16 @@ class TestOutputs(unittest.TestCase):
                 shutil.rmtree(outputs_path)
             shutil.copytree(f"{TEST_ROOT}/test_inputs/{system}", inputs_path)
 
-        error_codes = [subprocess.call(["python", f"{MEGO_ROOT}/multiego.py", *command]) for command in test_commands]
-        for e in error_codes:
-            assert e == 0, "Test setup exited with non-zero error code"
+        # Use the same Python interpreter that is running the tests
+        error_codes = [subprocess.call([sys.executable, f"{MEGO_ROOT}/multiego.py", *cmd]) for cmd in test_commands]
+        for code in error_codes:
+            assert code == 0, "Test setup exited with non-zero error code"
+
+
+for _cmd, _sys in zip(test_commands, test_systems):
+    _name, _method = create_test_cases(_cmd, _sys)
+    setattr(TestOutputs, _name, _method)
 
 
 if __name__ == "__main__":
-    test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
-    for command in test_commands:
-        function_name, new_method = create_test_cases(command)
-        setattr(TestOutputs, function_name, new_method)
-
     unittest.main()
