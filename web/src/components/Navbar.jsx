@@ -42,6 +42,14 @@ export default function Navbar() {
           >
             Config Builder
           </NavLink>
+          <NavLink
+            to="/examples"
+            className={({ isActive }) =>
+              isActive ? "text-brand-400" : "text-gray-400 hover:text-white transition"
+            }
+          >
+            Examples
+          </NavLink>
           <a
             href="https://github.com/multi-ego/multi-eGO"
             target="_blank"
