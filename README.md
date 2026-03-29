@@ -6,8 +6,11 @@
 [![Multi-eGO test](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/test.yml)
 [![cmdata](https://github.com/multi-ego/multi-eGO/actions/workflows/cmdata.yml/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/cmdata.yml)
 [![CodeQL](https://github.com/multi-ego/multi-eGO/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/multi-ego/multi-eGO/actions/workflows/github-code-scanning/codeql)
+[![Web](https://img.shields.io/badge/Web-multi--eGO-blue)](https://multi-ego.github.io/multi-eGO/)
 
 Multi-*e*GO is a framework for building data-driven, atomic-resolution force fields for molecular dynamics simulations. It learns pairwise Lennard-Jones interactions directly from contact probability distributions, producing force fields that faithfully reproduce structural ensembles, thermodynamics and kinetics — including protein folding, aggregation, and ligand binding — at a fraction of the computational cost of all-atom simulations.
+
+**→ [multi-ego.github.io/multi-eGO](https://multi-ego.github.io/multi-eGO/)** — interactive documentation, config builder, setup assistant, and Colab simulation notebook.
 
 ## Table of Contents
 

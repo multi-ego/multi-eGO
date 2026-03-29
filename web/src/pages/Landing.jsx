@@ -101,6 +101,12 @@ export default function Landing() {
             <Link to="/config" className="btn-secondary">
               Config builder →
             </Link>
+            <Link to="/examples" className="btn-secondary">
+              Examples →
+            </Link>
+            <Link to="/simulation" className="btn-secondary">
+              Run simulation →
+            </Link>
           </div>
           {/* Badges */}
           <div className="mt-10 flex flex-wrap justify-center gap-3">
