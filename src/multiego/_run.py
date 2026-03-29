@@ -5,6 +5,7 @@ and the ``multiego`` console command installed by pip.
 Neither caller should be imported directly; both invoke ``main(root_dir)``.
 """
 
+import os
 import sys
 import gc
 import time
@@ -56,6 +57,8 @@ def meGO_parsing(root_dir):
         sys.exit()
 
     args.root_dir = root_dir
+    if not args.inputs_dir:
+        args.inputs_dir = os.path.join(root_dir, "inputs")
     args = arguments.read_arguments(
         args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
     )

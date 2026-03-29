@@ -323,7 +323,7 @@ class MeGOEnsemble:
             If the topology file does not exist.
         """
         print("\t-", "Initializing system topology")
-        base_topology_path = f"{args.root_dir}/inputs/{args.system}/topol.top"
+        base_topology_path = f"{args.inputs_dir}/{args.system}/topol.top"
         if not os.path.isfile(base_topology_path):
             raise FileNotFoundError(f"{base_topology_path} not found.")
 

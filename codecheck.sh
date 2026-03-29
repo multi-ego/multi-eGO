@@ -32,6 +32,7 @@ echo "Running the regtests: mego"
 pytest tests/run_tests.py >& /dev/null
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
+  exit 1
 else
   echo "Regtests passed"
 fi
@@ -39,6 +40,7 @@ echo "Running the regtests: make_mat"
 pytest tests/test_make_mat.py >& /dev/null
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
+  exit 1
 else
   echo "Regtests passed"
 fi

@@ -1,4 +1,4 @@
---system gpref --egos mg --no_header --explicit_name case
+--system gpref --egos mg --no_header --explicit_name case --inputs_dir tests/test_inputs
 --config TEST_ROOT/test_inputs/gpref/config.yml --explicit_name case
 --config TEST_ROOT/test_inputs/abetaref/config.yml --explicit_name case
 --config TEST_ROOT/test_inputs/ttrref/config.yml --explicit_name case
