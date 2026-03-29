@@ -50,18 +50,37 @@ The result is a force field encoded in standard GROMACS `ffnonbonded.itp` and `t
 
 ## Installation
 
-Create and activate the conda environment:
+### 1. Create the Python environment
+
+With conda (recommended):
 
 ```bash
 conda env create -f conda/environment.yml
 conda activate meGO
 ```
 
-Alternatively, with pip:
+Or with pip:
 
 ```bash
 pip install -r requirements.txt
 ```
+
+### 2. Install multi-eGO as a package (optional but recommended)
+
+Installing the package makes the `mego` command available anywhere on your system without needing to be in the repository root:
+
+```bash
+pip install -e .
+```
+
+After installation you can run multi-eGO as either:
+
+```bash
+mego --system SYSTEM_NAME --egos mg          # installed command, run from anywhere
+python multiego.py --system SYSTEM_NAME --egos mg  # root script, run from repo root
+```
+
+Both are equivalent. The editable install (`-e`) means the source code in `src/` is used directly, so any local changes take effect immediately without reinstalling.
 
 For the `cmdata` trajectory analysis tool, follow the separate [installation instructions](tools/cmdata/README.md).
 
@@ -138,6 +157,8 @@ inputs/
 The `mg` prior provides generic local interactions and is used as the starting point for the reference simulation. Generate it with:
 
 ```bash
+mego --system SYSTEM_NAME --egos mg
+# or, from the repository root:
 python multiego.py --system SYSTEM_NAME --egos mg
 ```
 > **Note:** before running, ensure that the `moleculetype` name in all topology files is consistent. The program will exit with an error if names do not match.
@@ -191,11 +212,9 @@ inputs/
 ### 5. Generate the production force field
 
 ```bash
-python multiego.py \
-    --system SYSTEM_NAME \
-    --egos production \
-    --epsilon 0.3 \
-    --train md_ensemble
+mego --system SYSTEM_NAME --egos production --epsilon 0.3 --train md_ensemble
+# or, from the repository root:
+python multiego.py --system SYSTEM_NAME --egos production --epsilon 0.3 --train md_ensemble
 ```
 
 `--epsilon` sets the maximum interaction energy (in kJ/mol) for any learned contact pair; 0.3 kJ/mol is a reasonable starting value for most proteins.
@@ -213,6 +232,8 @@ Output is written to `outputs/SYSTEM_NAME/production_#/`. Copy `ffnonbonded.itp`
 When learning from multiple training simulations or multiple reference conditions simultaneously, use a YAML configuration file instead of command-line arguments:
 
 ```bash
+mego --config config.yml
+# or, from the repository root:
 python multiego.py --config config.yml
 ```
 
