@@ -29,7 +29,7 @@ else
   echo "UnitTest passed"
 fi
 echo "Running the regtests"
-python tests/run_tests.py >& /dev/null
+pytest tests/run_tests.py >& /dev/null
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
 else

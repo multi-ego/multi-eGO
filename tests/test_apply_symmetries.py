@@ -11,35 +11,14 @@ atom names according to the symmetry rules. It does NOT include the original
 rows — those are concatenated by the caller in generate_LJ.
 """
 
-import sys
-import types
 import pandas as pd
 import pytest
+import types
 
 
 @pytest.fixture(scope="module")
-def apply_symmetries():
-    """Load apply_symmetries with minimal stubs."""
-
-    # --- Stub mg ---
-    stub_mg = types.ModuleType("multiego.mg")
-    stub_mg.generate_MG_LJ = lambda *args, **kwargs: None
-    sys.modules["multiego.mg"] = stub_mg
-
-    # --- Stub bonded ---
-    stub_bonded = types.ModuleType("multiego.bonded")
-    stub_bonded.generate_bond_distance_data = lambda *args, **kwargs: None
-    sys.modules["multiego.bonded"] = stub_bonded
-
-    # --- Stub model_config ---
-    stub_mc = types.ModuleType("multiego.model_config")
-    stub_mc.config = types.SimpleNamespace(max_bond_separation=5, bond14_separation=3)
-    sys.modules["multiego.model_config"] = stub_mc
-
-    # --- Other modules (no attributes needed) ---
-    sys.modules.setdefault("multiego.type_definitions", types.ModuleType("multiego.type_definitions"))
-    sys.modules.setdefault("multiego.io", types.ModuleType("multiego.io"))
-
+def apply_symmetries(stub_deps):
+    """Load apply_symmetries using the shared stubs from conftest."""
     from multiego.lj import apply_symmetries
 
     return apply_symmetries
