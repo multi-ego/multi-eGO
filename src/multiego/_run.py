@@ -58,7 +58,12 @@ def meGO_parsing(root_dir):
 
     args.root_dir = root_dir
     if not args.inputs_dir:
-        args.inputs_dir = os.path.join(root_dir, "inputs")
+        if args.config:
+            # Config lives at {inputs_dir}/{system}/config.yml, so inputs_dir
+            # is two levels above the config file.
+            args.inputs_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.config)))
+        else:
+            args.inputs_dir = os.path.join(root_dir, "inputs")
     args = arguments.read_arguments(
         args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
     )
