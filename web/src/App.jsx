@@ -6,6 +6,7 @@ import Installation from "./pages/Installation.jsx";
 import SetupAssistant from "./pages/SetupAssistant.jsx";
 import ConfigBuilder from "./pages/ConfigBuilder.jsx";
 import Examples from "./pages/Examples.jsx";
+import Simulation from "./pages/Simulation.jsx";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/setup" element={<SetupAssistant />} />
           <Route path="/config" element={<ConfigBuilder />} />
           <Route path="/examples" element={<Examples />} />
+          <Route path="/simulation" element={<Simulation />} />
         </Routes>
       </main>
       <Footer />

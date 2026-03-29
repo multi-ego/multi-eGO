@@ -50,6 +50,14 @@ export default function Navbar() {
           >
             Examples
           </NavLink>
+          <NavLink
+            to="/simulation"
+            className={({ isActive }) =>
+              isActive ? "text-brand-400" : "text-gray-400 hover:text-white transition"
+            }
+          >
+            Simulation
+          </NavLink>
           <a
             href="https://github.com/multi-ego/multi-eGO"
             target="_blank"
