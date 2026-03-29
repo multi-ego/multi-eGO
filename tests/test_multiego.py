@@ -348,16 +348,20 @@ class TestPathToMatrixName:
         self.func = _path_to_matrix_name
 
     def test_ndx_extension(self):
-        assert self.func("/root/inputs/GB1/reference/intramat_1_1.ndx", "/root") == "GB1_reference_intramat_1_1"
+        assert self.func("/root/inputs/GB1/reference/intramat_1_1.ndx", "/root/inputs") == "GB1_reference_intramat_1_1"
 
     def test_ndx_gz_extension(self):
-        assert self.func("/root/inputs/GB1/reference/intramat_1_1.ndx.gz", "/root") == "GB1_reference_intramat_1_1"
+        assert (
+            self.func("/root/inputs/GB1/reference/intramat_1_1.ndx.gz", "/root/inputs") == "GB1_reference_intramat_1_1"
+        )
 
     def test_h5_extension(self):
-        assert self.func("/root/inputs/GB1/reference/intramat_1_1.ndx.h5", "/root") == "GB1_reference_intramat_1_1"
+        assert (
+            self.func("/root/inputs/GB1/reference/intramat_1_1.ndx.h5", "/root/inputs") == "GB1_reference_intramat_1_1"
+        )
 
     def test_intermat(self):
-        assert self.func("/root/inputs/GB1/reference/intermat_1_2.ndx", "/root") == "GB1_reference_intermat_1_2"
+        assert self.func("/root/inputs/GB1/reference/intermat_1_2.ndx", "/root/inputs") == "GB1_reference_intermat_1_2"
 
 
 # ===========================================================================

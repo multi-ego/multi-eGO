@@ -81,6 +81,13 @@ _args_dict_shared = {
 # that can be provided directly on the command line.
 args_dict = {
     **_args_dict_shared,
+    "--inputs_dir": {
+        "default": None,
+        "type": str,
+        "help": "Directory containing the system input folders. "
+        "Defaults to <root>/inputs when not specified. "
+        "Not available in YAML config files.",
+    },
     "--reference": {
         "type": lambda x: x.split(","),
         "default": [],
@@ -407,8 +414,8 @@ def convert_command_line_to_new_input(args, args_dict_single_input):
     appo = 0
     for reference in args.reference:
 
-        matrices_intra = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intramat" in m]
-        matrices_inter = [m for m in os.listdir(f"{args.root_dir}/inputs/{args.system}/{reference}") if "intermat" in m]
+        matrices_intra = [m for m in os.listdir(f"{args.inputs_dir}/{args.system}/{reference}") if "intramat" in m]
+        matrices_inter = [m for m in os.listdir(f"{args.inputs_dir}/{args.system}/{reference}") if "intermat" in m]
         matrices = matrices_intra + matrices_inter
         # check that in reference folder only 1 matrix of the same pair is present
         mat_type = [m.split(".ndx")[0] for m in matrices]

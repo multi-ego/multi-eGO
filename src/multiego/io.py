@@ -138,12 +138,12 @@ def check_matrix_format(args):
         # Set name of matrix without extension
         ref["matrix"] = mat_appo[0]
 
-        matrix_ref_path = f"{args.root_dir}/inputs/{args.system}/{ref['reference']}/{ref['matrix']}"
+        matrix_ref_path = f"{args.inputs_dir}/{args.system}/{ref['reference']}/{ref['matrix']}"
         check_mat_name(ref["matrix"], ref)
         check_mat_extension(extension, ref)
         check_matrix_compatibility(matrix_ref_path)
         for train in ref["train"]:
-            matrix_train_path = f"{args.root_dir}/inputs/{args.system}/{train}/{ref['matrix']}"
+            matrix_train_path = f"{args.inputs_dir}/{args.system}/{train}/{ref['matrix']}"
             check_matrix_compatibility(matrix_train_path)
 
 
@@ -716,13 +716,13 @@ def check_files_existence(args):
     for ref in args.input_refs:
         md_ensembles = [ref["reference"]] + ref["train"] if args.egos == "production" else []
 
-        if not os.path.exists(f"{args.root_dir}/inputs/{args.system}"):
-            raise FileNotFoundError(f"Folder {args.root_dir}/inputs/{args.system}/ does not exist.")
-        if not os.path.exists(f"{args.root_dir}/inputs/{args.system}/topol.top"):
-            raise FileNotFoundError(f"File {args.root_dir}/inputs/{args.system}/topol.top does not exist.")
+        if not os.path.exists(f"{args.inputs_dir}/{args.system}"):
+            raise FileNotFoundError(f"Folder {args.inputs_dir}/{args.system}/ does not exist.")
+        if not os.path.exists(f"{args.inputs_dir}/{args.system}/topol.top"):
+            raise FileNotFoundError(f"File {args.inputs_dir}/{args.system}/topol.top does not exist.")
 
         for ensemble in md_ensembles:
-            ensemble = f"{args.root_dir}/inputs/{args.system}/{ensemble}"
+            ensemble = f"{args.inputs_dir}/{args.system}/{ensemble}"
             if not os.path.exists(ensemble):
                 raise FileNotFoundError(f"Folder {ensemble}/ does not exist.")
             else:

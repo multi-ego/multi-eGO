@@ -355,25 +355,25 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     return contact_matrix
 
 
-def _path_to_matrix_name(path, root_dir):
+def _path_to_matrix_name(path, inputs_dir):
     """
     Convert a full matrix file path to a flat unique dict key by stripping
-    the root prefix, replacing path separators with underscores, and removing
-    all recognised file extensions (``.ndx``, ``.gz``, ``.h5``).
+    the inputs directory prefix, replacing path separators with underscores,
+    and removing all recognised file extensions (``.ndx``, ``.gz``, ``.h5``).
 
     Parameters
     ----------
     path : str
         Absolute path to the contact matrix file.
-    root_dir : str
-        Absolute path to the multi-eGO root directory.
+    inputs_dir : str
+        Absolute path to the inputs directory (e.g. ``<root>/inputs``).
 
     Returns
     -------
     str
         Flat name such as ``"GB1_reference_intramat_1_1"``.
     """
-    name = path.replace(f"{root_dir}/inputs/", "").replace("/", "_")
+    name = path.replace(f"{inputs_dir}/", "").replace("/", "_")
     for ext in (".ndx", ".gz", ".h5"):
         name = name.replace(ext, "")
     return name
@@ -421,7 +421,7 @@ def _load_reference_matrix(reference, ensemble, args):
     FileNotFoundError
         If the topology or contact matrix file cannot be located.
     """
-    reference_path = f"{args.root_dir}/inputs/{args.system}/{reference['reference']}"
+    reference_path = f"{args.inputs_dir}/{args.system}/{reference['reference']}"
     topol_files = [f for f in os.listdir(reference_path) if ".top" in f]
     if not topol_files:
         raise FileNotFoundError(f"No topology file (.top) found in {reference_path}")
@@ -455,7 +455,7 @@ def _load_reference_matrix(reference, ensemble, args):
         )
 
     path = matrix_paths[0]
-    name = _path_to_matrix_name(path, args.root_dir)
+    name = _path_to_matrix_name(path, args.inputs_dir)
     contact_matrix = io.read_molecular_contacts(
         path, ensemble.molecules_idx_sbtype_dictionary, reference["reference"], path.endswith(".h5")
     )
@@ -566,7 +566,7 @@ def _load_train_matrix(
     ValueError
         If more than one contact matrix file matches the requested matrix name.
     """
-    simulation_path = f"{args.root_dir}/inputs/{args.system}/{simulation}"
+    simulation_path = f"{args.inputs_dir}/{args.system}/{simulation}"
     topology_path = f"{simulation_path}/topol.top"
     if not os.path.isfile(topology_path):
         raise FileNotFoundError(f"{topology_path} not found.")
@@ -591,7 +591,7 @@ def _load_train_matrix(
         )
 
     path = matrix_paths[0]
-    train_name = _path_to_matrix_name(path, args.root_dir)
+    train_name = _path_to_matrix_name(path, args.inputs_dir)
     name = f"{args.system}/{reference['reference']}/{simulation}/{reference['matrix']}".replace("/", "_")
 
     if train_name not in computed_contact_matrices:

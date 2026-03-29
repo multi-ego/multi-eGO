@@ -289,6 +289,7 @@ Each entry under `input_refs` defines one training/reference pair. Intra- and in
 | `--symmetry` | — | List of equivalent atoms, e.g. `ARG NH1 NH2`. Contacts are averaged over equivalent atoms. |
 | `--custom_dict` | — | JSON file for custom atom-name mappings (non-standard residues). |
 | `--custom_c12` | — | CSV file for custom repulsive C12 parameters. |
+| `--inputs_dir` | inputs/ | Directory containing the system input folders. |
 
 ---
 

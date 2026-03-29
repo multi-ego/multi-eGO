@@ -1,7 +1,7 @@
 import sys
+import shutil
 import unittest
 import subprocess
-import shutil
 import os
 import yaml
 
@@ -161,16 +161,21 @@ class TestOutputs(unittest.TestCase):
     def setUpClass(cls):
         """Run all multi-eGO commands once before any comparison test."""
         for system in test_systems:
-            inputs_path = f"{MEGO_ROOT}/inputs/{system}"
             outputs_path = f"{MEGO_ROOT}/outputs/{system}"
-            if os.path.exists(inputs_path):
-                shutil.rmtree(inputs_path)
             if os.path.exists(outputs_path):
                 shutil.rmtree(outputs_path)
-            shutil.copytree(f"{TEST_ROOT}/test_inputs/{system}", inputs_path)
+
+        # Inject --inputs_dir so that every command (both --system and --config)
+        # reads directly from tests/test_inputs/ without copying anything.
+        def _inject_inputs_dir(cmd):
+            if "--inputs_dir" not in cmd:
+                return cmd + ["--inputs_dir", f"{TEST_ROOT}/test_inputs"]
+            return cmd
+
+        augmented = [_inject_inputs_dir(cmd) for cmd in test_commands]
 
         # Use the same Python interpreter that is running the tests
-        error_codes = [subprocess.call([sys.executable, f"{MEGO_ROOT}/multiego.py", *cmd]) for cmd in test_commands]
+        error_codes = [subprocess.call([sys.executable, f"{MEGO_ROOT}/multiego.py", *cmd]) for cmd in augmented]
         for code in error_codes:
             assert code == 0, "Test setup exited with non-zero error code"
 
