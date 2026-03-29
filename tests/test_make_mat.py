@@ -66,12 +66,9 @@ def _assert_files_equal(actual, reference):
         with open(reference) as fh:
             ref_lines = fh.readlines()
         import difflib
-        diff = "".join(
-            difflib.unified_diff(ref_lines, actual_lines, fromfile="reference", tofile="actual", n=3)
-        )
-        raise AssertionError(
-            f"Files differ:\n  actual:    {actual}\n  reference: {reference}\n\n{diff}"
-        )
+
+        diff = "".join(difflib.unified_diff(ref_lines, actual_lines, fromfile="reference", tofile="actual", n=3))
+        raise AssertionError(f"Files differ:\n  actual:    {actual}\n  reference: {reference}\n\n{diff}")
 
 
 # ===========================================================================
@@ -94,12 +91,18 @@ def ttr_normal(tmp_path_factory):
 
     _run(
         MAKE_MAT,
-        "--histo", str(histo_dir / "histo"),
-        "--target_top", os.path.join(TTR_IN, "topol_mego.top"),
-        "--mego_top",   os.path.join(TTR_IN, "topol.top"),
-        "--cutoff", "0.75",
-        "--mode", "intra+same",
-        "--out", str(out) + os.sep,
+        "--histo",
+        str(histo_dir / "histo"),
+        "--target_top",
+        os.path.join(TTR_IN, "topol_mego.top"),
+        "--mego_top",
+        os.path.join(TTR_IN, "topol.top"),
+        "--cutoff",
+        "0.75",
+        "--mode",
+        "intra+same",
+        "--out",
+        str(out) + os.sep,
     )
     _run(HDF52NDX, "--input", str(out / "intramat_1_1.ndx.h5"))
     _run(HDF52NDX, "--input", str(out / "intermat_1_1.ndx.h5"))
@@ -117,11 +120,16 @@ def ttr_zero(tmp_path_factory):
     _run(
         MAKE_MAT,
         "--zero",
-        "--target_top", os.path.join(TTR_IN, "topol_mego.top"),
-        "--mego_top",   os.path.join(TTR_IN, "topol.top"),
-        "--cutoff", "0.75",
-        "--mode", "intra+same",
-        "--out", str(out) + os.sep,
+        "--target_top",
+        os.path.join(TTR_IN, "topol_mego.top"),
+        "--mego_top",
+        os.path.join(TTR_IN, "topol.top"),
+        "--cutoff",
+        "0.75",
+        "--mode",
+        "intra+same",
+        "--out",
+        str(out) + os.sep,
     )
     _run(HDF52NDX, "--input", str(out / "intramat_1_1.ndx.h5"))
     _run(HDF52NDX, "--input", str(out / "intermat_1_1.ndx.h5"))
@@ -178,12 +186,18 @@ def popc_normal(tmp_path_factory):
 
     _run(
         MAKE_MAT,
-        "--histo", str(histo_dir / "histo"),
-        "--target_top", os.path.join(POPC_IN, "topol_md.top"),
-        "--mego_top",   os.path.join(POPC_IN, "topol_ref.top"),
-        "--cutoff", "0.75",
-        "--mode", "intra",
-        "--out", str(out) + os.sep,
+        "--histo",
+        str(histo_dir / "histo"),
+        "--target_top",
+        os.path.join(POPC_IN, "topol_md.top"),
+        "--mego_top",
+        os.path.join(POPC_IN, "topol_ref.top"),
+        "--cutoff",
+        "0.75",
+        "--mode",
+        "intra",
+        "--out",
+        str(out) + os.sep,
         "--noh5",
     )
     return out

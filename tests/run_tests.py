@@ -144,9 +144,7 @@ def create_test_cases(command, system_name):
     def function_template(self):
         topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(system_name, idx)
         self.assertEqual(topol_ref, topol_test, f"{system_name} :: {function_name} topology not equal")
-        self.assertEqual(
-            ffnonbonded_ref, ffnonbonded_test, f"{system_name} :: {function_name} nonbonded not equal"
-        )
+        self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{system_name} :: {function_name} nonbonded not equal")
 
     return function_name, function_template
 
