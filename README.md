@@ -104,7 +104,15 @@ The full workflow from a PDB structure to a production simulation involves five 
 
 ### 1. Prepare the system topology
 
-Copy your PDB file and the `multi-ego-basic.ff/` directory into a working folder, then generate a GROMACS topology:
+Before running `pdb2gmx`, tell GROMACS where to find the `multi-ego-basic.ff` force field by setting `GMXLIB` to the root of the repository:
+
+```bash
+export GMXLIB=/path/to/multi-eGO
+```
+
+You can add this line to your shell profile (e.g. `~/.bashrc` or `~/.zshrc`) so it is set automatically in every session.
+
+Then generate a GROMACS topology from your PDB file:
 
 ```bash
 gmx pdb2gmx -f your_structure.pdb -ignh
