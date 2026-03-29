@@ -62,7 +62,6 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
                 pass  # skip the origin atom
             elif 0 < depth <= config.bond14_separation:
                 ex_tmp.add(current_atom)
-                nth_tmp.add(current_atom)
                 if depth == config.bond14_separation:
                     p14_tmp.add(current_atom)
             elif config.bond14_separation < depth <= config.max_bond_separation:
@@ -124,17 +123,23 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         ].copy()
 
         reduced_topology["number"] = reduced_topology["number"].astype(str)
+        mol_ai = f"{idx}_{molecule}"
 
         type_atnum_dict = reduced_topology.astype({"number": int}).set_index("number")["sb_type"].to_dict()
         atnum_type_dict = reduced_topology.set_index("sb_type")["number"].to_dict()
 
-        exclusion_bonds, p14, b6 = generate_bond_exclusions(reduced_topology, bond_pair)
+        exclusion_bonds, p14, nthbond = generate_bond_exclusions(reduced_topology, bond_pair)
 
         pairs = pd.DataFrame()
 
+        # in this case, on top of the already prepared 1-4 interactions, we need to set as repulsive
+        # all the interactions up to nth-bonds. Some are already repulsive, but other not.
+        # So here we generate them iterating over the list of relevant atom pairs. We need to be carefull
+        # to assign the correct value for the repulsive interaction. So every pair that has some special repulsive
+        # value in type_definitions need to be included here.
         if args.egos == "mg":
             filtered_combinations = []
-            for pair in b6:
+            for pair in nthbond:
                 a_str, b_str = pair.split("_")
                 a, b = int(a_str), int(b_str)
 
@@ -208,17 +213,12 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             df["rc_probability"] = 1.0
             df["source"] = "mg"
             df["rep"] = df["c12"]
-            df["check"] = df["ai"].map(atnum_type_dict).astype(str) + "_" + df["aj"].map(atnum_type_dict).astype(str)
-            df["remove"] = ""
-            df.loc[(df["check"].isin(exclusion_bonds)), "remove"] = "Yes"
-            df.loc[(df["check"].isin(p14) & (df["same_chain"])), "remove"] = "Yes"
-            mask = df.remove == "Yes"
-            df = df[~mask]
-            df.drop(columns=["check", "remove"], inplace=True)
+            df["func"] = 1
+            df["molecule_name_ai"] = mol_ai
+            df["molecule_name_aj"] = mol_ai
             pairs = pd.concat([meGO_LJ_14, df], axis=0, sort=False, ignore_index=True)
 
         elif args.egos == "production" and not meGO_LJ_14.empty:
-            mol_ai = f"{idx}_{molecule}"
             pairs = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == mol_ai][
                 [
                     "ai",
