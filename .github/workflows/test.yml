@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.12", "3.14"]
+        python-version: ["3.11", "3.12", "3.14"]
 
     steps:
       - uses: actions/checkout@v6
@@ -69,7 +69,7 @@ jobs:
       shell: bash -el {0}
       run: |
         pytest tests/run_tests.py
-        cd tests; bash run_make_mat.sh; cd ..
+        pytest tests/test_make_mat.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -90,7 +90,7 @@ jobs:
     - name: Run tests
       run: |
         pytest tests/run_tests.py
-        cd tests; bash run_make_mat.sh; cd ..
+        pytest tests/test_make_mat.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
@@ -111,7 +111,7 @@ jobs:
       shell: bash -el {0}
       run: |
         pytest tests/run_tests.py
-        cd tests; bash run_make_mat.sh; cd ..
+        pytest tests/test_make_mat.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -132,7 +132,7 @@ jobs:
     - name: Run tests
       run: |
         pytest tests/run_tests.py
-        cd tests; bash run_make_mat.sh; cd ..
+        pytest tests/test_make_mat.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
