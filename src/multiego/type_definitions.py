@@ -9,6 +9,7 @@ mg_NN_c12_rep = 2.5e-5
 mg_HO_sigma = 0.169500
 mg_eps_HO = 0.15
 
+
 eps_O = 0.085
 eps_OM = 0.085
 eps_OA = 0.085
@@ -324,6 +325,27 @@ special_non_local = [
         "sigma": None,
         "epsilon": 0.15,
     },
+]
+
+# The following lines are the special repulsive rule to be applied
+# in pairs.py to apply the nth-bond rule, that is that within n-bonds
+# all interactions in the molten globule are repulsive, and can have
+# special values
+
+# Atom types allowed to pair with H in nth-bond repulsions.
+# H-X pairs where X is NOT in this set are skipped entirely.
+H_ALLOWED_PARTNERS = {"H", "O", "OM", "OA"}
+
+# Data-driven c12 overrides for nth-bond repulsive pairs (egos == "mg").
+# Each entry: (types_ai, types_aj, c12_value)
+# Rules are applied symmetrically: (A, B) also matches (B, A).
+# Order matters — later entries override earlier ones for the same pair.
+NTHBOND_C12_OVERRIDES = [
+    ({"O", "OM"}, {"O", "OM"}, mg_OO_c12_rep),
+    ({"OM"}, {"OM"}, mg_OMOM_c12_rep),
+    ({"H"}, {"H"}, mg_HH_c12_rep),
+    ({"NL"}, {"NL", "NZ"}, mg_NN_c12_rep),
+    ({"O"}, {"N"}, mg_ON_c12_rep),
 ]
 
 # List of amino acids and nucleic acids

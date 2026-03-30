@@ -138,6 +138,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
         # to assign the correct value for the repulsive interaction. So every pair that has some special repulsive
         # value in type_definitions need to be included here.
         if args.egos == "mg":
+            # Build nth-bond pair list, filtering out H-X pairs where X is
+            # not an allowed partner (e.g. H-CH2 is skipped).
             filtered_combinations = []
             for pair in nthbond:
                 a_str, b_str = pair.split("_")
@@ -148,13 +150,11 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
 
                 ai = type_atnum_dict[a]
                 aj = type_atnum_dict[b]
+                ti = meGO_ensemble.sbtype_type_dict[ai]
+                tj = meGO_ensemble.sbtype_type_dict[aj]
 
-                if (
-                    meGO_ensemble.sbtype_type_dict[ai] == "H"
-                    and meGO_ensemble.sbtype_type_dict[aj] not in {"H", "O", "OM", "OA"}
-                ) or (
-                    meGO_ensemble.sbtype_type_dict[aj] == "H"
-                    and meGO_ensemble.sbtype_type_dict[ai] not in {"H", "O", "OM", "OA"}
+                if (ti == "H" and tj not in type_definitions.H_ALLOWED_PARTNERS) or (
+                    tj == "H" and ti not in type_definitions.H_ALLOWED_PARTNERS
                 ):
                     continue
 
@@ -166,47 +166,16 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
                 df["ai"].map(meGO_ensemble.sbtype_c12_dict) * df["aj"].map(meGO_ensemble.sbtype_c12_dict)
             )
 
-            df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "OM")
-                    | (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O")
-                )
-                & (
-                    (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "OM")
-                    | (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "O")
-                ),
-                "c12",
-            ] = type_definitions.mg_OO_c12_rep
+            # Apply special c12 overrides from the table in type_definitions.
+            # Map atom types once, then loop over rules.
+            type_ai = df["ai"].map(meGO_ensemble.sbtype_type_dict)
+            type_aj = df["aj"].map(meGO_ensemble.sbtype_type_dict)
 
-            df.loc[
-                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "OM"))
-                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "OM")),
-                "c12",
-            ] = type_definitions.mg_OMOM_c12_rep
-
-            df.loc[
-                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "H"))
-                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "H")),
-                "c12",
-            ] = type_definitions.mg_HH_c12_rep
-
-            df.loc[
-                ((df["ai"].map(meGO_ensemble.sbtype_type_dict) == "NL"))
-                & ((df["aj"].map(meGO_ensemble.sbtype_type_dict) == "NL")),
-                "c12",
-            ] = type_definitions.mg_NN_c12_rep
-
-            df.loc[
-                (
-                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "O")
-                    & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "N")
-                )
-                | (
-                    (df["ai"].map(meGO_ensemble.sbtype_type_dict) == "N")
-                    & (df["aj"].map(meGO_ensemble.sbtype_type_dict) == "O")
-                ),
-                "c12",
-            ] = type_definitions.mg_ON_c12_rep
+            for types_i, types_j, c12_val in type_definitions.NTHBOND_C12_OVERRIDES:
+                mask = type_ai.isin(types_i) & type_aj.isin(types_j)
+                if types_i != types_j:
+                    mask |= type_ai.isin(types_j) & type_aj.isin(types_i)
+                df.loc[mask, "c12"] = c12_val
 
             df["same_chain"] = True
             df["probability"] = 1.0
