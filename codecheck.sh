@@ -13,7 +13,7 @@ if [ $? -eq 1 ]; then
   exit 1
 fi
 echo "Running unit tests part 1"
-pytest tests/test_multiego.py
+pytest tests/test_multiego.py -v
 if [ $? -eq 1 ]; then
   echo "UnitTests failing, you should not push your code"
   exit 1
@@ -21,7 +21,7 @@ else
   echo "UnitTest passed"
 fi
 echo "Running unit tests part 2"
-pytest tests/test_apply_symmetries.py
+pytest tests/test_apply_symmetries.py -v
 if [ $? -eq 1 ]; then
   echo "UnitTests failing, you should not push your code"
   exit 1
@@ -29,7 +29,7 @@ else
   echo "UnitTest passed"
 fi
 echo "Running the regtests: mego"
-pytest tests/run_tests.py >& /dev/null
+pytest tests/run_tests.py -v
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
   exit 1
@@ -37,7 +37,7 @@ else
   echo "Regtests passed"
 fi
 echo "Running the regtests: make_mat"
-pytest tests/test_make_mat.py >& /dev/null
+pytest tests/test_make_mat.py -v
 if [ $? -eq 1 ]; then
   echo "Regtests failing, you should not push your code"
   exit 1

@@ -15,5 +15,11 @@ class ModelConfig:
     max_bond_separation: int = 5
     bond14_separation: int = 3
 
+    def __post_init__(self):
+        assert self.max_bond_separation >= self.bond14_separation, (
+            f"max_bond_separation ({self.max_bond_separation}) must be >= "
+            f"bond14_separation ({self.bond14_separation})"
+        )
+
 
 config = ModelConfig()

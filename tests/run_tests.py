@@ -1,6 +1,6 @@
 import sys
-import shutil
 import unittest
+import shutil
 import subprocess
 import os
 import yaml
@@ -165,10 +165,11 @@ class TestOutputs(unittest.TestCase):
             if os.path.exists(outputs_path):
                 shutil.rmtree(outputs_path)
 
-        # Inject --inputs_dir so that every command (both --system and --config)
-        # reads directly from tests/test_inputs/ without copying anything.
+        # --config commands derive inputs_dir automatically from the config file
+        # location.  Only --system commands still need an explicit --inputs_dir
+        # so they read directly from tests/test_inputs/ without copying anything.
         def _inject_inputs_dir(cmd):
-            if "--inputs_dir" not in cmd:
+            if "--system" in cmd and "--inputs_dir" not in cmd:
                 return cmd + ["--inputs_dir", f"{TEST_ROOT}/test_inputs"]
             return cmd
 

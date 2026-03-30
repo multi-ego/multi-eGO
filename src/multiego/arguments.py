@@ -32,11 +32,6 @@ _args_dict_shared = {
         "action": "store_true",
         "help": "Split inter and intra-molecular interactions in the ffnonbonded and topology files.",
     },
-    "--single_molecule": {
-        "default": False,
-        "action": "store_true",
-        "help": "Enable optimisations valid if you are simulating a single molecule.",
-    },
     "--custom_dict": {
         "type": str,
         "help": "Custom dictionary for special molecules",

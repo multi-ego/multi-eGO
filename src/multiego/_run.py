@@ -11,7 +11,6 @@ import gc
 import time
 
 from multiego import arguments
-from multiego import bonded
 from multiego import contacts
 from multiego import generate_face
 from multiego import io
@@ -58,7 +57,12 @@ def meGO_parsing(root_dir):
 
     args.root_dir = root_dir
     if not args.inputs_dir:
-        args.inputs_dir = os.path.join(root_dir, "inputs")
+        if args.config:
+            # Config lives at {inputs_dir}/{system}/config.yml, so inputs_dir
+            # is two levels above the config file.
+            args.inputs_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.config)))
+        else:
+            args.inputs_dir = os.path.join(root_dir, "inputs")
     args = arguments.read_arguments(
         args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
     )
@@ -103,6 +107,7 @@ def main(root_dir):
     print(f"- Done in: {st - bt:.2f} s")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
+    meGO_LJ_14 = None
     if args.egos == "production":
         io.check_matrix_format(args)
         print("- Processing Multi-eGO contact matrices")
@@ -111,14 +116,8 @@ def main(root_dir):
         print(f"- Done in: {et - st:.2f} s")
         st = et
 
-        print("- Generating 1-4 data")
-        pairs14 = bonded.generate_14_data(meGO_ensembles)
-        et = time.time()
-        print(f"- Done in: {et - st:.2f} s")
-        st = et
-
         print("- Initializing LJ dataset")
-        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, pairs14, args)
+        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, args)
         del matrices
         gc.collect()
         et = time.time()
@@ -137,13 +136,12 @@ def main(root_dir):
         print("- Generating LJ dataset")
         meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
-        meGO_LJ_14 = bonded.generate_14_data(meGO_ensembles)
         et = time.time()
         print(f"- Done in: {et - st:.2f} s")
         st = et
 
     print("- Finalizing pairs and exclusions")
-    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, meGO_LJ_14, args)
+    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, args, meGO_LJ_14=meGO_LJ_14)
     et = time.time()
     print(f"- Done in: {et - st:.2f} s")
     st = et
