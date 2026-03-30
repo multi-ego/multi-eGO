@@ -403,13 +403,13 @@ class TestGenerateBondExclusions:
     def test_beyond_max_not_excluded(self):
         """Atoms more than max_bond_separation (5) bonds apart should not appear."""
         nth = self.func(self._linear_topology(8), self._linear_bonds(8))
-        assert "1_7" not in nth
+        assert (1, 7) not in nth
 
     def test_nth_bonds_includes_up_to_max(self):
         """nth_bonds should cover atoms up to max_bond_separation bonds away."""
         nth = self.func(self._linear_topology(7), self._linear_bonds(7))
-        assert "1_6" in nth
-        assert "6_1" in nth
+        assert (1, 6) in nth
+        assert (6, 1) in nth
 
 
 # ===========================================================================

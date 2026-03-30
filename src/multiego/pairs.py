@@ -28,8 +28,8 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
 
     Returns
     -------
-    nth_bonds : list of str
-        Bidirectional ``"i_j"`` identifiers for pairs between
+    nth_bonds : list of tuple[int, int]
+        Bidirectional ``(i, j)`` pairs of atom numbers between
         ``config.bond14_separation + 1`` and ``config.max_bond_separation``
         bonds apart.
     """
@@ -49,22 +49,18 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
         while queue:
             current_atom, depth = queue.popleft()
 
-            if depth <= config.bond14_separation:
-                pass  # skip the origin atom
-            elif config.bond14_separation < depth <= config.max_bond_separation:
+            if config.bond14_separation < depth <= config.max_bond_separation:
                 nth_tmp.add(current_atom)
 
-            # Stop traversal after depth 5
             if depth < config.max_bond_separation:
                 for neighbor in graph[current_atom]:
                     if neighbor not in visited:
                         visited.add(neighbor)
                         queue.append((neighbor, depth + 1))
 
-        # Add bidirectional string identifiers
         for e in nth_tmp:
-            nth_bonds.append(f"{atom}_{e}")
-            nth_bonds.append(f"{e}_{atom}")
+            nth_bonds.append((int(atom), int(e)))
+            nth_bonds.append((int(e), int(atom)))
 
     return nth_bonds
 
@@ -126,10 +122,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         # H-X pairs are skipped unless X is an allowed partner (e.g. H-CH2 is dropped).
         # Default c12 is the combination rule; special overrides are applied afterwards.
         filtered_combinations = []
-        for pair in nthbond:
-            a_str, b_str = pair.split("_")
-            a, b = int(a_str), int(b_str)
-
+        for a, b in nthbond:
             if a not in type_atnum_dict or b not in type_atnum_dict:
                 continue
 
@@ -162,11 +155,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
                 mask |= type_ai.isin(types_j) & type_aj.isin(types_i)
             pairs.loc[mask, "c12"] = c12_val
 
-        pairs["same_chain"] = True
         pairs["probability"] = 1.0
         pairs["rc_probability"] = 1.0
         pairs["source"] = "mg"
-        pairs["rep"] = pairs["c12"]
         pairs["func"] = 1
 
         # then we add intramolecular intereactions paired to an intermolecular one
