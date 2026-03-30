@@ -74,7 +74,10 @@ def main():
             cmd = cmd + ["--inputs_dir", os.path.join(TEST_DIR, "test_inputs")]
 
         print(f"\n  {' '.join(cmd)}")
-        result = subprocess.run([sys.executable, os.path.join(MEGO_ROOT, "multiego.py"), *cmd])
+        result = subprocess.run(
+            [sys.executable, os.path.join(MEGO_ROOT, "multiego.py"), *cmd],
+            cwd=MEGO_ROOT,
+        )
         if result.returncode != 0:
             print(f"ERROR: command failed (exit {result.returncode})", file=sys.stderr)
             sys.exit(1)
