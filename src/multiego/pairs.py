@@ -206,40 +206,22 @@ def make_pairs_exclusion_topology(meGO_ensemble, meGO_LJ_14, args):
             ].copy()
 
             if not pairs.empty:
+                cross = ~pairs["same_chain"]
+
                 # Within 5 bonds: use default repulsion
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c6"] = 0.0
-                pairs.loc[(~pairs["same_chain"]) & (pairs["bond_distance"] <= config.max_bond_separation), "c12"] = (
-                    pairs["rep"]
-                )
+                near = cross & (pairs["bond_distance"] <= config.max_bond_separation)
+                pairs.loc[near, "c6"] = 0.0
+                pairs.loc[near, "c12"] = pairs["rep"]
+
                 # Beyond 5 bonds: use MG prior
-                pairs.loc[
-                    (~pairs["same_chain"])
-                    & (pairs["bond_distance"] > config.max_bond_separation)
-                    & (pairs["mg_epsilon"] < 0.0),
-                    "c6",
-                ] = 0.0
-                pairs.loc[
-                    (~pairs["same_chain"])
-                    & (pairs["bond_distance"] > config.max_bond_separation)
-                    & (pairs["mg_epsilon"] < 0.0),
-                    "c12",
-                ] = -pairs["mg_epsilon"]
-                pairs.loc[
-                    (~pairs["same_chain"])
-                    & (pairs["bond_distance"] > config.max_bond_separation)
-                    & (pairs["mg_epsilon"] > 0.0),
-                    "c6",
-                ] = (
-                    4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
-                )
-                pairs.loc[
-                    (~pairs["same_chain"])
-                    & (pairs["bond_distance"] > config.max_bond_separation)
-                    & (pairs["mg_epsilon"] > 0.0),
-                    "c12",
-                ] = (
-                    4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
-                )
+                far = cross & (pairs["bond_distance"] > config.max_bond_separation)
+                repulsive = far & (pairs["mg_epsilon"] < 0.0)
+                pairs.loc[repulsive, "c6"] = 0.0
+                pairs.loc[repulsive, "c12"] = -pairs["mg_epsilon"]
+
+                attractive = far & (pairs["mg_epsilon"] > 0.0)
+                pairs.loc[attractive, "c6"] = 4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 6)
+                pairs.loc[attractive, "c12"] = 4 * pairs["mg_epsilon"] * (pairs["mg_sigma"] ** 12)
 
         if not pairs.empty:
             pairs["ai"] = pairs["ai"].map(atnum_type_dict)
