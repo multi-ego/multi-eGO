@@ -65,7 +65,7 @@ Or with pip:
 pip install -r requirements.txt
 ```
 
-### 2. Install multi-eGO as a package (optional but recommended)
+### 2. Install multi-eGO as a package (optional)
 
 Installing the package makes the `mego` command available anywhere on your system without needing to be in the repository root:
 
@@ -181,7 +181,7 @@ Run the reference simulation using the provided `mdp` files in order:
 
 ```
 1. ff_em.mdp       (energy minimisation)
-2. ff_cg.mdp       (coarse-grained equilibration)
+2. ff_cg.mdp       (energy minimisation)
 3. ff_aa-posre.mdp (restrained all-atom equilibration)
 4. ff_aa.mdp       (production reference run)
 ```
