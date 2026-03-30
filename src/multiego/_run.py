@@ -107,6 +107,7 @@ def main(root_dir):
     print(f"- Done in: {st - bt:.2f} s")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
+    meGO_LJ_14 = None
     if args.egos == "production":
         io.check_matrix_format(args)
         print("- Processing Multi-eGO contact matrices")
@@ -140,11 +141,7 @@ def main(root_dir):
         st = et
 
     print("- Finalizing pairs and exclusions")
-    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(
-        meGO_ensembles,
-        args,
-        meGO_LJ_14=meGO_LJ_14 if args.egos == "production" else None,
-    )
+    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, args, meGO_LJ_14=meGO_LJ_14)
     et = time.time()
     print(f"- Done in: {et - st:.2f} s")
     st = et

@@ -122,13 +122,9 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
 
         pairs = pd.DataFrame()
 
-        # in this case, on top of the already prepared 1-4 interactions, we need to set as repulsive
-        # all the interactions up to nth-bonds. Some are already repulsive, but other not.
-        # So here we generate them iterating over the list of relevant atom pairs. We need to be carefull
-        # to assign the correct value for the repulsive interaction. So every pair that has some special repulsive
-        # value in type_definitions need to be included here.
-        # Build nth-bond pair list, filtering out H-X pairs where X is
-        # not an allowed partner (e.g. H-CH2 is skipped).
+        # Build nth-bond (3 < bonds <= max_bond_separation) pair list.
+        # H-X pairs are skipped unless X is an allowed partner (e.g. H-CH2 is dropped).
+        # Default c12 is the combination rule; special overrides are applied afterwards.
         filtered_combinations = []
         for pair in nthbond:
             a_str, b_str = pair.split("_")

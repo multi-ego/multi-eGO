@@ -480,7 +480,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     """
     st = time.time()
     print("\t- Set sigma and epsilon")
-    meGO_LJ = train_dataset[train_dataset["learned"]].copy()
+    meGO_LJ = train_dataset[train_dataset["learned"] == 1].copy()
 
     needed_fields = [
         "molecule_name_ai",
