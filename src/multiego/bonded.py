@@ -345,9 +345,7 @@ def generate_14_data(meGO_ensemble):
             pairs = protein_LJ14(reduced_topology)
             pairs["ai"] = pairs["ai"].map(type_atnum_dict).astype("category")
             pairs["aj"] = pairs["aj"].map(type_atnum_dict).astype("category")
-            pairs["rep"] = pairs["c12"]
             pairs["source"] = pairs["source"].astype("category")
-            pairs["same_chain"] = True
         else:
             pairs["ai"] = meGO_ensemble.user_pairs[molecule].ai.astype(str)
             pairs["aj"] = meGO_ensemble.user_pairs[molecule].aj.astype(str)
@@ -370,8 +368,6 @@ def generate_14_data(meGO_ensemble):
             pairs["probability"] = 1.0
             pairs["rc_probability"] = 1.0
             pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
-            pairs["rep"] = pairs["c12"]
-            pairs["same_chain"] = True
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]
             pairs = pd.concat([pairs, tmp], axis=0, sort=False, ignore_index=True)
