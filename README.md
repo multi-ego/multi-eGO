@@ -285,7 +285,6 @@ Each entry under `input_refs` defines one training/reference pair. Intra- and in
 | `--p_to_learn` | 0.9995 | Fraction of the cumulative contact probability used to set the learning threshold. Should be close to 1. |
 | `--learn_tolerance` | 0.01 | Tolerance for removing contacts that are effectively identical to the MG prior. |
 | `--force_split` | False | Write intra- and inter-molecular interactions to separate files. |
-| `--single_molecule` | False | Enable optimisations valid when simulating a single molecule in isolation. |
 | `--symmetry` | — | List of equivalent atoms, e.g. `ARG NH1 NH2`. Contacts are averaged over equivalent atoms. |
 | `--custom_dict` | — | JSON file for custom atom-name mappings (non-standard residues). |
 | `--custom_c12` | — | CSV file for custom repulsive C12 parameters. |

@@ -205,27 +205,6 @@ class TestSetSigEpsilon:
         assert result.iloc[0]["learned"] == 0
         assert abs(result.iloc[0]["epsilon"] - 0.05) < 1e-10
 
-    def test_14_interaction_forced_repulsive(self):
-        """1-4 interactions (bond_distance == bond14_separation, same_chain)
-        must always be repulsive regardless of probability."""
-        df = _lj_row(
-            probability=0.99,
-            rc_probability=0.01,
-            md_threshold=0.1,
-            rc_threshold=0.5,
-            limit_rc_att=1.0,
-            epsilon_0=0.3,
-            epsilon_prior=0.0,
-            bond_distance=3,
-            same_chain=True,
-            rep=1e-6,
-        )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        assert len(result) == 1
-        assert result.iloc[0]["learned"] == 1
-        assert result.iloc[0]["epsilon"] < 0
-        assert abs(result.iloc[0]["epsilon"] - (-1e-6)) < 1e-12
-
     def test_zero_epsilon_rows_dropped(self):
         """Rows where epsilon remains exactly 0 after processing should be dropped."""
         df = _lj_row(
@@ -421,37 +400,16 @@ class TestGenerateBondExclusions:
     def _linear_bonds(self, n):
         return [(str(i), str(i + 1)) for i in range(1, n)]
 
-    def test_1_4_pairs_present(self):
-        """Atoms exactly 3 bonds apart should appear in p14."""
-        _, p14, _ = self.func(self._linear_topology(5), self._linear_bonds(5))
-        assert "1_4" in p14
-        assert "4_1" in p14
-
-    def test_exclusion_bonds_within_3(self):
-        """Atoms within 3 bonds should be in exclusion_bonds."""
-        excl, _, _ = self.func(self._linear_topology(5), self._linear_bonds(5))
-        assert "1_2" in excl
-        assert "1_3" in excl
-        assert "1_4" in excl
-
     def test_beyond_max_not_excluded(self):
         """Atoms more than max_bond_separation (5) bonds apart should not appear."""
-        excl, _, nth = self.func(self._linear_topology(8), self._linear_bonds(8))
-        assert "1_7" not in excl
+        nth = self.func(self._linear_topology(8), self._linear_bonds(8))
         assert "1_7" not in nth
 
     def test_nth_bonds_includes_up_to_max(self):
         """nth_bonds should cover atoms up to max_bond_separation bonds away."""
-        _, _, nth = self.func(self._linear_topology(7), self._linear_bonds(7))
+        nth = self.func(self._linear_topology(7), self._linear_bonds(7))
         assert "1_6" in nth
         assert "6_1" in nth
-
-    def test_disconnected_atom_not_in_exclusions(self):
-        """An atom with no bonds should not appear in any exclusion list."""
-        topo = pd.DataFrame({"number": ["1", "2", "3"]})
-        excl, p14, nth = self.func(topo, [("1", "2")])
-        assert "1_3" not in excl
-        assert "3_1" not in excl
 
 
 # ===========================================================================

@@ -116,11 +116,6 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 
-    # 1-4 interactions are part of bonded interactions and cannot become attractive
-    condition = (meGO_LJ["bond_distance"] <= config.bond14_separation) & (meGO_LJ["same_chain"])
-    meGO_LJ.loc[condition, "epsilon"] = -meGO_LJ["rep"]
-    meGO_LJ.loc[condition, "learned"] = 1
-
     # for repulsive interactions reset sigma to its effective value for consistent merging
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
 
@@ -224,7 +219,7 @@ def apply_symmetries(meGO_ensemble, meGO_input, symmetry):
     return tmp_df
 
 
-def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
+def init_LJ_datasets(meGO_ensemble, matrices, args):
     """
     Assembles the full training dataset by merging train/reference contact matrices
     with 1-4 pair data and computing default repulsive and MG sigma/epsilon values.
@@ -235,8 +230,6 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
         The initialized meGO ensemble.
     matrices : dict
         Contains 'reference_matrices' and 'train_matrices'.
-    pairs14 : pd.DataFrame
-        1-4 pair interactions from generate_14_data.
     args : argparse.Namespace
         Parsed command-line arguments.
 
@@ -319,12 +312,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
     all_bd = bonded.generate_bond_distance_data(meGO_ensemble)
 
     train_dataset = pd.merge(
-        pd.merge(
-            train_dataset,
-            pairs14[["ai", "aj", "same_chain", "rep"]],
-            how="left",
-            on=["ai", "aj", "same_chain"],
-        ),
+        train_dataset,
         all_bd[["ai", "aj", "bond_distance"]],
         how="left",
         on=["ai", "aj"],
@@ -336,22 +324,14 @@ def init_LJ_datasets(meGO_ensemble, matrices, pairs14, args):
 
     # Remove 0_1_2_3 intramolecular interactions
     train_dataset = train_dataset[
-        ~((train_dataset["same_chain"]) & (train_dataset["bond_distance"] < config.bond14_separation))
+        ~((train_dataset["same_chain"]) & (train_dataset["bond_distance"] <= config.bond14_separation))
     ]
     train_dataset.reset_index(inplace=True)
 
-    train_dataset.loc[
-        (train_dataset["bond_distance"] == config.bond14_separation)
-        & (train_dataset["same_chain"])
-        & (train_dataset["rep"].isnull()),
-        "rep",
-    ] = 0.0
-
     # default repulsive C12
-    pairwise_c12 = np.sqrt(
+    train_dataset["rep"] = np.sqrt(
         train_dataset["ai"].map(meGO_ensemble.sbtype_c12_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_c12_dict)
     )
-    train_dataset["rep"] = train_dataset["rep"].fillna(pd.Series(pairwise_c12))
 
     # default (mg) sigma
     pairwise_mg_sigma = (
@@ -578,42 +558,28 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     stat_str = io.print_stats(meGO_LJ)
 
-    meGO_LJ_14 = meGO_LJ.copy()
-
+    # --- identify duplicates ON ORIGINAL DATA ---
+    dup_mask = meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)
+    # --- pairs section (ONLY intramolecular interactions from duplicated pairs) ---
+    dup_df = meGO_LJ.loc[dup_mask].copy()
+    meGO_LJ_14 = (
+        dup_df.assign(_priority=~dup_df["same_chain"])
+        .sort_values(["ai", "aj", "_priority"])
+        .drop_duplicates(subset=["ai", "aj"], keep="first")
+        .drop(columns="_priority")
+    )
     # ffnonbonded: prioritise intermolecular interactions on duplicate ai/aj
     meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-    # pairs section: prioritise intramolecular interactions on duplicate ai/aj
-    meGO_LJ_14.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, False], inplace=True)
-    meGO_LJ_14 = meGO_LJ_14.drop_duplicates(subset=["ai", "aj"], keep="first")
-
-    test = pd.merge(meGO_LJ_14, meGO_LJ, how="right", on=["ai", "aj"])
-    meGO_LJ_14 = test.loc[(~test["same_chain_x"]) | ((test["same_chain_x"]) & (~test["same_chain_y"]))]
-    meGO_LJ_14 = meGO_LJ_14.loc[:, ~meGO_LJ_14.columns.str.endswith("_y")]
-    meGO_LJ_14.columns = meGO_LJ_14.columns.str.rstrip("_x")
-
+    # no cross interactions
     meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
+    # intramolecular interactions within few bonds should be move in pairs
+    copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]
+    meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
+    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation))]
 
-    copy14 = meGO_LJ.loc[(meGO_LJ["bond_distance"] == config.bond14_separation) & (meGO_LJ["same_chain"])]
-    meGO_LJ_14 = pd.concat([meGO_LJ_14, copy14], axis=0, sort=False, ignore_index=True)
-    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["bond_distance"] == config.bond14_separation) & (meGO_LJ["same_chain"]))]
-
-    if not parameters.single_molecule:
-        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
-        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation))]
-
-    if not parameters.force_split:
-        meGO_LJ_14 = meGO_LJ_14.loc[
-            ~(
-                (~meGO_LJ_14["same_chain"])
-                & (meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"])
-                & (meGO_LJ_14["epsilon"] > 0.0)
-                & (meGO_LJ_14["bond_distance"] > config.max_bond_separation)
-            )
-        ]
-    else:
+    if parameters.force_split:
         split_ii = meGO_LJ.loc[(meGO_LJ["same_chain"])]
         meGO_LJ_14 = pd.concat([meGO_LJ_14, split_ii], axis=0, sort=False, ignore_index=True)
         meGO_LJ = meGO_LJ.loc[(~meGO_LJ["same_chain"])]
