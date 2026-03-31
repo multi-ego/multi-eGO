@@ -139,7 +139,4 @@ web/.vite/
 inputs/*
 outputs/*
 *.swp
-analysis/*
 .DS_Store
-*.ff
-!multi-ego-basic.ff

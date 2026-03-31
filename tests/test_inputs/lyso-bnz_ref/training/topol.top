@@ -1,22 +1,3 @@
-;
-;	File 'topol.top' was generated
-;	By user: brunostega (1000)
-;	On host: bruno-prestige14evoa11m
-;	At date: Sun Oct 30 18:11:39 2022
-;
-;	This is a standalone topology file
-;
-;	Created by:
-;	                    :-) GROMACS - gmx pdb2gmx, 2022.3 (-:
-;	
-;	Executable:   /usr/local/gromacs/bin/gmx
-;	Data prefix:  /usr/local/gromacs
-;	Working dir:  /home/brunostega/Scrivania/universita/tesi_magistrale/Simulazioni/Lisozyme
-;	Command line:
-;	  gmx pdb2gmx -f 1l84_maestro.pdb -o 1l84_processed.gro -ignh
-;	Force field was read from current directory or a relative path - path added.
-;
-
 ; Include forcefield parameters
 #include "./des-amber.ff/forcefield.itp"
 
@@ -24418,7 +24399,7 @@ Lyso     3
 
 
 ; Include water topology
-#include "./des-amber.ff/tip4pd.itp"
+;#include "./des-amber.ff/tip4pd.itp"
 
 #ifdef POSRES_WATER
 ; Position restraint for each water oxygen
@@ -24428,11 +24409,11 @@ Lyso     3
 #endif
 
 ; Include topology for ions
-#include "./des-amber.ff/ions.itp"
+;#include "./des-amber.ff/ions.itp"
 
 [ system ]
 ; Name
-2 BURIED BENZENE in water
+Lyso:BNZ
 
 [ molecules ]
 ; Compound        #mols
