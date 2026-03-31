@@ -350,8 +350,8 @@ export default function ConfigBuilder() {
             {yamlOutput}
           </pre>
           <p className="text-xs text-gray-600">
-            Save as <code>inputs/{form.system || "&lt;system&gt;"}/config.yml</code> and run:{" "}
-            <code className="text-gray-400">python multiego.py --config inputs/{form.system || "&lt;system&gt;"}/config.yml</code>
+            Save as <code>{form.system || "&lt;system&gt;"}/config.yml</code> and run:{" "}
+            <code className="text-gray-400">mego --config {form.system || "&lt;system&gt;"}/config.yml</code>
           </p>
         </div>
       </div>
