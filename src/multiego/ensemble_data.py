@@ -322,12 +322,11 @@ class MeGOEnsemble:
         FileNotFoundError
             If the topology file does not exist.
         """
-        print("\t-", "Initializing system topology")
         base_topology_path = f"{args.inputs_dir}/{args.system}/topol.top"
         if not os.path.isfile(base_topology_path):
             raise FileNotFoundError(f"{base_topology_path} not found.")
 
-        print("\t\t-", f"Reading {base_topology_path}")
+        print(f"  {base_topology_path}")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             base_reference_topology = parmed.load_file(base_topology_path, {"DISULFIDE": 1})

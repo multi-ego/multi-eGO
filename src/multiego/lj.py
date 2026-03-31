@@ -95,9 +95,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
         meGO_LJ["probability"]
         > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
     ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
-        (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
-    ) * (np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))))
+    with np.errstate(divide="ignore"):
+        meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
+            (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
+        ) * (np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))))
     meGO_LJ.loc[condition, "learned"] = 1
     meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
 
@@ -479,7 +480,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         Statistics string for the header.
     """
     st = time.time()
-    print("\t- Set sigma and epsilon")
+    print("  - Set sigma and epsilon")
     meGO_LJ = train_dataset[train_dataset["learned"] == 1].copy()
 
     needed_fields = [
@@ -508,19 +509,19 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
 
     et = time.time()
-    print(f"\t- Done in: {et - st:.2f} s")
+    print(f"    Done in: {et - st:.2f} s")
     st = et
 
     if parameters.symmetry:
-        print("\t- Apply the defined atomic symmetries")
+        print("  - Apply the defined atomic symmetries")
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
-        print(f"\t- Done in: {et - st:.2f} s")
+        print(f"    Done in: {et - st:.2f} s")
         st = et
 
-    print("\t- Merging multiple states (training, symmetries, inter/intra)")
+    print("  - Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging priority: learned > not learned, attractive > repulsive, shorter > longer, stronger attractive, weaker repulsive
     meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
@@ -635,6 +636,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     )
 
     et = time.time()
-    print(f"\t- Done in: {et - st:.2f} s")
+    print(f"    Done in: {et - st:.2f} s")
 
     return meGO_LJ, meGO_LJ_14, stat_str

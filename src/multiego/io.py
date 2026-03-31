@@ -212,8 +212,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     """
     Reads intra-/intermat files to determine molecular contact statistics.
     """
-    print("\t\t-", f"Reading {path}")
-    st = time.time()
+    print("    " f"{path}")
     # Define column names and data types directly during read
     col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
     col_types = {
@@ -235,9 +234,6 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         contact_matrix = pd.read_hdf(path, key="data", dtype=col_types)
 
     contact_matrix["learned"] = contact_matrix["learned"].astype(bool)
-
-    t1 = time.time()
-    print(f"\t\t- Read in: {t1 - st:.2f} s")
 
     # Validation checks using `query` for more efficient conditional filtering
     if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
@@ -304,9 +300,6 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     contact_matrix[["idx_ai", "idx_aj"]] = contact_matrix[["ai", "aj"]]
     contact_matrix.set_index(["idx_ai", "idx_aj"], inplace=True)
 
-    t2 = time.time()
-    print(f"\t\t- Processed in: {t2 - t1:.2f} s")
-
     return contact_matrix
 
 
@@ -326,10 +319,9 @@ def write_nonbonded(topology_dataframe, meGO_LJ, parameters, output_folder):
         The path to the output directory
     """
     write_header = not parameters.no_header
-    header = make_header(vars(parameters))
+    header = make_header(vars(parameters), write_header)
     with open(f"{output_folder}/ffnonbonded.itp", "w") as file:
-        if write_header:
-            file.write(header)
+        file.write(header)
 
         # write the defaults section
         file.write("\n[ defaults ]\n")
@@ -392,8 +384,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
     write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
-    print("\t- " f"Output files written to {output_dir}")
-    print(stat_str)
+    print(f"  Output files written to {output_dir}")
 
 
 def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
@@ -534,45 +525,41 @@ def dataframe_to_write(df, float_format=None):
         return df.to_string(index=False, float_format=float_format)
 
 
-def make_header(parameters):
+def make_header(parameters, write_header):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
-    header = f"""
-; Multi-eGO force field version beta.6
+    header = """; Multi-eGO force field version beta.6
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
 ; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
+"""
+    if write_header:
+        header += f"""
 ; Created on the {now}
 ; With the following parameters:
 """
-    for parameter, value in parameters.items():
-        if parameter == "no_header":
-            continue
-        elif parameter == "symmetry":
-            header += ";\t- {:<26}:\n".format(parameter)
-            for line in value:
-                header += f";\t  - {' '.join(line)}\n"
-        elif parameter == "names_inter":
-            n = value.size
-            # indices_upper_tri = np.triu_indices(n)
-            tuple_list = np.array([f"({value[i]}-{value[j]})" for i, j in zip(*np.triu_indices(n))], dtype=str)
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(tuple_list))
-            continue
-        elif isinstance(value, list):
-            value = np.array(value, dtype=str)
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-        elif type(value) is np.ndarray:
-            value = np.array(value, dtype=str)
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-        elif isinstance(value, dict):
-            for key, val in value.items():
-                header += f";\t- {key} = {val}\n"
-        elif not value:
-            value = ""
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-        else:
-            header += ";\t- {:<26} = {:<20}\n".format(parameter, value)
+        for parameter, value in parameters.items():
+            if parameter == "no_header":
+                continue
+            elif parameter == "symmetry":
+                header += ";\t- {:<26} :\n".format(parameter)
+                for line in value:
+                    header += f";\t  - {' '.join(line)}\n"
+            elif isinstance(value, list):
+                value = np.array(value, dtype=str)
+                header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+            elif type(value) is np.ndarray:
+                value = np.array(value, dtype=str)
+                header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+            elif isinstance(value, dict):
+                for key, val in value.items():
+                    header += f";\t- {key} = {val}\n"
+            elif not value:
+                value = ""
+                header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
+            else:
+                header += ";\t- {:<26} = {:<20}\n".format(parameter, value)
     header += "\n"
 
     return header
@@ -606,9 +593,7 @@ def write_topology(
     """
     write_header = not parameters.no_header
     molecule_footer = []
-    header = ""
-    if write_header:
-        header = make_header(vars(parameters))
+    header = make_header(vars(parameters), write_header)
 
     with open(f"{output_folder}/topol_mego.top", "w") as file:
         header += """
@@ -898,15 +883,8 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
         "type",
         "c6",
         "c12",
-        "sigma",
-        "epsilon",
-        "probability",
-        "rc_probability",
-        "md_threshold",
-        "rc_threshold",
         "same_chain",
         "source",
-        "bond_distance",
         "number_ai",
         "number_aj",
     ]

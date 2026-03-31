@@ -84,7 +84,7 @@ def meGO_parsing(root_dir):
         args.symmetry = io.parse_symmetry_list(args.symmetry)
 
     print(f"Running Multi-eGO: {args.egos}\n")
-    print("- Processing Multi-eGO topology")
+    print("- Initialising Multi-eGO from")
     mego_ensemble = MeGOEnsemble.from_topology(args, custom_dict)
 
     return args, mego_ensemble, custom_dict
@@ -106,7 +106,7 @@ def main(root_dir):
     args, meGO_ensembles, custom_dict = meGO_parsing(root_dir)
 
     st = time.time()
-    print(f"- Done in: {st - bt:.2f} s")
+    print(f"  Done in: {st - bt:.2f} s")
     print("- Checking for input files and folders")
     io.check_files_existence(args)
     meGO_LJ_14 = None
@@ -115,7 +115,7 @@ def main(root_dir):
         print("- Processing Multi-eGO contact matrices")
         meGO_ensembles, matrices = contacts.init_meGO_matrices(meGO_ensembles, args, custom_dict)
         et = time.time()
-        print(f"- Done in: {et - st:.2f} s")
+        print(f"  Done in: {et - st:.2f} s")
         st = et
 
         print("- Initializing LJ dataset")
@@ -123,7 +123,7 @@ def main(root_dir):
         del matrices
         gc.collect()
         et = time.time()
-        print(f"- Done in: {et - st:.2f} s")
+        print(f"  Done in: {et - st:.2f} s")
         st = et
 
         print("- Generating LJ dataset")
@@ -131,7 +131,7 @@ def main(root_dir):
         del train_dataset
         gc.collect()
         et = time.time()
-        print(f"- Done in: {et - st:.2f} s")
+        print(f"  Done in: {et - st:.2f} s")
         st = et
 
     elif args.egos == "mg":
@@ -139,19 +139,19 @@ def main(root_dir):
         meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         et = time.time()
-        print(f"- Done in: {et - st:.2f} s")
+        print(f"  Done in: {et - st:.2f} s")
         st = et
 
-    print("- Finalizing pairs and exclusions")
+    print("- Pairs and exclusions")
     meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, args, meGO_LJ_14=meGO_LJ_14)
     et = time.time()
-    print(f"- Done in: {et - st:.2f} s")
+    print(f"  Done in: {et - st:.2f} s")
     st = et
 
     print("- Writing Multi-eGO model")
     io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
     et = time.time()
-    print(f"- Done in: {et - st:.2f} s")
-    print(f"- Ran in: {et - bt:.2f} s")
+    print(f"  Done in: {et - st:.2f} s")
+    print("\n" f"Ran in: {et - bt:.2f} s")
 
     generate_face.print_goodbye()

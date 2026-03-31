@@ -117,7 +117,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
     -------
     pd.DataFrame
         DataFrame with columns ``ai``, ``aj``, ``func``, ``c6``, ``c12``,
-        ``probability``, ``rc_probability``, and ``source``. Contains one row
+        and ``source``. Contains one row
         per matched pair; empty if no residue-shifted matches are found.
 
     Raises
@@ -154,8 +154,6 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
             "func": 1,
             "c6": c6,
             "c12": c12_vals,
-            "probability": 1.0,
-            "rc_probability": 1.0,
             "source": "1-4",
         }
     )
@@ -245,7 +243,7 @@ def protein_LJ14(reduced_topology):
     -------
     pd.DataFrame
         Symmetric DataFrame with columns ``ai``, ``aj``, ``func``, ``c6``,
-        ``c12``, ``probability``, ``rc_probability``, and ``source``,
+        ``c12``, and ``source``,
         where ``source`` is always ``"1-4"``. Atom indices (``ai``, ``aj``)
         are returned as strings matching the ``number`` column.
     """
@@ -273,15 +271,13 @@ def protein_LJ14(reduced_topology):
         )
 
     # make it symmetric
-    inv_LJ = pairs[["aj", "ai", "func", "c6", "c12", "probability", "rc_probability", "source"]].copy()
+    inv_LJ = pairs[["aj", "ai", "func", "c6", "c12", "source"]].copy()
     inv_LJ.columns = [
         "ai",
         "aj",
         "func",
         "c6",
         "c12",
-        "probability",
-        "rc_probability",
         "source",
     ]
 
@@ -365,8 +361,6 @@ def generate_14_data(meGO_ensemble):
             pairs["func"] = 1
             pairs["c6"] = 0.0
             pairs["c12"] = nonprotein_c12
-            pairs["probability"] = 1.0
-            pairs["rc_probability"] = 1.0
             pairs["source"] = pd.Series(["1-4"] * len(pairs), dtype="category")
             tmp = pairs.copy()
             tmp["ai"], tmp["aj"] = tmp["aj"], tmp["ai"]

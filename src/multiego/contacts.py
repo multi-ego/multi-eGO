@@ -460,7 +460,7 @@ def _load_reference_matrix(reference, ensemble, args):
     if not os.path.isfile(topology_path):
         raise FileNotFoundError(f"{topology_path} not found.")
 
-    print("\t\t-", f"Reading {topology_path}")
+    print("    " f"{topology_path}")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         topol = parmed.load_file(topology_path)
@@ -602,7 +602,7 @@ def _load_train_matrix(
     if simulation_path in computed_train_topologies:
         temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = computed_train_topologies[simulation_path]
     else:
-        print("\t\t-", f"Reading {topology_path}")
+        print("    " f"{topology_path}")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             topol = parmed.load_file(topology_path)
@@ -694,14 +694,17 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         # Skip if this (reference, matrix) combination has already been loaded —
         # two YAML blocks can legitimately share the same reference folder.
         ref_key = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
+        print("  " f"- Initializing {reference['reference']} ensemble data")
         if ref_key in reference_contact_matrices:
-            print("\t-", f"Reference {reference['reference']} already loaded, reusing.")
+            print("    " f"Reference {reference['reference']} already loaded, reusing.")
+            et = time.time()
+            print(f"    Done in: {et - st:.2f} s")
+            st = et
             continue
-        print("\t-", f"Initializing {reference['reference']} ensemble data")
         name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
         reference_contact_matrices[name] = contact_matrix
         et = time.time()
-        print(f"\t- Done in: {et - st:.2f} s")
+        print(f"    Done in: {et - st:.2f} s")
         st = et
 
     # TODO: enable once all test cases support intra-domain splitting
@@ -711,7 +714,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     for reference in args.input_refs:
         for simulation in reference["train"]:
-            print("\t-", f"Initializing {simulation} ensemble data")
+            print(f"  - Initializing {simulation} ensemble data")
             name, ref_name, contact_matrix, topology_df = _load_train_matrix(
                 simulation,
                 reference,
@@ -727,7 +730,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
             train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
             ensemble.train_matrix_tuples.append((name, ref_name))
             et = time.time()
-            print(f"\t- Done in: {et - st:.2f} s")
+            print(f"    Done in: {et - st:.2f} s")
             st = et
 
     del train_contact_matrices_general
