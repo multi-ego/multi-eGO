@@ -256,10 +256,13 @@ class TestInitializeMolecularContacts:
         n = len(probabilities)
         if learned is None:
             learned = [True] * n
-        return pd.DataFrame({"probability": probabilities, "learned": learned})
+        return pd.DataFrame({"probability": probabilities, "learned": learned, "cutoff": [0.75] * n})
 
-    def _make_prior_matrix(self, epsilon_prior_values):
-        return pd.DataFrame({"epsilon_prior": epsilon_prior_values})
+    def _make_prior_matrix(self, epsilon_prior_values, rc_learned=None):
+        n = len(epsilon_prior_values)
+        if rc_learned is None:
+            rc_learned = [True] * n
+        return pd.DataFrame({"epsilon_prior": epsilon_prior_values, "rc_learned": rc_learned})
 
     def test_md_threshold_from_p_to_learn(self, monkeypatch):
         """md_threshold should be the smallest probability that covers p_to_learn
@@ -291,8 +294,8 @@ class TestInitializeMolecularContacts:
     def test_zero_norm_gives_threshold_one(self):
         """When no contacts are learned, norm=0 and md_threshold should be 1."""
         result = self.func(
-            self._make_contact_matrix([0.5, 0.3], learned=[False, False]),
-            self._make_prior_matrix([0.0, 0.0]),
+            self._make_contact_matrix([0.5, 0.3]),
+            self._make_prior_matrix([0.0, 0.0], rc_learned=[False, False]),
             _make_args(),
             {"reference": "ref", "epsilon": 0.3},
         )
