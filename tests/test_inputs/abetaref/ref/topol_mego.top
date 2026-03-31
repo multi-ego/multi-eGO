@@ -1,32 +1,3 @@
-
-; Multi-eGO force field version 1.0
-; https://github.com/multi-ego/multi-eGO
-; Please read and cite:
-; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
-; Bacic Toplek, F., Scalone, E. et al. JCTC 20, 459-468 (2024) 10.1021/acs.jctc.3c01182
-; Created on the 11-03-2026 17:34
-; With the following parameters:
-;	- system                     = AB42                
-;	- egos                       = mg                  
-;	- reference                  =                     
-;	- train                      =                     
-;	- input_refs                 =                     
-;	- epsilon                    =                     
-;	- p_to_learn                 = 0.9995              
-;	- epsilon_min                = 0.07                
-;	- force_split                =                     
-;	- single_molecule            =                     
-;	- custom_dict                =                     
-;	- custom_c12                 =                     
-;	- symmetry                  :
-;	- symmetry_file              =                     
-;	- relative_c12d              = 0.01                
-;	- explicit_name              =                     
-;	- config                     =                     
-;	- root_dir                   = /Users/carlo/Codes/multi-eGO
-
-
-; Include forcefield parameters
 #include "ffnonbonded.itp"
 
 [ moleculetype ]
