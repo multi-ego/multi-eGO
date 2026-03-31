@@ -24,12 +24,12 @@ BNZ       3
 [ atoms ]
 ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
 ; residue 163 BNZ rtp BNZ  q  0.0
-     1          C    1    BNZ     CG      1          0     13.01900  ;12.011
-     2          C    1    BNZ    CD1      1          0     13.01900  ;12.011
-     3          C    1    BNZ    CD2      1          0     13.01900  ;12.011
-     4          C    1    BNZ    CE1      1          0     13.01900  ;12.011
-     5          C    1    BNZ    CE2      1          0     13.01900  ;12.011
-     6          C    1    BNZ     CZ      1          0     13.01900  ;12.011   ; qtot 0
+     1         CH    1    BNZ     CG      1          0     13.01900  ;12.011
+     2         CH    1    BNZ    CD1      1          0     13.01900  ;12.011
+     3         CH    1    BNZ    CD2      1          0     13.01900  ;12.011
+     4         CH    1    BNZ    CE1      1          0     13.01900  ;12.011
+     5         CH    1    BNZ    CE2      1          0     13.01900  ;12.011
+     6         CH    1    BNZ     CZ      1          0     13.01900  ;12.011   ; qtot 0
 
 [ bonds ]
 ;  ai    aj funct            c0            c1            c2            c3
