@@ -925,13 +925,11 @@ def read_inter_file(file_path):
 
     # Check that the names are consistent on rows and columns (avoid mistakes)
     if np.any(names_row != names_col):
-        print(
-            f"""ERROR: the names are inconsistent in the inter epsilon matrix:
+        print(f"""ERROR: the names are inconsistent in the inter epsilon matrix:
               Rows:{names_row}
               Columns:{names_col}
               Please fix to be sure to avoid silly mistakes
-              """
-        )
+              """)
         sys.exit()
 
     epsilons = [line.split()[1:] for line in lines[1:]]

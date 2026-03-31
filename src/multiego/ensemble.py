@@ -139,9 +139,9 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     """
     This function initializes a contact matrix for a given simulation.
     """
-
     # remove un-learned contacts (intra-inter domain)
-    # contact_matrix["learned"] = prior_matrix["rc_learned"].to_numpy()
+    # use prior matrix learned flag by matching everywhere contact matrix is not H (cutoff=0)
+    contact_matrix.loc[contact_matrix["cutoff"] != 0, "learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
     # calculate adaptive rc/md threshold
     # sort probabilities, and calculate the normalized cumulative distribution
@@ -1262,6 +1262,9 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     # Here we create a copy of contacts to be added in pairs-exclusion section in topol.top.
     meGO_LJ_14 = meGO_LJ.copy()
+    common = meGO_LJ_14["molecule_name_ai"].cat.categories.union(meGO_LJ_14["molecule_name_aj"].cat.categories)
+    meGO_LJ_14["molecule_name_ai"] = meGO_LJ_14["molecule_name_ai"].cat.set_categories(common)
+    meGO_LJ_14["molecule_name_aj"] = meGO_LJ_14["molecule_name_aj"].cat.set_categories(common)
 
     # Sorting the pairs prioritising intermolecular interactions
     meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)

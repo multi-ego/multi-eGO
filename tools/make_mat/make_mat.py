@@ -381,8 +381,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     max_adaptive_cutoff : float
         The maximum adaptive cutoff calculated from the LJ c12 parameters.
     """
-    print(
-        f"""
+    print(f"""
     #############################
 
     -------------------
@@ -397,8 +396,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     If this is not wanted, please recalculate the histograms setting the cutoff to at least cutoff={max_adaptive_cutoff}
 
     #############################
-    """
-    )
+    """)
 
 
 def generate_c12_values(df, types, combinations, molecule_type):
@@ -413,7 +411,7 @@ def generate_c12_values(df, types, combinations, molecule_type):
 
     if molecule_type == "protein":
         for combination in combinations:
-            (name_1, name_2, factor, constant, shift) = combination
+            name_1, name_2, factor, constant, shift = combination
             # if factor is not None and constant is not None or factor == constant:
             #    raise RuntimeError("constant and error should be defined and mutualy exclusive")
             if factor is not None and constant is not None:
@@ -468,12 +466,10 @@ def calculate_matrices(args):
         N_mols.append(chain[2])
     N_mols = np.array(N_mols)
 
-    print(
-        f"""
+    print(f"""
     Topology contains {N_species} molecules species. Namely {molecules_name}.
     Calculating intermat for all species\n\n
-    """
-    )
+    """)
     for mol_i in mol_list:
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
@@ -921,13 +917,11 @@ if __name__ == "__main__":
     N_BINS = args.cutoff / (0.01 / 4)
     DX = args.cutoff / N_BINS
     CUTOFF_FACTOR = 1.45
-    print(
-        f"""
+    print(f"""
     Starting with cutoff = {args.cutoff},
                   n_bins = {N_BINS},
                   dx     = {DX}
                   on {args.num_threads} threads
-    """
-    )
+    """)
 
     calculate_matrices(args)
