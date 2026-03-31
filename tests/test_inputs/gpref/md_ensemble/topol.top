@@ -7996,7 +7996,7 @@ GB1            3
 #endif
 
 ; Include water topology
-#include "./charmm22st.ff/tip3p.itp"
+;#include "./charmm22st.ff/tip3p.itp"
 
 #ifdef POSRES_WATER
 ; Position restraint for each water oxygen
@@ -8006,7 +8006,7 @@ GB1            3
 #endif
 
 ; Include topology for ions
-#include "./charmm22st.ff/ions.itp"
+;#include "./charmm22st.ff/ions.itp"
 
 [ system ]
 ; Name
