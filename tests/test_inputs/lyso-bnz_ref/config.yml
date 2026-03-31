@@ -1,0 +1,29 @@
+---
+- system: lyso-bnz_ref
+- egos: production
+- input_refs:
+    # LYZ
+  - reference: mg 
+    train: training
+    matrix: intramat_1_1
+    epsilon: 0.28
+  - reference: mg_id 
+    train: training
+    matrix: intramat_1_1
+    epsilon: 1.0
+    # LYZ-BNZ
+  - reference: mg #zero cross matrix 
+    train: training
+    matrix: intermat_1_2
+    epsilon: 0.53
+- symmetry:
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ARG NH1 NH2
+  - LYS O1 O2
+  - BNZ CD1 CD2 CE1 CE2 CZ CG
+- no_header

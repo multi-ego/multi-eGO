@@ -1,6 +1,4 @@
 import numpy as np
-
-# import sys
 import argparse
 import os
 import parmed as pmd
@@ -50,19 +48,22 @@ def dom_range(ranges_str):
     return doms
 
 
-# TODO should re-use multiego reading topology function
 def read_topologies(top):
     """
-    Reads the input topologies using parmed. Ignores warnings to prevent printing
-    of GromacsWarnings regarding 1-4 interactions commonly seen when using
-    parmed in combination with multi-eGO topologies.
+    Read a topology file with parmed, suppressing GROMACS 1-4 warnings.
 
     Parameters
     ----------
-    mego_top : str
-        Path to the multi-eGO topology obtained from gmx pdb2gmx with multi-ego-basic force fields
-    target_top : str
-        Path to the toplogy of the system on which the analysis is to be performed
+    top : str
+        Path to the topology file (e.g. a multi-eGO ``topol.top``).
+
+    Returns
+    -------
+    topology : parmed.Structure
+        Parsed topology object.
+    top_df : pd.DataFrame
+        Per-molecule summary with columns ``name``, ``residues``,
+        ``atoms_per_res``, ``tot_atoms``, and ``atoms_name``.
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -83,7 +84,9 @@ def read_topologies(top):
         res.append([r.name for r in topology.molecules.values().mapping[name][0].residues])
         atoms.append([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])
         atoms_name.append([[a.type for a in r.atoms] for r in topology.molecules.values().mapping[name][0].residues])
-        tot_num_atoms.append(np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])))
+        tot_num_atoms.append(
+            np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues]))
+        )
     top_df["residues"] = res
     top_df["atoms_per_res"] = atoms
     top_df["tot_atoms"] = tot_num_atoms
@@ -170,7 +173,7 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--out", type=str, default="./", help="path for ouput")
-    parser.add_argument("--invert", action="store_true", default=False, help="Inbert domain mask")
+    parser.add_argument("--invert", action="store_true", default=False, help="Invert domain mask")
 
     args = parser.parse_args()
 
@@ -206,7 +209,9 @@ if __name__ == "__main__":
         intra_md = readmat(intramat, h5=False)
     dim = int(np.sqrt(len(intra_md)))
     if dim != n_atoms:
-        raise ValueError(f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})")
+        raise ValueError(
+            f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
+        )
 
     # define domain mask
     domain_mask_linear = np.full(dim**2, False)
