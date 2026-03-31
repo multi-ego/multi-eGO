@@ -79,7 +79,7 @@ TTR_IN = os.path.join(TEST_ROOT, "test_inputs", "make_mat_ttr")
 TTR_OUT = os.path.join(TEST_ROOT, "test_outputs", "make_mat_ttr")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def ttr_normal(tmp_path_factory):
     """
     Run make_mat.py (normal mode) + HDF52ndx.py on the TTR dataset.
@@ -109,7 +109,7 @@ def ttr_normal(tmp_path_factory):
     return out
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def ttr_zero(tmp_path_factory):
     """
     Run make_mat.py (--zero mode) + HDF52ndx.py on the TTR dataset.
@@ -174,7 +174,7 @@ POPC_IN = os.path.join(TEST_ROOT, "test_inputs", "make_mat_popc")
 POPC_OUT = os.path.join(TEST_ROOT, "test_outputs", "make_mat_popc")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="class")
 def popc_normal(tmp_path_factory):
     """
     Run make_mat.py on the POPC dataset (--noh5 mode).

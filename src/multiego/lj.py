@@ -570,6 +570,9 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
     # no cross interactions
+    common = meGO_LJ_14["molecule_name_ai"].cat.categories.union(meGO_LJ_14["molecule_name_aj"].cat.categories)
+    meGO_LJ_14["molecule_name_ai"] = meGO_LJ_14["molecule_name_ai"].cat.set_categories(common)
+    meGO_LJ_14["molecule_name_aj"] = meGO_LJ_14["molecule_name_aj"].cat.set_categories(common)
     meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
     # intramolecular interactions within few bonds should be move in pairs
     copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]

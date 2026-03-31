@@ -121,6 +121,11 @@ def create_test_cases(command, system_name):
     """
     Creates a test method for a single multi-eGO command-line invocation.
 
+    The generated test method runs the command, then immediately compares
+    the output against the reference files.  Each test is fully self-contained:
+    it cleans its own output directory, executes multi-eGO, and performs the
+    diff — so a failure in one case does not affect any other.
+
     Parameters
     ----------
     command : list of str
@@ -141,7 +146,21 @@ def create_test_cases(command, system_name):
         idx += 1
     function_name = f"{prefix}{idx}"
 
+    # Resolve the full command once at definition time.
+    cmd = command
+    if "--system" in cmd and "--inputs_dir" not in cmd:
+        cmd = cmd + ["--inputs_dir", f"{TEST_ROOT}/test_inputs"]
+
     def function_template(self):
+        # Remove only this case's output directory so previous cases are
+        # not disturbed and the run starts from a clean state.
+        output_path = f"{MEGO_ROOT}/outputs/{system_name}/case_{idx}"
+        if os.path.exists(output_path):
+            shutil.rmtree(output_path)
+
+        ret = subprocess.call([sys.executable, f"{MEGO_ROOT}/multiego.py", *cmd])
+        self.assertEqual(ret, 0, f"{system_name} :: {function_name} exited with non-zero error code")
+
         topol_ref, topol_test, ffnonbonded_ref, ffnonbonded_test = prep_system_data(system_name, idx)
         self.assertEqual(topol_ref, topol_test, f"{system_name} :: {function_name} topology not equal")
         self.assertEqual(ffnonbonded_ref, ffnonbonded_test, f"{system_name} :: {function_name} nonbonded not equal")
@@ -157,28 +176,7 @@ test_commands, test_systems = read_infile(f"{TEST_ROOT}/test_cases.txt")
 
 
 class TestOutputs(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        """Run all multi-eGO commands once before any comparison test."""
-        for system in test_systems:
-            outputs_path = f"{MEGO_ROOT}/outputs/{system}"
-            if os.path.exists(outputs_path):
-                shutil.rmtree(outputs_path)
-
-        # --config commands derive inputs_dir automatically from the config file
-        # location.  Only --system commands still need an explicit --inputs_dir
-        # so they read directly from tests/test_inputs/ without copying anything.
-        def _inject_inputs_dir(cmd):
-            if "--system" in cmd and "--inputs_dir" not in cmd:
-                return cmd + ["--inputs_dir", f"{TEST_ROOT}/test_inputs"]
-            return cmd
-
-        augmented = [_inject_inputs_dir(cmd) for cmd in test_commands]
-
-        # Use the same Python interpreter that is running the tests
-        error_codes = [subprocess.call([sys.executable, f"{MEGO_ROOT}/multiego.py", *cmd]) for cmd in augmented]
-        for code in error_codes:
-            assert code == 0, "Test setup exited with non-zero error code"
+    pass
 
 
 for _cmd, _sys in zip(test_commands, test_systems):
