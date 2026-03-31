@@ -41,10 +41,10 @@ const features = [
 
 export default function Landing() {
   return (
-    <div className="space-y-24 pb-24">
+    <div className="space-y-10 pb-10">
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950">
-        <div className="mx-auto max-w-6xl px-6 py-24 text-center">
+        <div className="mx-auto max-w-6xl px-6 py-10 text-center">
           <div className="mb-6 inline-flex items-center rounded-full border border-brand-800 bg-brand-950/50 px-4 py-1 text-xs font-medium text-brand-300">
             v beta.6 — GPL v3 Open Source
           </div>
@@ -54,7 +54,18 @@ export default function Landing() {
           <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-400">
             Data-driven, atomic-resolution force fields for molecular dynamics simulations.
           </p>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Link to="/examples" className="btn-secondary">
+              Examples →
+            </Link>
+            <Link to="/simulation" className="btn-secondary">
+              Run simulation →
+            </Link>
+          </div>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6">
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
             <div key={f.title} className="card">
@@ -66,18 +77,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Quick start */}
-      <section className="mx-auto max-w-6xl px-6">
-        <h2 className="section-heading mb-4">Quick start</h2>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/examples" className="btn-secondary">
-            Examples →
-          </Link>
-          <Link to="/simulation" className="btn-secondary">
-            Run simulation →
-          </Link>
-        </div>
-      </section>
     </div>
   );
 }
