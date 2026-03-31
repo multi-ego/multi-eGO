@@ -155,8 +155,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
                 mask |= type_ai.isin(types_j) & type_aj.isin(types_i)
             pairs.loc[mask, "c12"] = c12_val
 
-        pairs["probability"] = 1.0
-        pairs["rc_probability"] = 1.0
         pairs["source"] = "mg"
         pairs["func"] = 1
 
@@ -169,8 +167,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
                     "aj",
                     "c6",
                     "c12",
-                    "probability",
-                    "rc_probability",
                     "source",
                 ]
             ].copy()
@@ -188,8 +184,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
                     "func",
                     "c6",
                     "c12",
-                    "probability",
-                    "rc_probability",
                     "source",
                 ]
             ].copy()
@@ -206,8 +200,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
                     "func",
                     "c6",
                     "c12",
-                    "probability",
-                    "rc_probability",
                     "source",
                 ]
             ]
@@ -215,8 +207,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
             pairs["ai"] = pairs["ai"].astype(int)
             pairs["aj"] = pairs["aj"].astype(int)
 
-            inv_pairs = pairs[["aj", "ai", "func", "c6", "c12", "probability", "rc_probability", "source"]].copy()
-            inv_pairs.columns = ["ai", "aj", "func", "c6", "c12", "probability", "rc_probability", "source"]
+            inv_pairs = pairs[["aj", "ai", "func", "c6", "c12", "source"]].copy()
+            inv_pairs.columns = ["ai", "aj", "func", "c6", "c12", "source"]
             pairs = pd.concat([pairs, inv_pairs], axis=0, sort=False, ignore_index=True)
             pairs = pairs[pairs["ai"] < pairs["aj"]]
 

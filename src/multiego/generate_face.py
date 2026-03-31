@@ -78,13 +78,10 @@ def print_welcome():
     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@###*=---**+*%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@%%%@@@@@@@@@@@@@@@@@#+*%@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     print("")
-    print("")
 
 
 def print_goodbye():
     print("")
-    print("")
     print(aforismi[random.choice(range(len(aforismi)))])
     print("Luigi Pirandello, Uno, nessuno, centomila (1926)")
     print()
-    print("")
