@@ -304,17 +304,11 @@ Each entry under `input_refs` defines one training/reference pair. Intra- and in
 If you use multi-*e*GO in your work, please cite the relevant papers:
 
 ### Method
-
 1. Scalone, E., et al. [Multi-eGO: An in silico lens to look into protein aggregation kinetics at atomic resolution.](https://www.pnas.org/doi/10.1073/pnas.2203181119) *Proc. Natl. Acad. Sci. USA* 119, e2203181119 (2022). ([preprint](https://www.biorxiv.org/content/10.1101/2022.02.18.481033v2))
-
 2. Bacic Toplek, F., Scalone, E., et al. [Multi-eGO: model improvements towards the study of complex self-assembly processes.](https://doi.org/10.1021/acs.jctc.3c01182) *J. Chem. Theory Comput.* 20, 459–468 (2024). ([preprint](https://doi.org/10.26434/chemrxiv-2023-67255))
 
 ### Applications
-
 3. Pennacchietti, V., et al. [A PDZ tandem repeat folds and unfolds via different pathways.](https://dx.doi.org/10.1002/pro.5203) *Protein Sci.* 33, e5203 (2024).
-
 4. Stegani, B., et al. [Estimation of Ligand Binding Free Energy Using Multi-eGO.](https://doi.org/10.1021/acs.jcim.4c01545) *J. Chem. Inf. Model.* 65, 351–362 (2025). ([preprint](https://doi.org/10.26434/chemrxiv-2024-jcmgc-v2))
-
 5. Stegani, B. and Capelli, R. [Kinetic rate calculation via non-equilibrium dynamics.](https://doi.org/10.1063/5.0277524) *J. Chem. Phys.* 163, 104103 (2025).
-
 6. Kulshrestha, A., et al. [Multiscale Simulations Elucidate the Mechanism of Polyglutamine Aggregation and the Role of Flanking Domains in Fibril Polymorphism](https://pubs.acs.org/doi/10.1021/acs.jpcb.5c06627) *J. Phys. Chem. B* 129, 43, 11205 (2025)
