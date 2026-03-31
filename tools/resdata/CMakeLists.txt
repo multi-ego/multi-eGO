@@ -26,6 +26,18 @@ endif()
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
 
+set(GMX_VER ${GROMACS_VERSION})
+string(REPLACE "." ";" ${GROMACS_VERSION} ${GMX_VER})
+separate_arguments(${GMX_VER})
+list(GET ${GMX_VER} 0 GMX_MAJOR_VER)
+
+if(GMX_MAJOR_VER STRGREATER_EQUAL "2026")
+    message("Using GROMACS version greater-equal than 2026")
+    add_compile_definitions(GMXVGE2026)
+else()
+    message("Using GROMACS version less than 2026")
+endif()
+
 # include source and header files
 target_include_directories(${RESDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
