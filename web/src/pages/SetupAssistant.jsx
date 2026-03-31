@@ -382,32 +382,25 @@ export default function SetupAssistant() {
                   text: (
                     <>
                       Verify the output <code className="text-gray-300">topol.top</code> and{" "}
-                      <code className="text-gray-300">conf.gro</code> look correct.
+                      <code className="text-gray-300">conf.gro</code> look correct. Edit <code 
+                      className="text-gray-300">topol.top</code> [moleculetype] name 
+                      and correspondig [molecules] name to reflect your system.
                     </>
                   ),
                 },
                 {
                   n: "3",
-                  text: "Run the training simulation with your all-atom force field and extract contact matrices using cmdata.",
+                  text: "Generate training data by MD simulation, AI, single structure or reweighin and extract contact matrices using cmdata.",
                 },
                 {
                   n: "4",
-                  text: (
-                    <>
-                      Generate the mg prior:{" "}
-                      <code className="text-gray-300">python multiego.py --system … --egos mg</code>
-                    </>
-                  ),
-                },
-                {
-                  n: "5",
                   text: (
                     <>
                       Use the{" "}
                       <a href="../config" className="text-brand-400 hover:underline">
                         Config Builder
                       </a>{" "}
-                      to set up the production run.
+                      to set up the prior and then the production runs.
                     </>
                   ),
                 },

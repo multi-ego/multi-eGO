@@ -30,12 +30,8 @@ function buildYaml(form) {
   doc.push({ system: form.system });
   doc.push({ egos: form.egos });
 
-  if (form.p_to_learn !== 0.9995) doc.push({ p_to_learn: form.p_to_learn });
-  if (form.epsilon_min !== 0.07) doc.push({ epsilon_min: form.epsilon_min });
-  if (form.learn_tolerance !== 0.01) doc.push({ learn_tolerance: form.learn_tolerance });
   if (form.no_header) doc.push("no_header");
   if (form.force_split) doc.push("force_split");
-  if (form.single_molecule) doc.push("single_molecule");
   if (form.explicit_name) doc.push({ explicit_name: form.explicit_name });
 
   const syms = form.symmetry
@@ -195,13 +191,9 @@ function InputRefRow({ ref_: r, index, onChange, onRemove }) {
 export default function ConfigBuilder() {
   const [form, setForm] = useState({
     system: "",
-    egos: "production",
-    p_to_learn: 0.9995,
-    epsilon_min: 0.07,
-    learn_tolerance: 0.01,
+    egos: "mg",
     no_header: false,
     force_split: false,
-    single_molecule: false,
     explicit_name: "",
     symmetry: DEFAULT_SYMMETRIES.join("\n"),
     inputRefs: [emptyRef()],
@@ -338,47 +330,9 @@ export default function ConfigBuilder() {
                 checked={form.force_split}
                 onChange={(v) => set("force_split", v)}
               />
-              <Toggle
-                label="single_molecule"
-                description="Enable optimisations for single-molecule simulations"
-                checked={form.single_molecule}
-                onChange={(v) => set("single_molecule", v)}
-              />
-            </div>
-          </Collapsible>
-
-          {/* Advanced parameters */}
-          <Collapsible title="Advanced parameters">
-            <div className="space-y-5">
-              <NumberInput
-                label="p_to_learn"
-                description="Fraction of training contacts to learn (default: 0.9995)"
-                value={form.p_to_learn}
-                onChange={(v) => set("p_to_learn", v)}
-                min={0.9}
-                max={1}
-                step={0.0001}
-              />
-              <NumberInput
-                label="epsilon_min (kJ/mol)"
-                description="Minimum meaningful interaction energy (default: 0.07)"
-                value={form.epsilon_min}
-                onChange={(v) => set("epsilon_min", v)}
-                min={0.001}
-                max={1}
-              />
-              <NumberInput
-                label="learn_tolerance"
-                description="Relative deviation from default to set new c6/c12 (default: 0.01)"
-                value={form.learn_tolerance}
-                onChange={(v) => set("learn_tolerance", v)}
-                min={0}
-                max={1}
-              />
             </div>
           </Collapsible>
         </div>
-
         {/* ── RIGHT: YAML preview ── */}
         <div className="lg:sticky lg:top-20 lg:self-start space-y-3">
           <div className="flex items-center justify-between">
@@ -396,8 +350,8 @@ export default function ConfigBuilder() {
             {yamlOutput}
           </pre>
           <p className="text-xs text-gray-600">
-            Save as <code>inputs/{form.system || "&lt;system&gt;"}/config.yml</code> and run:{" "}
-            <code className="text-gray-400">python multiego.py --config inputs/{form.system || "&lt;system&gt;"}/config.yml</code>
+            Save as <code>{form.system || "&lt;system&gt;"}/config.yml</code> and run:{" "}
+            <code className="text-gray-400">mego --config {form.system || "&lt;system&gt;"}/config.yml</code>
           </p>
         </div>
       </div>

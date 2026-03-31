@@ -5,19 +5,19 @@ const steps = [
     number: "01",
     title: "Prepare the topology",
     description:
-      "Build a GROMACS topology using the multi-ego-basic.ff force field and run a training simulation with your all-atom force field.",
+      "Build a GROMACS topology using the multi-ego-basic.ff force field and generate a training conformational ensemble (by MD, AI, experiments, ...).",
   },
   {
     number: "02",
     title: "Generate the mg prior",
     description:
-      "Create a molten-globule (mg) baseline force field from physico-chemical and statistical properties. Run a short reference simulation.",
+      "Create a molten-globule (mg) baseline force field and run a reference simulation.",
   },
   {
     number: "03",
     title: "Learn and produce",
     description:
-      "Extract contact probabilities from the reference simulation, then run multi-eGO to learn pairwise Lennard-Jones interactions and produce the production force field.",
+      "Extract contact probabilities from the reference simulation and the training ensemble, then run multi-eGO to learn pairwise Lennard-Jones interactions and produce the production force field.",
   },
 ];
 
@@ -26,19 +26,19 @@ const features = [
     icon: "⚛️",
     title: "Atomic resolution",
     description:
-      "Full all-atom Lennard-Jones parametrisation — no coarse-graining, full structural detail retained.",
+      "No coarse-graining, full structural detail retained.",
   },
   {
     icon: "📊",
     title: "Data-driven",
     description:
-      "Learns directly from contact probability distributions extracted from MD trajectories, structures, or AI ensembles.",
+      "Learns dcontact probability distributions from any combination of MD trajectories, structures, or AI ensembles.",
   },
   {
     icon: "🔁",
     title: "GROMACS compatible",
     description:
-      "Output is standard ffnonbonded.itp and topol_mego.top — drop-in for any GROMACS workflow.",
+      "Output is ready for any GROMACS workflow.",
   },
   {
     icon: "⚡",
@@ -50,7 +50,7 @@ const features = [
     icon: "🧩",
     title: "Multi-reference",
     description:
-      "Combine multiple training simulations and reference states in a single config file for complex systems.",
+      "Combine multiple training simulations and reference states for complex systems.",
   },
   {
     icon: "🔬",
