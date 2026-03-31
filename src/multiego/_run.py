@@ -63,6 +63,8 @@ def meGO_parsing(root_dir):
             args.inputs_dir = os.path.dirname(os.path.dirname(os.path.abspath(args.config)))
         else:
             args.inputs_dir = os.path.join(root_dir, "inputs")
+    if not args.outputs_dir:
+        args.outputs_dir = os.path.join(root_dir, "outputs")
     args = arguments.read_arguments(
         args, arguments.args_dict, arguments.args_dict_global, arguments.args_dict_single_reference
     )

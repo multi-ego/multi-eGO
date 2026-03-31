@@ -56,6 +56,12 @@ _args_dict_shared = {
         "type": str,
         "help": "Configuration file for the system",
     },
+    "--outputs_dir": {
+        "default": None,
+        "type": str,
+        "help": "Directory under which the system output folder will be created. "
+        "Defaults to <root>/outputs when not specified.",
+    },
 }
 
 # Single-reference CLI mode: extends the shared base with the per-reference arguments

@@ -378,7 +378,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
         A dictionaty of the command-line parsed parameters
     """
     output_dir = get_outdir_name(
-        f"{parameters.root_dir}/outputs/{parameters.system}", parameters.explicit_name, parameters.egos
+        f"{parameters.outputs_dir}/{parameters.system}", parameters.explicit_name, parameters.egos
     )
     create_output_directories(parameters, output_dir)
     write_topology(
@@ -685,12 +685,12 @@ def create_output_directories(parameters, out_dir):
     output_folder : str
         The path to the output directory
     """
-    if not os.path.exists(f"{parameters.root_dir}/outputs") and not os.path.isdir(f"{parameters.root_dir}/outputs"):
-        os.mkdir(f"{parameters.root_dir}/outputs")
-    if not os.path.exists(f"{parameters.root_dir}/outputs/{parameters.system}") and not os.path.isdir(
-        f"{parameters.root_dir}/outputs/{parameters.system}"
+    if not os.path.exists(parameters.outputs_dir) and not os.path.isdir(parameters.outputs_dir):
+        os.mkdir(parameters.outputs_dir)
+    if not os.path.exists(f"{parameters.outputs_dir}/{parameters.system}") and not os.path.isdir(
+        f"{parameters.outputs_dir}/{parameters.system}"
     ):
-        os.mkdir(f"{parameters.root_dir}/outputs/{parameters.system}")
+        os.mkdir(f"{parameters.outputs_dir}/{parameters.system}")
     if not os.path.isdir(out_dir) and not os.path.exists(out_dir):
         os.mkdir(out_dir)
 
