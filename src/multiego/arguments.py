@@ -3,6 +3,7 @@ import sys
 import yaml
 import argparse
 from . import io
+from .model_config import config
 
 # Arguments shared between the single-reference CLI mode and the config-file (global) mode.
 # Add any new global argument here only — args_dict and args_dict_global are derived from this.
@@ -16,16 +17,6 @@ _args_dict_shared = {
         "choices": ["mg", "production"],
         "help": "mg: creates a force-field for molten globule simulations. "
         "production: creates a force-field combining reference simulations and training simulations.",
-    },
-    "--p_to_learn": {
-        "type": float,
-        "default": 0.9995,
-        "help": "Fraction of training simulations to learn.",
-    },
-    "--epsilon_min": {
-        "type": float,
-        "default": 0.07,
-        "help": "The minimum meaningful epsilon value.",
     },
     "--force_split": {
         "default": False,
@@ -54,11 +45,6 @@ _args_dict_shared = {
         "default": "",
         "type": str,
         "help": "Symmetry file for the system",
-    },
-    "--learn_tolerance": {
-        "default": 0.01,
-        "type": float,
-        "help": "Relative deviation from default to set new c6/c12",
     },
     "--explicit_name": {
         "default": "",
@@ -248,13 +234,6 @@ def validate_args(args):
         print("ERROR: No egos mode found! Please provide an egos mode.")
         sys.exit()
 
-    if args.p_to_learn < 0.9:
-        print("WARNING: --p_to_learn should be large enough (suggested value is 0.9995)")
-
-    if args.epsilon_min <= 0.0:
-        print("ERROR: --epsilon_min must be greater than 0.")
-        sys.exit()
-
     for ref in args.input_refs:
         required_keys = {"matrix", "epsilon", "train", "reference"}
         missing_keys = required_keys - set(ref)
@@ -271,8 +250,8 @@ def validate_args(args):
                 sys.exit()
             raise ValueError(f"Empty values for required keys in {ref}.\nMissing {empty_required_keys}")
 
-        if ref["epsilon"] < args.epsilon_min:
-            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than --epsilon_min ({args.epsilon_min})")
+        if ref["epsilon"] < config.epsilon_min:
+            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than epsilon_min ({config.epsilon_min})")
             sys.exit()
 
     if args.symmetry_file and args.symmetry:

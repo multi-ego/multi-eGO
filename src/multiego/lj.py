@@ -75,7 +75,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ : pd.DataFrame
         DataFrame containing LJ parameters including probability thresholds.
     parameters : argparse.Namespace
-        Parsed arguments, used for epsilon_min.
+        Parsed arguments (``learn_tolerance`` is now read from ``config``).
 
     Returns
     -------
@@ -536,8 +536,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         ~(
             (meGO_LJ["epsilon"] > 0)
             & (meGO_LJ["mg_epsilon"] > 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < parameters.learn_tolerance)
-            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < parameters.learn_tolerance)
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < config.learn_tolerance)
+            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < config.learn_tolerance)
             & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
         )
     ]
@@ -545,10 +545,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         ~(
             (meGO_LJ["epsilon"] < 0)
             & (meGO_LJ["mg_epsilon"] < 0)
-            & (
-                (abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"]))
-                < parameters.learn_tolerance
-            )
+            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < config.learn_tolerance)
             & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
             & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
         )

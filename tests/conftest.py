@@ -36,7 +36,13 @@ def stub_deps():
     # model_config — needs a config object with specific attributes
     stubs["multiego.model_config"] = _install_stub(
         "multiego.model_config",
-        config=types.SimpleNamespace(max_bond_separation=5, bond14_separation=3),
+        config=types.SimpleNamespace(
+            max_bond_separation=5,
+            bond14_separation=3,
+            epsilon_min=0.07,
+            p_to_learn=0.9995,
+            learn_tolerance=0.01,
+        ),
     )
 
     # type_definitions — lj and mg read special_non_local at import time

@@ -21,6 +21,7 @@ Private helpers are prefixed with ``_`` and are not part of the public API.
 
 from . import io
 from . import type_definitions
+from .model_config import config
 
 import numpy as np
 import os
@@ -292,7 +293,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
 
     The adaptive MD threshold ``md_threshold`` is the smallest probability
     value such that the cumulative sum of sorted (descending) learned
-    probabilities covers ``args.p_to_learn`` of the total mass. When no
+    probabilities covers ``config.p_to_learn`` of the total mass. When no
     contacts are learned (norm = 0), the threshold defaults to 1.
 
     Two per-contact threshold columns are added:
@@ -311,8 +312,8 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     prior_matrix : pd.DataFrame
         Corresponding reference contact matrix with column ``epsilon_prior``.
     args : argparse.Namespace
-        Parsed arguments; ``args.p_to_learn`` and ``args.epsilon_min`` are
-        used.
+        Parsed arguments (the per-reference ``reference["epsilon"]`` entry is
+        used; ``p_to_learn`` and ``epsilon_min`` are now read from ``config``).
     reference : dict
         Single input_refs entry; ``reference["reference"]`` (name string) and
         ``reference["epsilon"]`` (= epsilon_0, the maximum interaction energy)
@@ -332,16 +333,16 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     if norm == 0:
         md_threshold = 1
     else:
-        md_threshold = p_sort[np.min(np.where(np.cumsum(p_sort) / norm > args.p_to_learn)[0])]
+        md_threshold = p_sort[np.min(np.where(np.cumsum(p_sort) / norm > config.p_to_learn)[0])]
 
     contact_matrix["epsilon_0"] = reference["epsilon"]
     contact_matrix["md_threshold"] = md_threshold
     contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
         (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-        / (contact_matrix["epsilon_0"] - args.epsilon_min)
+        / (contact_matrix["epsilon_0"] - config.epsilon_min)
     )
     contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        (np.maximum(0, prior_matrix["epsilon_prior"]) - args.epsilon_min)
+        (np.maximum(0, prior_matrix["epsilon_prior"]) - config.epsilon_min)
         / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
     )
 

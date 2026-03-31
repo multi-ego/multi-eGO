@@ -2,6 +2,7 @@
 Unit tests for multi-eGO key functions.
 
 Covers:
+- model_config.ModelConfig
 - lj.create_linearized_mask
 - lj.set_sig_epsilon
 - contacts.initialize_molecular_contacts
@@ -24,8 +25,6 @@ def _make_args(**kwargs):
     defaults = dict(
         system="test",
         egos="production",
-        p_to_learn=0.9995,
-        epsilon_min=0.07,
         force_split=False,
         single_molecule=False,
         custom_dict=None,
@@ -262,14 +261,29 @@ class TestInitializeMolecularContacts:
     def _make_prior_matrix(self, epsilon_prior_values):
         return pd.DataFrame({"epsilon_prior": epsilon_prior_values})
 
-    def test_md_threshold_from_p_to_learn(self):
+    def test_md_threshold_from_p_to_learn(self, monkeypatch):
         """md_threshold should be the smallest probability that covers p_to_learn
-        of the cumulative sum."""
+        of the cumulative sum.
+
+        Sorted probs: [0.9, 0.5, 0.3, 0.1], norm=1.8.
+        cumsum/norm:  [0.5, 0.78, 0.94, 1.0].
+        First index > 0.9 is 2, so md_threshold = 0.3.
+        """
+        import types
+        import multiego.contacts as _contacts
+
+        monkeypatch.setattr(
+            _contacts,
+            "config",
+            types.SimpleNamespace(
+                epsilon_min=0.07, p_to_learn=0.9, learn_tolerance=0.01, max_bond_separation=5, bond14_separation=3
+            ),
+        )
         probs = [0.9, 0.5, 0.3, 0.1]
         result = self.func(
             self._make_contact_matrix(probs),
             self._make_prior_matrix([0.0] * 4),
-            _make_args(p_to_learn=0.9, epsilon_min=0.07),
+            _make_args(),
             {"reference": "ref", "epsilon": 0.3},
         )
         assert abs(result["md_threshold"].iloc[0] - 0.3) < 1e-10
@@ -279,7 +293,7 @@ class TestInitializeMolecularContacts:
         result = self.func(
             self._make_contact_matrix([0.5, 0.3], learned=[False, False]),
             self._make_prior_matrix([0.0, 0.0]),
-            _make_args(p_to_learn=0.9995, epsilon_min=0.07),
+            _make_args(),
             {"reference": "ref", "epsilon": 0.3},
         )
         assert result["md_threshold"].iloc[0] == 1
@@ -288,7 +302,7 @@ class TestInitializeMolecularContacts:
         result = self.func(
             self._make_contact_matrix([0.9]),
             self._make_prior_matrix([0.0]),
-            _make_args(p_to_learn=0.9995, epsilon_min=0.07),
+            _make_args(),
             {"reference": "ref", "epsilon": 0.25},
         )
         assert result["epsilon_0"].iloc[0] == 0.25
@@ -298,7 +312,7 @@ class TestInitializeMolecularContacts:
         result = self.func(
             self._make_contact_matrix([0.9]),
             self._make_prior_matrix([-0.5]),
-            _make_args(p_to_learn=0.9995, epsilon_min=0.07),
+            _make_args(),
             {"reference": "ref", "epsilon": 0.3},
         )
         assert result["limit_rc_att"].iloc[0] >= 1.0
@@ -307,7 +321,7 @@ class TestInitializeMolecularContacts:
         result = self.func(
             self._make_contact_matrix([0.5]),
             self._make_prior_matrix([0.0]),
-            _make_args(p_to_learn=0.9995, epsilon_min=0.07),
+            _make_args(),
             {"reference": "my_reference", "epsilon": 0.3},
         )
         assert result["reference"].iloc[0] == "my_reference"
@@ -539,15 +553,12 @@ class TestValidateArgs:
         with pytest.raises(SystemExit):
             self.validate(_make_args(system="GB1", egos=None, input_refs=[]))
 
-    def test_epsilon_min_zero_exits(self):
-        with pytest.raises(SystemExit):
-            self.validate(_make_args(system="GB1", egos="production", input_refs=[], epsilon_min=0.0))
-
     def test_epsilon_below_epsilon_min_exits(self):
+        """ref epsilon below config.epsilon_min (0.07) must trigger sys.exit."""
         ref = self._valid_ref()
-        ref["epsilon"] = 0.01
+        ref["epsilon"] = 0.01  # below the default config.epsilon_min of 0.07
         with pytest.raises(SystemExit):
-            self.validate(_make_args(system="GB1", egos="production", input_refs=[ref], epsilon_min=0.07))
+            self.validate(_make_args(system="GB1", egos="production", input_refs=[ref]))
 
     def test_missing_required_ref_key_raises(self):
         bad_ref = {"epsilon": 0.3, "train": ["md"], "reference": "ref"}
@@ -566,15 +577,73 @@ class TestValidateArgs:
                 )
             )
 
-    def test_p_to_learn_warning_printed(self, capsys):
-        self.validate(
-            _make_args(
-                system="GB1",
-                egos="production",
-                input_refs=[self._valid_ref()],
-                p_to_learn=0.5,
-            )
-        )
-        captured = capsys.readouterr()
-        assert "WARNING" in captured.out
-        assert "p_to_learn" in captured.out
+
+# ===========================================================================
+# model_config.ModelConfig
+# ===========================================================================
+
+
+class TestModelConfig:
+    """Tests for ModelConfig.__post_init__ validation and default values."""
+
+    @pytest.fixture(autouse=True)
+    def import_model_config(self):
+        # The module-scoped stub_deps fixture replaces multiego.model_config in
+        # sys.modules for the whole file.  Load the real module directly from
+        # its source file so the stub is bypassed entirely.
+        import importlib.util
+        import pathlib
+
+        src = pathlib.Path(__file__).parent.parent / "src" / "multiego" / "model_config.py"
+        spec = importlib.util.spec_from_file_location("_real_model_config", src)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.ModelConfig = mod.ModelConfig
+
+    def test_defaults_are_valid(self):
+        """Default construction must succeed without errors or warnings."""
+        cfg = self.ModelConfig()
+        assert cfg.max_bond_separation == 5
+        assert cfg.bond14_separation == 3
+        assert cfg.epsilon_min == 0.07
+        assert cfg.p_to_learn == 0.9995
+        assert cfg.learn_tolerance == 0.01
+
+    def test_custom_values_accepted(self):
+        cfg = self.ModelConfig(epsilon_min=0.05, p_to_learn=0.999, learn_tolerance=0.05)
+        assert cfg.epsilon_min == 0.05
+        assert cfg.p_to_learn == 0.999
+        assert cfg.learn_tolerance == 0.05
+
+    def test_epsilon_min_zero_raises(self):
+        """epsilon_min = 0 must fail the assertion."""
+        with pytest.raises(AssertionError):
+            self.ModelConfig(epsilon_min=0.0)
+
+    def test_epsilon_min_negative_raises(self):
+        with pytest.raises(AssertionError):
+            self.ModelConfig(epsilon_min=-0.1)
+
+    def test_p_to_learn_zero_raises(self):
+        with pytest.raises(AssertionError):
+            self.ModelConfig(p_to_learn=0.0)
+
+    def test_p_to_learn_above_one_raises(self):
+        with pytest.raises(AssertionError):
+            self.ModelConfig(p_to_learn=1.5)
+
+    def test_p_to_learn_small_warns(self):
+        """p_to_learn below 0.9 should emit a UserWarning."""
+        with pytest.warns(UserWarning, match="p_to_learn"):
+            self.ModelConfig(p_to_learn=0.5)
+
+    def test_bond_separation_constraint(self):
+        """max_bond_separation < bond14_separation must fail the assertion."""
+        with pytest.raises(AssertionError):
+            self.ModelConfig(max_bond_separation=2, bond14_separation=3)
+
+    def test_frozen(self):
+        """ModelConfig is frozen; attribute assignment must raise."""
+        cfg = self.ModelConfig()
+        with pytest.raises((AttributeError, TypeError)):
+            cfg.epsilon_min = 0.1

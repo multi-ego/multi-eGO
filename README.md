@@ -281,9 +281,6 @@ Each entry under `input_refs` defines one training/reference pair. Intra- and in
 | Parameter | Default | Description |
 |---|---|---|
 | `--epsilon` | — | Maximum interaction energy per contact pair (kJ/mol). Required for `production`. |
-| `--epsilon_min` | 0.07 | Minimum meaningful epsilon; contacts below this are discarded. |
-| `--p_to_learn` | 0.9995 | Fraction of the cumulative contact probability used to set the learning threshold. Should be close to 1. |
-| `--learn_tolerance` | 0.01 | Tolerance for removing contacts that are effectively identical to the MG prior. |
 | `--force_split` | False | Write intra- and inter-molecular interactions to separate files. |
 | `--symmetry` | — | List of equivalent atoms, e.g. `ARG NH1 NH2`. Contacts are averaged over equivalent atoms. |
 | `--custom_dict` | — | JSON file for custom atom-name mappings (non-standard residues). |
