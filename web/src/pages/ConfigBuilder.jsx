@@ -191,7 +191,7 @@ function InputRefRow({ ref_: r, index, onChange, onRemove }) {
 export default function ConfigBuilder() {
   const [form, setForm] = useState({
     system: "",
-    egos: "production",
+    egos: "mg",
     no_header: false,
     force_split: false,
     explicit_name: "",

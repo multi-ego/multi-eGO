@@ -17,7 +17,6 @@ const EXAMPLES = [
       { label: "Training FF", value: "CHARMM22*" },
       { label: "Contacts",    value: "intramat_1_1 (intra-molecular)" },
       { label: "ε",           value: "0.350 kJ/mol" },
-      { label: "Flags",       value: "single_molecule, no_header" },
     ],
     tree: `inputs/gpref/
 ├── topol.top
@@ -34,8 +33,6 @@ const EXAMPLES = [
     config: `---
 - system: gpref
 - egos: production
-- no_header
-- single_molecule
 - symmetry:
   - ARG NH1 NH2
   - ASP OD1 OD2
@@ -68,7 +65,6 @@ const EXAMPLES = [
       { label: "Training FF", value: "CHARMM27" },
       { label: "Contacts",    value: "intramat_1_1 (intra-molecular)" },
       { label: "ε",           value: "0.325 kJ/mol" },
-      { label: "Flags",       value: "single_molecule, no_header" },
     ],
     tree: `inputs/abetaref/
 ├── topol.top
@@ -85,8 +81,6 @@ const EXAMPLES = [
     config: `---
 - system: abetaref
 - egos: production
-- no_header
-- single_molecule
 - symmetry:
   - ARG NH1 NH2
   - ASP OD1 OD2
@@ -119,7 +113,6 @@ const EXAMPLES = [
       { label: "Training FFs", value: "AMBER99SB-disp (native_MD), CHARMM22* (fibril)" },
       { label: "Contacts",     value: "intramat_1_1 + intermat_1_1 (intra & inter-molecular)" },
       { label: "ε",            value: "0.25 kJ/mol (all refs)" },
-      { label: "Flags",        value: "no_header" },
     ],
     tree: `inputs/ttrref/
 ├── topol.top
@@ -142,7 +135,6 @@ const EXAMPLES = [
     config: `---
 - system: ttrref
 - egos: production
-- no_header
 - symmetry:
   - ARG NH1 NH2
   - ASP OD1 OD2
@@ -315,8 +307,8 @@ export default function Examples() {
           only. <strong className="text-gray-200">Aβ</strong> shows the same setup applied to a
           disordered peptide, and illustrates that the reference folder can have any name as long as
           it matches the config. <strong className="text-gray-200">TTR</strong> adds inter-molecular
-          contacts and two independent training simulations run with different force fields — the
-          most general multi-<em>e</em>GO workflow.
+          contacts and two independent training simulations run with different force fields — a 
+          more general multi-<em>e</em>GO workflow.
         </p>
       </div>
     </div>
