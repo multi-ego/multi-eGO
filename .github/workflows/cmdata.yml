@@ -38,6 +38,6 @@ jobs:
     - name: Run cmdata test 
       run: |
         source /usr/local/gromacs/bin/GMXRC
-        cd test; bash run_cmdata.sh; cd ..
+        cd tests; bash run_cmdata.sh; cd ..
         
 
