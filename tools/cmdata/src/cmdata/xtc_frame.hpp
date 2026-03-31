@@ -1,8 +1,13 @@
 #ifndef _XTC_FRAME_HPP
 #define _XTC_FRAME_HPP
 
-#include "gromacs/math/vec.h"
+#ifdef GMXVGE2026
+#include "gromacs/utility/vec.h"
+#include "gromacs/utility/vectypes.h"
+#else
+#include <gromacs/math/vec.h>
 #include "gromacs/math/vectypes.h"
+#endif
 #include <gromacs/pbcutil/pbc.h>
 
 #include <xdrfile_xtc.h>

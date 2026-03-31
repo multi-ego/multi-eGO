@@ -5,5 +5,4 @@
 --config TEST_ROOT/test_inputs/ttrref/config-1.yml --explicit_name case
 --config TEST_ROOT/test_inputs/ttrref/config-2.yml --explicit_name case
 --config TEST_ROOT/test_inputs/ttrref/config-3.yml --explicit_name case
-#--config TEST_ROOT/test_inputs/lyso-bnz_ref/config_1.yml --explicit_name case
-#--config TEST_ROOT/test_inputs/lyso-bnz_ref/config.yml --explicit_name case
+--config TEST_ROOT/test_inputs/lyso-bnz_ref/config.yml --explicit_name case

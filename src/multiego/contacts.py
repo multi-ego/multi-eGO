@@ -326,6 +326,8 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
         ``epsilon_0``, ``md_threshold``, ``rc_threshold``, and
         ``limit_rc_att``.
     """
+    # use prior matrix learned flag by matching everywhere contact matrix is not H (cutoff=0)
+    contact_matrix.loc[contact_matrix["cutoff"] != 0, "learned"] = prior_matrix["rc_learned"].to_numpy()
     contact_matrix["reference"] = reference["reference"]
 
     p_sort = np.sort(contact_matrix["probability"].loc[contact_matrix["learned"]].to_numpy())[::-1]

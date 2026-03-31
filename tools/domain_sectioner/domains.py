@@ -95,6 +95,71 @@ def read_topologies(top):
     return topology, top_df
 
 
+def readmat(intramat, h5=True):
+    """
+    Reads the intramat and checks that it has the correct format. Returns the intramat as a dataframe with correct column types.
+    """
+    if h5:
+        intramat_md_df = pd.read_hdf(intramat, key="data")
+    else:
+        intramat_md = np.loadtxt(intramat, unpack=True)
+        if intramat_md.shape[0] not in [7, 8]:
+            raise ValueError(
+                "Intramat should have 7 or 8 columns: molecule_name_ai, ai, molecule_name_aj, aj, distance, probability, cutoff, (optional) learned"
+            )
+        if intramat_md.shape[0] == 7:
+            print("Intramat has 7 columns, domain mask will be added as an eigth column")
+            intramat_md = np.concatenate((intramat_md, np.full(intramat_md.shape[1], False)[np.newaxis, :]), axis=0)
+
+        col_types = {
+            "molecule_name_ai": int,
+            "ai": int,
+            "molecule_name_aj": int,
+            "aj": int,
+            "distance": np.float64,
+            "probability": np.float64,
+            "cutoff": np.float64,
+            "learned": int,  # Allows for integer with NaNs, which can be cast later
+        }
+
+        intramat_md_df = pd.DataFrame(columns=col_types.keys())
+        for i, col in enumerate(col_types.keys()):
+            intramat_md_df[col] = intramat_md[i].astype(col_types[col])
+
+    return intramat_md_df
+
+
+def write_intramat(contact_matrix, out_name, h5=False):
+    """
+    Writes the intramat in the correct format. If the intramat has 8 columns, it is assumed that the last column is the learned mask.
+    """
+    col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
+
+    if not h5:
+        col_types = {
+            "molecule_name_ai": str,
+            "ai": str,
+            "molecule_name_aj": str,
+            "aj": str,
+            "distance": np.float64,
+            "probability": np.float64,
+            "cutoff": np.float64,
+            "learned": "Int64",  # Allows for integer with NaNs, which can be cast later
+        }
+        contact_matrix = pd.DataFrame(contact_matrix.T, columns=col_names, dtype=col_types)
+
+    # Read the input file with specified column names and data types
+    contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
+
+    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].astype("category")
+    contact_matrix["ai"] = contact_matrix["ai"].astype("category")
+    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].astype("category")
+    contact_matrix["aj"] = contact_matrix["aj"].astype("category")
+
+    # Save the data as HDF5 with compression
+    contact_matrix.to_hdf(out_name, key="data", mode="w", format="table", complib="blosc:lz4", complevel=9)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="TODO!")
     parser.add_argument("--intra", type=str, required=True, help="intramat to work on")
@@ -137,8 +202,12 @@ if __name__ == "__main__":
 
     # read intramat and check consistency
     intramat = args.intra
-    intra_md = np.loadtxt(intramat, unpack=True)
-    dim = int(np.sqrt(len(intra_md[0])))
+    if intramat.endswith(".h5"):
+        print(f"Reading intramat {intramat} as HDF5")
+        intra_md = readmat(intramat, h5=True)
+    else:
+        intra_md = readmat(intramat, h5=False)
+    dim = int(np.sqrt(len(intra_md)))
     if dim != n_atoms:
         raise ValueError(
             f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
@@ -171,23 +240,20 @@ if __name__ == "__main__":
     if args.invert:
         domain_mask_linear = np.logical_not(domain_mask_linear)
     print(domain_mask_linear)
-    # add an eigth column with the domain_mask
-    if intra_md.shape[0] == 7:
-        intra_md = np.concatenate((intra_md, domain_mask_linear[np.newaxis, :]), axis=0)
-    else:
-        intra_md[7] = domain_mask_linear
+
+    # set domain mask in intramat
+    intra_md["learned"] = domain_mask_linear
 
     if "/" in intramat:
         intramat = intramat.split("/")[-1]
-
+        if intramat.endswith(".h5"):
+            intramat = intramat[:-3]
     if args.invert:
-        out_name = f'{args.out}inverted_split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}'
+        out_name = f'{args.out}inverted_split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}.h5'
     else:
-        out_name = f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}'
-    np.savetxt(
-        out_name,
-        intra_md.T,
-        delimiter=" ",
-        fmt=["%i", "%i", "%i", "%i", "%2.6f", "%.6e", "%2.6f", "%1i"],
-    )
+        out_name = f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}.h5'
+
+    # write output in h5 format
+    write_intramat(intra_md, out_name, h5=True)
+
     print("Finished splitting")
