@@ -16,7 +16,7 @@ export default function Installation() {
         <p className="text-gray-400">Choose your preferred environment manager:</p>
 
         <div>
-          <p className="label mb-2">Conda (recommended)</p>
+          <p className="label mb-2">Conda</p>
           <pre className="code-block whitespace-pre">{`conda env create -f conda/environment.yml
 conda activate meGO`}</pre>
         </div>
@@ -24,7 +24,10 @@ conda activate meGO`}</pre>
         <div>
           <p className="label mb-2">pip</p>
           <pre className="code-block">pip install -r requirements.txt</pre>
+          <p className="text-gray-400"> Installing the package makes the <code className="text-gray-200">mego</code> command available anywhere on your system without needing to be in the repository root:</p>
+          <pre className="code-block">pip install -e .</pre>
         </div>
+
       </section>
 
       {/* GROMACS */}
@@ -108,6 +111,8 @@ gmx pdb2gmx -f my_protein.pdb -ff multi-ego-basic -water none`}</pre>
         </h2>
         <pre className="code-block">{`# Should print usage information
 python multiego.py --help
+# or if package is installed
+mego --help
 
 # Run the test suite
 pytest tests/`}</pre>
