@@ -168,13 +168,38 @@ def _get_lj_pairs(topology):
         DataFrame with columns ``ai``, ``aj``, ``epsilon``, and ``sigma``.
     """
     nbfix = topology.parameterset.nbfix_types
-    lj_pairs = pd.DataFrame(columns=["ai", "aj", "epsilon", "sigma"], index=np.arange(len(nbfix)))
-    for i, (sbtype_i, sbtype_j) in enumerate(nbfix):
-        c12 = nbfix[(sbtype_i, sbtype_j)][0] * 4.184
-        c6 = nbfix[(sbtype_i, sbtype_j)][1] * 0.1 / (2 ** (1 / 6))
-        epsilon = c6**2 / (4 * c12) if c6 > 0 else -c12
-        sigma = (c12 / c6) ** (1 / 6) if c6 > 0 else c12 ** (1 / 12) / (2.0 ** (1.0 / 6.0))
-        lj_pairs.loc[i] = [sbtype_i, sbtype_j, epsilon, sigma]
+
+    keys = list(nbfix.keys())
+    vals = np.array(list(nbfix.values()))  # shape (N, 2)
+
+    ai = [k[0] for k in keys]
+    aj = [k[1] for k in keys]
+
+    c12 = vals[:, 0] * 4.184
+    c6 = vals[:, 1] * 0.1 / (2 ** (1 / 6))
+
+    mask = c6 > 0
+
+    epsilon = np.empty_like(c6)
+    sigma = np.empty_like(c6)
+
+    # c6 > 0 branch
+    epsilon[mask] = c6[mask] ** 2 / (4 * c12[mask])
+    sigma[mask] = (c12[mask] / c6[mask]) ** (1 / 6)
+
+    # c6 <= 0 branch
+    epsilon[~mask] = -c12[~mask]
+    sigma[~mask] = c12[~mask] ** (1 / 12) / (2.0 ** (1.0 / 6.0))
+
+    lj_pairs = pd.DataFrame(
+        {
+            "ai": ai,
+            "aj": aj,
+            "epsilon": epsilon,
+            "sigma": sigma,
+        }
+    )
+
     return lj_pairs
 
 
