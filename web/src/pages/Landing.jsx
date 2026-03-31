@@ -1,26 +1,5 @@
 import { Link } from "react-router-dom";
 
-const steps = [
-  {
-    number: "01",
-    title: "Prepare the topology",
-    description:
-      "Build a GROMACS topology using the multi-ego-basic.ff force field and generate a training conformational ensemble (by MD, AI, experiments, ...).",
-  },
-  {
-    number: "02",
-    title: "Generate the mg prior",
-    description:
-      "Create a molten-globule (mg) baseline force field and run a reference simulation.",
-  },
-  {
-    number: "03",
-    title: "Learn and produce",
-    description:
-      "Extract contact probabilities from the reference simulation and the training ensemble, then run multi-eGO to learn pairwise Lennard-Jones interactions and produce the production force field.",
-  },
-];
-
 const features = [
   {
     icon: "⚛️",
@@ -30,9 +9,15 @@ const features = [
   },
   {
     icon: "📊",
-    title: "Data-driven",
+    title: "Data-driven & Bayesian",
     description:
-      "Learns dcontact probability distributions from any combination of MD trajectories, structures, or AI ensembles.",
+      "Reweight prior information by learning contact probability distributions from any combination of MD trajectories, structures, or AI ensembles.",
+  },
+  {
+    icon: "🧩",
+    title: "Multi-reference",
+    description:
+      "Combine multiple training simulations and reference states to describe complex systems and processes.",
   },
   {
     icon: "🔁",
@@ -42,15 +27,9 @@ const features = [
   },
   {
     icon: "⚡",
-    title: "Fast simulations",
+    title: "Fast simulations and hypothesis testing",
     description:
-      "Orders of magnitude faster than all-atom force fields while reproducing folding, aggregation and binding thermodynamics.",
-  },
-  {
-    icon: "🧩",
-    title: "Multi-reference",
-    description:
-      "Combine multiple training simulations and reference states for complex systems.",
+      "Orders of magnitude faster than all-atom force fields allow running in-silico experiments.",
   },
   {
     icon: "🔬",
@@ -67,14 +46,13 @@ export default function Landing() {
       <section className="relative overflow-hidden border-b border-gray-800 bg-gradient-to-b from-gray-900 to-gray-950">
         <div className="mx-auto max-w-6xl px-6 py-24 text-center">
           <div className="mb-6 inline-flex items-center rounded-full border border-brand-800 bg-brand-950/50 px-4 py-1 text-xs font-medium text-brand-300">
-            v1.0 — GPL v3 Open Source
+            v beta.6 — GPL v3 Open Source
           </div>
           <h1 className="mb-6 text-5xl font-bold tracking-tight text-white sm:text-6xl">
             Multi-<em>e</em>GO
           </h1>
           <p className="mx-auto mb-10 max-w-2xl text-lg text-gray-400">
-            Data-driven, atomic-resolution force fields for molecular dynamics simulations. Learn pairwise
-            Lennard-Jones interactions directly from contact probability distributions.
+            Data-driven, atomic-resolution force fields for molecular dynamics simulations.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
@@ -108,30 +86,6 @@ export default function Landing() {
               Run simulation →
             </Link>
           </div>
-          {/* Badges */}
-          <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <img src="https://img.shields.io/badge/Version-1.0-blue" alt="Version" />
-            <img src="https://img.shields.io/badge/License-GPL%20v3-blue.svg" alt="License" />
-            <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black" />
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section className="mx-auto max-w-6xl px-6">
-        <h2 className="section-heading mb-4 text-center">How it works</h2>
-        <p className="mx-auto mb-12 max-w-2xl text-center text-gray-400">
-          Multi-<em>e</em>GO constructs an atomistic Lennard-Jones force field following a Bayesian
-          learning framework in three stages.
-        </p>
-        <div className="grid gap-6 sm:grid-cols-3">
-          {steps.map((step) => (
-            <div key={step.number} className="card relative">
-              <span className="mb-4 block font-mono text-4xl font-bold text-brand-800">{step.number}</span>
-              <h3 className="mb-2 text-lg font-semibold text-white">{step.title}</h3>
-              <p className="text-sm text-gray-400">{step.description}</p>
-            </div>
-          ))}
         </div>
       </section>
 
@@ -152,31 +106,12 @@ export default function Landing() {
       {/* Quick start */}
       <section className="mx-auto max-w-6xl px-6">
         <h2 className="section-heading mb-4">Quick start</h2>
-        <p className="mb-6 text-gray-400">
-          Generate a molten-globule prior, then a production force field:
-        </p>
-        <div className="space-y-4">
-          <div>
-            <p className="label">1. Generate the mg prior</p>
-            <pre className="code-block">python multiego.py --system GB1 --egos mg</pre>
-          </div>
-          <div>
-            <p className="label">2. Generate the production force field</p>
-            <pre className="code-block">
-              python multiego.py --system GB1 --egos production --train md_monomer --epsilon 0.3
-            </pre>
-          </div>
-          <div>
-            <p className="label">3. Or use a config file for multiple training sets</p>
-            <pre className="code-block">python multiego.py --config inputs/my_system/config.yml</pre>
-          </div>
-        </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link to="/setup" className="btn-primary">
-            Setup assistant →
+          <Link to="/examples" className="btn-secondary">
+            Examples →
           </Link>
-          <Link to="/config" className="btn-secondary">
-            Config builder →
+          <Link to="/simulation" className="btn-secondary">
+            Run simulation →
           </Link>
         </div>
       </section>
