@@ -58,11 +58,11 @@ const EXAMPLES = [
       "Amyloid-β is an intrinsically disordered peptide (IDP) prone to aggregation. " +
       "This example demonstrates that multi-eGO is not limited to folded proteins: " +
       "the mg prior and learning procedure work equally well for disordered systems. " +
-      "The training data was produced with CHARMM27 and the folder uses a non-standard " +
+      "The training data was produced with CHARMM22* and the folder uses a non-standard " +
       "reference directory name (ref instead of reference), illustrating that the name " +
       "only needs to match the config file.",
     highlights: [
-      { label: "Training FF", value: "CHARMM27" },
+      { label: "Training FF", value: "CHARMM22*" },
       { label: "Contacts",    value: "intramat_1_1 (intra-molecular)" },
       { label: "ε",           value: "0.325 kJ/mol" },
     ],
@@ -99,16 +99,14 @@ const EXAMPLES = [
   },
   {
     id: "ttrref",
-    title: "TTR — multi-chain & multi-reference",
-    subtitle: "Transthyretin tetramer",
-    tags: ["multi-chain", "2 training sets", "intramat + intermat"],
+    title: "TTR — multi-reference",
+    subtitle: "Our benchmark for self-assembly",
+    tags: ["2 training sets", "intramat + intermat"],
     description:
-      "The most advanced setup: a homo-oligomeric protein (transthyretin, a homotetramer) " +
-      "learned simultaneously from two training simulations — a native MD and a fibril — " +
+      "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
       "using two different force fields. Both intra-molecular and inter-molecular contacts " +
-      "are learned, which is essential for reproducing the correct inter-chain interface. " +
-      "All three input_refs entries share the same reference folder but target different " +
-      "training sets and matrix types.",
+      "are learned, with intra-molecular resulting from the combination of the two different states. " +
+      "Two reference state, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
     highlights: [
       { label: "Training FFs", value: "AMBER99SB-disp (native_MD), CHARMM22* (fibril)" },
       { label: "Contacts",     value: "intramat_1_1 + intermat_1_1 (intra & inter-molecular)" },
