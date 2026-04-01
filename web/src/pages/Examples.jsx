@@ -8,7 +8,7 @@ const EXAMPLES = [
     id: "gpref",
     title: "G-protein B1 domain",
     subtitle: "Our benchmark for protein folding and dynamics",
-    tags: ["single molecule", "1 training set", "intramat"],
+    tags: ["1 training set", "1 reference", "singe molecule", "folded", "intramolecular"],
     description:
       "The simplest and most common setup: one training simulation, one reference simulation, " +
       "one molecule in the box. GB1 is a fast-folding protein widely used as a benchmark. " +
@@ -53,7 +53,7 @@ const EXAMPLES = [
     id: "abetaref",
     title: "Aβ42",
     subtitle: "Our benchmark for intrinsically disordered peptides dynamics",
-    tags: ["single molecule", "1 training set", "intramat", "IDP"],
+    tags: ["single molecule", "1 training set", "1 reference", "IDP", "intramolecular"],
     description:
       "Amyloid-β is an intrinsically disordered peptide (IDP) prone to aggregation. " +
       "This example demonstrates that multi-eGO is not limited to folded proteins: " +
@@ -99,9 +99,9 @@ const EXAMPLES = [
   },
   {
     id: "ttrref",
-    title: "TTR — multi-reference",
+    title: "TTR peptide",
     subtitle: "Our benchmark for peptides self-assembly",
-    tags: ["2 training sets", "intramat + intermat"],
+    tags: ["2 training sets", "2 references", "multi-state", "intra+inter molecular"],
     description:
       "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
       "using two different force fields. Both intra-molecular and inter-molecular contacts " +
@@ -124,10 +124,10 @@ const EXAMPLES = [
 │   ├── intramat_1_1.ndx.h5
 │   ├── intermat_1_1.ndx.h5
 │   └── charmm22st.ff/
-└── reference/             ← mg reference simulation
+└── reference/             ← reference simulation
     ├── topol.top
-    ├── intramat_1_1.ndx.h5
-    ├── intermat_1_1.ndx.h5
+    ├── intramat_1_1.ndx.h5 ← mg reference simulation
+    ├── intermat_1_1.ndx.h5 ← zero reference
     ├── ffnonbonded.itp
     └── topol_mego.top`,
     config: `---

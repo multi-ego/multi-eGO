@@ -10,7 +10,7 @@
 
 Multi-*e*GO is a framework for building data-driven, atomic-resolution force fields for molecular dynamics simulations. It learns pairwise Lennard-Jones interactions directly from contact probability distributions, producing force fields that faithfully reproduce structural ensembles, thermodynamics and kinetics — including protein folding, aggregation, and ligand binding — at a fraction of the computational cost of all-atom simulations.
 
-**→ [multi-ego.github.io/multi-eGO](https://multi-ego.github.io/multi-eGO/)** — interactive documentation, config builder, setup assistant, and Colab simulation notebook.
+**→ [multi-ego.github.io/multi-eGO](https://multi-ego.github.io/multi-eGO/)** — interactive documentation, config builder, setup assistant, and Colab simulation notebook (in progress).
 
 ## Table of Contents
 
