@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 const EXAMPLES = [
   {
     id: "gpref",
-    title: "GB1 — single molecule",
-    subtitle: "G-protein B1 domain",
+    title: "G-protein B1 domain",
+    subtitle: "Our benchmark for protein folding and dynamics",
     tags: ["single molecule", "1 training set", "intramat"],
     description:
       "The simplest and most common setup: one training simulation, one reference simulation, " +
@@ -51,8 +51,8 @@ const EXAMPLES = [
   },
   {
     id: "abetaref",
-    title: "Aβ — intrinsically disordered",
-    subtitle: "Amyloid-β peptide",
+    title: "Aβ42",
+    subtitle: "Our benchmark for intrinsically disordered peptides dynamics",
     tags: ["single molecule", "1 training set", "intramat", "IDP"],
     description:
       "Amyloid-β is an intrinsically disordered peptide (IDP) prone to aggregation. " +
@@ -100,7 +100,7 @@ const EXAMPLES = [
   {
     id: "ttrref",
     title: "TTR — multi-reference",
-    subtitle: "Our benchmark for self-assembly",
+    subtitle: "Our benchmark for peptides self-assembly",
     tags: ["2 training sets", "intramat + intermat"],
     description:
       "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
