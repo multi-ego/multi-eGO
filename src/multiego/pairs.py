@@ -116,8 +116,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
 
         nthbond = generate_bond_exclusions(reduced_topology, bond_pair)
 
-        pairs = pd.DataFrame()
-
         # Build nth-bond (3 < bonds <= max_bond_separation) pair list.
         # H-X pairs are skipped unless X is an allowed partner (e.g. H-CH2 is dropped).
         # Default c12 is the combination rule; special overrides are applied afterwards.
