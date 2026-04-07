@@ -157,6 +157,82 @@ const EXAMPLES = [
     epsilon: 0.25`,
     command: "mego --config inputs/ttrref/config.yml",
   },
+  {
+    id: "lyso-bnz",
+    title: "Lysozyme + Benzene",
+    subtitle: "Our benchmark for protein–small molecule binding",
+    tags: ["2 molecules", "1 training set", "3 references", "protein-ligand", "intra+inter molecular"],
+    description:
+      "A protein–ligand complex: hen-egg-white lysozyme (LYZ) with benzene (BNZ) as a probe ligand. " +
+      "This example introduces two concepts not present in the single-molecule examples. " +
+      "First, inter-molecular contacts between the protein and the ligand are learned from the same " +
+      "training simulation, requiring an intermat_1_2 matrix alongside the protein intramat_1_1. " +
+      "Second, the ligand uses an identity-diagonal prior (mg_id) rather than the standard " +
+      "molten-globule prior: because benzene is a rigid aromatic ring whose internal geometry is " +
+      "fixed, the conventional MG prior is not meaningful and is replaced by an identity prior that " +
+      "keeps ligand self-interactions fixed at their force-field values. " +
+      "The training simulation used the DES-Amber force field. " +
+      "The benzene ring symmetry (all six ring atoms interchangeable) is declared explicitly in the config.",
+    highlights: [
+      { label: "Training FF",  value: "DES-Amber" },
+      { label: "Contacts",     value: "intramat_1_1 + intermat_1_2 (intra & inter-molecular)" },
+      { label: "ε (LYZ intra)", value: "0.28 kJ/mol" },
+      { label: "ε (LYZ-BNZ inter)", value: "0.53 kJ/mol" },
+    ],
+    tree: `inputs/lyso-bnz_ref/
+├── topol.top
+├── topol_BNZ.itp
+├── config.yml
+├── mg/                      ← MG prior for LYZ intra + zero prior for LYZ-BNZ inter
+│   ├── intramat_1_1.ndx.h5
+│   ├── intermat_1_2.ndx.h5
+│   ├── ffnonbonded.itp
+│   ├── top_BNZ.itp
+│   └── topol_mego.top
+├── mg_id/                   ← identity prior for BNZ intra
+│   ├── intramat_1_1.ndx.h5
+│   ├── ffnonbonded.itp
+│   ├── top_BNZ.itp
+│   └── topol_mego.top
+└── training/                ← training simulation (DES-Amber FF)
+    ├── topol.top
+    ├── topol_BNZ.itp
+    ├── topol_Lyso.itp
+    ├── intramat_1_1.ndx.h5
+    ├── intermat_1_2.ndx.h5
+    └── des-amber.ff/`,
+    config: `---
+- system: lyso-bnz_ref
+- egos: production
+- no_header
+- symmetry:
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ARG NH1 NH2
+  - LYS O1 O2
+  - BNZ CD1 CD2 CE1 CE2 CZ CG
+- input_refs:
+  # LYZ intramolecular — standard MG prior
+  - reference: mg
+    train: training
+    matrix: intramat_1_1
+    epsilon: 0.28
+  # BNZ intramolecular — identity prior (rigid ligand)
+  - reference: mg_id
+    train: training
+    matrix: intramat_1_1
+    epsilon: 1.0
+  # LYZ-BNZ intermolecular — zero cross-matrix prior
+  - reference: mg
+    train: training
+    matrix: intermat_1_2
+    epsilon: 0.53`,
+    command: "mego --config inputs/lyso-bnz_ref/config.yml",
+  },
 ];
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -300,13 +376,15 @@ export default function Examples() {
       <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-6">
         <h3 className="mb-2 font-semibold text-white">Progression of complexity</h3>
         <p className="text-sm text-gray-400">
-          The three examples are ordered by complexity. <strong className="text-gray-200">GB1</strong> is
+          The four examples are ordered by complexity. <strong className="text-gray-200">GB1</strong> is
           the canonical starting point: one molecule, one training simulation, intra-molecular contacts
           only. <strong className="text-gray-200">Aβ</strong> shows the same setup applied to a
           disordered peptide, and illustrates that the reference folder can have any name as long as
           it matches the config. <strong className="text-gray-200">TTR</strong> adds inter-molecular
-          contacts and two independent training simulations run with different force fields — a 
-          more general multi-<em>e</em>GO workflow.
+          contacts and two independent training simulations run with different force fields — a
+          more general multi-<em>e</em>GO workflow. <strong className="text-gray-200">Lysozyme + Benzene</strong> introduces
+          protein–ligand binding: two molecule types, an identity prior for the rigid ligand, and
+          separate epsilon values for intra- and inter-molecular interactions.
         </p>
       </div>
     </div>
