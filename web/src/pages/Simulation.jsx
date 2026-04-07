@@ -52,7 +52,7 @@ const STEPS = [
     number: "04",
     title: "Generate topology (pdb2gmx)",
     description:
-      "gmx pdb2gmx builds a GROMACS topology from the PDB using the multi-eGO-basic force field.",
+      "gmx pdb2gmx builds a GROMACS topology from the input structure using the multi-eGO-basic force field.",
   },
   {
     number: "05",
