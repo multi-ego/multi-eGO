@@ -189,7 +189,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
 
         if not pairs.empty:
             pairs["ai"] = pairs["ai"].map(atnum_type_dict)
-            pairs["aj"] = pairs["aj"].map(atnum_type_dict)
+            pairs["aj"] = pairs["aj"].map(sbtype_to_atnum)
             pairs = pairs[pairs["c12"] > 0.0]
             pairs = pairs[
                 [
