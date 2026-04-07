@@ -227,7 +227,6 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
         "learned": "Int64",  # Allows for integer with NaNs, which can be cast later
     }
 
-    contact_matrix = pd.DataFrame()
     if not h5:
         contact_matrix = pd.read_csv(path, header=None, sep=r"\s+", names=col_names, dtype=col_types)
         contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
