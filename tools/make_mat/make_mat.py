@@ -611,7 +611,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     args : argparse.Namespace
         Parsed command-line arguments.
     """
-    df = pd.DataFrame()
 
     topology_df_i = pd.DataFrame()
     topology_df_j = pd.DataFrame()
