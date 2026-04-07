@@ -293,7 +293,7 @@ export default function Examples() {
       <div>
         <h1 className="section-heading mb-3">Examples</h1>
         <p className="max-w-2xl text-gray-400">
-          Three ready-to-run test cases from the repository, covering the most common multi-<em>e</em>GO
+          Four ready-to-run test cases from the repository, covering the most common multi-<em>e</em>GO
           workflows — from a simple single-molecule protein to a multi-chain system learned from
           multiple training simulations simultaneously. Each example lives under{" "}
           <code className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-brand-300">
