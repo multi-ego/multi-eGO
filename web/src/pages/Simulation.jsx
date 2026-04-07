@@ -12,17 +12,16 @@ const OPTIONS = [
       "Installs the Ubuntu-packaged GROMACS binary with a single apt command. " +
       "Covers all steps of the mg workflow and is the fastest way to get started.",
     pros: ["Ready in ~2 minutes", "No compilation required", "Full mg workflow supported"],
-    cons: ["Older GROMACS version", "No multi-eGO-specific patches"],
+    cons: ["Not optimised, slow simulations", "Not compatible with CMDATA from multi-eGO"],
   },
   {
     label: "Option B",
     badge: "~20 min",
     title: "Compile from source",
     description:
-      "Builds the multi-eGO GROMACS fork from the release-2023 branch. " +
-      "Compilation takes ~20 minutes on Colab CPUs but produces the exact binary " +
-      "used during multi-eGO development, with CUDA GPU support when a GPU runtime is selected.",
-    pros: ["multi-eGO GROMACS fork", "CUDA GPU support", "Protocol fidelity"],
+      "Builds GROMACS release-2023 branch. " +
+      "Compilation takes ~20 minutes on Colab CPUs but produces an optimized binary, with CUDA GPU support when a GPU runtime is selected.",
+    pros: ["CUDA GPU support, fast", "Compatible with CMDATA"],
     cons: ["~20 min compile time"],
   },
 ];
@@ -88,13 +87,6 @@ const STEPS = [
     description:
       "run.xtc and run.tpr are downloaded to your computer — everything needed " +
       "to extract contact histograms with cmdata.",
-  },
-];
-
-const PREREQS = [
-  {
-    file: "protein.pdb",
-    note: "PDB coordinates of the protein (no water, no ions)",
   },
 ];
 
@@ -172,45 +164,6 @@ export default function Simulation() {
               </ul>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Prerequisites */}
-      <div>
-        <h2 className="section-heading mb-6">Prerequisites</h2>
-        <p className="mb-4 text-gray-400">
-          All you need is a PDB file of the protein you want to simulate. The notebook handles
-          topology generation, force-field parameterisation, and simulation setup automatically.
-        </p>
-        <div className="overflow-x-auto rounded-xl border border-gray-800">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-800 bg-gray-900/60">
-                <th className="px-4 py-3 text-left font-medium text-gray-400">File</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-400">Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {PREREQS.map((p) => (
-                <tr key={p.file} className="border-b border-gray-800/50 last:border-0">
-                  <td className="px-4 py-3">
-                    <code className="rounded bg-gray-800 px-1.5 py-0.5 text-xs text-brand-300">
-                      {p.file}
-                    </code>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400">{p.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-4 flex gap-3">
-          <Link to="/setup" className="btn-secondary text-sm">
-            Setup assistant →
-          </Link>
-          <Link to="/config" className="btn-secondary text-sm">
-            Config builder →
-          </Link>
         </div>
       </div>
 
