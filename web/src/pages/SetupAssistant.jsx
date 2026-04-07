@@ -3,10 +3,6 @@ import { parseMoleculeFile } from "../utils/parseMolecule.js";
 
 // ─── pdb2gmx option definitions ───────────────────────────────────────────────
 
-const WATER_MODELS = [
-  { value: "none", label: "None (no water)" },
-];
-
 const CHAINSEP_OPTIONS = [
   { value: "id_or_ter", label: "id_or_ter — new chain on ID change or TER record (recommended)" },
   { value: "id", label: "id — new chain on chain ID change only" },
