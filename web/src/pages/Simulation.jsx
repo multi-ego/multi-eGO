@@ -95,7 +95,7 @@ export default function Simulation() {
     <div className="mx-auto max-w-6xl space-y-16 px-6 py-12">
       {/* Header */}
       <div className="space-y-4">
-        <h1 className="section-heading">mg Reference Simulation</h1>
+        <h1 className="section-heading">Run a Multi-eGO Simulations</h1>
         <p className="max-w-2xl text-gray-400">
           Run the complete molten-globule reference simulation pipeline directly in your
           browser — no local GROMACS installation required. The notebook runs on Google Colab
