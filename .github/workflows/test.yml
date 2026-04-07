@@ -11,6 +11,8 @@ on:
     paths-ignore:
       - 'tools/cmdata/**'
 
+permissions:
+  contents: read
 
 jobs:
   unit_test:
