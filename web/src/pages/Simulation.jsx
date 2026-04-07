@@ -22,7 +22,7 @@ const NOTEBOOKS = [
     tag: "Bundled examples",
     title: "Production simulation of example systems",
     description:
-      "Select one of the multi-eGO reference systems (GB1, Aβ42, TTR tetramer, " +
+      "Select one of the multi-eGO test systems (GB1, Aβ42, TTR tetramer, " +
       "Lysozyme+benzene). All contact matrices are pre-computed — the notebook " +
       "generates the production force field with mego and runs the simulation immediately.",
     steps: "5 automated steps · no file upload needed",
@@ -46,7 +46,7 @@ const OPTIONS = [
     title: "Compile from source",
     description:
       "Builds GROMACS release-2023 branch with system FFTW3 (installed via apt). " +
-      "Compilation takes ~10 minutes on Colab CPUs and produces an optimised binary with CUDA GPU support when a GPU runtime is selected.",
+      "Compilation takes ~20 minutes on Colab CPUs and produces an optimised binary with CUDA GPU support when a GPU runtime is selected.",
     pros: ["CUDA GPU support, fast", "Compatible with CMDATA"],
     cons: ["~20 min compile time"],
   },
@@ -57,7 +57,7 @@ const STEPS = [
     number: "01",
     title: "Install GROMACS",
     description:
-      "Choose between a quick apt install (~2 min) or compiling the multi-eGO GROMACS fork " +
+      "Choose between a quick apt install (~2 min) or compiling GROMACS " +
       "from source (~20 min). Only one option needs to be run.",
   },
   {
@@ -121,7 +121,7 @@ export default function Simulation() {
     <div className="mx-auto max-w-6xl space-y-16 px-6 py-12">
       {/* Header */}
       <div className="space-y-4">
-        <h1 className="section-heading">Run a Multi-eGO Simulations</h1>
+        <h1 className="section-heading">Run a Multi-<em>e</em>GO Simulation</h1>
         <p className="max-w-2xl text-gray-400">
           Run multi-eGO simulations directly in your browser — no local GROMACS installation
           required. Two Google Colab notebooks are available: one for your own protein starting
@@ -248,7 +248,7 @@ export default function Simulation() {
               number: "02",
               title: "Select an example system",
               description:
-                "Choose from GB1, Aβ42, TTR tetramer (three force-field variants), or " +
+                "Choose from GB1, Aβ42, TTR peptide, or " +
                 "Lysozyme+benzene. The config, reference topology, and starting structure " +
                 "are set automatically.",
             },
