@@ -1,3 +1,4 @@
+import importlib.metadata
 import numpy as np
 import pandas as pd
 import glob
@@ -396,11 +397,10 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
     parameters : dict
         Contains the command-line parsed parameters
     """
-    repo = git.Repo(search_parent_directories=True)
-    commit_hash = repo.head.object.hexsha
     with open(f"{output_dir}/meGO.log", "w") as f:
         f.write(
-            f"multi-eGO topology generated on {time.strftime('%d-%m-%Y %H:%M', time.localtime())} using commit {commit_hash}\n"
+            f"multi-eGO topology generated on {time.strftime('%d-%m-%Y %H:%M', time.localtime())} "
+            f"using multi-eGO {_mego_version()}\n"
         )
         f.write("Parameters used to generate the topology:\n")
         for key, value in vars(parameters).items():
@@ -525,10 +525,28 @@ def dataframe_to_write(df, float_format=None):
         return df.to_string(index=False, float_format=float_format)
 
 
+def _mego_version() -> str:
+    """Return a human-readable multi-eGO version string.
+
+    Combines the installed package version (from importlib.metadata) with the
+    current git commit hash when available.  Degrades gracefully when running
+    outside a git repository or from an uninstalled source tree.
+    """
+    try:
+        version = f"v{importlib.metadata.version('mego')}"
+    except importlib.metadata.PackageNotFoundError:
+        version = "(uninstalled)"
+    try:
+        commit = git.Repo(search_parent_directories=True).head.object.hexsha[:8]
+        return f"{version} (commit {commit})"
+    except git.exc.InvalidGitRepositoryError:
+        return version
+
+
 def make_header(parameters, write_header):
     now = time.strftime("%d-%m-%Y %H:%M", time.localtime())
 
-    header = """; Multi-eGO force field version beta.6
+    header = f"""; Multi-eGO force field {_mego_version()}
 ; https://github.com/multi-ego/multi-eGO
 ; Please read and cite:
 ; Scalone, E. et al. PNAS 119, e2203181119 (2022) 10.1073/pnas.2203181119
