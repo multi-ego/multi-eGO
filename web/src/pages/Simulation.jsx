@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom";
-
 const COLAB_MG_URL =
   "https://colab.research.google.com/github/multi-ego/multi-eGO/blob/main/tools/colab/run_mg_gromacs.ipynb";
 
