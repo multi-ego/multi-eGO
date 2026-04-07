@@ -44,9 +44,9 @@ const STEPS = [
   },
   {
     number: "03",
-    title: "Upload PDB file",
+    title: "Upload/select/generate a PDB/GRO file",
     description:
-      "Upload the PDB file of your protein. The notebook derives the system name from the filename.",
+      "Upload the PDB/GRO file of your protein. One can also use provided example or generate a linear polymer.",
   },
   {
     number: "04",
@@ -58,7 +58,7 @@ const STEPS = [
     number: "05",
     title: "Generate mg force field (mego)",
     description:
-      "mego --egos mg reads the AMBER topology and writes topol_mego.top and ffnonbonded.itp " +
+      "mego --egos mg reads the GROMACS topology and writes topol_mego.top and ffnonbonded.itp " +
       "with the molten-globule C6/C12 non-bonded parameters.",
   },
   {
