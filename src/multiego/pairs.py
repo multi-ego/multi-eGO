@@ -42,7 +42,7 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
     nth_bonds = []
 
     for atom in reduced_topology["number"].to_list():
-        visited = set([atom])
+        visited = {atom}
         nth_tmp = set()
         queue = deque([(atom, 0)])
 
