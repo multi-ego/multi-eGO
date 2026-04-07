@@ -277,7 +277,8 @@ def read_topologies(mego_top, target_top):
         try:
             dirname, basename = os.path.split(target_top)
             temp_ref = tempfile.NamedTemporaryFile(prefix=basename, dir=dirname)
-            temp_ref.write(open(target_top, "rb").read())
+            with open(target_top, "rb") as src:
+                temp_ref.write(src.read())
             temp_ref.seek(0)
             molecules_tag = False
             with open(temp_ref.name, "r") as f:
