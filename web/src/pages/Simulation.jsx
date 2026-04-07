@@ -27,6 +27,15 @@ const NOTEBOOKS = [
   },
 ];
 
+const OUTPUT_FILES = [
+  ["run.xtc", "Production trajectory in GROMACS XTC format"],
+  ["run.tpr", "GROMACS run-input file (required by cmdata)"],
+  ["run.edr", "Binary energy file"],
+  ["energy_plot.png", "Potential energy and temperature plots"],
+  ["topol_mego.top", "GROMACS topology with mg force field"],
+  ["ffnonbonded.itp", "Non-bonded C6/C12 parameters"],
+];
+
 const OPTIONS = [
   {
     label: "Option A",
@@ -289,14 +298,7 @@ export default function Simulation() {
         <div className="card">
           <h3 className="mb-3 font-semibold text-white">Output files</h3>
           <ul className="space-y-2 text-sm text-gray-400">
-            {[
-              ["run.xtc", "Production trajectory in GROMACS XTC format"],
-              ["run.tpr", "GROMACS run-input file (required by cmdata)"],
-              ["run.edr", "Binary energy file"],
-              ["energy_plot.png", "Potential energy and temperature plots"],
-              ["topol_mego.top", "GROMACS topology with mg force field"],
-              ["ffnonbonded.itp", "Non-bonded C6/C12 parameters"],
-            ].map(([f, desc]) => (
+            {OUTPUT_FILES.map(([f, desc]) => (
               <li key={f} className="flex gap-3">
                 <code className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-brand-300">
                   {f}
