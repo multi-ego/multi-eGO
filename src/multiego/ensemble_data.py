@@ -27,6 +27,7 @@ import parmed
 from . import io
 from . import topology as _topology
 from . import type_definitions
+from ._parmed_compat import gmxlib_in_topo_dir
 
 # ---------------------------------------------------------------------------
 # Module-level helpers
@@ -327,11 +328,9 @@ class MeGOEnsemble:
             raise FileNotFoundError(f"{base_topology_path} not found.")
 
         print(f"  {base_topology_path}")
-        _gmxlib = os.environ.get("GMXLIB", "")
-        _includes = [_gmxlib] if _gmxlib else []
-        with warnings.catch_warnings():
+        with gmxlib_in_topo_dir(base_topology_path), warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            base_reference_topology = parmed.load_file(base_topology_path, {"DISULFIDE": 1}, includes=_includes)
+            base_reference_topology = parmed.load_file(base_topology_path, {"DISULFIDE": 1})
 
         (
             topology_dataframe,
