@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
 const links = [
@@ -22,9 +22,14 @@ const GitHubIcon = () => (
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const location = useLocation();
 
   // Close the mobile menu whenever the route changes
   // (useLocation re-renders the component on navigation)
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
   const close = () => setOpen(false);
 
   return (
