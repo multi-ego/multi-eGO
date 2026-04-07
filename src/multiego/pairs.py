@@ -156,7 +156,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         pairs["source"] = "mg"
         pairs["func"] = 1
 
-        # then we add intramolecular intereactions paired to an intermolecular one
+        # then we add intramolecular interactions paired to an intermolecular one
         # and we regenerate prior intramolecular interactions
         if args.egos == "production" and meGO_LJ_14 is not None and not meGO_LJ_14.empty:
             meGO_pairs = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == mol_ai][
