@@ -160,18 +160,19 @@ const EXAMPLES = [
   {
     id: "lyso-bnz",
     title: "Lysozyme + Benzene",
-    subtitle: "Our benchmark for protein–small molecule binding",
-    tags: ["2 molecules", "1 training set", "3 references", "protein-ligand", "intra+inter molecular"],
+    subtitle: "Our benchmark for multi-domains protein and small molecule binding",
+    tags: ["2 molecules", "1 training set", "3 references", "multi-domains", "protein-ligand", "intra+inter molecular"],
     description:
       "A protein–ligand complex: hen-egg-white lysozyme (LYZ) with benzene (BNZ) as a probe ligand. " +
       "This example introduces two concepts not present in the single-molecule examples. " +
-      "First, inter-molecular contacts between the protein and the ligand are learned from the same " +
-      "training simulation, requiring an intermat_1_2 matrix alongside the protein intramat_1_1. " +
-      "Second, the ligand uses an identity-diagonal prior (mg_id) rather than the standard " +
-      "molten-globule prior: because benzene is a rigid aromatic ring whose internal geometry is " +
-      "fixed, the conventional MG prior is not meaningful and is replaced by an identity prior that " +
-      "keeps ligand self-interactions fixed at their force-field values. " +
-      "The training simulation used the DES-Amber force field. " +
+      "First, Lysozyme is treated as a two domains protein, so the same single training is learned in two steps: " +
+      "Each domain is learned on top of the standard molten globule prior, while iterdomain contacts are learned " +
+      "on a prior resulting from the meGO production simulation obtained after the first step (i.e. a meGO simulation " +
+      "where the domains are folded but inter-domain contacts are defined as molten globule. " +
+      "Third, in this case we also introduce inter-molecular contacts between the protein and the ligand. " +
+      "These are learned from a training simulation with a BNZ in the pocket and 5 BNZ in solution. " +
+      "The intermolecular prior is obtained by a meGO simulation with the same box of the training and 5 BNZ molecules " +
+      "described with the correct internal geometry and molten globule intermolecular interactions. " +
       "The benzene ring symmetry (all six ring atoms interchangeable) is declared explicitly in the config.",
     highlights: [
       { label: "Training FF",  value: "DES-Amber" },
@@ -183,13 +184,13 @@ const EXAMPLES = [
 ├── topol.top
 ├── topol_BNZ.itp
 ├── config.yml
-├── mg/                      ← MG prior for LYZ intra + zero prior for LYZ-BNZ inter
+├── mg/                      ← MG prior for LYZ intra + same training concentration prior for LYZ-BNZ inter
 │   ├── intramat_1_1.ndx.h5
 │   ├── intermat_1_2.ndx.h5
 │   ├── ffnonbonded.itp
 │   ├── top_BNZ.itp
 │   └── topol_mego.top
-├── mg_id/                   ← identity prior for BNZ intra
+├── mg_id/                   ← multi-domain prior for LYZ
 │   ├── intramat_1_1.ndx.h5
 │   ├── ffnonbonded.itp
 │   ├── top_BNZ.itp
@@ -213,20 +214,20 @@ const EXAMPLES = [
   - TYR CD1 CD2
   - TYR CE1 CE2
   - ARG NH1 NH2
-  - LYS O1 O2
+  - CTER O1 O2
   - BNZ CD1 CD2 CE1 CE2 CZ CG
 - input_refs:
-  # LYZ intramolecular — standard MG prior
+  # LYZ intra-domain — standard MG prior
   - reference: mg
     train: training
     matrix: intramat_1_1
     epsilon: 0.28
-  # BNZ intramolecular — identity prior (rigid ligand)
+  # LYZ inter-domain — multi-domain prior
   - reference: mg_id
     train: training
     matrix: intramat_1_1
     epsilon: 1.0
-  # LYZ-BNZ intermolecular — zero cross-matrix prior
+  # LYZ-BNZ intermolecular — cross-matrix prior
   - reference: mg
     train: training
     matrix: intermat_1_2
@@ -383,8 +384,7 @@ export default function Examples() {
           it matches the config. <strong className="text-gray-200">TTR</strong> adds inter-molecular
           contacts and two independent training simulations run with different force fields — a
           more general multi-<em>e</em>GO workflow. <strong className="text-gray-200">Lysozyme + Benzene</strong> introduces
-          protein–ligand binding: two molecule types, an identity prior for the rigid ligand, and
-          separate epsilon values for intra- and inter-molecular interactions.
+          multi-domain proteins and protein–ligand binding.
         </p>
       </div>
     </div>
