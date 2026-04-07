@@ -1,62 +1,100 @@
 import { Link } from "react-router-dom";
 
 const COLAB_URL =
-  "https://colab.research.google.com/github/multi-ego/multi-eGO/blob/main/tools/colab/run_mg_openmm.ipynb";
+  "https://colab.research.google.com/github/multi-ego/multi-eGO/blob/main/tools/colab/run_mg_gromacs.ipynb";
+
+const OPTIONS = [
+  {
+    label: "Option A",
+    badge: "~2 min",
+    title: "Install via apt",
+    description:
+      "Installs the Ubuntu-packaged GROMACS binary with a single apt command. " +
+      "Covers all steps of the mg workflow and is the fastest way to get started.",
+    pros: ["Ready in ~2 minutes", "No compilation required", "Full mg workflow supported"],
+    cons: ["Older GROMACS version", "No multi-eGO-specific patches"],
+  },
+  {
+    label: "Option B",
+    badge: "~20 min",
+    title: "Compile from source",
+    description:
+      "Builds the multi-eGO GROMACS fork from the release-2023 branch. " +
+      "Compilation takes ~20 minutes on Colab CPUs but produces the exact binary " +
+      "used during multi-eGO development, with CUDA GPU support when a GPU runtime is selected.",
+    pros: ["multi-eGO GROMACS fork", "CUDA GPU support", "Protocol fidelity"],
+    cons: ["~20 min compile time"],
+  },
+];
 
 const STEPS = [
   {
     number: "01",
-    title: "Install dependencies",
+    title: "Install GROMACS",
     description:
-      "OpenMM, ParmEd, and MDTraj are installed automatically in the first cell. No local setup required.",
+      "Choose between a quick apt install (~2 min) or compiling the multi-eGO GROMACS fork " +
+      "from source (~20 min). Only one option needs to be run.",
   },
   {
     number: "02",
-    title: "Upload input files",
+    title: "Install multi-eGO",
     description:
-      "Upload topol_mego.top, ffnonbonded.itp, and system.gro — the three files produced by the mg force-field generation and initial GROMACS setup steps.",
+      "The multi-eGO package is cloned from GitHub and installed with pip. " +
+      "GMXLIB is configured automatically so GROMACS finds the multi-eGO force-field files.",
   },
   {
     number: "03",
-    title: "Energy minimisation",
+    title: "Upload PDB file",
     description:
-      "Steepest-descents minimisation removes any bad contacts in the starting structure before dynamics begin.",
+      "Upload the PDB file of your protein. The notebook derives the system name from the filename.",
   },
   {
     number: "04",
-    title: "NVT production run",
+    title: "Generate topology (pdb2gmx)",
     description:
-      "Langevin dynamics at 300 K, 5 fs timestep, 2.5 nm LJ cutoff — matching the ff_aa.mdp protocol. GPU-accelerated when a CUDA device is available in Colab.",
+      "gmx pdb2gmx builds a GROMACS topology from the PDB using the multi-eGO-basic force field.",
   },
   {
     number: "05",
-    title: "Energy analysis",
+    title: "Generate mg force field (mego)",
     description:
-      "Potential energy and temperature are plotted automatically so you can check that the simulation is well-equilibrated.",
+      "mego --egos mg reads the AMBER topology and writes topol_mego.top and ffnonbonded.itp " +
+      "with the molten-globule C6/C12 non-bonded parameters.",
   },
   {
     number: "06",
-    title: "Download trajectory",
+    title: "Energy minimisation",
     description:
-      "The trajectory is converted from DCD to XTC (GROMACS format) with MDTraj, ready to be analysed with cmdata.",
+      "Steepest-descent minimisation with the mg force field removes bad contacts " +
+      "in the starting structure before dynamics begin.",
+  },
+  {
+    number: "07",
+    title: "NVT production run",
+    description:
+      "Langevin dynamics at the chosen temperature and timestep. GPU is used automatically " +
+      "when a Colab GPU runtime is active. Produces run.xtc and run.tpr.",
+  },
+  {
+    number: "08",
+    title: "Energy analysis",
+    description:
+      "Potential energy and temperature are extracted from the GROMACS energy file " +
+      "and plotted so you can verify the simulation is well-behaved.",
+  },
+  {
+    number: "09",
+    title: "Download outputs",
+    description:
+      "run.xtc and run.tpr are downloaded to your computer — everything needed " +
+      "to extract contact histograms with cmdata.",
   },
 ];
 
 const PREREQS = [
   {
-    file: "topol_mego.top",
-    from: "mego --system … --egos mg",
-    note: "GROMACS topology with multi-eGO mg force field",
-  },
-  {
-    file: "ffnonbonded.itp",
-    from: "mego --system … --egos mg",
-    note: "Non-bonded LJ parameters, referenced by the topology",
-  },
-  {
-    file: "system.gro",
-    from: "gmx pdb2gmx + gmx grompp/mdrun (energy minimisation)",
-    note: "Starting coordinates in GROMACS format",
+    file: "protein.pdb",
+    note: "PDB coordinates of the protein (no water, no ions)",
   },
 ];
 
@@ -67,17 +105,9 @@ export default function Simulation() {
       <div className="space-y-4">
         <h1 className="section-heading">mg Reference Simulation</h1>
         <p className="max-w-2xl text-gray-400">
-          Run the molten-globule reference simulation directly in your browser — no local GPU or
-          GROMACS installation required. The notebook runs on Google Colab using{" "}
-          <a
-            href="https://openmm.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand-400 hover:underline"
-          >
-            OpenMM
-          </a>{" "}
-          and is free to use with a Google account.
+          Run the complete molten-globule reference simulation pipeline directly in your
+          browser — no local GROMACS installation required. The notebook runs on Google Colab
+          and covers every setup step from a raw PDB file to a production trajectory.
         </p>
       </div>
 
@@ -87,7 +117,7 @@ export default function Simulation() {
           Run in your browser
         </p>
         <h2 className="mb-6 text-2xl font-bold text-white">
-          Multi-<em>e</em>GO mg simulation · OpenMM notebook
+          Multi-<em>e</em>GO mg simulation · GROMACS notebook
         </h2>
         <a
           href={COLAB_URL}
@@ -103,23 +133,60 @@ export default function Simulation() {
           Open in Google Colab
         </a>
         <p className="mt-4 text-xs text-gray-500">
-          Free GPU available · requires a Google account · no installation needed
+          Free GPU available · requires a Google account · no local installation needed
         </p>
+      </div>
+
+      {/* Two installation options */}
+      <div>
+        <h2 className="section-heading mb-2">GROMACS installation options</h2>
+        <p className="mb-6 text-gray-400">
+          The notebook offers two ways to install GROMACS — run exactly one of them.
+        </p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {OPTIONS.map((opt) => (
+            <div key={opt.label} className="card space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="rounded bg-brand-900 px-2 py-0.5 text-xs font-bold text-brand-300">
+                  {opt.label}
+                </span>
+                <span className="rounded bg-gray-800 px-2 py-0.5 text-xs text-gray-400">
+                  {opt.badge}
+                </span>
+                <h3 className="font-semibold text-white">{opt.title}</h3>
+              </div>
+              <p className="text-sm text-gray-400">{opt.description}</p>
+              <ul className="space-y-1 text-sm">
+                {opt.pros.map((p) => (
+                  <li key={p} className="flex gap-2 text-green-400">
+                    <span>✓</span>
+                    <span>{p}</span>
+                  </li>
+                ))}
+                {opt.cons.map((c) => (
+                  <li key={c} className="flex gap-2 text-gray-500">
+                    <span>–</span>
+                    <span>{c}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Prerequisites */}
       <div>
         <h2 className="section-heading mb-6">Prerequisites</h2>
         <p className="mb-4 text-gray-400">
-          Before opening the notebook, complete steps 1–3 of the workflow to generate the mg force
-          field and initial coordinates.
+          All you need is a PDB file of the protein you want to simulate. The notebook handles
+          topology generation, force-field parameterisation, and simulation setup automatically.
         </p>
         <div className="overflow-x-auto rounded-xl border border-gray-800">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-800 bg-gray-900/60">
                 <th className="px-4 py-3 text-left font-medium text-gray-400">File</th>
-                <th className="px-4 py-3 text-left font-medium text-gray-400">Generated by</th>
                 <th className="px-4 py-3 text-left font-medium text-gray-400">Description</th>
               </tr>
             </thead>
@@ -131,7 +198,6 @@ export default function Simulation() {
                       {p.file}
                     </code>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-300">{p.from}</td>
                   <td className="px-4 py-3 text-gray-400">{p.note}</td>
                 </tr>
               ))}
@@ -170,11 +236,12 @@ export default function Simulation() {
           <h3 className="mb-3 font-semibold text-white">Output files</h3>
           <ul className="space-y-2 text-sm text-gray-400">
             {[
-              ["trajectory.xtc", "Full trajectory in GROMACS XTC format"],
-              ["simulation.log", "Per-frame energy, temperature, and timing"],
+              ["run.xtc", "Production trajectory in GROMACS XTC format"],
+              ["run.tpr", "GROMACS run-input file (required by cmdata)"],
+              ["run.edr", "Binary energy file"],
               ["energy_plot.png", "Potential energy and temperature plots"],
-              ["final.pdb", "Final frame coordinates"],
-              ["checkpoint.xml", "OpenMM checkpoint for restarting"],
+              ["topol_mego.top", "GROMACS topology with mg force field"],
+              ["ffnonbonded.itp", "Non-bonded C6/C12 parameters"],
             ].map(([f, desc]) => (
               <li key={f} className="flex gap-3">
                 <code className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-brand-300">
@@ -194,9 +261,10 @@ export default function Simulation() {
               <span>
                 Extract contact histograms from the trajectory with{" "}
                 <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">cmdata</code>
-                {" "}(requires a GROMACS{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">.tpr</code>{" "}
-                run-input file).
+                {" "}(requires both{" "}
+                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">run.xtc</code>
+                {" "}and{" "}
+                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">run.tpr</code>).
               </span>
             </li>
             <li className="flex gap-3">
@@ -218,24 +286,6 @@ export default function Simulation() {
             </li>
           </ol>
         </div>
-      </div>
-
-      {/* Note on compatibility */}
-      <div className="rounded-xl border border-yellow-900/50 bg-yellow-950/20 p-5 text-sm text-yellow-200/80">
-        <strong className="text-yellow-300">Experimental:</strong> The multi-eGO OpenMM interface
-        is under active development. The mg force field uses C6/C12 non-bonded parameters with a
-        geometric combination rule and no electrostatics — parameters that most OpenMM GROMACS
-        readers handle correctly, but edge cases may arise with unusual topologies. If you encounter
-        loading errors, please{" "}
-        <a
-          href="https://github.com/multi-ego/multi-eGO/issues"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-yellow-300 underline hover:text-yellow-200"
-        >
-          open an issue
-        </a>
-        .
       </div>
     </div>
   );

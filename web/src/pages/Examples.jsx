@@ -157,6 +157,83 @@ const EXAMPLES = [
     epsilon: 0.25`,
     command: "mego --config inputs/ttrref/config.yml",
   },
+  {
+    id: "lyso-bnz",
+    title: "Lysozyme + Benzene",
+    subtitle: "Our benchmark for multi-domains protein and small molecule binding",
+    tags: ["2 molecules", "1 training set", "3 references", "multi-domains", "protein-ligand", "intra+inter molecular"],
+    description:
+      "A protein–ligand complex: hen-egg-white lysozyme (LYZ) with benzene (BNZ) as a probe ligand. " +
+      "This example introduces two concepts not present in the single-molecule examples. " +
+      "First, Lysozyme is treated as a two domains protein, so the same single training is learned in two steps: " +
+      "Each domain is learned on top of the standard molten globule prior, while iterdomain contacts are learned " +
+      "on a prior resulting from the meGO production simulation obtained after the first step (i.e. a meGO simulation " +
+      "where the domains are folded but inter-domain contacts are defined as molten globule. " +
+      "Third, in this case we also introduce inter-molecular contacts between the protein and the ligand. " +
+      "These are learned from a training simulation with a BNZ in the pocket and 5 BNZ in solution. " +
+      "The intermolecular prior is obtained by a meGO simulation with the same box of the training and 5 BNZ molecules " +
+      "described with the correct internal geometry and molten globule intermolecular interactions. " +
+      "The benzene ring symmetry (all six ring atoms interchangeable) is declared explicitly in the config.",
+    highlights: [
+      { label: "Training FF",  value: "DES-Amber" },
+      { label: "Contacts",     value: "intramat_1_1 + intermat_1_2 (intra & inter-molecular)" },
+      { label: "ε (LYZ intra)", value: "0.28 kJ/mol" },
+      { label: "ε (LYZ-BNZ inter)", value: "0.53 kJ/mol" },
+    ],
+    tree: `inputs/lyso-bnz_ref/
+├── topol.top
+├── topol_BNZ.itp
+├── config.yml
+├── mg/                      ← MG prior for LYZ intra + same training concentration prior for LYZ-BNZ inter
+│   ├── intramat_1_1.ndx.h5
+│   ├── intermat_1_2.ndx.h5
+│   ├── ffnonbonded.itp
+│   ├── top_BNZ.itp
+│   └── topol_mego.top
+├── mg_id/                   ← multi-domain prior for LYZ
+│   ├── intramat_1_1.ndx.h5
+│   ├── ffnonbonded.itp
+│   ├── top_BNZ.itp
+│   └── topol_mego.top
+└── training/                ← training simulation (DES-Amber FF)
+    ├── topol.top
+    ├── topol_BNZ.itp
+    ├── topol_Lyso.itp
+    ├── intramat_1_1.ndx.h5
+    ├── intermat_1_2.ndx.h5
+    └── des-amber.ff/`,
+    config: `---
+- system: lyso-bnz_ref
+- egos: production
+- no_header
+- symmetry:
+  - ASP OD1 OD2
+  - GLU OE1 OE2
+  - PHE CD1 CD2
+  - PHE CE1 CE2
+  - TYR CD1 CD2
+  - TYR CE1 CE2
+  - ARG NH1 NH2
+  - CTER O1 O2
+  - BNZ CD1 CD2 CE1 CE2 CZ CG
+- input_refs:
+  # LYZ intra-domain — standard MG prior
+  - reference: mg
+    train: training
+    matrix: intramat_1_1
+    epsilon: 0.28
+  # LYZ inter-domain — multi-domain prior
+  - reference: mg_id
+    train: training
+    matrix: intramat_1_1
+    epsilon: 1.0
+  # LYZ-BNZ intermolecular — cross-matrix prior
+  - reference: mg
+    train: training
+    matrix: intermat_1_2
+    epsilon: 0.53`,
+    command: "mego --config inputs/lyso-bnz_ref/config.yml",
+  },
 ];
 
 // ─── sub-components ───────────────────────────────────────────────────────────
@@ -300,13 +377,14 @@ export default function Examples() {
       <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-6">
         <h3 className="mb-2 font-semibold text-white">Progression of complexity</h3>
         <p className="text-sm text-gray-400">
-          The three examples are ordered by complexity. <strong className="text-gray-200">GB1</strong> is
+          The four examples are ordered by complexity. <strong className="text-gray-200">GB1</strong> is
           the canonical starting point: one molecule, one training simulation, intra-molecular contacts
           only. <strong className="text-gray-200">Aβ</strong> shows the same setup applied to a
           disordered peptide, and illustrates that the reference folder can have any name as long as
           it matches the config. <strong className="text-gray-200">TTR</strong> adds inter-molecular
-          contacts and two independent training simulations run with different force fields — a 
-          more general multi-<em>e</em>GO workflow.
+          contacts and two independent training simulations run with different force fields — a
+          more general multi-<em>e</em>GO workflow. <strong className="text-gray-200">Lysozyme + Benzene</strong> introduces
+          multi-domain proteins and protein–ligand binding.
         </p>
       </div>
     </div>
