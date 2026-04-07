@@ -461,9 +461,11 @@ def _load_reference_matrix(reference, ensemble, args):
         raise FileNotFoundError(f"{topology_path} not found.")
 
     print("    " f"{topology_path}")
+    _gmxlib = os.environ.get("GMXLIB", "")
+    _includes = [_gmxlib] if _gmxlib else []
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        topol = parmed.load_file(topology_path)
+        topol = parmed.load_file(topology_path, includes=_includes)
 
     lj_data = _get_lj_params(topol)
     lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
@@ -603,9 +605,11 @@ def _load_train_matrix(
         temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = computed_train_topologies[simulation_path]
     else:
         print("    " f"{topology_path}")
+        _gmxlib = os.environ.get("GMXLIB", "")
+        _includes = [_gmxlib] if _gmxlib else []
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            topol = parmed.load_file(topology_path)
+            topol = parmed.load_file(topology_path, includes=_includes)
         temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = _index_training_topology(topol, custom_dict)
         computed_train_topologies[simulation_path] = (temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary)
 

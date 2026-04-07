@@ -9,8 +9,8 @@ requires-python = ">=3.10"
 dependencies = [
     "GitPython>=3.1.44",
     "h5py>=3.11.0",
-    "numpy>=2.2.2,<2.3",
-    "pandas>=2.2.3",
+    "numpy>=1.26",
+    "pandas>=2.2.3,<3.0.0",
     "ParmEd>=4.2.2",
     "PyYAML>=6.0.2",
     "scipy>=1.15.1",

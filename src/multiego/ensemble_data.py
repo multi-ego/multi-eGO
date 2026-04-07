@@ -327,9 +327,11 @@ class MeGOEnsemble:
             raise FileNotFoundError(f"{base_topology_path} not found.")
 
         print(f"  {base_topology_path}")
+        _gmxlib = os.environ.get("GMXLIB", "")
+        _includes = [_gmxlib] if _gmxlib else []
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            base_reference_topology = parmed.load_file(base_topology_path, {"DISULFIDE": 1})
+            base_reference_topology = parmed.load_file(base_topology_path, {"DISULFIDE": 1}, includes=_includes)
 
         (
             topology_dataframe,
