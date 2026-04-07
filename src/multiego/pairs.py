@@ -42,7 +42,7 @@ def generate_bond_exclusions(reduced_topology, bond_pair):
     nth_bonds = []
 
     for atom in reduced_topology["number"].to_list():
-        visited = set([atom])
+        visited = {atom}
         nth_tmp = set()
         queue = deque([(atom, 0)])
 
@@ -111,8 +111,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         reduced_topology["number"] = reduced_topology["number"].astype(str)
         mol_ai = f"{idx}_{molecule}"
 
-        type_atnum_dict = reduced_topology.astype({"number": int}).set_index("number")["sb_type"].to_dict()
-        atnum_type_dict = reduced_topology.set_index("sb_type")["number"].to_dict()
+        atnum_to_sbtype = reduced_topology.astype({"number": int}).set_index("number")["sb_type"].to_dict()
+        sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
 
         nthbond = generate_bond_exclusions(reduced_topology, bond_pair)
 
@@ -121,11 +121,11 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         # Default c12 is the combination rule; special overrides are applied afterwards.
         filtered_combinations = []
         for a, b in nthbond:
-            if a not in type_atnum_dict or b not in type_atnum_dict:
+            if a not in atnum_to_sbtype or b not in atnum_to_sbtype:
                 continue
 
-            ai = type_atnum_dict[a]
-            aj = type_atnum_dict[b]
+            ai = atnum_to_sbtype[a]
+            aj = atnum_to_sbtype[b]
             ti = meGO_ensemble.sbtype_type_dict[ai]
             tj = meGO_ensemble.sbtype_type_dict[aj]
 
@@ -156,7 +156,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         pairs["source"] = "mg"
         pairs["func"] = 1
 
-        # then we add intramolecular intereactions paired to an intermolecular one
+        # then we add intramolecular interactions paired to an intermolecular one
         # and we regenerate prior intramolecular interactions
         if args.egos == "production" and meGO_LJ_14 is not None and not meGO_LJ_14.empty:
             meGO_pairs = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == mol_ai][
@@ -188,8 +188,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
             pairs = pd.concat([pairs, pairs14], ignore_index=True)
 
         if not pairs.empty:
-            pairs["ai"] = pairs["ai"].map(atnum_type_dict)
-            pairs["aj"] = pairs["aj"].map(atnum_type_dict)
+            pairs["ai"] = pairs["ai"].map(sbtype_to_atnum)
+            pairs["aj"] = pairs["aj"].map(sbtype_to_atnum)
             pairs = pairs[pairs["c12"] > 0.0]
             pairs = pairs[
                 [
