@@ -22,7 +22,6 @@ const GitHubIcon = () => (
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { pathname } = useLocation();
 
   // Close the mobile menu whenever the route changes
   // (useLocation re-renders the component on navigation)
