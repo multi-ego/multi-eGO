@@ -546,24 +546,6 @@ def calculate_matrices(args):
     """
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
-    chain_list = []
-    chains = [x for x in topology_mego.molecules]
-
-    for i in chains:
-        chain_list.append(
-            (
-                i,
-                len(topology_mego.molecules[i][0].atoms),
-                len(topology_mego.split()[list(topology_mego.molecules.keys()).index(i)][1]),
-            )
-        )
-
-    # number of molecules per species
-    N_mols = []
-    for chain in chain_list:
-        N_mols.append(chain[2])
-    N_mols = np.array(N_mols)
-
     print(f"""
     Topology contains {N_species} molecules species. Namely {molecules_name}.
     Calculating intermat for all species\n\n
