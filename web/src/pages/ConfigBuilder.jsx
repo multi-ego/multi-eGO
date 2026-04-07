@@ -108,24 +108,6 @@ function Toggle({ label, description, checked, onChange }) {
   );
 }
 
-function NumberInput({ label, description, value, onChange, min, max, step }) {
-  return (
-    <div>
-      <label className="label">{label}</label>
-      {description && <p className="text-xs text-gray-500 mb-1">{description}</p>}
-      <input
-        type="number"
-        value={value}
-        min={min}
-        max={max}
-        step={step ?? 0.001}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="input-field w-40"
-      />
-    </div>
-  );
-}
-
 function InputRefRow({ ref_: r, index, onChange, onRemove }) {
   const update = (key, val) => onChange(index, { ...r, [key]: val });
   return (
