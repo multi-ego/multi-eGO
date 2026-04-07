@@ -1,7 +1,33 @@
 import { Link } from "react-router-dom";
 
-const COLAB_URL =
+const COLAB_MG_URL =
   "https://colab.research.google.com/github/multi-ego/multi-eGO/blob/main/tools/colab/run_mg_gromacs.ipynb";
+
+const COLAB_EXAMPLES_URL =
+  "https://colab.research.google.com/github/multi-ego/multi-eGO/blob/main/tools/colab/run_examples_gromacs.ipynb";
+
+const NOTEBOOKS = [
+  {
+    url: COLAB_MG_URL,
+    tag: "Your own protein",
+    title: "mg reference simulation",
+    description:
+      "Start from any PDB or GRO file and run the complete molten-globule reference " +
+      "simulation pipeline — topology, mg force field, energy minimisation, and NVT " +
+      "production — ending with a trajectory ready for cmdata.",
+    steps: "9 automated steps · upload / test input / FASTA sequence",
+  },
+  {
+    url: COLAB_EXAMPLES_URL,
+    tag: "Bundled examples",
+    title: "Production simulation of example systems",
+    description:
+      "Select one of the multi-eGO reference systems (GB1, Aβ42, TTR tetramer, " +
+      "Lysozyme+benzene). All contact matrices are pre-computed — the notebook " +
+      "generates the production force field with mego and runs the simulation immediately.",
+    steps: "5 automated steps · no file upload needed",
+  },
+];
 
 const OPTIONS = [
   {
@@ -19,8 +45,8 @@ const OPTIONS = [
     badge: "~20 min",
     title: "Compile from source",
     description:
-      "Builds GROMACS release-2023 branch. " +
-      "Compilation takes ~20 minutes on Colab CPUs but produces an optimized binary, with CUDA GPU support when a GPU runtime is selected.",
+      "Builds GROMACS release-2023 branch with system FFTW3 (installed via apt). " +
+      "Compilation takes ~10 minutes on Colab CPUs and produces an optimised binary with CUDA GPU support when a GPU runtime is selected.",
     pros: ["CUDA GPU support, fast", "Compatible with CMDATA"],
     cons: ["~20 min compile time"],
   },
@@ -97,36 +123,53 @@ export default function Simulation() {
       <div className="space-y-4">
         <h1 className="section-heading">Run a Multi-eGO Simulations</h1>
         <p className="max-w-2xl text-gray-400">
-          Run the complete molten-globule reference simulation pipeline directly in your
-          browser — no local GROMACS installation required. The notebook runs on Google Colab
-          and covers every setup step from a raw PDB file to a production trajectory.
+          Run multi-eGO simulations directly in your browser — no local GROMACS installation
+          required. Two Google Colab notebooks are available: one for your own protein starting
+          from a raw PDB or GRO file, and one for the bundled example systems with pre-computed
+          contact matrices ready to simulate immediately.
         </p>
       </div>
 
-      {/* Colab CTA */}
-      <div className="rounded-xl border border-brand-800 bg-brand-950/30 p-8 text-center">
-        <p className="mb-2 text-sm font-medium uppercase tracking-widest text-brand-400">
+      {/* Colab notebooks */}
+      <div>
+        <p className="mb-2 text-center text-sm font-medium uppercase tracking-widest text-brand-400">
           Run in your browser
         </p>
-        <h2 className="mb-6 text-2xl font-bold text-white">
-          Multi-<em>e</em>GO mg simulation · GROMACS notebook
-        </h2>
-        <a
-          href={COLAB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-3 rounded-lg bg-[#F9AB00] px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-[#F9AB00]/90"
-        >
-          <img
-            src="https://colab.research.google.com/assets/colab-badge.svg"
-            alt="Open in Colab"
-            className="h-5"
-          />
-          Open in Google Colab
-        </a>
-        <p className="mt-4 text-xs text-gray-500">
+        <p className="mb-6 text-center text-xs text-gray-500">
           Free GPU available · requires a Google account · no local installation needed
         </p>
+        <div className="grid gap-6 lg:grid-cols-2">
+          {NOTEBOOKS.map((nb) => (
+            <div
+              key={nb.url}
+              className="flex flex-col justify-between rounded-xl border border-brand-800 bg-brand-950/30 p-8"
+            >
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-400">
+                  {nb.tag}
+                </p>
+                <h2 className="mb-3 text-xl font-bold text-white">
+                  Multi-<em>e</em>GO · {nb.title}
+                </h2>
+                <p className="mb-4 text-sm text-gray-400">{nb.description}</p>
+                <p className="mb-6 text-xs text-gray-500">{nb.steps}</p>
+              </div>
+              <a
+                href={nb.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-3 rounded-lg bg-[#F9AB00] px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-[#F9AB00]/90"
+              >
+                <img
+                  src="https://colab.research.google.com/assets/colab-badge.svg"
+                  alt="Open in Colab"
+                  className="h-5"
+                />
+                Open in Google Colab
+              </a>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Two installation options */}
@@ -167,11 +210,71 @@ export default function Simulation() {
         </div>
       </div>
 
-      {/* What the notebook does */}
+      {/* What the mg notebook does */}
       <div>
-        <h2 className="section-heading mb-6">What the notebook does</h2>
+        <h2 className="section-heading mb-1">What the mg simulation notebook does</h2>
+        <p className="mb-6 text-sm text-gray-500">
+          Applies to the <em>mg reference simulation</em> notebook (your own protein).
+        </p>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {STEPS.map((step) => (
+            <div key={step.number} className="card">
+              <span className="mb-3 block font-mono text-3xl font-bold text-brand-800">
+                {step.number}
+              </span>
+              <h3 className="mb-2 font-semibold text-white">{step.title}</h3>
+              <p className="text-sm text-gray-400">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* What the examples notebook does */}
+      <div>
+        <h2 className="section-heading mb-1">What the examples notebook does</h2>
+        <p className="mb-6 text-sm text-gray-500">
+          Applies to the <em>production simulation of example systems</em> notebook.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              number: "01",
+              title: "Install GROMACS + multi-eGO",
+              description:
+                "Same two-option GROMACS installation as the mg notebook, followed by " +
+                "cloning and pip-installing the multi-eGO package.",
+            },
+            {
+              number: "02",
+              title: "Select an example system",
+              description:
+                "Choose from GB1, Aβ42, TTR tetramer (three force-field variants), or " +
+                "Lysozyme+benzene. The config, reference topology, and starting structure " +
+                "are set automatically.",
+            },
+            {
+              number: "03",
+              title: "Generate production force field (mego)",
+              description:
+                "mego --config reads the pre-computed contact matrices and reference " +
+                "topology bundled in the repository and writes topol_mego.top and " +
+                "ffnonbonded.itp.",
+            },
+            {
+              number: "04",
+              title: "Energy minimisation",
+              description:
+                "Steepest-descent minimisation with the production multi-eGO force field " +
+                "removes bad contacts in the starting structure.",
+            },
+            {
+              number: "05",
+              title: "NVT production run",
+              description:
+                "Langevin dynamics at the chosen temperature. GPU is used automatically " +
+                "when a Colab GPU runtime is active. Produces run.xtc and run.tpr.",
+            },
+          ].map((step) => (
             <div key={step.number} className="card">
               <span className="mb-3 block font-mono text-3xl font-bold text-brand-800">
                 {step.number}
