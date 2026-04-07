@@ -8,6 +8,9 @@ on:
     paths:
       - 'tools/cmdata/**'
 
+permissions:
+  contents: read
+
 jobs:
   build-linux-gromacs:
     runs-on: ubuntu-latest
