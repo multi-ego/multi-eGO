@@ -24,9 +24,6 @@ Multi-*e*GO is a framework for building data-driven, atomic-resolution force fie
   - [3. Generate the molten-globule prior (`mg`)](#3-generate-the-molten-globule-prior-mg)
   - [4. Run and analyse the reference simulation](#4-run-and-analyse-the-reference-simulation)
   - [5. Generate the production force field](#5-generate-the-production-force-field)
-- [Advanced usage](#advanced-usage)
-  - [Multiple training simulations via config file](#multiple-training-simulations-via-config-file)
-  - [Key parameters](#key-parameters)
 - [Developers](#developers)
 - [Cite us](#cite-us)
 
@@ -234,12 +231,6 @@ Output is written to `outputs/SYSTEM_NAME/production_#/`. Copy `ffnonbonded.itp`
 
 > **Note:** before running, ensure that the `moleculetype` name in all topology files is consistent. The program will exit with an error if names do not match.
 
----
-
-## Advanced usage
-
-### Multiple training simulations via config file
-
 When learning from multiple training simulations or multiple reference conditions simultaneously, use a YAML configuration file instead of command-line arguments:
 
 ```bash
@@ -278,18 +269,6 @@ A typical config file looks like:
 ```
 
 Each entry under `input_refs` defines one training/reference pair. Intra- and inter-molecular contacts can be learned simultaneously by listing both matrix types.
-
-### Key parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `--epsilon` | — | Maximum interaction energy per contact pair (kJ/mol). Required for `production`. |
-| `--force_split` | False | Write intra- and inter-molecular interactions to separate files. |
-| `--symmetry` | — | List of equivalent atoms, e.g. `ARG NH1 NH2`. Contacts are averaged over equivalent atoms. |
-| `--custom_dict` | — | JSON file for custom atom-name mappings (non-standard residues). |
-| `--custom_c12` | — | CSV file for custom repulsive C12 parameters. |
-| `--inputs_dir` | inputs/ | Directory containing the system input folders. |
-| `--outputs_dir` | outputs/ | Directory where to save output files. |
 
 ---
 
