@@ -14,7 +14,7 @@ const DEFAULT_SYMMETRIES = [
   "CTER O1 O2",
 ];
 
-const MATRIX_OPTIONS = ["intramat_1_1", "intermat_1_1", "intramat_1_2", "intermat_1_2"];
+const MATRIX_OPTIONS = ["intramat_1_1", "intermat_1_1", "intramat_2_2", "intermat_1_2", "intermat_2_2"];
 
 const emptyRef = () => ({
   id: crypto.randomUUID(),
