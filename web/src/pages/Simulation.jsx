@@ -78,7 +78,7 @@ const STEPS = [
     number: "03",
     title: "Upload/select/generate a PDB/GRO file",
     description:
-      "Upload the PDB/GRO file of your protein. One can also use provided example or generate a linear polymer.",
+      "Upload the PDB/GRO file of your protein. One can also use a provided example or generate a linear polymer.",
   },
   {
     number: "04",
