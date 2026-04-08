@@ -45,7 +45,7 @@ const OPTIONS = [
       "Installs the Ubuntu-packaged GROMACS binary with a single apt command. " +
       "Covers all steps of the mg workflow and is the fastest way to get started.",
     pros: ["Ready in ~2 minutes", "No compilation required", "Full mg workflow supported"],
-    cons: ["Not optimized, slow simulations", "Not compatible with CMDATA from multi-eGO"],
+    cons: ["Not optimized, slow simulations", "Not compatible with cmdata from multi-eGO"],
   },
   {
     label: "Option B",
@@ -54,7 +54,7 @@ const OPTIONS = [
     description:
       "Builds GROMACS release-2023 branch with system FFTW3 (installed via apt). " +
       "Compilation takes ~20 minutes on Colab CPUs and produces an optimized binary with CUDA GPU support when a GPU runtime is selected.",
-    pros: ["CUDA GPU support, fast", "Compatible with CMDATA"],
+    pros: ["CUDA GPU support, fast", "Compatible with cmdata"],
     cons: ["~20 min compile time"],
   },
 ];
