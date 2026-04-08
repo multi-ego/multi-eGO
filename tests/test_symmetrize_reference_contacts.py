@@ -304,6 +304,7 @@ class TestGrouping:
         assert result.iloc[0]["rc_probability"] == pytest.approx(expected_p_A)
         assert result.iloc[1]["rc_probability"] == pytest.approx(expected_p_A)
         assert result.iloc[0]["rc_distance"] == pytest.approx(expected_d_A)
+        assert result.iloc[1]["rc_distance"] == pytest.approx(expected_d_A)
         assert result.iloc[2]["rc_probability"] == pytest.approx(expected_p_B)
         assert result.iloc[3]["rc_probability"] == pytest.approx(expected_p_B)
         assert result.iloc[2]["rc_distance"] == pytest.approx(expected_d_B)
