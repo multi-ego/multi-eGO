@@ -166,7 +166,7 @@ const EXAMPLES = [
       "A protein–ligand complex: hen-egg-white lysozyme (LYZ) with benzene (BNZ) as a probe ligand. " +
       "This example introduces two concepts not present in the single-molecule examples. " +
       "First, Lysozyme is treated as a two domains protein, so the same single training is learned in two steps: " +
-      "Each domain is learned on top of the standard molten globule prior, while iterdomain contacts are learned " +
+      "Each domain is learned on top of the standard molten globule prior, while inter-domain contacts are learned " +
       "on a prior resulting from the meGO production simulation obtained after the first step (i.e. a meGO simulation " +
       "where the domains are folded but inter-domain contacts are defined as molten globule. " +
       "Third, in this case we also introduce inter-molecular contacts between the protein and the ligand. " +
