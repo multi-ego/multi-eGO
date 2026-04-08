@@ -34,8 +34,9 @@ jobs:
 
       - name: Run unit tests
         run: |
-         pytest tests/test_multiego.py -v
-         pytest tests/test_apply_symmetries.py -v
+         pytest tests/test_multiego.py
+         pytest tests/test_apply_symmetries.py
+         pytest tests/test_symmetrize_reference_contacts.py
 
   lint:
     runs-on: ubuntu-latest
@@ -75,7 +76,7 @@ jobs:
     - name: Run unit tests
       shell: bash -el {0}
       run: |
-        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
 
   build-linux-pip:
     runs-on: ubuntu-latest
@@ -95,7 +96,7 @@ jobs:
         pytest tests/test_make_mat.py
     - name: Run unit tests
       run: |
-        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
 
   build-macos-conda:
     runs-on: macos-14
@@ -117,7 +118,7 @@ jobs:
     - name: Run unit tests
       shell: bash -el {0}
       run: |
-        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
 
   build-macos-pip:
     runs-on: macos-latest
@@ -137,4 +138,4 @@ jobs:
         pytest tests/test_make_mat.py
     - name: Run unit tests
       run: |
-        pytest tests/test_multiego.py tests/test_apply_symmetries.py -v
+        pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
