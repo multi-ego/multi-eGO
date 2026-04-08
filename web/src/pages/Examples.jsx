@@ -106,7 +106,7 @@ const EXAMPLES = [
       "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
       "using two different force fields. Both intra-molecular and inter-molecular contacts " +
       "are learned, with intra-molecular resulting from the combination of the two different states. " +
-      "Two reference state, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
+      "Two reference states, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
     highlights: [
       { label: "Training FFs", value: "AMBER99SB-disp (native_MD), CHARMM22* (fibril)" },
       { label: "Contacts",     value: "intramat_1_1 + intermat_1_1 (intra & inter-molecular)" },
