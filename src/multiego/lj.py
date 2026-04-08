@@ -1,6 +1,7 @@
 from . import type_definitions
 from . import mg
 from . import bonded
+from . import _term
 from .model_config import config
 from . import io
 
@@ -480,7 +481,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         Statistics string for the header.
     """
     st = time.time()
-    print("  - Set sigma and epsilon")
+    _term.sub("Set sigma and epsilon")
     meGO_LJ = train_dataset[train_dataset["learned"] == 1].copy()
 
     needed_fields = [
@@ -509,19 +510,19 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
 
     et = time.time()
-    print(f"    Done in: {et - st:.2f} s")
+    _term.timing(et - st)
     st = et
 
     if parameters.symmetry:
-        print("  - Apply the defined atomic symmetries")
+        _term.sub("Apply the defined atomic symmetries")
         meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
-        print(f"    Done in: {et - st:.2f} s")
+        _term.timing(et - st)
         st = et
 
-    print("  - Merging multiple states (training, symmetries, inter/intra)")
+    _term.sub("Merging multiple states (training, symmetries, inter/intra)")
 
     # Merging priority: learned > not learned, attractive > repulsive, shorter > longer, stronger attractive, weaker repulsive
     meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
@@ -636,6 +637,6 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
     )
 
     et = time.time()
-    print(f"    Done in: {et - st:.2f} s")
+    _term.timing(et - st)
 
     return meGO_LJ, meGO_LJ_14, stat_str

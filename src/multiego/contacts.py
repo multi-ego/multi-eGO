@@ -21,6 +21,7 @@ Private helpers are prefixed with ``_`` and are not part of the public API.
 
 from . import io
 from . import type_definitions
+from . import _term
 from .model_config import config
 from ._parmed_compat import gmxlib_in_topo_dir
 
@@ -562,7 +563,7 @@ def _load_reference_matrix(reference, ensemble, args):
     if not os.path.isfile(topology_path):
         raise FileNotFoundError(f"{topology_path} not found.")
 
-    print("    " f"{topology_path}")
+    _term.path(topology_path)
     with gmxlib_in_topo_dir(topology_path), warnings.catch_warnings():
         warnings.simplefilter("ignore")
         topol = parmed.load_file(topology_path)
@@ -710,7 +711,7 @@ def _load_train_matrix(
     if simulation_path in computed_train_topologies:
         temp_topology_dataframe, ensemble.molecules_idx_sbtype_dictionary = computed_train_topologies[simulation_path]
     else:
-        print("    " f"{topology_path}")
+        _term.path(topology_path)
         with gmxlib_in_topo_dir(topology_path), warnings.catch_warnings():
             warnings.simplefilter("ignore")
             topol = parmed.load_file(topology_path)
@@ -802,17 +803,18 @@ def init_meGO_matrices(ensemble, args, custom_dict):
         # Skip if this (reference, matrix) combination has already been loaded —
         # two YAML blocks can legitimately share the same reference folder.
         ref_key = f"{args.system}/{reference['reference']}/{reference['matrix']}".replace("/", "_")
-        print("  " f"- Initializing {reference['reference']} ensemble data")
+        _term.sub(f"Initializing {reference['reference']} ensemble data")
         if ref_key in reference_contact_matrices:
-            print("    " f"Reference {reference['reference']} already loaded, reusing.")
+            _term.note(f"Reference {reference['reference']} already loaded, reusing.")
             et = time.time()
-            print(f"    Done in: {et - st:.2f} s")
+            _term.timing(et - st)
             st = et
             continue
-        name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
+        with _term.spinner(f"loading {reference['reference']}"):
+            name, contact_matrix = _load_reference_matrix(reference, ensemble, args)
         reference_contact_matrices[name] = contact_matrix
         et = time.time()
-        print(f"    Done in: {et - st:.2f} s")
+        _term.timing(et - st)
         st = et
 
     # TODO: enable once all test cases support intra-domain splitting
@@ -822,23 +824,24 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     for reference in args.input_refs:
         for simulation in reference["train"]:
-            print(f"  - Initializing {simulation} ensemble data")
-            name, ref_name, contact_matrix, topology_df = _load_train_matrix(
-                simulation,
-                reference,
-                ensemble,
-                args,
-                custom_dict,
-                reference_contact_matrices,
-                computed_contact_matrices,
-                train_contact_matrices_general,
-                computed_train_topologies,
-            )
+            _term.sub(f"Initializing {simulation} ensemble data")
+            with _term.spinner(f"loading {simulation}"):
+                name, ref_name, contact_matrix, topology_df = _load_train_matrix(
+                    simulation,
+                    reference,
+                    ensemble,
+                    args,
+                    custom_dict,
+                    reference_contact_matrices,
+                    computed_contact_matrices,
+                    train_contact_matrices_general,
+                    computed_train_topologies,
+                )
             train_contact_matrices[name] = contact_matrix
             train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
             ensemble.train_matrix_tuples.append((name, ref_name))
             et = time.time()
-            print(f"    Done in: {et - st:.2f} s")
+            _term.timing(et - st)
             st = et
 
     del train_contact_matrices_general
@@ -865,9 +868,9 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     difference_set = comparison_set.difference(reference_set)
     if difference_set:
-        print(
-            f"The following atomtypes are not converted:\n{difference_set}\n"
-            f'You MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
+        _term.error(
+            f"The following atomtypes are not converted:\n  {difference_set}\n"
+            f'  You MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
         )
         sys.exit()
 
