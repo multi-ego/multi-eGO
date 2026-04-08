@@ -88,8 +88,6 @@ For the `cmdata` trajectory analysis tool, follow the separate [installation ins
 
 ## Workflow overview
 
-![Multi-eGO workflow](img/mego_workflow_black.png)
-
 The full workflow from a PDB structure to a production simulation involves five steps:
 
 1. Prepare a GROMACS topology using the `multi-ego-basic.ff` force field
