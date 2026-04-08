@@ -408,6 +408,107 @@ def _path_to_matrix_name(path, inputs_dir):
     return name
 
 
+def _symmetrize_reference_contacts(contact_matrix, symmetry, topology_df):
+    """Average ``rc_probability`` and ``rc_distance`` over equivalent atoms
+    within each residue of a reference contact matrix.
+
+    For every symmetry group (e.g. ``["ASP", "OD1", "OD2"]``), contacts
+    involving equivalent atoms of the same residue are identified.  Each
+    such group of contacts is assigned the mean of its ``rc_probability``
+    and ``rc_distance`` values so that chemically equivalent atoms carry
+    identical reference statistics.
+
+    Parameters
+    ----------
+    contact_matrix : pd.DataFrame
+        Reference contact matrix with ``rc_``-prefixed columns
+        (output of ``add_prefix("rc_")``).
+    symmetry : list of list of str
+        Symmetry definitions from ``args.symmetry``.  Each entry is
+        ``[resname_or_keyword, atom1, atom2, ...]``.
+    topology_df : pd.DataFrame
+        Ensemble topology DataFrame with at least ``sb_type``,
+        ``resname``, ``resnum``, and ``molecule_name`` columns.
+
+    Returns
+    -------
+    pd.DataFrame
+        The contact matrix with averaged probability and distance values
+        for symmetric atom groups.
+    """
+    if not symmetry or contact_matrix.empty:
+        return contact_matrix
+
+    # ── Identify terminal residues (for CTER / NTER keywords) ─────────────
+    cter_sbtypes: set = set()
+    nter_sbtypes: set = set()
+    resnum_int = topology_df["resnum"].astype(int)
+    for _, mol_group in topology_df.groupby("molecule_name"):
+        rn = resnum_int.loc[mol_group.index]
+        cter_sbtypes |= set(mol_group.loc[rn == rn.max(), "sb_type"])
+        nter_sbtypes |= set(mol_group.loc[rn == rn.min(), "sb_type"])
+
+    sbtype_to_resname = topology_df.set_index("sb_type")["resname"].to_dict()
+
+    # ── Build canonical sb_type mapping ───────────────────────────────────
+    # For each symmetric atom, map its sb_type to the canonical form that
+    # uses the first atom name listed in the symmetry rule.
+    # e.g. symmetry ["ASP", "OD1", "OD2"] → "OD2_ASP_5" maps to "OD1_ASP_5"
+    all_sbtypes = set(contact_matrix["rc_ai"].unique()) | set(contact_matrix["rc_aj"].unique())
+    canonical_map: dict[str, str] = {}
+
+    for sym in symmetry:
+        if not sym or len(sym) < 3:
+            continue
+        resname_key = sym[0]
+        equiv_atoms = sym[1:]
+        canonical = equiv_atoms[0]
+
+        for sbt in all_sbtypes:
+            atom_name = sbt.split("_", 1)[0]
+            if atom_name not in equiv_atoms or atom_name == canonical:
+                continue
+
+            # Check residue-type match (or terminal keyword)
+            if resname_key == "CTER":
+                if sbt not in cter_sbtypes:
+                    continue
+            elif resname_key == "NTER":
+                if sbt not in nter_sbtypes:
+                    continue
+            else:
+                if sbtype_to_resname.get(sbt, "") != resname_key:
+                    continue
+
+            canonical_map[sbt] = canonical + "_" + sbt.split("_", 1)[1]
+
+    if not canonical_map:
+        return contact_matrix
+
+    # ── Group by canonical pair and average ────────────────────────────────
+    ai_str = contact_matrix["rc_ai"].astype(str)
+    aj_str = contact_matrix["rc_aj"].astype(str)
+    canon_ai = ai_str.map(lambda x: canonical_map.get(x, x))
+    canon_aj = aj_str.map(lambda x: canonical_map.get(x, x))
+
+    group_key = canon_ai.values + "|" + canon_aj.values + "|" + contact_matrix["rc_same_chain"].astype(str).values
+    contact_matrix = contact_matrix.copy()
+
+    # rc_distance: probability-weighted mean  Σ(p·d) / Σ(p)  using original probabilities.
+    # Falls back to simple mean for groups where all probabilities are zero.
+    contact_matrix["_pd"] = contact_matrix["rc_probability"] * contact_matrix["rc_distance"]
+    sum_pd = contact_matrix.groupby(group_key)["_pd"].transform("sum")
+    sum_p = contact_matrix.groupby(group_key)["rc_probability"].transform("sum")
+    simple_mean_d = contact_matrix.groupby(group_key)["rc_distance"].transform("mean")
+    contact_matrix["rc_distance"] = np.where(sum_p > 0, sum_pd / sum_p, simple_mean_d)
+    contact_matrix.drop(columns=["_pd"], inplace=True)
+
+    # rc_probability: simple mean across equivalent atoms
+    contact_matrix["rc_probability"] = contact_matrix.groupby(group_key)["rc_probability"].transform("mean")
+
+    return contact_matrix
+
+
 def _load_reference_matrix(reference, ensemble, args):
     """
     Load a single reference topology and contact matrix, then annotate the
@@ -490,6 +591,12 @@ def _load_reference_matrix(reference, ensemble, args):
     )
 
     contact_matrix = contact_matrix.add_prefix("rc_")
+
+    # Average probability and distance for equivalent symmetric atoms within
+    # each residue so that e.g. ASP OD1 and OD2 carry identical reference stats.
+    if args.symmetry:
+        contact_matrix = _symmetrize_reference_contacts(contact_matrix, args.symmetry, ensemble.topology_dataframe)
+
     contact_matrix["c6_i"] = [lj_data_dict[x][0] for x in contact_matrix["rc_ai"]]
     contact_matrix["c6_j"] = [lj_data_dict[x][0] for x in contact_matrix["rc_aj"]]
     contact_matrix["c6"] = np.sqrt(contact_matrix["c6_i"] * contact_matrix["c6_j"])
