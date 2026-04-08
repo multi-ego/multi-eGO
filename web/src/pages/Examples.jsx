@@ -8,7 +8,7 @@ const EXAMPLES = [
     id: "gpref",
     title: "G-protein B1 domain",
     subtitle: "Our benchmark for protein folding and dynamics",
-    tags: ["1 training set", "1 reference", "singe molecule", "folded", "intramolecular"],
+    tags: ["1 training set", "1 reference", "single molecule", "folded", "intramolecular"],
     description:
       "The simplest and most common setup: one training simulation, one reference simulation, " +
       "one molecule in the box. GB1 is a fast-folding protein widely used as a benchmark. " +
