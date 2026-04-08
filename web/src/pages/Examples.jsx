@@ -8,7 +8,7 @@ const EXAMPLES = [
     id: "gpref",
     title: "G-protein B1 domain",
     subtitle: "Our benchmark for protein folding and dynamics",
-    tags: ["1 training set", "1 reference", "singe molecule", "folded", "intramolecular"],
+    tags: ["1 training set", "1 reference", "single molecule", "folded", "intramolecular"],
     description:
       "The simplest and most common setup: one training simulation, one reference simulation, " +
       "one molecule in the box. GB1 is a fast-folding protein widely used as a benchmark. " +
@@ -103,10 +103,10 @@ const EXAMPLES = [
     subtitle: "Our benchmark for peptides self-assembly",
     tags: ["2 training sets", "2 references", "multi-state", "intra+inter molecular"],
     description:
-      "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
+      "A more advanced setup: a disordered peptide trained from two simulations — monomer and fibril state — " +
       "using two different force fields. Both intra-molecular and inter-molecular contacts " +
       "are learned, with intra-molecular resulting from the combination of the two different states. " +
-      "Two reference state, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
+      "Two reference states, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
     highlights: [
       { label: "Training FFs", value: "AMBER99SB-disp (native_MD), CHARMM22* (fibril)" },
       { label: "Contacts",     value: "intramat_1_1 + intermat_1_1 (intra & inter-molecular)" },
@@ -166,7 +166,7 @@ const EXAMPLES = [
       "A protein–ligand complex: hen-egg-white lysozyme (LYZ) with benzene (BNZ) as a probe ligand. " +
       "This example introduces two concepts not present in the single-molecule examples. " +
       "First, Lysozyme is treated as a two domains protein, so the same single training is learned in two steps: " +
-      "Each domain is learned on top of the standard molten globule prior, while iterdomain contacts are learned " +
+      "Each domain is learned on top of the standard molten globule prior, while inter-domain contacts are learned " +
       "on a prior resulting from the meGO production simulation obtained after the first step (i.e. a meGO simulation " +
       "where the domains are folded but inter-domain contacts are defined as molten globule. " +
       "Third, in this case we also introduce inter-molecular contacts between the protein and the ligand. " +
