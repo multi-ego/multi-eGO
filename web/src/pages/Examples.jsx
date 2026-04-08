@@ -103,7 +103,7 @@ const EXAMPLES = [
     subtitle: "Our benchmark for peptides self-assembly",
     tags: ["2 training sets", "2 references", "multi-state", "intra+inter molecular"],
     description:
-      "A more advanced setup: a disordered peptide trained from two  simulations — mononomer and fibril state — " +
+      "A more advanced setup: a disordered peptide trained from two simulations — monomer and fibril state — " +
       "using two different force fields. Both intra-molecular and inter-molecular contacts " +
       "are learned, with intra-molecular resulting from the combination of the two different states. " +
       "Two reference states, the molten globule for intramolecular interactions and a zero prior for intermolecular ones.",
