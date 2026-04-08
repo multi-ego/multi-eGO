@@ -1,5 +1,7 @@
 import pandas as pd
 
+from .model_config import config
+
 mg_OO_c12_rep = 7.5e-7
 mg_OMOM_c12_rep = 2.5e-6  # This might be shifted down looking at ATDhisto
 mg_HH_c12_rep = 1.2e-8
@@ -22,7 +24,7 @@ eps_NE = 0.085
 eps_C = 0.085
 eps_CZ = 0.085
 eps_CH = 0.15
-eps_CH1 = 0.010
+eps_CH1 = 0.100
 eps_CH1t = 0.085
 eps_CAH = 0.085
 eps_CH2 = 0.13
@@ -326,6 +328,42 @@ special_non_local = [
         "epsilon": 0.15,
     },
 ]
+
+# Verify that every attractive special interaction carries an epsilon at least
+# as large as the global minimum.  A violation here means the entry was
+# mis-typed and would silently produce interactions weaker than the threshold
+# used elsewhere in the pipeline.
+assert all(
+    entry["epsilon"] >= config.epsilon_min
+    for entry in special_non_local
+    if entry["interaction"] == "att" and entry["epsilon"] is not None
+), (
+    "special_non_local contains an attractive interaction with epsilon below "
+    f"epsilon_min ({config.epsilon_min} kJ/mol): "
+    + str(
+        [
+            entry
+            for entry in special_non_local
+            if entry["interaction"] == "att" and entry["epsilon"] is not None and entry["epsilon"] < config.epsilon_min
+        ]
+    )
+)
+
+# Verify that the mg self-pair epsilon for every atom type with mg_c6 > 0 is
+# at least epsilon_min.  Self-pair epsilon = mg_c6² / (4 · mg_c12).
+# Cross-pair epsilons are geometric means and are automatically bounded if all
+# individual atoms satisfy this constraint.
+_atp_with_c6 = gromos_atp[gromos_atp["mg_c6"] > 0].copy()
+_atp_with_c6["_mg_epsilon_self"] = _atp_with_c6["mg_c6"] ** 2 / (4.0 * _atp_with_c6["mg_c12"])
+_violating = _atp_with_c6[_atp_with_c6["_mg_epsilon_self"] < config.epsilon_min]
+assert (
+    _violating.empty
+), "gromos_atp contains atom type(s) whose mg self-pair epsilon is below " f"epsilon_min ({config.epsilon_min} kJ/mol):\n" + _violating[
+    ["name", "_mg_epsilon_self"]
+].to_string(
+    index=False
+)
+del _atp_with_c6, _violating
 
 # The following lines are the special repulsive rule to be applied
 # in pairs.py to apply the nth-bond rule, that is that within n-bonds
