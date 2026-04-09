@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 import parmed as pmd
 
-
 # ---------------------------------------------------------------------------
 # Topology helpers
 # ---------------------------------------------------------------------------
@@ -125,9 +124,7 @@ def dom_range(ranges_str):
 
     for start, end in doms:
         if start > end:
-            raise ValueError(
-                f"Domain range {start}-{end} is invalid: start must be ≤ end."
-            )
+            raise ValueError(f"Domain range {start}-{end} is invalid: start must be ≤ end.")
 
     for (_, end1), (start2, _) in zip(doms[:-1], doms[1:]):
         if end1 >= start2:
@@ -173,10 +170,7 @@ def build_domain_mask(topology, n_atoms, ranges, invert=False):
         print(f"  Domain range: {r_start}-{r_end}")
         print(f"    Atom index range (1-based): {a_start + 1} – {a_end + 1}")
         print(f"    Number of atoms in range:   {a_end - a_start + 1}")
-        print(
-            f"    First / last atom:  "
-            f"{topology.atoms[a_start]} – {topology.atoms[a_end]}"
-        )
+        print(f"    First / last atom:  " f"{topology.atoms[a_start]} – {topology.atoms[a_end]}")
         atom_in_domain[a_start : a_end + 1] = True
 
     # Outer product: True where both atom i and atom j are in the domain
@@ -216,8 +210,14 @@ def readmat(intramat_path, h5=True):
         return pd.read_hdf(intramat_path, key="data")
 
     col_names = [
-        "molecule_name_ai", "ai", "molecule_name_aj", "aj",
-        "distance", "probability", "cutoff", "learned",
+        "molecule_name_ai",
+        "ai",
+        "molecule_name_aj",
+        "aj",
+        "distance",
+        "probability",
+        "cutoff",
+        "learned",
     ]
     col_types = {
         "molecule_name_ai": int,
@@ -261,8 +261,12 @@ def write_intramat(contact_matrix, out_path):
         contact_matrix[col] = contact_matrix[col].astype("category")
 
     contact_matrix.to_hdf(
-        out_path, key="data", mode="w", format="table",
-        complib="blosc:lz4", complevel=9,
+        out_path,
+        key="data",
+        mode="w",
+        format="table",
+        complib="blosc:lz4",
+        complevel=9,
     )
 
 
@@ -327,8 +331,7 @@ if __name__ == "__main__":
     topology, top_df = read_topology(args.top)
     if len(top_df) > 1:
         raise ValueError(
-            "Only a single molecule species is supported; "
-            f"topology contains {len(top_df)} molecule types."
+            "Only a single molecule species is supported; " f"topology contains {len(top_df)} molecule types."
         )
 
     n_atoms = top_df.tot_atoms[0]
@@ -347,9 +350,7 @@ if __name__ == "__main__":
 
     dim = int(round(len(intra_md) ** 0.5))
     if dim != n_atoms:
-        raise ValueError(
-            f"Contact matrix size ({dim}²) does not match topology atom count ({n_atoms})."
-        )
+        raise ValueError(f"Contact matrix size ({dim}²) does not match topology atom count ({n_atoms}).")
 
     # Build and apply domain mask
     domain_mask = build_domain_mask(topology, n_atoms, ranges, invert=args.invert)

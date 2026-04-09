@@ -19,12 +19,13 @@ from multiego import bonded
 from multiego import type_definitions
 from multiego import io
 
-d = {
+_DEFAULT_C12 = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.rc_c12[i]
     for i in range(len(type_definitions.gromos_atp.name))
 }
 
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
+CUTOFF_FACTOR = 1.45
 
 
 def create_matrix_mask(
@@ -152,19 +153,6 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
     return ref_df
 
 
-def zero_probability_decorator(func, flag):
-    """
-    Decorator of function to return 0 if flag is raised.
-    """
-
-    def wrapper(*args, **kwargs):
-        if flag:
-            return 0  # Return 0 if the flag is set
-        return func(*args, **kwargs)  # Otherwise, execute the original function
-
-    return wrapper
-
-
 def run_mat_(arguments):
     """
     Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
@@ -196,7 +184,7 @@ def run_mat_(arguments):
     # We do not consider old histograms
     frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
-        print(f"\rProgress: {ref_f} ", end="", flush=True)
+        print(f"\rProgress: [{i + 1}/{len(frac_target_list)}] {ref_f} ", end="", flush=True)
         results_df = pd.DataFrame()
         ai = ref_f.split(".")[-2].split("_")[-1]
 
@@ -244,8 +232,8 @@ def run_mat_(arguments):
             if not results_df.empty:
                 df = pd.concat([df, results_df])
 
-    print("done.")
-    df.fillna(0).infer_objects(copy=False)
+    print("done.", flush=True)
+    df = df.fillna(0)
     out_path = f"mat_{process.pid}_t{time.time()}.part"
     df.to_csv(out_path, index=False)
 
@@ -273,7 +261,7 @@ def read_topologies(mego_top, target_top):
             topology_mego = pmd.load_file(mego_top)
         except Exception as e:
             print(f"ERROR {e} in read_topologies while reading {mego_top}")
-            exit(1)
+            sys.exit(1)
         try:
             dirname, basename = os.path.split(target_top)
             temp_ref = tempfile.NamedTemporaryFile(prefix=basename, dir=dirname)
@@ -303,7 +291,7 @@ def read_topologies(mego_top, target_top):
 
         except Exception as e:
             print(f"ERROR {e} in read_topologies while reading {target_top}")
-            exit(2)
+            sys.exit(1)
 
     n_mol = len(list(topology_mego.molecules.keys()))
     mol_names = list(topology_mego.molecules.keys())
@@ -334,11 +322,9 @@ def map_if_exists(atom_name):
 
 def get_col_params(values, weights):
     """
-    TODO rename pls
-
-    Preprocesses arrays (histograms) to allow for proper analysis. Last values are removed from the arrays
-    and should correspond to the respective cutoff for the histogram. The histograms are truncated
-    according to the cutoff.
+    Preprocesses histogram arrays for analysis. The last element of ``weights``
+    encodes the cutoff; both arrays are truncated to only include bins at or
+    below that cutoff.
 
     Parameters
     ----------
@@ -376,7 +362,7 @@ def get_col_params(values, weights):
 
 def calculate_probability(values, weights):
     """
-    Calculates a plain probability accoring to sum_x x * dx
+    Calculates a plain probability according to sum_x x * dx
 
     Parameters
     ----------
@@ -448,31 +434,19 @@ def c12_avg(values, weights):
 
 def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     """
-    Prints warning if the histogram cutoff is smaller as the maximum adaptive cutoff.
+    Prints a warning when the adaptive cutoff exceeds the histogram cutoff.
 
     Parameters
     ----------
     cutoff : float
-        The cutoff of the histogram calculations. Parsed from the command-line in the standard programm.
+        The cutoff used during histogram accumulation.
     max_adaptive_cutoff : float
-        The maximum adaptive cutoff calculated from the LJ c12 parameters.
+        The maximum adaptive c12 cutoff derived from LJ parameters.
     """
-    print(f"""
-    #############################
-
-    -------------------
-    WARNING
-    -------------------
-
-    Found an adaptive cutoff greater then the cutoff used to generate the histogram:
-    histogram cutoff = {cutoff}
-    maximum adaptive cutoff = {max_adaptive_cutoff}
-
-    Be careful!. This could create errors.
-    If this is not wanted, please recalculate the histograms setting the cutoff to at least cutoff={max_adaptive_cutoff}
-
-    #############################
-    """)
+    print(
+        f"\nWARNING: adaptive cutoff ({max_adaptive_cutoff:.4f} nm) exceeds histogram cutoff ({cutoff} nm).\n"
+        f"  This may cause errors. Consider re-running histogram accumulation with --cutoff {max_adaptive_cutoff:.4f}\n"
+    )
 
 
 def generate_c12_values(df, types, combinations, molecule_type):
@@ -546,10 +520,7 @@ def calculate_matrices(args):
     """
     topology_mego, topology_ref, N_species, molecules_name, mol_list = read_topologies(args.mego_top, args.target_top)
 
-    print(f"""
-    Topology contains {N_species} molecules species. Namely {molecules_name}.
-    Calculating intermat for all species\n\n
-    """)
+    print(f"Topology contains {N_species} molecule species: {molecules_name}")
     for mol_i in mol_list:
         if args.intra:
             prefix = f"intra_mol_{mol_i}_{mol_i}"
@@ -672,12 +643,12 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_i["type"] = topology_df_i["mego_type"]
     # need to sort back otherwise c12_cutoff are all wrong
     topology_df_i.sort_values(by="ref_ai", inplace=True)
+    c12_lookup = dict(_DEFAULT_C12)
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
-        d_appo = {key: val for key, val in zip(custom_c12_dict.name, custom_c12_dict.rc_c12)}
-        d.update(d_appo)
+        c12_lookup.update(zip(custom_c12_dict.name, custom_c12_dict.rc_c12))
 
-    topology_df_i["c12"] = topology_df_i["mego_type"].map(d)
+    topology_df_i["c12"] = topology_df_i["mego_type"].map(c12_lookup)
 
     # preparing topology of molecule j
     topology_df_j["ref_ai"] = protein_ref_indices_j
@@ -693,7 +664,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_j["type"] = topology_df_j["mego_type"]
     # need to sort back otherwise c12_cutoff are all wrong
     topology_df_j.sort_values(by="ref_ai", inplace=True)
-    topology_df_j["c12"] = topology_df_j["mego_type"].map(d)
+    topology_df_j["c12"] = topology_df_j["mego_type"].map(c12_lookup)
 
     type_i = topology_df_i["mego_type"].to_numpy()
     type_j = topology_df_j["mego_type"].to_numpy()
@@ -789,16 +760,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     if np.isnan(c12_cutoff.astype(float)).any():
         warning_cutoff_histo(args.cutoff, np.max(c12_cutoff))
 
-    for target in target_list:
-        if args.noh5 or args.tar:
-            target_fields = target.replace(".dat", "").split("_")
-        else:
-            target_fields = target.replace(".h5", "").split("_")
-
-        ai = int(target_fields[-1])
-        if ai not in protein_ref_indices_i:
-            continue
-
     ########################
     # PARALLEL PROCESS START
     ########################
@@ -859,7 +820,8 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
             except pd.errors.EmptyDataError:
                 print(f"Ignoring partial dataframe in {name} as csv is empty")
         df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
-        [os.remove(name) for name in results]
+        for name in results:
+            os.remove(name)
         df = df.astype({"mi": "int32", "mj": "int32", "ai": "int32", "aj": "int32"})
 
         df = df.sort_values(by=["mi", "mj", "ai", "aj"])
@@ -895,7 +857,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     df.index = range(len(df.index))
 
     out_name = args.out_name + "_" if args.out_name else ""
-    output_file = f"{args.out}/{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.h5"
+    output_file = os.path.join(args.out, f"{mat_type}mat_{out_name}{mol_i}_{mol_j}.ndx.h5")
     print(f"Saving output for molecule {mol_i} and {mol_j} in {output_file}")
     write_mat(df, output_file)
 
@@ -920,7 +882,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--mode",
-        help="Sets the caculation to be intra/same/cross for histograms processing",
+        help="Sets the calculation to be intra/same/cross for histograms processing",
         default="intra+same+cross",
     )
     parser.add_argument("--bkbn_H", help="Name of backbone hydrogen (default H, charmm HN)", default="H")
@@ -979,20 +941,20 @@ if __name__ == "__main__":
     if args.histo and args.zero:
         raise ValueError("Both --histo and --zero flags cannot be set at the same time.")
 
-    # check if output file exists
+    # check if output directory exists
     if not os.path.exists(args.out):
-        print(f"The path '{args.out}' does not exist.")
-        sys.exit()
+        print(f"ERROR: output path '{args.out}' does not exist.")
+        sys.exit(1)
 
     if not args.zero and not args.tar:
         if not os.path.isdir(args.histo):
-            print(f"The path '{args.histo}' is not a directory.")
-            sys.exit()
+            print(f"ERROR: histogram path '{args.histo}' is not a directory.")
+            sys.exit(1)
 
     if not args.zero and args.tar:
         if not tarfile.is_tarfile(args.histo):
-            print(f"The path '{args.histo}' is not a tar file.")
-            sys.exit()
+            print(f"ERROR: histogram path '{args.histo}' is not a tar file.")
+            sys.exit(1)
 
     # Sets mode
     modes = np.array(args.mode.split("+"), dtype=str)
@@ -1013,14 +975,6 @@ if __name__ == "__main__":
     if "cross" in modes:
         args.cross = True
 
-    N_BINS = args.cutoff / (0.01 / 4)
-    DX = args.cutoff / N_BINS
-    CUTOFF_FACTOR = 1.45
-    print(f"""
-    Starting with cutoff = {args.cutoff},
-                  n_bins = {N_BINS},
-                  dx     = {DX}
-                  on {args.num_threads} threads
-    """)
+    print(f"\nStarting with cutoff = {args.cutoff} nm on {args.num_threads} thread(s)\n")
 
     calculate_matrices(args)

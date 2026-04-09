@@ -121,6 +121,5 @@ if __name__ == "__main__":
 
     else:
         parser.error(
-            "under-specified: supply exactly two of (--n_mol, --conc, "
-            "--volume / --sphere_r / --cubic_side)"
+            "under-specified: supply exactly two of (--n_mol, --conc, " "--volume / --sphere_r / --cubic_side)"
         )
