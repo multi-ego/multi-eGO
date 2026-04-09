@@ -1,10 +1,10 @@
 """
 domains.py — apply a domain mask to a multi-eGO intra-molecular contact matrix.
 
-For each domain range supplied via ``--dom_res``, the contacts between atoms
-that both fall inside the range are marked as *learned* (``True``) in the
-output HDF5 file.  Contacts outside all ranges are marked as *not learned*
-(``False``).  The ``--invert`` flag flips the assignment.
+For each domain range supplied via ``--dom_res``, contacts where both atoms
+fall inside the **same** range are marked as *learned* (``True``).  Contacts
+that cross range boundaries, or fall entirely outside all ranges, are marked
+as *not learned* (``False``).  The ``--invert`` flag flips the assignment.
 """
 
 import argparse
@@ -143,8 +143,9 @@ def dom_range(ranges_str):
 def build_domain_mask(topology, n_atoms, ranges, invert=False):
     """Build a flat boolean mask of length *n_atoms²* marking intra-domain contacts.
 
-    A contact (i, j) is marked ``True`` when *both* atom i and atom j fall
-    inside at least one of the supplied residue ranges.
+    A contact (i, j) is marked ``True`` when atom i and atom j both fall
+    inside the **same** residue range.  Contacts between atoms that belong to
+    *different* ranges are ``False``.
 
     Parameters
     ----------
@@ -162,7 +163,7 @@ def build_domain_mask(topology, n_atoms, ranges, invert=False):
     -------
     np.ndarray of bool, shape (n_atoms²,)
     """
-    atom_in_domain = np.zeros(n_atoms, dtype=bool)
+    mask_2d = np.zeros((n_atoms, n_atoms), dtype=bool)
     for r_start, r_end in ranges:
         a_start = find_atom_start(topology, r_start)
         a_end = find_atom_end(topology, r_end)
@@ -170,10 +171,11 @@ def build_domain_mask(topology, n_atoms, ranges, invert=False):
         print(f"    Atom index range (1-based): {a_start + 1} – {a_end + 1}")
         print(f"    Number of atoms in range:   {a_end - a_start + 1}")
         print(f"    First / last atom:  " f"{topology.atoms[a_start]} – {topology.atoms[a_end]}")
-        atom_in_domain[a_start : a_end + 1] = True  # noqa: E203
+        in_range = np.zeros(n_atoms, dtype=bool)
+        in_range[a_start : a_end + 1] = True  # noqa: E203
+        # Only pairs where BOTH atoms are in this specific range
+        mask_2d |= in_range[:, np.newaxis] & in_range[np.newaxis, :]
 
-    # Outer product: True where both atom i and atom j are in the domain
-    mask_2d = atom_in_domain[:, np.newaxis] & atom_in_domain[np.newaxis, :]
     domain_mask = mask_2d.reshape(n_atoms**2)
 
     if invert:

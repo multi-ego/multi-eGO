@@ -4,7 +4,7 @@ Unit tests for tools/domain_sectioner/domains.py.
 Covers:
 - dom_range: parsing, validation (decreasing / overlapping ranges)
 - find_atom_start / find_atom_end: correct 0-based atom index lookup
-- build_domain_mask: correct outer-product masking and inversion
+- build_domain_mask: correct per-range masking and inversion
 """
 
 import importlib.util
@@ -188,14 +188,29 @@ class TestBuildDomainMask:
                 assert mask_2d[i, j] == expected, f"Unexpected value at ({i},{j})"
 
     def test_two_ranges(self):
-        # residues 1 (atoms 0-1) and 3 (atoms 4-5)
+        # residues 1 (atoms 0-1) and 3 (atoms 4-5): only intra-range pairs are True;
+        # cross-range pairs (e.g. atom 0 × atom 4) must be False.
         mask = build_domain_mask(self.top, self.n, [(1, 1), (3, 3)])
         mask_2d = mask.reshape(self.n, self.n)
-        domain_atoms = {0, 1, 4, 5}
+        range1 = {0, 1}
+        range2 = {4, 5}
         for i in range(self.n):
             for j in range(self.n):
-                expected = (i in domain_atoms) and (j in domain_atoms)
-                assert mask_2d[i, j] == expected
+                in_same_range = (i in range1 and j in range1) or (i in range2 and j in range2)
+                assert mask_2d[i, j] == in_same_range, f"Unexpected value at ({i},{j})"
+
+    def test_two_ranges_cross_domain_false(self):
+        # Atoms from different ranges must NOT be marked as learned.
+        mask = build_domain_mask(self.top, self.n, [(1, 1), (3, 3)])
+        mask_2d = mask.reshape(self.n, self.n)
+        # atom 0 (range 1) × atom 4 (range 2) — cross-domain: must be False
+        assert not mask_2d[0, 4]
+        assert not mask_2d[4, 0]
+
+    def test_two_ranges_count(self):
+        # Two ranges of 2 atoms each → 2² + 2² = 8 True entries (no cross-domain).
+        mask = build_domain_mask(self.top, self.n, [(1, 1), (3, 3)])
+        assert mask.sum() == 2**2 + 2**2
 
     def test_invert(self):
         mask = build_domain_mask(self.top, self.n, [(1, 1)])
