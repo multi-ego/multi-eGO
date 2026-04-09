@@ -8,7 +8,6 @@ output HDF5 file.  Contacts outside all ranges are marked as *not learned*
 """
 
 import argparse
-import os
 import sys
 import warnings
 from pathlib import Path

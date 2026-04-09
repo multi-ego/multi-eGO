@@ -21,7 +21,7 @@ import pytest
 
 _SCRIPT = Path(__file__).parent.parent / "tools" / "box_concentration" / "get_box.py"
 
-import importlib.util
+import importlib.util  # noqa: E402
 
 _spec = importlib.util.spec_from_file_location("get_box", _SCRIPT)
 _get_box = importlib.util.module_from_spec(_spec)

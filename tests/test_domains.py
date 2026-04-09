@@ -25,7 +25,7 @@ _SCRIPT = Path(__file__).parent.parent / "tools" / "domain_sectioner" / "domains
 _parmed_stub = types.ModuleType("parmed")
 _parmed_stub.load_file = None
 
-import sys
+import sys  # noqa: E402
 sys.modules.setdefault("parmed", _parmed_stub)
 
 _spec = importlib.util.spec_from_file_location("domains", _SCRIPT)
