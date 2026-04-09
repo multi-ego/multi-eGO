@@ -26,6 +26,7 @@ _parmed_stub = types.ModuleType("parmed")
 _parmed_stub.load_file = None
 
 import sys  # noqa: E402
+
 sys.modules.setdefault("parmed", _parmed_stub)
 
 _spec = importlib.util.spec_from_file_location("domains", _SCRIPT)
@@ -61,9 +62,7 @@ def _make_topology(*atoms_per_residue):
     atom_list = []
     for res_idx, n in enumerate(atoms_per_residue):
         for atom_idx in range(n):
-            atom_list.append(types.SimpleNamespace(
-                __str__=lambda self, r=res_idx, a=atom_idx: f"RES{r+1}:atom{a}"
-            ))
+            atom_list.append(types.SimpleNamespace(__str__=lambda self, r=res_idx, a=atom_idx: f"RES{r+1}:atom{a}"))
     top.atoms = atom_list
     return top
 
@@ -71,6 +70,7 @@ def _make_topology(*atoms_per_residue):
 # ---------------------------------------------------------------------------
 # dom_range
 # ---------------------------------------------------------------------------
+
 
 class TestDomRange:
     def test_single_valid_range(self):
@@ -109,6 +109,7 @@ class TestDomRange:
 # find_atom_start / find_atom_end
 # ---------------------------------------------------------------------------
 
+
 class TestFindAtomBoundaries:
     """Topology: residues 1-4 with 3, 5, 2, 4 atoms → cumulative 0,3,8,10,14."""
 
@@ -129,13 +130,13 @@ class TestFindAtomBoundaries:
         assert find_atom_start(self.top, 4) == 10
 
     def test_end_first_residue(self):
-        assert find_atom_end(self.top, 1) == 2   # atoms 0,1,2
+        assert find_atom_end(self.top, 1) == 2  # atoms 0,1,2
 
     def test_end_second_residue(self):
-        assert find_atom_end(self.top, 2) == 7   # atoms 3..7
+        assert find_atom_end(self.top, 2) == 7  # atoms 3..7
 
     def test_end_third_residue(self):
-        assert find_atom_end(self.top, 3) == 9   # atoms 8,9
+        assert find_atom_end(self.top, 3) == 9  # atoms 8,9
 
     def test_end_fourth_residue(self):
         assert find_atom_end(self.top, 4) == 13  # atoms 10..13
@@ -157,6 +158,7 @@ class TestFindAtomBoundaries:
 # build_domain_mask
 # ---------------------------------------------------------------------------
 
+
 class TestBuildDomainMask:
     """Topology: 3 residues, 2 atoms each → 6 atoms total, 36-element mask."""
 
@@ -172,7 +174,7 @@ class TestBuildDomainMask:
 
     def test_single_residue_mask_shape(self):
         mask = build_domain_mask(self.top, self.n, [(1, 1)])
-        assert mask.shape == (self.n ** 2,)
+        assert mask.shape == (self.n**2,)
 
     def test_single_first_residue(self):
         # Only atoms 0 and 1 are in the domain; only (0,0),(0,1),(1,0),(1,1)
@@ -214,9 +216,9 @@ class TestBuildDomainMask:
         """Domain of k atoms → k² True entries in the mask."""
         # residue 2 has 2 atoms
         mask = build_domain_mask(self.top, self.n, [(2, 2)])
-        assert mask.sum() == 2 ** 2
+        assert mask.sum() == 2**2
 
     def test_two_residue_domain_count(self):
         # residues 1+2 = 4 atoms → 16 True entries
         mask = build_domain_mask(self.top, self.n, [(1, 2)])
-        assert mask.sum() == 4 ** 2
+        assert mask.sum() == 4**2

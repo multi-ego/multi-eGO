@@ -39,6 +39,7 @@ sphere_volume = _get_box.sphere_volume
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run(*args):
     """Run the script with the given CLI arguments, return CompletedProcess."""
     return subprocess.run(
@@ -51,6 +52,7 @@ def _run(*args):
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
+
 
 class TestConstants:
     def test_avogadro_codata_2019(self):
@@ -66,6 +68,7 @@ class TestConstants:
 # sphere_volume
 # ---------------------------------------------------------------------------
 
+
 class TestSphereVolume:
     def test_unit_sphere(self):
         assert sphere_volume(1.0) == pytest.approx(4 / 3 * math.pi, rel=1e-12)
@@ -80,6 +83,7 @@ class TestSphereVolume:
 # ---------------------------------------------------------------------------
 # box_from_n_mol_and_conc
 # ---------------------------------------------------------------------------
+
 
 class TestBoxFromNMolAndConc:
     def test_one_molecule_one_molar(self):
@@ -103,18 +107,15 @@ class TestBoxFromNMolAndConc:
 # conc_from_n_mol_and_volume
 # ---------------------------------------------------------------------------
 
+
 class TestConcFromNMolAndVolume:
     def test_one_molecule_one_litre(self):
         # 1 molecule in 1 L (= 1e24 nm³) → 1/NA mol/L
-        assert conc_from_n_mol_and_volume(1, NM3_PER_LITRE) == pytest.approx(
-            1 / AVOGADRO, rel=1e-10
-        )
+        assert conc_from_n_mol_and_volume(1, NM3_PER_LITRE) == pytest.approx(1 / AVOGADRO, rel=1e-10)
 
     def test_linear_in_n_mol(self):
         v = 500.0
-        assert conc_from_n_mol_and_volume(20, v) == pytest.approx(
-            2 * conc_from_n_mol_and_volume(10, v), rel=1e-12
-        )
+        assert conc_from_n_mol_and_volume(20, v) == pytest.approx(2 * conc_from_n_mol_and_volume(10, v), rel=1e-12)
 
     def test_inversely_proportional_to_volume(self):
         n = 10
@@ -127,6 +128,7 @@ class TestConcFromNMolAndVolume:
 # n_mol_from_conc_and_volume
 # ---------------------------------------------------------------------------
 
+
 class TestNMolFromConcAndVolume:
     def test_rounds_to_nearest_integer(self):
         result = n_mol_from_conc_and_volume(0.1, 1000.0)
@@ -138,14 +140,13 @@ class TestNMolFromConcAndVolume:
         assert n_mol_from_conc_and_volume(0.1, 1000.0) == expected
 
     def test_more_volume_more_molecules(self):
-        assert n_mol_from_conc_and_volume(0.1, 2000.0) > n_mol_from_conc_and_volume(
-            0.1, 1000.0
-        )
+        assert n_mol_from_conc_and_volume(0.1, 2000.0) > n_mol_from_conc_and_volume(0.1, 1000.0)
 
 
 # ---------------------------------------------------------------------------
 # Roundtrip consistency
 # ---------------------------------------------------------------------------
+
 
 class TestRoundtrip:
     """Each pair of functions should be exact inverses of each other."""
@@ -175,6 +176,7 @@ class TestRoundtrip:
 # ---------------------------------------------------------------------------
 # CLI — correct output
 # ---------------------------------------------------------------------------
+
 
 class TestCLIOutput:
     def test_box_side_five_decimal_places(self):
@@ -219,6 +221,7 @@ class TestCLIOutput:
 # ---------------------------------------------------------------------------
 # CLI — error handling
 # ---------------------------------------------------------------------------
+
 
 class TestCLIErrors:
     def test_no_args_exits_cleanly(self):

@@ -34,6 +34,7 @@ _stub("parmed")
 # h5py
 _stub("h5py")
 
+
 # scipy.special – use real scipy if present, otherwise a numpy fallback
 def _numpy_logsumexp(a, b=None, **_kw):
     """Minimal logsumexp equivalent for environments without scipy."""
@@ -43,6 +44,7 @@ def _numpy_logsumexp(a, b=None, **_kw):
         b = np.asarray(b, dtype=float)
         return a_max + np.log(np.sum(b * np.exp(a - a_max)))
     return a_max + np.log(np.sum(np.exp(a - a_max)))
+
 
 try:
     from scipy.special import logsumexp as _logsumexp  # noqa: F401
@@ -78,9 +80,7 @@ _multiego.io = _io_stub
 # Import the module under test via file path
 # ---------------------------------------------------------------------------
 
-_SCRIPT = os.path.normpath(
-    os.path.join(os.path.dirname(__file__), "..", "tools", "make_mat", "make_mat.py")
-)
+_SCRIPT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "tools", "make_mat", "make_mat.py"))
 _spec = importlib.util.spec_from_file_location("make_mat_mod", _SCRIPT)
 _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
@@ -129,8 +129,8 @@ class TestCreateMatrixMask:
         s1 = np.array(["A", "B"])
         s2 = np.array(["A", "B"])
         mask = create_matrix_mask(s1, s2, [("A", "B")], symmetrize=True)
-        assert mask[0, 1]   # (A,B)
-        assert mask[1, 0]   # (B,A) added by symmetrize
+        assert mask[0, 1]  # (A,B)
+        assert mask[1, 0]  # (B,A) added by symmetrize
 
     def test_multiple_pairs(self):
         s1 = np.array(["A", "B", "C"])
@@ -198,7 +198,7 @@ class TestGetColParams:
 
     def test_single_valid_bin(self):
         v = np.array([0.2, 0.8, 0.0])
-        w = np.array([5.0, 0.0, 0.5])   # cutoff=0.5; only bin at 0.2 qualifies
+        w = np.array([5.0, 0.0, 0.5])  # cutoff=0.5; only bin at 0.2 qualifies
         cutoff, i, norm, vt, wt = get_col_params(v, w)
         assert len(vt) == 1
         assert vt[0] == pytest.approx(0.2)
@@ -254,7 +254,7 @@ class TestGetCumulativeProbability:
 
     def test_empty_histogram_does_not_raise(self):
         v = np.array([0.8, 0.9, 0.0])
-        w = np.array([1.0, 1.0, 0.3])   # cutoff=0.3, no valid bins
+        w = np.array([1.0, 1.0, 0.3])  # cutoff=0.3, no valid bins
         # get_col_params returns (0,0,0,0,0) → result = w[0]
         result = get_cumulative_probability(v, w)
         assert result is not None
@@ -303,10 +303,10 @@ class TestC12Avg:
         # (c12_avg is a c12-exp average, so closer distances get higher weight)
         v = np.linspace(0.1, 0.8, 100)
         w_near = np.exp(-((v - 0.15) ** 2) / 0.001)
-        w_far  = np.exp(-((v - 0.70) ** 2) / 0.001)
+        w_far = np.exp(-((v - 0.70) ** 2) / 0.001)
         v_ext = np.append(v, 0.0)
         r_near = c12_avg(v_ext, np.append(w_near, 0.8))
-        r_far  = c12_avg(v_ext, np.append(w_far,  0.8))
+        r_far = c12_avg(v_ext, np.append(w_far, 0.8))
         assert r_near < r_far
 
 
@@ -344,7 +344,7 @@ class TestGenerateC12Values:
         df = _df(3, np.full(3, 2.0e-6))
         types = {"BB": np.array([True, False, False])}
         combos = [("BB", "BB", 0.5, None, 0)]
-        r_other   = generate_c12_values(df, types, combos, "other")
+        r_other = generate_c12_values(df, types, combos, "other")
         r_protein = generate_c12_values(df, types, combos, "protein")
         assert r_other[0, 0] == pytest.approx(2.0e-6)
         assert r_protein[0, 0] == pytest.approx(0.5 * 2.0e-6)

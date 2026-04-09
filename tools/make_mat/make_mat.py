@@ -487,14 +487,20 @@ def generate_c12_values(df, types, combinations, molecule_type):
         for combination in combinations:
             name_1, name_2, factor, constant, shift = combination
             if factor is not None and constant is not None:
+
                 def operation(x, _f=factor, _c=constant):
                     return np.minimum(_f * x, _c)
+
             elif factor is not None:
+
                 def operation(x, _f=factor):
                     return _f * x
+
             elif constant is not None:
+
                 def operation(_, _c=constant):
                     return _c
+
             else:
                 raise ValueError("Either factor or constant must be specified.")
 
