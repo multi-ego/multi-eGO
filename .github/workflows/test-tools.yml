@@ -9,14 +9,14 @@ on:
       - 'tools/**'
       - '!tools/cmdata/**'
       - 'tests/test_get_box.py'
-      - 'tests/test_domains.py'
+      - 'tests/test_domains_unit.py'
       - 'tests/test_make_mat_unit.py'
   pull_request:
     paths:
       - 'tools/**'
       - '!tools/cmdata/**'
       - 'tests/test_get_box.py'
-      - 'tests/test_domains.py'
+      - 'tests/test_domains_unit.py'
       - 'tests/test_make_mat_unit.py'
 
 jobs:
@@ -39,4 +39,4 @@ jobs:
         run: pip install pytest numpy pandas scipy
 
       - name: Run tools unit tests
-        run: pytest tests/test_get_box.py tests/test_domains.py tests/test_make_mat_unit.py
+        run: pytest tests/test_get_box.py tests/test_domains_unit.py tests/test_domains.py tests/test_make_mat_unit.py -v
