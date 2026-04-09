@@ -68,11 +68,18 @@ jobs:
         environment-file: conda/environment.yml
         miniforge-version: latest
         activate-environment: test
-    - name: Run tests
+    - name: Run multi-ego regtests
       shell: bash -el {0}
       run: |
         pytest tests/run_tests.py
+    - name: Run make_mat regtests
+      shell: bash -el {0}
+      run: |
         pytest tests/test_make_mat.py
+    - name: Run domains regtests
+      shell: bash -el {0}
+      run: |
+        pytest tests/test_domains.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -90,10 +97,15 @@ jobs:
         cache: 'pip'
     - name: Install requirements
       run: pip install -r requirements.txt
-    - name: Run tests
+    - name: Run multi-ego regtests
       run: |
         pytest tests/run_tests.py
+    - name: Run make_mat regtests
+      run: |
         pytest tests/test_make_mat.py
+    - name: Run domains regtests
+      run: |
+        pytest tests/test_domains.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
@@ -110,11 +122,18 @@ jobs:
         environment-file: conda/environment.yml
         miniforge-version: latest
         activate-environment: test
-    - name: Run tests
+    - name: Run multi-ego regtests
       shell: bash -el {0}
       run: |
         pytest tests/run_tests.py
+    - name: Run make_mat regtests
+      shell: bash -el {0}
+      run: |
         pytest tests/test_make_mat.py
+    - name: Run domains regtests
+      shell: bash -el {0}
+      run: |
+        pytest tests/test_domains.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -132,10 +151,15 @@ jobs:
         cache: 'pip'
     - name: Install requirements
       run: pip install -r requirements.txt
-    - name: Run tests
+    - name: Run multi-ego regtests
       run: |
         pytest tests/run_tests.py
+    - name: Run make_mat regtests
+      run: |
         pytest tests/test_make_mat.py
+    - name: Run domains regtests
+      run: |
+        pytest tests/test_domains.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
