@@ -10,8 +10,6 @@ reference output stored alongside the inputs.
 import os
 import subprocess
 import sys
-import filecmp
-import difflib
 import pandas as pd
 
 import pytest
