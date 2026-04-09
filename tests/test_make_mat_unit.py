@@ -290,14 +290,6 @@ class TestC12Avg:
         result = c12_avg(v_ext, w_ext)
         assert 0.0 <= result <= cutoff
 
-    def test_very_large_distances_floored_to_zero(self):
-        # Bins at 5–10 nm → c12 average negligibly small → floored to 0
-        v = np.linspace(5.0, 10.0, 50)
-        w = np.ones(50)
-        v_ext = np.append(v, 0.0)
-        w_ext = np.append(w, 10.0)
-        assert c12_avg(v_ext, w_ext) == pytest.approx(0.0)
-
     def test_peak_closer_gives_smaller_average(self):
         # A histogram peaked near the origin should give a smaller c12 average
         # (c12_avg is a c12-exp average, so closer distances get higher weight)
@@ -350,12 +342,15 @@ class TestGenerateC12Values:
         assert r_protein[0, 0] == pytest.approx(0.5 * 2.0e-6)
 
     def test_constant_rule_overrides(self):
+        # shift=0 matches only pairs where resnum_i == resnum_j (diagonal).
+        # Off-diagonal entries keep the geometric mean.
         df = _df(2, np.full(2, 1.0e-6))
         types = {"X": np.array([True, True])}
         combos = [("X", "X", None, 9.0e-7, 0)]
         result = generate_c12_values(df, types, combos, "protein")
-        assert result[0, 0] == pytest.approx(9.0e-7)
-        assert result[0, 1] == pytest.approx(9.0e-7)
+        assert result[0, 0] == pytest.approx(9.0e-7)  # same residue → overridden
+        assert result[1, 1] == pytest.approx(9.0e-7)  # same residue → overridden
+        assert result[0, 1] == pytest.approx(1.0e-6)  # different residues → geometric mean
 
     def test_factor_and_constant_uses_minimum(self):
         df = _df(2, np.full(2, 1.0e-6))

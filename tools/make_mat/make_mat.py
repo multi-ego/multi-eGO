@@ -350,7 +350,7 @@ def get_col_params(values, weights):
     cutoff = weights[len(weights) - 1]
     w = weights[:-1]
     i = np.where(v <= cutoff)
-    if not np.any(i):
+    if i[0].size == 0:
         return 0, 0, 0, 0, 0  # check if empty
     i = i[0]
     w = w[i]
