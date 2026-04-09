@@ -76,10 +76,6 @@ jobs:
       shell: bash -el {0}
       run: |
         pytest tests/test_make_mat.py
-    - name: Run domains regtests
-      shell: bash -el {0}
-      run: |
-        pytest tests/test_domains.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -103,9 +99,6 @@ jobs:
     - name: Run make_mat regtests
       run: |
         pytest tests/test_make_mat.py
-    - name: Run domains regtests
-      run: |
-        pytest tests/test_domains.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
@@ -130,10 +123,6 @@ jobs:
       shell: bash -el {0}
       run: |
         pytest tests/test_make_mat.py
-    - name: Run domains regtests
-      shell: bash -el {0}
-      run: |
-        pytest tests/test_domains.py
     - name: Run unit tests
       shell: bash -el {0}
       run: |
@@ -157,9 +146,6 @@ jobs:
     - name: Run make_mat regtests
       run: |
         pytest tests/test_make_mat.py
-    - name: Run domains regtests
-      run: |
-        pytest tests/test_domains.py
     - name: Run unit tests
       run: |
         pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py

@@ -36,7 +36,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pytest numpy pandas scipy
+        run: pip install pytest numpy pandas scipy parmed
 
       - name: Run tools unit tests
-        run: pytest tests/test_get_box.py tests/test_domains_unit.py tests/test_make_mat_unit.py -v
+        run: pytest tests/test_get_box.py tests/test_domains_unit.py test_domains.py tests/test_make_mat_unit.py -v
