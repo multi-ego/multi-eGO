@@ -1,259 +1,367 @@
-import numpy as np
+"""
+domains.py — apply a domain mask to a multi-eGO intra-molecular contact matrix.
+
+For each domain range supplied via ``--dom_res``, the contacts between atoms
+that both fall inside the range are marked as *learned* (``True``) in the
+output HDF5 file.  Contacts outside all ranges are marked as *not learned*
+(``False``).  The ``--invert`` flag flips the assignment.
+"""
+
 import argparse
 import os
-import parmed as pmd
+import sys
 import warnings
+from pathlib import Path
+
+import numpy as np
 import pandas as pd
+import parmed as pmd
+
+
+# ---------------------------------------------------------------------------
+# Topology helpers
+# ---------------------------------------------------------------------------
 
 
 def find_atom_start(top, res_num):
-    """
-    Finds the starting atom associated to the residue
-    """
-    atom_idx = 0
-
-    for i in range(res_num - 1):
-        atom_idx += len(top.residues[i].atoms)
-
-    return atom_idx
-
-
-def find_atom_end(top, res_num):
-    """
-    Finds the ending atom associated to the residue
-    """
-    atom_idx = 0
-
-    for i in range(res_num):
-        atom_idx += len(top.residues[i].atoms)
-
-    return atom_idx - 1
-
-
-def dom_range(ranges_str):
-    """
-    Reads the ranges given in input as a string and puts them in output
-    as a list of tuples checking that the ranges are non-decreasing and non-overlapping
-    """
-
-    print("\nReading domain ranges in which inserting intramats")
-    doms = [(int(r.split("-")[0]), int(r.split("-")[1])) for r in ranges_str]
-
-    if not all([x[0] <= x[1] for x in doms]):
-        print("WARNING: Elements in each range should be non-decreasing e.g. dom_res 1-10 11-20 ...")
-
-    if not all([x1[1] < x2[0] for x1, x2 in zip(doms[:-1], doms[1:])]):
-        print("WARNING: Ranges should not overlap e.g. dom_res 1-10 11-20 ...")
-
-    return doms
-
-
-def read_topologies(top):
-    """
-    Read a topology file with parmed, suppressing GROMACS 1-4 warnings.
+    """Return the 0-based index of the first atom of residue *res_num* (1-based).
 
     Parameters
     ----------
-    top : str
-        Path to the topology file (e.g. a multi-eGO ``topol.top``).
+    top : parmed.Structure
+        Parsed topology.
+    res_num : int
+        1-based residue number.
+
+    Returns
+    -------
+    int
+    """
+    return sum(len(top.residues[i].atoms) for i in range(res_num - 1))
+
+
+def find_atom_end(top, res_num):
+    """Return the 0-based index of the last atom of residue *res_num* (1-based).
+
+    Parameters
+    ----------
+    top : parmed.Structure
+        Parsed topology.
+    res_num : int
+        1-based residue number.
+
+    Returns
+    -------
+    int
+    """
+    return sum(len(top.residues[i].atoms) for i in range(res_num)) - 1
+
+
+def read_topology(top_path):
+    """Read a GROMACS topology file and return the parsed structure and a summary DataFrame.
+
+    Parameters
+    ----------
+    top_path : str
+        Path to the topology file (e.g. ``topol.top``).
 
     Returns
     -------
     topology : parmed.Structure
-        Parsed topology object.
+        Parsed topology.
     top_df : pd.DataFrame
         Per-molecule summary with columns ``name``, ``residues``,
         ``atoms_per_res``, ``tot_atoms``, and ``atoms_name``.
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        topology = pmd.load_file(top)
+        topology = pmd.load_file(top_path)
 
-    # Return topology and a dataframe with:
-    # molecule name, number of molecules?, residue list, atom_list_per_residue
-    top_df = pd.DataFrame()
-    # n_mol = len(list(topology.molecules.keys()))
     mol_names = list(topology.molecules.keys())
-    top_df["name"] = mol_names
-    # mol_list = np.arange(1, n_mol + 1, 1)
-    res = []
-    atoms = []
-    atoms_name = []
-    tot_num_atoms = []
+    res, atoms, atoms_name, tot_num_atoms = [], [], [], []
     for name in mol_names:
-        res.append([r.name for r in topology.molecules.values().mapping[name][0].residues])
-        atoms.append([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues])
-        atoms_name.append([[a.type for a in r.atoms] for r in topology.molecules.values().mapping[name][0].residues])
-        tot_num_atoms.append(
-            np.sum(np.array([len(r.atoms) for r in topology.molecules.values().mapping[name][0].residues]))
-        )
-    top_df["residues"] = res
-    top_df["atoms_per_res"] = atoms
-    top_df["tot_atoms"] = tot_num_atoms
-    top_df["atoms_name"] = atoms_name
+        mol = topology.molecules[name][0]
+        res.append([r.name for r in mol.residues])
+        atoms.append([len(r.atoms) for r in mol.residues])
+        atoms_name.append([[a.type for a in r.atoms] for r in mol.residues])
+        tot_num_atoms.append(sum(len(r.atoms) for r in mol.residues))
 
+    top_df = pd.DataFrame(
+        {
+            "name": mol_names,
+            "residues": res,
+            "atoms_per_res": atoms,
+            "tot_atoms": tot_num_atoms,
+            "atoms_name": atoms_name,
+        }
+    )
     return topology, top_df
 
 
-def readmat(intramat, h5=True):
+# ---------------------------------------------------------------------------
+# Domain range parsing
+# ---------------------------------------------------------------------------
+
+
+def dom_range(ranges_str):
+    """Parse ``'start-end'`` strings into validated ``(start, end)`` tuples.
+
+    Parameters
+    ----------
+    ranges_str : list of str
+        Strings of the form ``'start-end'``, e.g. ``['1-30', '45-60']``.
+
+    Returns
+    -------
+    list of (int, int)
+
+    Raises
+    ------
+    ValueError
+        If any range is decreasing (start > end) or if consecutive ranges
+        overlap or are not in increasing order.
     """
-    Reads the intramat and checks that it has the correct format. Returns the intramat as a dataframe with correct column types.
+    doms = [(int(r.split("-")[0]), int(r.split("-")[1])) for r in ranges_str]
+
+    for start, end in doms:
+        if start > end:
+            raise ValueError(
+                f"Domain range {start}-{end} is invalid: start must be ≤ end."
+            )
+
+    for (_, end1), (start2, _) in zip(doms[:-1], doms[1:]):
+        if end1 >= start2:
+            raise ValueError(
+                f"Domain ranges overlap or are out of order: "
+                f"end of first range ({end1}) must be < start of next ({start2})."
+            )
+
+    return doms
+
+
+# ---------------------------------------------------------------------------
+# Domain mask
+# ---------------------------------------------------------------------------
+
+
+def build_domain_mask(topology, n_atoms, ranges, invert=False):
+    """Build a flat boolean mask of length *n_atoms²* marking intra-domain contacts.
+
+    A contact (i, j) is marked ``True`` when *both* atom i and atom j fall
+    inside at least one of the supplied residue ranges.
+
+    Parameters
+    ----------
+    topology : parmed.Structure
+        Parsed topology (used to map residue numbers to atom indices).
+    n_atoms : int
+        Total number of atoms in the molecule.
+    ranges : list of (int, int)
+        Validated residue ranges from :func:`dom_range`.
+    invert : bool
+        If ``True``, flip the mask so that intra-domain contacts are ``False``
+        and all others are ``True``.
+
+    Returns
+    -------
+    np.ndarray of bool, shape (n_atoms²,)
+    """
+    atom_in_domain = np.zeros(n_atoms, dtype=bool)
+    for r_start, r_end in ranges:
+        a_start = find_atom_start(topology, r_start)
+        a_end = find_atom_end(topology, r_end)
+        print(f"  Domain range: {r_start}-{r_end}")
+        print(f"    Atom index range (1-based): {a_start + 1} – {a_end + 1}")
+        print(f"    Number of atoms in range:   {a_end - a_start + 1}")
+        print(
+            f"    First / last atom:  "
+            f"{topology.atoms[a_start]} – {topology.atoms[a_end]}"
+        )
+        atom_in_domain[a_start : a_end + 1] = True
+
+    # Outer product: True where both atom i and atom j are in the domain
+    mask_2d = atom_in_domain[:, np.newaxis] & atom_in_domain[np.newaxis, :]
+    domain_mask = mask_2d.reshape(n_atoms**2)
+
+    if invert:
+        domain_mask = ~domain_mask
+
+    return domain_mask
+
+
+# ---------------------------------------------------------------------------
+# Contact matrix I/O
+# ---------------------------------------------------------------------------
+
+
+def readmat(intramat_path, h5=True):
+    """Read an intra-molecular contact matrix and return it as a DataFrame.
+
+    Parameters
+    ----------
+    intramat_path : str
+        Path to the contact matrix file.
+    h5 : bool
+        If ``True`` (default), read as HDF5; otherwise read as whitespace-
+        delimited text.
+
+    Returns
+    -------
+    pd.DataFrame
+        Contact matrix with columns:
+        ``molecule_name_ai``, ``ai``, ``molecule_name_aj``, ``aj``,
+        ``distance``, ``probability``, ``cutoff``, ``learned``.
     """
     if h5:
-        intramat_md_df = pd.read_hdf(intramat, key="data")
-    else:
-        intramat_md = np.loadtxt(intramat, unpack=True)
-        if intramat_md.shape[0] not in [7, 8]:
-            raise ValueError(
-                "Intramat should have 7 or 8 columns: molecule_name_ai, ai, molecule_name_aj, aj, distance, probability, cutoff, (optional) learned"
-            )
-        if intramat_md.shape[0] == 7:
-            print("Intramat has 7 columns, domain mask will be added as an eigth column")
-            intramat_md = np.concatenate((intramat_md, np.full(intramat_md.shape[1], False)[np.newaxis, :]), axis=0)
+        return pd.read_hdf(intramat_path, key="data")
 
-        col_types = {
-            "molecule_name_ai": int,
-            "ai": int,
-            "molecule_name_aj": int,
-            "aj": int,
-            "distance": np.float64,
-            "probability": np.float64,
-            "cutoff": np.float64,
-            "learned": int,  # Allows for integer with NaNs, which can be cast later
-        }
+    col_names = [
+        "molecule_name_ai", "ai", "molecule_name_aj", "aj",
+        "distance", "probability", "cutoff", "learned",
+    ]
+    col_types = {
+        "molecule_name_ai": int,
+        "ai": int,
+        "molecule_name_aj": int,
+        "aj": int,
+        "distance": np.float64,
+        "probability": np.float64,
+        "cutoff": np.float64,
+        "learned": int,
+    }
 
-        intramat_md_df = pd.DataFrame(columns=col_types.keys())
-        for i, col in enumerate(col_types.keys()):
-            intramat_md_df[col] = intramat_md[i].astype(col_types[col])
+    raw = np.loadtxt(intramat_path, unpack=True)
+    if raw.shape[0] not in (7, 8):
+        raise ValueError(
+            "Intramat must have 7 or 8 columns: "
+            "molecule_name_ai, ai, molecule_name_aj, aj, "
+            "distance, probability, cutoff, [learned]"
+        )
+    if raw.shape[0] == 7:
+        print("  Intramat has 7 columns — domain mask column will be appended.")
+        raw = np.vstack([raw, np.zeros(raw.shape[1], dtype=int)])
 
-    return intramat_md_df
+    df = pd.DataFrame({col: raw[i].astype(col_types[col]) for i, col in enumerate(col_names)})
+    return df
 
 
-def write_intramat(contact_matrix, out_name, h5=False):
+def write_intramat(contact_matrix, out_path):
+    """Write a contact matrix DataFrame to an HDF5 file.
+
+    Parameters
+    ----------
+    contact_matrix : pd.DataFrame
+        Contact matrix (must contain a ``learned`` column).
+    out_path : str or Path
+        Destination file path (should end in ``.h5``).
     """
-    Writes the intramat in the correct format. If the intramat has 8 columns, it is assumed that the last column is the learned mask.
-    """
-    col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
-
-    if not h5:
-        col_types = {
-            "molecule_name_ai": str,
-            "ai": str,
-            "molecule_name_aj": str,
-            "aj": str,
-            "distance": np.float64,
-            "probability": np.float64,
-            "cutoff": np.float64,
-            "learned": "Int64",  # Allows for integer with NaNs, which can be cast later
-        }
-        contact_matrix = pd.DataFrame(contact_matrix.T, columns=col_names, dtype=col_types)
-
-    # Read the input file with specified column names and data types
+    contact_matrix = contact_matrix.copy()
     contact_matrix["learned"] = contact_matrix["learned"].fillna(1).astype(bool)
+    for col in ("molecule_name_ai", "ai", "molecule_name_aj", "aj"):
+        contact_matrix[col] = contact_matrix[col].astype("category")
 
-    contact_matrix["molecule_name_ai"] = contact_matrix["molecule_name_ai"].astype("category")
-    contact_matrix["ai"] = contact_matrix["ai"].astype("category")
-    contact_matrix["molecule_name_aj"] = contact_matrix["molecule_name_aj"].astype("category")
-    contact_matrix["aj"] = contact_matrix["aj"].astype("category")
+    contact_matrix.to_hdf(
+        out_path, key="data", mode="w", format="table",
+        complib="blosc:lz4", complevel=9,
+    )
 
-    # Save the data as HDF5 with compression
-    contact_matrix.to_hdf(out_name, key="data", mode="w", format="table", complib="blosc:lz4", complevel=9)
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="TODO!")
-    parser.add_argument("--intra", type=str, required=True, help="intramat to work on")
-    parser.add_argument("--top", type=str, required=True)
+    parser = argparse.ArgumentParser(
+        description=(
+            "Apply a domain mask to a multi-eGO intra-molecular contact matrix.\n\n"
+            "Contacts where both atoms fall inside one of the supplied residue "
+            "ranges are marked as learned; all others are marked as not learned. "
+            "Use --invert to flip this assignment."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--intra",
+        type=str,
+        required=True,
+        help="Path to the intra-molecular contact matrix (HDF5 .h5 or plain text)",
+    )
+    parser.add_argument(
+        "--top",
+        type=str,
+        required=True,
+        help="Path to the reference topology file (e.g. topol.top)",
+    )
     parser.add_argument(
         "--dom_res",
         nargs="+",
         type=str,
-        default=[],
-        help="list of residue indeces associated to the starting residues of new domains. Example: 15 44 ...",
         required=True,
+        help=(
+            "One or more residue ranges as 'start-end' pairs, e.g. --dom_res 1-30 45-60. "
+            "Ranges must be non-overlapping and in increasing order."
+        ),
     )
-    parser.add_argument("--out", type=str, default="./", help="path for ouput")
-    parser.add_argument("--invert", action="store_true", default=False, help="Invert domain mask")
+    parser.add_argument(
+        "--out",
+        type=str,
+        default=".",
+        help="Output directory (default: current directory)",
+    )
+    parser.add_argument(
+        "--invert",
+        action="store_true",
+        default=False,
+        help="Invert the domain mask: mark intra-domain contacts as not learned",
+    )
 
     args = parser.parse_args()
 
-    if args.out:
-        if not os.path.isdir(args.out):
-            print(f"{args.out} does not exists. Insert an existing directory")
-            exit()
-        else:
-            if args.out[-1] != "/":
-                args.out = args.out + "/"
+    out_dir = Path(args.out)
+    if not out_dir.is_dir():
+        print(f"ERROR: output directory '{out_dir}' does not exist.")
+        sys.exit(1)
 
-    # read topology
-    topology_mego, top_df = read_topologies(args.top)
-
-    # check if there is only one molecule. This code should modify only intramat of one molecule
+    # Read topology
+    topology, top_df = read_topology(args.top)
     if len(top_df) > 1:
-        raise ValueError("Only one molecule specie is allowed, topology contains more than one molecule")
-
-    # define atom_num and res_num of the molecule
-    n_atoms = top_df.tot_atoms[0]
-    n_res = len(top_df.residues[0])
-
-    ranges = dom_range(args.dom_res)
-
-    print(f"\n Total number of residues {n_res} and total number of atoms {n_atoms} \n")
-
-    # read intramat and check consistency
-    intramat = args.intra
-    if intramat.endswith(".h5"):
-        print(f"Reading intramat {intramat} as HDF5")
-        intra_md = readmat(intramat, h5=True)
-    else:
-        intra_md = readmat(intramat, h5=False)
-    dim = int(np.sqrt(len(intra_md)))
-    if dim != n_atoms:
         raise ValueError(
-            f"ERROR: number of atoms in intramat ({dim}) does not correspond to that of topology ({n_atoms})"
+            "Only a single molecule species is supported; "
+            f"topology contains {len(top_df)} molecule types."
         )
 
-    # define domain mask
-    domain_mask_linear = np.full(dim**2, False)
-    for r in ranges:
-        start = find_atom_start(topology_mego, r[0])
-        end = find_atom_end(topology_mego, r[1])
-        if start >= end:
-            appo_end = end
-            end = start
-            start = appo_end
-            print(f"  Domain range: {r[0]}-{r[1]} INVERTED")
-            print(f"     Atom index range start-end: {start+1} - {end+1}")
-            print(f"     Number of atoms in domain range:  {end+1 - (start)}")
-            print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
-            print("\n")
-            map_appo = np.invert(np.array([True if x >= start and x <= end else False for x in range(dim)]))
-        else:
-            print(f"  Domain range: {r[0]}-{r[1]}")
-            print(f"     Atom index range start-end: {start+1} - {end+1}")
-            print(f"     Number of atoms in domain range:  {end+1 - (start)}")
-            print(f"     Atom and Residue of start-end {topology_mego.atoms[start]} - {topology_mego.atoms[end]}")
-            print("\n")
-            map_appo = np.array([True if x >= start and x <= end else False for x in range(dim)])
-        domain_mask_linear = np.logical_or(domain_mask_linear, (map_appo * map_appo[:, np.newaxis]).reshape(dim**2))
+    n_atoms = top_df.tot_atoms[0]
+    n_res = len(top_df.residues[0])
+    print(f"Topology: {n_res} residues, {n_atoms} atoms")
 
-    if args.invert:
-        domain_mask_linear = np.logical_not(domain_mask_linear)
-    print(domain_mask_linear)
+    # Parse and validate domain ranges
+    ranges = dom_range(args.dom_res)
 
-    # set domain mask in intramat
-    intra_md["learned"] = domain_mask_linear
+    # Read contact matrix
+    intra_path = Path(args.intra)
+    h5 = intra_path.suffix == ".h5"
+    if h5:
+        print(f"Reading contact matrix: {intra_path} (HDF5)")
+    intra_md = readmat(str(intra_path), h5=h5)
 
-    if "/" in intramat:
-        intramat = intramat.split("/")[-1]
-        if intramat.endswith(".h5"):
-            intramat = intramat[:-3]
-    if args.invert:
-        out_name = f'{args.out}inverted_split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}.h5'
-    else:
-        out_name = f'{args.out}split_{"-".join(np.array(args.dom_res, dtype=str))}_{intramat}.h5'
+    dim = int(round(len(intra_md) ** 0.5))
+    if dim != n_atoms:
+        raise ValueError(
+            f"Contact matrix size ({dim}²) does not match topology atom count ({n_atoms})."
+        )
 
-    # write output in h5 format
-    write_intramat(intra_md, out_name, h5=True)
+    # Build and apply domain mask
+    domain_mask = build_domain_mask(topology, n_atoms, ranges, invert=args.invert)
+    intra_md["learned"] = domain_mask
 
-    print("Finished splitting")
+    # Write output
+    intramat_stem = intra_path.stem
+    if intramat_stem.endswith(".ndx"):
+        intramat_stem = intramat_stem[: -len(".ndx")]
+    range_str = "-".join(args.dom_res)
+    prefix = "inverted_split" if args.invert else "split"
+    out_path = out_dir / f"{prefix}_{range_str}_{intramat_stem}.h5"
+
+    write_intramat(intra_md, out_path)
+    print(f"Written: {out_path}")

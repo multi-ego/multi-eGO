@@ -1,0 +1,42 @@
+name: 'Tools tests'
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths:
+      - 'tools/**'
+      - 'tests/test_get_box.py'
+      - 'tests/test_domains.py'
+    paths-ignore:
+      - 'tools/cmdata/**'
+  pull_request:
+    paths:
+      - 'tools/**'
+      - 'tests/test_get_box.py'
+      - 'tests/test_domains.py'
+    paths-ignore:
+      - 'tools/cmdata/**'
+
+jobs:
+  test-tools:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pytest numpy pandas
+
+      - name: Run tools unit tests
+        run: pytest tests/test_get_box.py tests/test_domains.py -v

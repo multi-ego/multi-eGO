@@ -1,43 +1,86 @@
 # domains.py
 
-`domains.py` is a script used to define intra-region associations for specific energy epsilon parameters in a multi-eGO environment.
+Apply a domain mask to a multi-eGO intra-molecular contact matrix.
+
+For each residue range supplied via `--dom_res`, contacts where **both** atoms
+fall inside the range are marked as *learned* (`True`) in the output HDF5 file.
+Contacts outside all ranges are marked as *not learned* (`False`).
+Use `--invert` to flip this assignment.
 
 ## Usage
 
+```
+python domains.py --intra <matrix> --top <topology> --dom_res <ranges> [--out <dir>] [--invert]
+```
 
-### Arguments
+## Arguments
 
-- **`--intra`**  
-  Specifies the path to the reference intra-region matrix file. This file defines the intra-region epsilon parameter relationships.  
-  **Example:** `--intra PATH/reference_intramat`
+| Argument | Required | Description |
+|---|---|---|
+| `--intra` | yes | Path to the intra-molecular contact matrix (`.h5` HDF5 or plain text) |
+| `--top` | yes | Path to the reference topology file (e.g. `topol.top`) |
+| `--dom_res` | yes | One or more residue ranges as `start-end` pairs (see below) |
+| `--out` | no | Output directory (default: current directory) |
+| `--invert` | no | Invert the mask: intra-domain contacts become *not learned* |
 
-- **`--top`**  
-  Specifies the path to the reference topology file. This file contains the necessary topology information for the domain definitions.  
-  **Example:** `--top PATH/reference_top`
+### `--dom_res` rules
 
-- **`--dom_res`**  
-  Defines the sequence of domain ranges as `start-end` pairs, where each range represents a domain of residues. These ranges must satisfy the following conditions:
-  - Be in non-decreasing order.
-  - Not overlap with one another.
+Ranges are given as `start-end` pairs and must satisfy:
+- Each range is non-decreasing (`start ≤ end`).
+- Ranges are non-overlapping and in increasing order.
 
-  **Examples:**  
-  Valid domain ranges:  
-  - `--dom_res 1-30 45-60`  
-  - `--dom_res 4-4 45-60`  
+```
+--dom_res 1-30 45-60    # valid: two non-overlapping ranges
+--dom_res 4-4           # valid: single residue
+--dom_res 1-30 25-60    # invalid: overlapping
+--dom_res 30-20         # invalid: decreasing
+```
 
-  Invalid domain ranges:  
-  - `--dom_res 1-30 25-60` (Overlapping ranges)  
-  - `--dom_res 30-20 35-60` (Non-decreasing order)
+## Output filename
 
-- **`--out`** *(optional)*  
-  Specifies the output directory where the results will be saved. If omitted, the results will be saved in the current working directory.  
-  **Example:** `--out output_directory`
+The output file is written to `--out` with the name:
 
-- **`--invert`** *(optional)*  
-  If this flag is included, the flag assignment is inverted and 0 will be pleaced in the domain ranges instead of 1
+```
+split_<ranges>_<input_stem>.h5          # normal mode
+inverted_split_<ranges>_<input_stem>.h5  # with --invert
+```
 
----
+For example, running with `--dom_res 1-30 45-60` on `intramat_1_1.ndx.h5` produces:
 
-### Examples of Usage
+```
+split_1-30-45-60_intramat_1_1.h5
+```
 
-1. Define domains using two non-overlapping ranges:  
+## Examples
+
+**Mark contacts within two domains as learned:**
+```
+python domains.py \
+  --intra reference/intramat_1_1.ndx.h5 \
+  --top   reference/topol.top \
+  --dom_res 1-30 45-60 \
+  --out   output/
+```
+```
+Topology: 80 residues, 623 atoms
+  Domain range: 1-30
+    Atom index range (1-based): 1 – 234
+    Number of atoms in range:   234
+    First / last atom:  MET1 – ALA30
+  Domain range: 45-60
+    Atom index range (1-based): 352 – 469
+    Number of atoms in range:   118
+    First / last atom:  GLY45 – VAL60
+Written: output/split_1-30-45-60_intramat_1_1.h5
+```
+
+**Invert — mark everything *outside* the domain as learned:**
+```
+python domains.py \
+  --intra reference/intramat_1_1.ndx.h5 \
+  --top   reference/topol.top \
+  --dom_res 1-30 45-60 \
+  --out   output/ \
+  --invert
+```
+Output file: `output/inverted_split_1-30-45-60_intramat_1_1.h5`
