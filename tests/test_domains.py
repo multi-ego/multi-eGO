@@ -85,6 +85,7 @@ def dom_split(tmp_path_factory):
         str(out),
     )
     _run(HDF52NDX, "--input", str(out / "split_2-61-72-161_intramat_1_1.h5"))
+    _run(HDF52NDX, "--input", os.path.join(DOM_OUT, "ref_split_2-61-72-161_intramat_1_1.h5"))
     return out
 
 
@@ -107,6 +108,7 @@ def dom_invert(tmp_path_factory):
         str(out),
     )
     _run(HDF52NDX, "--input", str(out / "inverted_split_2-61-72-161_intramat_1_1.h5"))
+    _run(HDF52NDX, "--input", os.path.join(DOM_OUT, "ref_inverted_split_2-61-72-161_intramat_1_1.h5"))
     return out
 
 
@@ -120,7 +122,7 @@ class TestDomainSplit:
     def test_split(self, dom_split):
         _assert_files_equal(
             dom_split / "split_2-61-72-161_intramat_1_1",
-            os.path.join(DOM_OUT, "split_2-61-72-161_intramat_1_1"),
+            os.path.join(DOM_OUT, "ref_split_2-61-72-161_intramat_1_1"),
         )
 
 
@@ -129,5 +131,5 @@ class TestDomainInvert:
     def test_invert(self, dom_invert):
         _assert_files_equal(
             dom_invert / "inverted_split_2-61-72-161_intramat_1_1",
-            os.path.join(DOM_OUT, "inverted_split_2-61-72-161_intramat_1_1"),
+            os.path.join(DOM_OUT, "ref_inverted_split_2-61-72-161_intramat_1_1"),
         )
