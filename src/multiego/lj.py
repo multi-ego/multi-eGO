@@ -550,7 +550,10 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             ~(
                 (meGO_LJ["epsilon"] < 0)
                 & (meGO_LJ["mg_epsilon"] < 0)
-                & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < config.learn_tolerance)
+                & (
+                    (abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"]))
+                    < config.learn_tolerance
+                )
                 & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
                 & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
             )
@@ -615,7 +618,12 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
         # Symmetrize
         inverse_meGO_LJ = meGO_LJ.rename(
-            columns={"ai": "aj", "aj": "ai", "molecule_name_ai": "molecule_name_aj", "molecule_name_aj": "molecule_name_ai"}
+            columns={
+                "ai": "aj",
+                "aj": "ai",
+                "molecule_name_ai": "molecule_name_aj",
+                "molecule_name_aj": "molecule_name_ai",
+            }
         ).copy()
         meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
