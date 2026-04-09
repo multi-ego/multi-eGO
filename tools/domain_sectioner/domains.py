@@ -170,7 +170,7 @@ def build_domain_mask(topology, n_atoms, ranges, invert=False):
         print(f"    Atom index range (1-based): {a_start + 1} – {a_end + 1}")
         print(f"    Number of atoms in range:   {a_end - a_start + 1}")
         print(f"    First / last atom:  " f"{topology.atoms[a_start]} – {topology.atoms[a_end]}")
-        atom_in_domain[a_start : a_end + 1] = True # noqa: E203
+        atom_in_domain[a_start : a_end + 1] = True  # noqa: E203
 
     # Outer product: True where both atom i and atom j are in the domain
     mask_2d = atom_in_domain[:, np.newaxis] & atom_in_domain[np.newaxis, :]
