@@ -12,6 +12,7 @@ import subprocess
 import sys
 import filecmp
 import difflib
+import pandas as pd
 
 import pytest
 
@@ -50,16 +51,11 @@ def _run(*args, cwd=None):
     return result
 
 
-def _assert_files_equal(actual, reference):
-    """Assert two files have identical content, printing a unified diff on failure."""
-    actual, reference = str(actual), str(reference)
-    if not filecmp.cmp(actual, reference, shallow=False):
-        with open(actual) as fh:
-            actual_lines = fh.readlines()
-        with open(reference) as fh:
-            ref_lines = fh.readlines()
-        diff = "".join(difflib.unified_diff(ref_lines, actual_lines, fromfile="reference", tofile="actual", n=3))
-        raise AssertionError(f"Files differ:\n  actual:    {actual}\n  reference: {reference}\n\n{diff}")
+def _assert_hdf_equal(a, b):
+    df_a = pd.read_hdf(a)
+    df_b = pd.read_hdf(b)
+
+    pd.testing.assert_frame_equal(df_a, df_b)
 
 
 # ---------------------------------------------------------------------------
@@ -84,8 +80,6 @@ def dom_split(tmp_path_factory):
         "--out",
         str(out),
     )
-    _run(HDF52NDX, "--input", str(out / "split_2-61-72-161_intramat_1_1.h5"))
-    _run(HDF52NDX, "--input", os.path.join(DOM_OUT, "ref_split_2-61-72-161_intramat_1_1.h5"))
     return out
 
 
@@ -107,8 +101,6 @@ def dom_invert(tmp_path_factory):
         "--out",
         str(out),
     )
-    _run(HDF52NDX, "--input", str(out / "inverted_split_2-61-72-161_intramat_1_1.h5"))
-    _run(HDF52NDX, "--input", os.path.join(DOM_OUT, "ref_inverted_split_2-61-72-161_intramat_1_1.h5"))
     return out
 
 
@@ -120,16 +112,16 @@ def dom_invert(tmp_path_factory):
 class TestDomainSplit:
 
     def test_split(self, dom_split):
-        _assert_files_equal(
-            dom_split / "split_2-61-72-161_intramat_1_1",
-            os.path.join(DOM_OUT, "ref_split_2-61-72-161_intramat_1_1"),
+        _assert_hdf_equal(
+            dom_split / "split_2-61-72-161_intramat_1_1.h5",
+            os.path.join(DOM_OUT, "ref_split_2-61-72-161_intramat_1_1.h5"),
         )
 
 
 class TestDomainInvert:
 
     def test_invert(self, dom_invert):
-        _assert_files_equal(
-            dom_invert / "inverted_split_2-61-72-161_intramat_1_1",
-            os.path.join(DOM_OUT, "ref_inverted_split_2-61-72-161_intramat_1_1"),
+        _assert_hdf_equal(
+            dom_invert / "inverted_split_2-61-72-161_intramat_1_1.h5",
+            os.path.join(DOM_OUT, "ref_inverted_split_2-61-72-161_intramat_1_1.h5"),
         )
