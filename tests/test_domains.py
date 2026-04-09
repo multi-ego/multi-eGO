@@ -18,10 +18,10 @@ import pytest
 TEST_ROOT = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.abspath(os.path.join(TEST_ROOT, ".."))
 
-DOMAINS  = os.path.join(REPO_ROOT, "tools", "domain_sectioner", "domains.py")
+DOMAINS = os.path.join(REPO_ROOT, "tools", "domain_sectioner", "domains.py")
 HDF52NDX = os.path.join(REPO_ROOT, "tools", "make_mat", "HDF52ndx.py")
 
-DOM_IN  = os.path.join(TEST_ROOT, "test_inputs",  "domain_sectioner")
+DOM_IN = os.path.join(TEST_ROOT, "test_inputs", "domain_sectioner")
 DOM_OUT = os.path.join(TEST_ROOT, "test_outputs", "domain_sectioner")
 
 _TOOL_ENV = {
@@ -58,17 +58,14 @@ def _assert_files_equal(actual, reference):
             actual_lines = fh.readlines()
         with open(reference) as fh:
             ref_lines = fh.readlines()
-        diff = "".join(
-            difflib.unified_diff(ref_lines, actual_lines, fromfile="reference", tofile="actual", n=3)
-        )
-        raise AssertionError(
-            f"Files differ:\n  actual:    {actual}\n  reference: {reference}\n\n{diff}"
-        )
+        diff = "".join(difflib.unified_diff(ref_lines, actual_lines, fromfile="reference", tofile="actual", n=3))
+        raise AssertionError(f"Files differ:\n  actual:    {actual}\n  reference: {reference}\n\n{diff}")
 
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="class")
 def dom_split(tmp_path_factory):
@@ -77,10 +74,15 @@ def dom_split(tmp_path_factory):
 
     _run(
         DOMAINS,
-        "--intra",   os.path.join(DOM_IN, "intramat_1_1.ndx.h5"),
-        "--top",     os.path.join(DOM_IN, "topol.top"),
-        "--dom_res", "2-61", "72-161",
-        "--out",     str(out),
+        "--intra",
+        os.path.join(DOM_IN, "intramat_1_1.ndx.h5"),
+        "--top",
+        os.path.join(DOM_IN, "topol.top"),
+        "--dom_res",
+        "2-61",
+        "72-161",
+        "--out",
+        str(out),
     )
     _run(HDF52NDX, "--input", str(out / "split_2-61-72-161_intramat_1_1.h5"))
     return out
@@ -93,11 +95,16 @@ def dom_invert(tmp_path_factory):
 
     _run(
         DOMAINS,
-        "--intra",   os.path.join(DOM_IN, "intramat_1_1.ndx.h5"),
-        "--top",     os.path.join(DOM_IN, "topol.top"),
-        "--dom_res", "2-61", "72-161",
+        "--intra",
+        os.path.join(DOM_IN, "intramat_1_1.ndx.h5"),
+        "--top",
+        os.path.join(DOM_IN, "topol.top"),
+        "--dom_res",
+        "2-61",
+        "72-161",
         "--invert",
-        "--out",     str(out),
+        "--out",
+        str(out),
     )
     _run(HDF52NDX, "--input", str(out / "inverted_split_2-61-72-161_intramat_1_1.h5"))
     return out
@@ -106,6 +113,7 @@ def dom_invert(tmp_path_factory):
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 class TestDomainSplit:
 
