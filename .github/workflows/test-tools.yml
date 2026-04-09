@@ -7,19 +7,17 @@ on:
   push:
     paths:
       - 'tools/**'
+      - '!tools/cmdata/**'
       - 'tests/test_get_box.py'
       - 'tests/test_domains.py'
       - 'tests/test_make_mat_unit.py'
-    paths-ignore:
-      - 'tools/cmdata/**'
   pull_request:
     paths:
       - 'tools/**'
+      - '!tools/cmdata/**'
       - 'tests/test_get_box.py'
       - 'tests/test_domains.py'
       - 'tests/test_make_mat_unit.py'
-    paths-ignore:
-      - 'tools/cmdata/**'
 
 jobs:
   test-tools:
