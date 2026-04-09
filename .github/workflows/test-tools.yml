@@ -1,0 +1,42 @@
+name: 'Tools tests'
+
+permissions:
+  contents: read
+
+on:
+  push:
+    paths:
+      - 'tools/**'
+      - '!tools/cmdata/**'
+      - 'tests/test_get_box.py'
+      - 'tests/test_domains_unit.py'
+      - 'tests/test_make_mat_unit.py'
+  pull_request:
+    paths:
+      - 'tools/**'
+      - '!tools/cmdata/**'
+      - 'tests/test_get_box.py'
+      - 'tests/test_domains_unit.py'
+      - 'tests/test_make_mat_unit.py'
+
+jobs:
+  test-tools:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install pytest numpy pandas scipy parmed tables
+
+      - name: Run tools unit tests
+        run: pytest tests/test_get_box.py tests/test_domains_unit.py tests/test_domains.py tests/test_make_mat_unit.py -v
