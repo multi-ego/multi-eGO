@@ -120,7 +120,8 @@ def main(root_dir):
         st = et
 
         _term.header("Initializing LJ dataset")
-        train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, args)
+        with _term.spinner("building LJ dataset"):
+            train_dataset = lj.init_LJ_datasets(meGO_ensembles, matrices, args)
         del matrices
         gc.collect()
         et = time.time()
@@ -137,20 +138,24 @@ def main(root_dir):
 
     elif args.egos == "mg":
         _term.header("Generating LJ dataset")
-        meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
+        with _term.spinner("building MG LJ"):
+            meGO_LJ = mg.generate_MG_LJ(meGO_ensembles)
         stat_str = io.print_stats(meGO_LJ)
         et = time.time()
         _term.section_timing(et - st)
         st = et
 
     _term.header("Pairs and exclusions")
-    meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, args, meGO_LJ_14=meGO_LJ_14)
+    with _term.spinner("computing pairs and exclusions"):
+        meGO_LJ_14 = pairs.make_pairs_exclusion_topology(meGO_ensembles, args, meGO_LJ_14=meGO_LJ_14)
     et = time.time()
     _term.section_timing(et - st)
     st = et
 
     _term.header("Writing Multi-eGO model")
-    io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
+    with _term.spinner("writing files"):
+        output_dir = io.write_model(meGO_ensembles, meGO_LJ, meGO_LJ_14, args, stat_str)
+    _term.success(f"  Output written to {output_dir}")
     et = time.time()
     _term.section_timing(et - st)
 

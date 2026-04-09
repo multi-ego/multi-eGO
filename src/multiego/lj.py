@@ -507,7 +507,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "learned",
     ]
 
-    meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
+    with _term.spinner("computing sigma / epsilon"):
+        meGO_LJ = set_sig_epsilon(meGO_LJ, parameters)[needed_fields]
 
     et = time.time()
     _term.timing(et - st)
@@ -515,7 +516,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     if parameters.symmetry:
         _term.sub("Apply the defined atomic symmetries")
-        meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
+        with _term.spinner("applying symmetries"):
+            meGO_LJ_sym = apply_symmetries(meGO_ensemble, meGO_LJ, parameters.symmetry)
         meGO_LJ = pd.concat([meGO_LJ, meGO_LJ_sym])
         meGO_LJ.reset_index(inplace=True)
         et = time.time()
@@ -524,117 +526,118 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
     _term.sub("Merging multiple states (training, symmetries, inter/intra)")
 
-    # Merging priority: learned > not learned, attractive > repulsive, shorter > longer, stronger attractive, weaker repulsive
-    meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
-    meGO_LJ.sort_values(
-        by=["ai", "aj", "same_chain", "learned", "type", "sigma", "epsilon"],
-        ascending=[True, True, True, False, False, True, False],
-        inplace=True,
-    )
-    meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
-
-    # Remove contacts that are effectively identical to the default MG prior
-    meGO_LJ = meGO_LJ.loc[
-        ~(
-            (meGO_LJ["epsilon"] > 0)
-            & (meGO_LJ["mg_epsilon"] > 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < config.learn_tolerance)
-            & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < config.learn_tolerance)
-            & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
+    with _term.spinner("merging"):
+        # Merging priority: learned > not learned, attractive > repulsive, shorter > longer, stronger attractive, weaker repulsive
+        meGO_LJ["type"] = np.sign(meGO_LJ["epsilon"])
+        meGO_LJ.sort_values(
+            by=["ai", "aj", "same_chain", "learned", "type", "sigma", "epsilon"],
+            ascending=[True, True, True, False, False, True, False],
+            inplace=True,
         )
-    ]
-    meGO_LJ = meGO_LJ.loc[
-        ~(
-            (meGO_LJ["epsilon"] < 0)
-            & (meGO_LJ["mg_epsilon"] < 0)
-            & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < config.learn_tolerance)
-            & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
-            & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
+        meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj", "same_chain"], keep="first")
+
+        # Remove contacts that are effectively identical to the default MG prior
+        meGO_LJ = meGO_LJ.loc[
+            ~(
+                (meGO_LJ["epsilon"] > 0)
+                & (meGO_LJ["mg_epsilon"] > 0)
+                & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / meGO_LJ["mg_epsilon"]) < config.learn_tolerance)
+                & ((abs(meGO_LJ["sigma"] - meGO_LJ["mg_sigma"]) / meGO_LJ["mg_sigma"]) < config.learn_tolerance)
+                & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
+            )
+        ]
+        meGO_LJ = meGO_LJ.loc[
+            ~(
+                (meGO_LJ["epsilon"] < 0)
+                & (meGO_LJ["mg_epsilon"] < 0)
+                & ((abs(meGO_LJ["epsilon"] - meGO_LJ["mg_epsilon"]) / abs(meGO_LJ["mg_epsilon"])) < config.learn_tolerance)
+                & ((meGO_LJ["bond_distance"] > config.bond14_separation) | (~meGO_LJ["same_chain"]))
+                & ~((meGO_LJ["bond_distance"] <= config.max_bond_separation) & (meGO_LJ["same_chain"]))
+            )
+        ]
+
+        meGO_LJ = meGO_LJ[needed_fields]
+
+        stat_str = io.print_stats(meGO_LJ)
+
+        # --- identify duplicates ON ORIGINAL DATA ---
+        dup_mask = meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)
+        # --- pairs section (ONLY intramolecular interactions from duplicated pairs) ---
+        dup_df = meGO_LJ.loc[dup_mask].copy()
+        meGO_LJ_14 = (
+            dup_df.assign(_priority=~dup_df["same_chain"])
+            .sort_values(["ai", "aj", "_priority"])
+            .drop_duplicates(subset=["ai", "aj"], keep="first")
+            .drop(columns="_priority")
         )
-    ]
+        # ffnonbonded: prioritise intermolecular interactions on duplicate ai/aj
+        meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
+        meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-    meGO_LJ = meGO_LJ[needed_fields]
+        # no cross interactions
+        common = meGO_LJ_14["molecule_name_ai"].cat.categories.union(meGO_LJ_14["molecule_name_aj"].cat.categories)
+        meGO_LJ_14["molecule_name_ai"] = meGO_LJ_14["molecule_name_ai"].cat.set_categories(common)
+        meGO_LJ_14["molecule_name_aj"] = meGO_LJ_14["molecule_name_aj"].cat.set_categories(common)
+        meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
+        # intramolecular interactions within few bonds should be move in pairs
+        copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]
+        meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
+        meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation))]
 
-    stat_str = io.print_stats(meGO_LJ)
+        if parameters.force_split:
+            split_ii = meGO_LJ.loc[(meGO_LJ["same_chain"])]
+            meGO_LJ_14 = pd.concat([meGO_LJ_14, split_ii], axis=0, sort=False, ignore_index=True)
+            meGO_LJ = meGO_LJ.loc[(~meGO_LJ["same_chain"])]
 
-    # --- identify duplicates ON ORIGINAL DATA ---
-    dup_mask = meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)
-    # --- pairs section (ONLY intramolecular interactions from duplicated pairs) ---
-    dup_df = meGO_LJ.loc[dup_mask].copy()
-    meGO_LJ_14 = (
-        dup_df.assign(_priority=~dup_df["same_chain"])
-        .sort_values(["ai", "aj", "_priority"])
-        .drop_duplicates(subset=["ai", "aj"], keep="first")
-        .drop(columns="_priority")
-    )
-    # ffnonbonded: prioritise intermolecular interactions on duplicate ai/aj
-    meGO_LJ.sort_values(by=["ai", "aj", "same_chain"], ascending=[True, True, True], inplace=True)
-    meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
+        # Add MG prior interactions for pairs not learned in any other way
+        needed_fields_mg = [
+            "molecule_name_ai",
+            "ai",
+            "molecule_name_aj",
+            "aj",
+            "probability",
+            "same_chain",
+            "source",
+            "reference",
+            "rc_probability",
+            "sigma",
+            "epsilon",
+            "bond_distance",
+            "rep",
+            "mg_sigma",
+            "mg_epsilon",
+            "md_threshold",
+            "rc_threshold",
+            "learned",
+        ]
+        basic_LJ = mg.generate_MG_LJ(meGO_ensemble)[needed_fields_mg]
+        meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
-    # no cross interactions
-    common = meGO_LJ_14["molecule_name_ai"].cat.categories.union(meGO_LJ_14["molecule_name_aj"].cat.categories)
-    meGO_LJ_14["molecule_name_ai"] = meGO_LJ_14["molecule_name_ai"].cat.set_categories(common)
-    meGO_LJ_14["molecule_name_aj"] = meGO_LJ_14["molecule_name_aj"].cat.set_categories(common)
-    meGO_LJ_14 = meGO_LJ_14[meGO_LJ_14["molecule_name_ai"] == meGO_LJ_14["molecule_name_aj"]]
-    # intramolecular interactions within few bonds should be move in pairs
-    copy_intra = meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation)]
-    meGO_LJ_14 = pd.concat([meGO_LJ_14, copy_intra], axis=0, sort=False, ignore_index=True)
-    meGO_LJ = meGO_LJ.loc[~((meGO_LJ["same_chain"]) & (meGO_LJ["bond_distance"] <= config.max_bond_separation))]
+        # Symmetrize
+        inverse_meGO_LJ = meGO_LJ.rename(
+            columns={"ai": "aj", "aj": "ai", "molecule_name_ai": "molecule_name_aj", "molecule_name_aj": "molecule_name_ai"}
+        ).copy()
+        meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
-    if parameters.force_split:
-        split_ii = meGO_LJ.loc[(meGO_LJ["same_chain"])]
-        meGO_LJ_14 = pd.concat([meGO_LJ_14, split_ii], axis=0, sort=False, ignore_index=True)
-        meGO_LJ = meGO_LJ.loc[(~meGO_LJ["same_chain"])]
+        meGO_LJ["ai"] = meGO_LJ["ai"].astype("category")
+        meGO_LJ["aj"] = meGO_LJ["aj"].astype("category")
+        meGO_LJ["molecule_name_ai"] = meGO_LJ["molecule_name_ai"].astype("category")
+        meGO_LJ["molecule_name_aj"] = meGO_LJ["molecule_name_aj"].astype("category")
 
-    # Add MG prior interactions for pairs not learned in any other way
-    needed_fields_mg = [
-        "molecule_name_ai",
-        "ai",
-        "molecule_name_aj",
-        "aj",
-        "probability",
-        "same_chain",
-        "source",
-        "reference",
-        "rc_probability",
-        "sigma",
-        "epsilon",
-        "bond_distance",
-        "rep",
-        "mg_sigma",
-        "mg_epsilon",
-        "md_threshold",
-        "rc_threshold",
-        "learned",
-    ]
-    basic_LJ = mg.generate_MG_LJ(meGO_ensemble)[needed_fields_mg]
-    meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
+        meGO_LJ.sort_values(by=["ai", "aj", "learned", "sigma"], ascending=[True, True, False, True], inplace=True)
+        meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-    # Symmetrize
-    inverse_meGO_LJ = meGO_LJ.rename(
-        columns={"ai": "aj", "aj": "ai", "molecule_name_ai": "molecule_name_aj", "molecule_name_aj": "molecule_name_ai"}
-    ).copy()
-    meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
+        meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
+        meGO_LJ["c12"] = np.where(
+            meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12)
+        )
 
-    meGO_LJ["ai"] = meGO_LJ["ai"].astype("category")
-    meGO_LJ["aj"] = meGO_LJ["aj"].astype("category")
-    meGO_LJ["molecule_name_ai"] = meGO_LJ["molecule_name_ai"].astype("category")
-    meGO_LJ["molecule_name_aj"] = meGO_LJ["molecule_name_aj"].astype("category")
-
-    meGO_LJ.sort_values(by=["ai", "aj", "learned", "sigma"], ascending=[True, True, False, True], inplace=True)
-    meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
-
-    meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
-    meGO_LJ["c12"] = np.where(
-        meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12)
-    )
-
-    meGO_LJ_14["c6"] = np.where(
-        meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
-    )
-    meGO_LJ_14["c12"] = np.where(
-        meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
-    )
+        meGO_LJ_14["c6"] = np.where(
+            meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
+        )
+        meGO_LJ_14["c12"] = np.where(
+            meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
+        )
 
     et = time.time()
     _term.timing(et - st)

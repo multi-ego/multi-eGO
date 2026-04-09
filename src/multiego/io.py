@@ -386,7 +386,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
     write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
-    _term.success(f"  Output written to {output_dir}")
+    return output_dir
 
 
 def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
