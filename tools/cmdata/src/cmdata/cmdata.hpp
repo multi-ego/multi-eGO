@@ -62,6 +62,11 @@ private:
   std::vector<float> inv_num_mol_;
   std::string bkbn_H_;
 
+  // atom_active_[mt][a] == true when atom a of molecule type mt should be
+  // included in distance calculations (i.e. not a skipped hydrogen).
+  // Precomputed once in initAnalysis() to avoid per-frame topology lookups.
+  std::vector<std::vector<bool>> atom_active_;
+
   // weights fields
   float weights_sum_;
   std::string weights_path_;
@@ -99,55 +104,71 @@ private:
   int num_threads_;
   int num_mol_threads_;
   std::vector<std::thread> threads_;
-  std::vector<std::thread> mol_threads_;
   std::vector<cmdata::indexing::SameThreadIndices> same_thread_indices_;
   std::vector<cmdata::indexing::CrossThreadIndices> cross_thread_indices_;
+
+  // persistent molecule thread pool — workers are created once in initAnalysis()
+  // and reused every frame, avoiding per-frame OS thread construction overhead.
+  // A generation counter prevents workers from re-entering the work queue after
+  // finishing a frame while frame_ready is still true.
+  struct MolPool {
+    std::vector<std::thread> workers;
+    std::mutex               mtx;
+    std::condition_variable  cv_work;   // main → workers: new generation dispatched
+    std::condition_variable  cv_done;   // workers → main: all workers finished
+    std::atomic<int>         next_mol{0};
+    std::atomic<int>         done_count{0};
+    int                      total_mol{0};
+    int                      num_workers{0};
+    int                      generation{0}; // incremented each frame dispatch
+    bool                     stop{false};
+    // frame-local data pointers set by main thread before each dispatch
+    t_pbc               *pbc{nullptr};
+    rvec                *x{nullptr};
+    float                weight{1.f};
+  } pool_;
 
   // mode selection, booleans and functions
   std::string mode_;
   bool intra_ = false, same_ = false, cross_ = false;
   bool h5_ = false;
 
-  // function types
-  using ftype_intra_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::intra_mol_routine)>;
-  using ftype_same_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::inter_mol_same_routine)>;
-  using ftype_cross_ = cmdata::ftypes::function_traits<decltype(&cmdata::density::inter_mol_cross_routine)>;
+  // No std::function members for the density routines — molecule_routine is
+  // templated on FIntra/FSame/FCross so the compiler can inline all three.
 
-  std::function<ftype_intra_::signature> f_intra_mol_;
-  std::function<ftype_same_::signature> f_inter_mol_same_;
-  std::function<ftype_cross_::signature> f_inter_mol_cross_;
-
+  template<typename FIntra, typename FSame, typename FCross>
   static void molecule_routine(
-    const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<float> &inv_num_mol_, const float cut_sig_2_, 
-    const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_, 
-    const std::vector<std::vector<int>> &cross_index_, const std::vector<float> &density_bins_, const float mcut2_, 
-    rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, 
+    const int i, const int nindex_, t_pbc *pbc, rvec *x, const std::vector<float> &inv_num_mol_, const float cut_sig_2_,
+    const std::vector<int> &natmol2_, const std::vector<int> &num_mol_unique_, const std::vector<int> &mol_id_,
+    const std::vector<std::vector<int>> &cross_index_, const std::vector<float> &density_bins_, const float mcut2_,
+    rvec *xcm_, const gmx::RangePartitioning &mols_,
+    const std::vector<std::vector<bool>> &atom_active_,
     std::vector<std::vector<float>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
     cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<float>> &frame_cross_mat_,
     std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_,
-    const std::function<ftype_intra_::signature> &f_intra_mol_, const std::function<ftype_same_::signature> &f_inter_mol_same_,
-    const std::function<ftype_cross_::signature> &f_inter_mol_cross_, float weight, std::string bkbn_H_
+    const FIntra &f_intra_mol_, const FSame &f_inter_mol_same_, const FCross &f_inter_mol_cross_,
+    float weight
   )
   {
-    const char * atomname;
     int tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
-    while ( static_cast<int>(mol_i) - num_mol_unique_[tmp_i] >= 0  )
+    while ( static_cast<int>(mol_i) - num_mol_unique_[tmp_i] >= 0 )
     {
       mol_i -= num_mol_unique_[tmp_i];
       tmp_i++;
-      if (tmp_i == num_mol_unique_.size()) break;
+      if (tmp_i == static_cast<int>(num_mol_unique_.size())) break;
     }
-    if (mol_i == num_mol_unique_[mol_id_[i]]) mol_i = 0;
-    int molb = 0;
+    if (mol_i == static_cast<std::size_t>(num_mol_unique_[mol_id_[i]])) mol_i = 0;
+
+    const int mt_i = mol_id_[i];
     /* Loop over molecules  */
     for (int j = 0; j < nindex_; j++)
     {
-      if (j!=0)
-        if (mol_j == num_mol_unique_[mol_id_[j-1]]) mol_j = 0;
+      if (j != 0)
+        if (mol_j == static_cast<std::size_t>(num_mol_unique_[mol_id_[j-1]])) mol_j = 0;
 
       /* intermolecular interactions are evaluated only among neighbour molecules */
-      if (i!=j)
+      if (i != j)
       {
         rvec dx;
         if (pbc != nullptr) pbc_dx(pbc, xcm_[i], xcm_[j], dx);
@@ -158,14 +179,13 @@ private:
       /* for molecules of different specie we fill half a matrix */
       if (mol_id_[i] != mol_id_[j] && j < i) continue;
       std::size_t a_i = 0;
-      // GMX_RELEASE_ASSERT(mols_.numBlocks() > 0, "Cannot access index[] from empty mols");
 
+      const int mt_j = mol_id_[j];
       /* cycle over the atoms of a molecule i */
       for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
       {
         std::size_t a_j = 0;
-        mtopGetAtomAndResidueName(*mtop_, ii, &molb, &atomname, nullptr, nullptr, nullptr);
-        if (atomname[0] == 'H' && atomname != bkbn_H_)
+        if (!atom_active_[mt_i][a_i])
         {
           a_i++;
           continue;
@@ -173,8 +193,7 @@ private:
         /* cycle over the atoms of a molecule j */
         for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
         {
-          mtopGetAtomAndResidueName(*mtop_, jj, &molb, &atomname, nullptr, nullptr, nullptr);
-          if (atomname[0] == 'H' && atomname != bkbn_H_)
+          if (!atom_active_[mt_j][a_j])
           {
             a_j++;
             continue;
@@ -274,6 +293,14 @@ public:
 
   ~CMData()
   {
+    // Shut down the persistent molecule thread pool cleanly before freeing data.
+    {
+      std::unique_lock<std::mutex> lk(pool_.mtx);
+      pool_.stop = true;
+      pool_.cv_work.notify_all();
+    }
+    for (auto &w : pool_.workers) w.join();
+
     free(frame_->x);
     free(frame_->offsets);
     free(frame_);
@@ -317,13 +344,10 @@ public:
       std::cout << "Number of molecule threads surpassed number of molecules. Setting num_mol_threads to " << num_mol_threads_ << std::endl;
     }
     threads_.resize(num_threads_);
-    mol_threads_.resize(num_mol_threads_);
     std::cout << "Using " << num_threads_ << " threads and " << num_mol_threads_ << " molecule threads" << std::endl;
 
-    // set up mode selection
-    f_intra_mol_ = cmdata::ftypes::do_nothing<ftype_intra_>();
-    f_inter_mol_same_ = cmdata::ftypes::do_nothing<ftype_same_>();
-    f_inter_mol_cross_ = cmdata::ftypes::do_nothing<ftype_cross_>();
+    // Pool workers are spawned at the end of initAnalysis(), after mode flags
+    // are finalised, so each worker captures the correct concrete function type.
 
     printf("Evaluating mode selection:\n");
     std::string tmp_mode;
@@ -365,6 +389,26 @@ public:
       molb_index += i;
     }
 
+    // Precompute per-molecule-type atom activity mask.
+    // Walk the first molecule of each type and record which atoms to include.
+    {
+      int molb = 0;
+      int mol_first = 0; // global index of the first molecule of each type
+      atom_active_.resize(natmol2_.size());
+      for (std::size_t mt = 0; mt < natmol2_.size(); mt++)
+      {
+        atom_active_[mt].resize(natmol2_[mt]);
+        const char *atomname;
+        for (int a = 0; a < natmol2_[mt]; a++)
+        {
+          int global_atom = mols_.block(mol_first).begin() + a;
+          mtopGetAtomAndResidueName(*mtop_, global_atom, &molb, &atomname, nullptr, nullptr, nullptr);
+          atom_active_[mt][a] = !(atomname[0] == 'H' && std::string(atomname) != bkbn_H_);
+        }
+        mol_first += num_mol_unique_[mt]; // advance to first mol of next type
+      }
+    }
+
     printf("Number of different molecules %lu\n", natmol2_.size());
     bool check_same = false;
     for(std::size_t i=0; i<natmol2_.size();i++) {
@@ -380,21 +424,18 @@ public:
     }
     if (same_)
     {
-      f_inter_mol_same_ = cmdata::density::inter_mol_same_routine;
       std::cout << ":: activating intermat same calculations" << std::endl;
       interm_same_mat_density_.resize(natmol2_.size());
       interm_same_maxcdf_mol_.resize(natmol2_.size());
     }
     if (cross_)
     {
-      f_inter_mol_cross_ = cmdata::density::inter_mol_cross_routine;
       std::cout << ":: activating intermat cross calculations" << std::endl;
       interm_cross_mat_density_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
       interm_cross_maxcdf_mol_.resize((natmol2_.size() * (natmol2_.size() - 1)) / 2);
     }
-    if (intra_) 
+    if (intra_)
     {
-      f_intra_mol_ = cmdata::density::intra_mol_routine;
       std::cout << " :: activating intramat calculations" << std::endl;
       intram_mat_density_.resize(natmol2_.size());
     }
@@ -599,6 +640,74 @@ public:
       start_j_cross = end_j_cross;
     }
 
+    // Spawn persistent thread-pool workers now that mode flags (intra_/same_/cross_)
+    // are finalised.  Each branch captures the concrete function type (function pointer
+    // or stateless lambda) so molecule_routine<FIntra,FSame,FCross> can be fully inlined.
+    {
+      // No-op callables used for disabled modes — stateless lambdas, zero overhead.
+      auto no_intra = [](auto&&...) {};
+      auto no_same  = [](auto&&...) {};
+      auto no_cross = [](auto&&...) {};
+
+      // do_spawn creates the pool workers capturing concrete f_intra/f_same/f_cross.
+      auto do_spawn = [this](auto f_intra, auto f_same, auto f_cross)
+      {
+        pool_.num_workers = num_mol_threads_;
+        pool_.total_mol   = nindex_;
+        pool_.workers.reserve(num_mol_threads_);
+        for (int t = 0; t < num_mol_threads_; t++)
+        {
+          pool_.workers.emplace_back([this, f_intra, f_same, f_cross]()
+          {
+            int my_gen = 0;
+            while (true)
+            {
+              {
+                std::unique_lock<std::mutex> lk(pool_.mtx);
+                pool_.cv_work.wait(lk, [this, my_gen]{ return pool_.generation != my_gen || pool_.stop; });
+                if (pool_.stop) return;
+                my_gen = pool_.generation;
+              }
+              while (true)
+              {
+                int i = pool_.next_mol.fetch_add(1, std::memory_order_relaxed);
+                if (i >= pool_.total_mol) break;
+                molecule_routine(i, nindex_, pool_.pbc, pool_.x, inv_num_mol_,
+                  cut_sig_2_, natmol2_, num_mol_unique_, mol_id_, cross_index_,
+                  density_bins_, mcut2_, xcm_, mols_, atom_active_,
+                  frame_same_mat_, frame_same_mutex_,
+                  intram_mat_density_, interm_same_mat_density_, frame_cross_mat_,
+                  frame_cross_mutex_, interm_cross_mat_density_,
+                  f_intra, f_same, f_cross, pool_.weight);
+              }
+              if (pool_.done_count.fetch_add(1, std::memory_order_acq_rel) + 1 == pool_.num_workers)
+              {
+                std::unique_lock<std::mutex> lk(pool_.mtx);
+                pool_.cv_done.notify_one();
+              }
+            }
+          });
+        }
+      };
+
+      // Select the right template instantiation based on the three mode flags.
+      using I = decltype(cmdata::density::intra_mol_routine)*;
+      using S = decltype(cmdata::density::inter_mol_same_routine)*;
+      using C = decltype(cmdata::density::inter_mol_cross_routine)*;
+      I fi = cmdata::density::intra_mol_routine;
+      S fs = cmdata::density::inter_mol_same_routine;
+      C fc = cmdata::density::inter_mol_cross_routine;
+
+      if      ( intra_ &&  same_ &&  cross_) do_spawn(fi,       fs,       fc      );
+      else if ( intra_ &&  same_ && !cross_) do_spawn(fi,       fs,       no_cross);
+      else if ( intra_ && !same_ &&  cross_) do_spawn(fi,       no_same,  fc      );
+      else if ( intra_ && !same_ && !cross_) do_spawn(fi,       no_same,  no_cross);
+      else if (!intra_ &&  same_ &&  cross_) do_spawn(no_intra, fs,       fc      );
+      else if (!intra_ &&  same_ && !cross_) do_spawn(no_intra, fs,       no_cross);
+      else if (!intra_ && !same_ &&  cross_) do_spawn(no_intra, no_same,  fc      );
+      else                                   do_spawn(no_intra, no_same,  no_cross);
+    }
+
     printf("Finished preprocessing.\nStarting frame-by-frame analysis.\n");
   }
 
@@ -657,27 +766,17 @@ public:
             xcm_[i][m] /= tm;
           }
         }
-        /* thread-pool: dispatch nindex_ molecule work items across num_mol_threads_ workers */
+        /* dispatch frame to persistent thread pool */
         {
-          std::atomic<int> next_mol(0);
-          for (int t = 0; t < num_mol_threads_; t++)
-          {
-            mol_threads_[t] = std::thread([&, weight]()
-            {
-              while (true)
-              {
-                int i = next_mol.fetch_add(1, std::memory_order_relaxed);
-                if (i >= nindex_) break;
-                molecule_routine(i, nindex_, pbc_, frame_->x, std::cref(inv_num_mol_),
-                  cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
-                  std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::ref(frame_same_mat_),
-                  std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_),
-                  std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::cref(f_intra_mol_),
-                  std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight, bkbn_H_);
-              }
-            });
-          }
-          for (int t = 0; t < num_mol_threads_; t++) mol_threads_[t].join();
+          std::unique_lock<std::mutex> lk(pool_.mtx);
+          pool_.pbc    = pbc_;
+          pool_.x      = frame_->x;
+          pool_.weight = weight;
+          pool_.next_mol.store(0, std::memory_order_relaxed);
+          pool_.done_count.store(0, std::memory_order_relaxed);
+          pool_.generation++;          // wakes workers waiting on their old generation
+          pool_.cv_work.notify_all();
+          pool_.cv_done.wait(lk, [this]{ return pool_.done_count == pool_.num_workers; });
         }
 
         /* calculate the mindist accumulation indices */
