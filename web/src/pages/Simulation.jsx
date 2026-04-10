@@ -52,7 +52,7 @@ const OPTIONS = [
     badge: "~20 min",
     title: "Compile from source",
     description:
-      "Builds GROMACS release-2023 branch with system FFTW3 (installed via apt). " +
+      "Builds GROMACS release-2025 branch with system FFTW3 (installed via apt). " +
       "Compilation takes ~20 minutes on Colab CPUs and produces an optimized binary with CUDA GPU support when a GPU runtime is selected.",
     pros: ["CUDA GPU support, fast", "Compatible with cmdata"],
     cons: ["~20 min compile time"],
@@ -293,56 +293,6 @@ export default function Simulation() {
         </div>
       </div>
 
-      {/* Output & next steps */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="card">
-          <h3 className="mb-3 font-semibold text-white">Output files</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            {OUTPUT_FILES.map(([f, desc]) => (
-              <li key={f} className="flex gap-3">
-                <code className="shrink-0 rounded bg-gray-800 px-1.5 py-0.5 text-xs text-brand-300">
-                  {f}
-                </code>
-                <span>{desc}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="card">
-          <h3 className="mb-3 font-semibold text-white">Next steps</h3>
-          <ol className="space-y-3 text-sm text-gray-400">
-            <li className="flex gap-3">
-              <span className="font-mono text-brand-400">1.</span>
-              <span>
-                Extract contact histograms from the trajectory with{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">cmdata</code>
-                {" "}(requires both{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">run.xtc</code>
-                {" "}and{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">run.tpr</code>).
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="font-mono text-brand-400">2.</span>
-              <span>
-                Convert histograms to contact matrices with{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">make_mat.py</code>.
-              </span>
-            </li>
-            <li className="flex gap-3">
-              <span className="font-mono text-brand-400">3.</span>
-              <span>
-                Generate the production force field with{" "}
-                <code className="rounded bg-gray-800 px-1 text-xs text-brand-300">
-                  mego --config config.yml
-                </code>
-                .
-              </span>
-            </li>
-          </ol>
-        </div>
-      </div>
     </div>
   );
 }
