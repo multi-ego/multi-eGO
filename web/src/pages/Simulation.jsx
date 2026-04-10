@@ -27,15 +27,6 @@ const NOTEBOOKS = [
   },
 ];
 
-const OUTPUT_FILES = [
-  ["run.xtc", "Production trajectory in GROMACS XTC format"],
-  ["run.tpr", "GROMACS run-input file (required by cmdata)"],
-  ["run.edr", "Binary energy file"],
-  ["energy_plot.png", "Potential energy and temperature plots"],
-  ["topol_mego.top", "GROMACS topology with mg force field"],
-  ["ffnonbonded.itp", "Non-bonded C6/C12 parameters"],
-];
-
 const OPTIONS = [
   {
     label: "Option A",
