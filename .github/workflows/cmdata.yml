@@ -26,7 +26,7 @@ jobs:
         sudo apt-get update -qq
     - name: Build gromacs 
       run: |
-        git clone --depth 1 -b release-2023 https://github.com/multi-ego/gromacs.git
+        git clone --depth 1 -b release-2025 https://github.com/multi-ego/gromacs.git
         cd gromacs; mkdir build; cd build
         cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMX_INSTALL_LEGACY_API=ON -DGMX_IMD=OFF
         make -j2 
