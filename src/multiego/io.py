@@ -9,6 +9,8 @@ import sys
 import re
 import json
 
+from . import _term
+
 
 def strip_gz_h5_suffix(filename):
     """
@@ -213,7 +215,7 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
     """
     Reads intra-/intermat files to determine molecular contact statistics.
     """
-    print("    " f"{path}")
+    _term.path(path)
     # Define column names and data types directly during read
     col_names = ["molecule_name_ai", "ai", "molecule_name_aj", "aj", "distance", "probability", "cutoff", "learned"]
     col_types = {
@@ -369,8 +371,8 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     parameters : dict
         A dictionaty of the command-line parsed parameters
     """
-    output_dir = get_outdir_name(
-        f"{parameters.outputs_dir}/{parameters.system}", parameters.explicit_name, parameters.egos
+    output_dir = os.path.normpath(
+        get_outdir_name(f"{parameters.outputs_dir}/{parameters.system}", parameters.explicit_name, parameters.egos)
     )
     create_output_directories(parameters, output_dir)
     write_topology(
@@ -384,7 +386,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
     write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
-    print(f"  Output files written to {output_dir}")
+    return output_dir
 
 
 def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
@@ -490,7 +492,7 @@ def get_outdir_name(output_dir, explicit_name, egos):
     while os.path.exists(f"{output_dir}/{out}_{index}"):
         index += 1
         if index > 100:
-            print(f"ERROR: too many directories in {output_dir}")
+            _term.error(f"too many directories in {output_dir}")
             sys.exit()
     output_dir = f"{output_dir}/{out}_{index}"
 
@@ -506,9 +508,9 @@ def dataframe_to_write(df, float_format=None):
     df : pd.DataFrame
         The input dataframe
     float_format : str or callable, optional
-        Format string (e.g. ``"%.6e"``) passed to ``DataFrame.to_string`` for
-        float columns.  When provided the caller does not need to pre-format
-        float columns as strings before calling this function.
+        Format string (e.g. ``"%.6e"``) or callable passed to
+        ``DataFrame.to_string`` for float columns.  A plain format string is
+        automatically wrapped in a callable for compatibility with pandas >= 2.x.
 
     Returns
     -------
@@ -517,10 +519,14 @@ def dataframe_to_write(df, float_format=None):
     """
     if df.empty:
         # TODO insert and improve the following warning
-        print("\t- WARNING: A topology parameter is empty. Check the reference topology.")
+        _term.warn("A topology parameter is empty. Check the reference topology.")
         return "; The following parameters where not parametrized on multi-eGO.\n; If this is not expected, check the reference topology."
     else:
         df.rename(columns={df.columns[0]: f"; {df.columns[0]}"}, inplace=True)
+        # pandas >= 2.x requires float_format to be a callable, not a format string.
+        if isinstance(float_format, str):
+            fmt_str = float_format
+            float_format = lambda x: fmt_str % x  # noqa: E731
         return df.to_string(index=False, float_format=float_format)
 
 
@@ -742,7 +748,7 @@ def check_files_existence(args):
 
 def read_intra_file(file_path):
     if not os.path.exists(file_path):
-        print(f"File {file_path} does not exist.")
+        _term.error(f"File {file_path} does not exist.")
         sys.exit()
 
     names = []
@@ -758,7 +764,7 @@ def read_intra_file(file_path):
 
 def read_inter_file(file_path):
     if not os.path.exists(file_path):
-        print(f"File {file_path} does not exist.")
+        _term.error(f"File {file_path} does not exist.")
         sys.exit()
 
     with open(file_path, "r") as file:
@@ -770,17 +776,18 @@ def read_inter_file(file_path):
 
     # Check that the names are consistent on rows and columns (avoid mistakes)
     if np.any(names_row != names_col):
-        print(f"""ERROR: the names are inconsistent in the inter epsilon matrix:
-              Rows:{names_row}
-              Columns:{names_col}
-              Please fix to be sure to avoid silly mistakes
-              """)
+        _term.error(
+            f"the names are inconsistent in the inter epsilon matrix:\n"
+            f"  Rows:    {names_row}\n"
+            f"  Columns: {names_col}\n"
+            f"  Please fix to avoid silly mistakes."
+        )
         sys.exit()
 
     epsilons = [line.split()[1:] for line in lines[1:]]
     epsilons = np.array(epsilons, dtype=float)
     if np.any(epsilons != epsilons.T):
-        print(f"ERROR: the matrix of inter epsilon must be symmetric, check the input file {file_path}")
+        _term.error(f"the matrix of inter epsilon must be symmetric, check the input file {file_path}")
         sys.exit()
     return names_row, epsilons
 
@@ -798,7 +805,7 @@ def parse_json(file_path):
                     raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
                 return custom_dict
         except (json.JSONDecodeError, ValueError) as e:
-            print(f"Error in reading the custom dictionary: {e}")
+            _term.error(f"Error in reading the custom dictionary: {e}")
             sys.exit()
     else:
         return {}

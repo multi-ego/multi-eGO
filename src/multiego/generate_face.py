@@ -1,4 +1,5 @@
 import random
+from . import _term
 
 aforismi = [
     "“Imparerai a tue spese che nel lungo tragitto della vita incontrerai tante maschere e pochi volti.”",
@@ -81,7 +82,8 @@ def print_welcome():
 
 
 def print_goodbye():
-    print("")
-    print(aforismi[random.choice(range(len(aforismi)))])
-    print("Luigi Pirandello, Uno, nessuno, centomila (1926)")
+    quote = aforismi[random.choice(range(len(aforismi)))]
+    print()
+    print(f"{_term._c(_term._DIM)}{quote}")
+    print(f"  — Luigi Pirandello, Uno, nessuno, centomila (1926){_term._c(_term._RESET)}")
     print()
