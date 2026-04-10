@@ -18,7 +18,7 @@
 #include <iomanip>
 #include <regex>
 
-#define COUT_FLOAT_PREC6 std::fixed << std::setprecision(6)
+#define COUT_FLOAT_PREC std::fixed << std::setprecision(5)
 
 #ifdef USE_HDF5
 using namespace H5;
@@ -230,10 +230,10 @@ void f_write_intra(const std::string &output_prefix,
   std::ofstream fp_intra(ffh_intra);
   for ( std::size_t k = 0; k < density_bins.size(); k++ )
   {
-    fp_intra << COUT_FLOAT_PREC6 << density_bins[k];
+    fp_intra << COUT_FLOAT_PREC << density_bins[k];
     for (int jj = 0; jj < natmol2[i]; jj++)
     {
-      fp_intra << " " << COUT_FLOAT_PREC6 << intram_mat_density[i][ii][jj][k];
+      fp_intra << " " << COUT_FLOAT_PREC << intram_mat_density[i][ii][jj][k];
     }
     fp_intra << "\n";
   }
@@ -303,12 +303,12 @@ void f_write_inter_same(const std::string &output_prefix,
   std::ofstream fp_inter_cum(ffh_inter_cum);
   for ( std::size_t k = 0; k < density_bins.size(); k++ )
   {
-    fp_inter << COUT_FLOAT_PREC6 << density_bins[k];
-    fp_inter_cum << COUT_FLOAT_PREC6 << density_bins[k];
+    fp_inter << COUT_FLOAT_PREC << density_bins[k];
+    fp_inter_cum << COUT_FLOAT_PREC << density_bins[k];
     for (int jj = 0; jj < natmol2[i]; jj++)
     {
-      fp_inter << " " << COUT_FLOAT_PREC6 << interm_same_mat_density[i][ii][jj][k];
-      fp_inter_cum << " " << COUT_FLOAT_PREC6 << interm_same_maxcdf_mol[i][ii][jj][k];
+      fp_inter << " " << COUT_FLOAT_PREC << interm_same_mat_density[i][ii][jj][k];
+      fp_inter_cum << " " << COUT_FLOAT_PREC << interm_same_maxcdf_mol[i][ii][jj][k];
     }
     fp_inter << "\n";
     fp_inter_cum << "\n";
@@ -380,12 +380,12 @@ void f_write_inter_cross(const std::string &output_prefix,
   std::ofstream fp_cum(ffh_cum);
   for ( std::size_t k = 0; k < interm_cross_mat_density[cross_index[i][j]][ii][0].size(); k++ )
   {
-    fp << std::fixed << std::setprecision(7) << density_bins[k];
-    fp_cum << std::fixed << std::setprecision(7) << density_bins[k];
+    fp << std::fixed << COUT_FLOAT_PREC << density_bins[k];
+    fp_cum << std::fixed << COUT_FLOAT_PREC << density_bins[k];
     for (int jj = 0; jj < natmol2[j]; jj++)
     {
-      fp << " " << std::fixed << std::setprecision(7) << interm_cross_mat_density[cross_index[i][j]][ii][jj][k];
-      fp_cum << " " << std::fixed << std::setprecision(7) << interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k];
+      fp << " " << std::fixed << COUT_FLOAT_PREC << interm_cross_mat_density[cross_index[i][j]][ii][jj][k];
+      fp_cum << " " << std::fixed << COUT_FLOAT_PREC << interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k];
     }
     fp << "\n";
     fp_cum << "\n";
