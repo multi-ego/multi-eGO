@@ -46,7 +46,7 @@ cmdata -f TRAJ -s TOP [OPTIONS]
 
 | Option | Description |
 |--------|-------------|
-| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`) |
+| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`, `.trr`, `.gro`, or `.pdb`) |
 | `-s`, `--top=FILE`  | Input topology file (`.tpr`) |
 | `--mode=STRING`     | Calculation mode (see below) |
 
@@ -91,6 +91,19 @@ Each output file is named `<prefix><type>_<i>_<j>_aa_<ii>.h5` (or `.dat`), where
 Each file contains one column per atom pair `(ii, jj)`. The rows are histogram bins from `dx/2` to `cutoff` in steps of `dx = cutoff / n_bins`.
 
 For `same` and `cross` modes two files are written per atom: one for the full density histogram and one for the per-molecule maximum-CDF (`maxcdf`).
+
+### Trajectory format notes
+
+| Format | Progress bar | Notes |
+|--------|-------------|-------|
+| `.xtc` | Percentage | Seek table read at startup; full progress display |
+| `.trr` | Frame count | No seek table; TRR files include velocities and forces (only positions used) |
+| `.gro` | Frame count | Single-frame or multi-frame structure files |
+| `.pdb` | Frame count | Multi-model PDB files supported |
+
+For TRR, GRO, and PDB files the progress bar shows the running frame count rather than a percentage because the total number of frames cannot be determined cheaply without reading the whole file.
+
+If you have a GRO or PDB single-structure file you want to treat as a one-frame trajectory, pass it directly — cmdata will read the single frame and process it normally.
 
 ## Examples
 

@@ -10,6 +10,7 @@
 #endif
 #include <gromacs/pbcutil/pbc.h>
 #include <gromacs/fileio/tpxio.h>
+#include <gromacs/fileio/trxio.h>   // read_first_frame, read_next_frame, close_trx
 
 // cmdata includes
 #include "io.hpp"
@@ -75,6 +76,14 @@ private:
   // frame fields
   cmdata::xtc::Frame *frame_;
   XDRFILE *trj_;
+
+  // trajectory format (detected from extension)
+  cmdata::xtc::Format fmt_;
+  std::string traj_path_;
+
+  // GRO / PDB state (null when using XTC or TRR)
+  t_trxframe  *gmx_fr_    = nullptr;
+  t_trxstatus *trxstatus_ = nullptr;
 
   // density fields
   float dx_;
@@ -235,6 +244,18 @@ private:
     semaphore_.release();
   }
 
+  // Copy position / box / time / step from a GROMACS t_trxframe into frame_.
+  void absorb_gmx_frame()
+  {
+    if (!gmx_fr_) return;
+    if (gmx_fr_->bX && gmx_fr_->x)
+      std::copy(gmx_fr_->x, gmx_fr_->x + frame_->natom, frame_->x);
+    if (gmx_fr_->bBox)
+      copy_mat(gmx_fr_->box, frame_->box);
+    frame_->time = gmx_fr_->bTime ? gmx_fr_->time              : 0.f;
+    frame_->step = gmx_fr_->bStep ? static_cast<int>(gmx_fr_->step) : 0;
+  }
+
 public:
   CMData(
     const std::string &top_path, const std::string &traj_path,
@@ -260,18 +281,37 @@ public:
       set_pbc(pbc_, pbcType_, boxtop_);
     }
 
-    int natom;
-    long unsigned int nframe;
-    int64_t *offsets;
+    fmt_       = cmdata::xtc::detect_format(traj_path);
+    traj_path_ = traj_path;
+    frame_     = static_cast<cmdata::xtc::Frame *>(malloc(sizeof(cmdata::xtc::Frame)));
 
-    frame_ = (cmdata::xtc::Frame*)malloc(sizeof(cmdata::xtc::Frame));
     std::cout << "Reading trajectory file " << traj_path << std::endl;
-    read_xtc_header(traj_path.c_str(), &natom, &nframe, &offsets);
-    *frame_ = cmdata::xtc::Frame(natom);
-    frame_->nframe = nframe;
-    frame_->offsets = offsets;
 
-    trj_ = xdrfile_open(traj_path.c_str(), "r");
+    if (fmt_ == cmdata::xtc::Format::XTC)
+    {
+      int natom; long unsigned int nframe; int64_t *offsets;
+      read_xtc_header(traj_path.c_str(), &natom, &nframe, &offsets);
+      *frame_ = cmdata::xtc::Frame(natom);
+      frame_->nframe  = nframe;
+      frame_->offsets = offsets;
+      trj_ = xdrfile_open(traj_path.c_str(), "r");
+    }
+    else if (fmt_ == cmdata::xtc::Format::TRR)
+    {
+      // Use atom count from the topology; no seek-table available for TRR.
+      *frame_ = cmdata::xtc::Frame(natoms);
+      frame_->nframe  = 0;
+      frame_->offsets = nullptr;
+      trj_ = xdrfile_open(traj_path.c_str(), "r");
+    }
+    else // GRO or PDB — opened lazily at the start of run()
+    {
+      *frame_ = cmdata::xtc::Frame(natoms);
+      frame_->nframe  = 0;
+      frame_->offsets = nullptr;
+      trj_ = nullptr;
+    }
+
     initAnalysis();
   }
 
@@ -281,7 +321,10 @@ public:
     free(frame_->offsets);
     free(frame_);
     free(mtop_);
-    if (xcm_ != nullptr) free(xcm_);
+    if (xcm_ != nullptr)      free(xcm_);
+    if (trj_ != nullptr)      xdrfile_close(trj_);
+    if (trxstatus_ != nullptr) close_trx(trxstatus_);
+    if (gmx_fr_ != nullptr)   { done_trxframe(gmx_fr_); delete gmx_fr_; }
   }
 
   void initAnalysis()
@@ -609,16 +652,59 @@ public:
   void run()
   {
     std::cout << "Running frame-by-frame analysis" << std::endl;
+
+    // Build a format-specific "advance to next frame" function.
+    // For GRO/PDB the first frame is pre-loaded here; the lambda returns true
+    // immediately on its first invocation and then advances on every subsequent one.
+    std::function<bool()> advance_frame;
+
+    if (fmt_ == cmdata::xtc::Format::XTC)
+    {
+      advance_frame = [this]() -> bool {
+        return frame_->read_next_frame(trj_, no_pbc_, pbcType_, pbc_) == exdrOK;
+      };
+    }
+    else if (fmt_ == cmdata::xtc::Format::TRR)
+    {
+      advance_frame = [this]() -> bool {
+        return frame_->read_next_frame_trr(trj_, no_pbc_, pbcType_, pbc_) == exdrOK;
+      };
+    }
+    else // GRO or PDB
+    {
+      gmx_fr_ = new t_trxframe();
+      // nullptr oenv is safe for coordinate-only reading
+      if (!read_first_frame(nullptr, &trxstatus_, traj_path_.c_str(), gmx_fr_, TRX_READ_X))
+      {
+        std::cerr << "Error: could not open trajectory '" << traj_path_ << "'" << std::endl;
+        return;
+      }
+      absorb_gmx_frame();
+      if (!no_pbc_ && pbc_) set_pbc(pbc_, pbcType_, frame_->box);
+
+      bool first_call = true;
+      advance_frame = [this, first_call]() mutable -> bool {
+        if (first_call) { first_call = false; return true; } // first frame already loaded
+        if (!::read_next_frame(nullptr, trxstatus_, gmx_fr_)) return false;
+        absorb_gmx_frame();
+        if (!no_pbc_ && pbc_) set_pbc(pbc_, pbcType_, frame_->box);
+        return true;
+      };
+    }
+
     int frnr = 0;
     float progress = 0.0, new_progress = 0.0;
     cmdata::io::print_progress_bar(progress);
-    while (frame_->read_next_frame(trj_, no_pbc_, pbcType_, pbc_) == exdrOK)
+    while (advance_frame())
     {
-      new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
-      if (new_progress - progress > 0.01)
+      if (frame_->nframe > 0)
       {
-        progress = new_progress;
-        cmdata::io::print_progress_bar(progress);
+        new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
+        if (new_progress - progress > 0.01)
+        {
+          progress = new_progress;
+          cmdata::io::print_progress_bar(progress);
+        }
       }
       if ((frame_->time >= t_begin_ && (t_end_ < 0 || frame_->time <= t_end_ )) && // within time borders 
           ( dt_ == 0 || std::fmod(frame_->time, dt_) == 0) && (nskip_ == 0 || std::fmod(frnr, nskip_) == 0)) // skip frames
@@ -629,16 +715,18 @@ public:
           weight = weights_[frnr];
           weights_sum_ += weight;
         }
-        /* resetting the per frame vector to zero */
+        // TODO: replace magic sentinel 100.f (nm) with a named constant, e.g.:
+        //   static constexpr float LARGE_DIST = 100.f;
+        /* resetting the per-frame minimum-distance matrix to a large sentinel value */
         for ( std::size_t i = 0; i < frame_same_mat_.size(); i++ )
         {
           #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_same_mat_[i].size())))
-          for ( std::size_t j = 0; j < frame_same_mat_[i].size(); j++ ) frame_same_mat_[i][j] = 100.;
+          for ( std::size_t j = 0; j < frame_same_mat_[i].size(); j++ ) frame_same_mat_[i][j] = 100.f;
         }
         for ( std::size_t i = 0; i < frame_cross_mat_.size(); i++ )
         {
           #pragma omp parallel for num_threads(std::min(num_threads_, static_cast<int>(frame_cross_mat_[i].size())))
-          for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.;
+          for ( std::size_t j = 0; j < frame_cross_mat_[i].size(); j++ ) frame_cross_mat_[i][j] = 100.f;
         }
         #pragma omp parallel for num_threads(std::min(num_threads_, nindex_))
         for (int i = 0; i < nindex_; i++)

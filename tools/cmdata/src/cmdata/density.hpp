@@ -1,5 +1,5 @@
-#ifndef _CMDATA_DENSIY_HPP
-#define _CMDATA_DENSIY_HPP
+#ifndef _CMDATA_DENSITY_HPP
+#define _CMDATA_DENSITY_HPP
 
 #include <cmath>
 #include <mutex>
@@ -12,7 +12,14 @@ namespace cmdata::density
 
 void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<float> &bins, const float mu, const float norm)
 {
-  float h = 0.01;
+  // KDE bandwidth (nm). Controls the smoothing width of each sample.
+  static constexpr float h = 0.01f;
+  // erf(1/sqrt(2)) — normalisation factor for a Gaussian kernel truncated at ±2h.
+  // TODO: recompute at runtime or document derivation so the magic value is self-explaining.
+  static constexpr float ERF_1_OVER_SQRT2 = 0.73853587f;
+  // Kernel tail value at the truncation boundary (exp(-0.5 * 2^2) = exp(-2)).
+  static const float KDE_TAIL_SHIFT = std::exp(-2.f);
+
   float from_x = std::max(mu - 2 * h, bins[0]);
   float to_x = std::min(mu + 2 * h, bins.back());
   auto is_geq_start = [&from_x](float i) { return i >= from_x; };
@@ -21,14 +28,13 @@ void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<
   auto end = std::find_if(bins.begin(), bins.end(), is_geq_end);
   int from = std::distance(bins.begin(), start);
   int to = std::distance(bins.begin(), end);
-  float scale = norm / (0.73853587 * h * std::sqrt(2. * M_PI));
-  if (mu < h) scale *= 2.;
-  float shift = std::exp(-2.);
+  float scale = norm / (ERF_1_OVER_SQRT2 * h * std::sqrt(2.f * static_cast<float>(M_PI)));
+  if (mu < h) scale *= 2.f;
   for (int i = from; i < to; i++)
   {
     float f = (mu - bins[i]) / h;
-    float kernel = std::exp(-0.5 * f * f);
-    x[i] += scale * (kernel - shift);
+    float kernel = std::exp(-0.5f * f * f);
+    x[i] += scale * (kernel - KDE_TAIL_SHIFT);
   }
 }
 
@@ -90,4 +96,4 @@ void normalize_histo(
 
 } // namespace cmdata::density
 
-#endif // _CMDATA_DENSIY_HPP
+#endif // _CMDATA_DENSITY_HPP
