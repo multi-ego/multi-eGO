@@ -14,7 +14,6 @@
 // cmdata includes
 #include "io.hpp"
 #include "indexing.hpp"
-#include "parallel.hpp"
 #include "density.hpp"
 #include "mindist.hpp"
 #include "xtc_frame.hpp"
@@ -24,6 +23,7 @@
 #include <iostream>
 #include <omp.h>
 #include <thread>
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <cmath>
@@ -100,7 +100,6 @@ private:
   int num_mol_threads_;
   std::vector<std::thread> threads_;
   std::vector<std::thread> mol_threads_;
-  cmdata::parallel::Semaphore semaphore_;
   std::vector<cmdata::indexing::SameThreadIndices> same_thread_indices_;
   std::vector<cmdata::indexing::CrossThreadIndices> cross_thread_indices_;
 
@@ -125,12 +124,11 @@ private:
     rvec *xcm_, const gmx::RangePartitioning &mols_, gmx_mtop_t *mtop_, 
     std::vector<std::vector<float>> &frame_same_mat_, std::vector<std::vector<std::mutex>> &frame_same_mutex_,
     cmdata_matrix &intram_mat_density_, cmdata_matrix &interm_same_mat_density_, std::vector<std::vector<float>> &frame_cross_mat_,
-    std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_, cmdata::parallel::Semaphore &semaphore_,
+    std::vector<std::vector<std::mutex>> &frame_cross_mutex_, cmdata_matrix &interm_cross_mat_density_,
     const std::function<ftype_intra_::signature> &f_intra_mol_, const std::function<ftype_same_::signature> &f_inter_mol_same_,
     const std::function<ftype_cross_::signature> &f_inter_mol_cross_, float weight, std::string bkbn_H_
   )
   {
-    semaphore_.acquire();
     const char * atomname;
     int tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
@@ -232,7 +230,6 @@ private:
       }
       ++mol_j;
     }
-    semaphore_.release();
   }
 
 public:
@@ -320,8 +317,7 @@ public:
       std::cout << "Number of molecule threads surpassed number of molecules. Setting num_mol_threads to " << num_mol_threads_ << std::endl;
     }
     threads_.resize(num_threads_);
-    mol_threads_.resize(nindex_);
-    semaphore_.set_counter(num_mol_threads_);
+    mol_threads_.resize(num_mol_threads_);
     std::cout << "Using " << num_threads_ << " threads and " << num_mol_threads_ << " molecule threads" << std::endl;
 
     // set up mode selection
@@ -661,20 +657,28 @@ public:
             xcm_[i][m] /= tm;
           }
         }
-        /* start loop for each molecule */
-        for (int i = 0; i < nindex_; i++)
+        /* thread-pool: dispatch nindex_ molecule work items across num_mol_threads_ workers */
         {
-          /* start molecule thread*/
-          mol_threads_[i] = std::thread(molecule_routine, i, nindex_, pbc_, frame_->x, std::cref(inv_num_mol_), 
-          cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
-          std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::ref(frame_same_mat_),
-          std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_), 
-          std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::ref(semaphore_), std::cref(f_intra_mol_),
-          std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight, bkbn_H_);
-          /* end molecule thread */
+          std::atomic<int> next_mol(0);
+          for (int t = 0; t < num_mol_threads_; t++)
+          {
+            mol_threads_[t] = std::thread([&, weight]()
+            {
+              while (true)
+              {
+                int i = next_mol.fetch_add(1, std::memory_order_relaxed);
+                if (i >= nindex_) break;
+                molecule_routine(i, nindex_, pbc_, frame_->x, std::cref(inv_num_mol_),
+                  cut_sig_2_, std::cref(natmol2_), std::cref(num_mol_unique_), std::cref(mol_id_), std::cref(cross_index_),
+                  std::cref(density_bins_), mcut2_, xcm_, mols_, mtop_, std::ref(frame_same_mat_),
+                  std::ref(frame_same_mutex_), std::ref(intram_mat_density_), std::ref(interm_same_mat_density_), std::ref(frame_cross_mat_),
+                  std::ref(frame_cross_mutex_), std::ref(interm_cross_mat_density_), std::cref(f_intra_mol_),
+                  std::cref(f_inter_mol_same_), std::cref(f_inter_mol_cross_), weight, bkbn_H_);
+              }
+            });
+          }
+          for (int t = 0; t < num_mol_threads_; t++) mol_threads_[t].join();
         }
-        /* join molecule threads */
-        for ( auto &thread : mol_threads_ ) thread.join();
 
         /* calculate the mindist accumulation indices */
         for ( int tid = 0; tid < num_threads_; tid++ )
