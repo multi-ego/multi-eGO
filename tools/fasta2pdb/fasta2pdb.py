@@ -25,10 +25,7 @@ def build_structure(sequence: str):
     valid_residues = set("ACDEFGHIKLMNPQRSTVWY")
     invalid_residues = sorted(set(normalized_sequence) - valid_residues)
     if invalid_residues:
-        raise ValueError(
-            "Input sequence contains invalid amino acid residue(s): "
-            + ", ".join(invalid_residues)
-        )
+        raise ValueError("Input sequence contains invalid amino acid residue(s): " + ", ".join(invalid_residues))
 
     return PeptideBuilder.make_extended_structure(normalized_sequence)
 
