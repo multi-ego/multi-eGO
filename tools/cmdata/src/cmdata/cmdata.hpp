@@ -220,7 +220,7 @@ private:
                   i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mutex_, frame_same_mat_, interm_same_mat_density_
                 );
               }
-              if (delta!=0.) {
+              if (delta != 0) {
                 // this is to account for inversion atom/molecule
                 if (pbc != nullptr) pbc_dx(pbc, x[ii-delta], x[jj+delta], sym_dx);
                 else rvec_sub(x[ii-delta], x[jj+delta], sym_dx);
