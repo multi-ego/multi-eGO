@@ -16,9 +16,10 @@ from Bio.PDB import PDBIO
 
 def build_structure(sequence: str):
     """Generate an extended peptide structure from an amino acid sequence."""
-    if not sequence or not sequence.isalpha():
+    normalized_sequence = "".join(sequence.split()) if sequence is not None else ""
+    if not normalized_sequence or not normalized_sequence.isalpha():
         raise ValueError("Input sequence must be a non-empty string of amino acid letters.")
-    return PeptideBuilder.make_extended_structure(sequence)
+    return PeptideBuilder.make_extended_structure(normalized_sequence)
 
 
 def save_pdb(structure, output_path: Path):
