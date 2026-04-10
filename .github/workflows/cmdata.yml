@@ -4,9 +4,11 @@ on:
   push:
     paths:
       - 'tools/cmdata/**'
+      - 'tests/**'
   pull_request:
     paths:
       - 'tools/cmdata/**'
+      - 'tests/**'
 
 permissions:
   contents: read
