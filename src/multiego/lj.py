@@ -447,10 +447,10 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
     train_dataset.dropna(subset=["mg_sigma"], inplace=True)
     train_dataset = train_dataset.loc[train_dataset["rep"] > 0.0]
 
-    if (np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12))).max() > 10e-6:
+    if (np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12))).max() > 1e-5:
         print(
             train_dataset[["ai", "aj", "source", "same_chain", "cutoff", "rep"]]
-            .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 10e-6)]
+            .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 1e-5)]
             .to_string()
         )
         sys.exit("ERROR: Inconsistent cutoff and C12 repulsive values")
