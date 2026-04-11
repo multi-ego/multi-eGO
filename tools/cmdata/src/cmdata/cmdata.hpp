@@ -403,7 +403,15 @@ public:
         {
           int global_atom = mols_.block(mol_first).begin() + a;
           mtopGetAtomAndResidueName(*mtop_, global_atom, &molb, &atomname, nullptr, nullptr, nullptr);
-          atom_active_[mt][a] = !(atomname[0] == 'H' && std::string(atomname) != bkbn_H_);
+          // Skip non-backbone hydrogens.  "H" (AMBER/GROMACS) and "HN" (CHARMM)
+          // are always treated as backbone H; --bkbn_H adds a third custom name.
+          {
+            const std::string aname(atomname);
+            const bool is_H = (aname[0] == 'H');
+            const bool is_bkbn = (aname == "H" || aname == "HN" ||
+                                  (!bkbn_H_.empty() && aname == bkbn_H_));
+            atom_active_[mt][a] = !(is_H && !is_bkbn);
+          }
         }
         mol_first += num_mol_unique_[mt]; // advance to first mol of next type
       }

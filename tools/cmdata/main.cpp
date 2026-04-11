@@ -45,7 +45,7 @@ int main(int argc, const char** argv)
     {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",           "INT"},
     {"mol_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &mol_threads,     0, "Number of molecule threads",  "INT"},
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
-    {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Backbone H name",             "STRING"},
+    {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Extra backbone H name (H and HN are always included)", "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
     {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
     {"noh5",          '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,  &p_h5,            0, "Write output in text format", 0},
@@ -72,7 +72,7 @@ int main(int argc, const char** argv)
   traj_path = std::string(p_traj_path);
   top_path = std::string(p_top_path);
   mode = p_mode ? std::string(p_mode) : std::string("intra+same+cross");
-  bkbn_H = p_bkbn_H ? std::string(p_bkbn_H) : std::string("H");
+  bkbn_H = p_bkbn_H ? std::string(p_bkbn_H) : std::string(""); // "H" and "HN" are always included
   if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
   if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
   if ( p_nopbc != NULL ) nopbc = true;
