@@ -92,19 +92,6 @@ Each file contains one column per atom pair `(ii, jj)`. The rows are histogram b
 
 For `same` and `cross` modes two files are written per atom: one for the full density histogram and one for the per-molecule maximum-CDF (`maxcdf`).
 
-### Trajectory format notes
-
-| Format | Progress bar | Notes |
-|--------|-------------|-------|
-| `.xtc` | Percentage | Seek table read at startup; full progress display |
-| `.trr` | Frame count | No seek table; TRR files include velocities and forces (only positions used) |
-| `.gro` | Frame count | Single-frame or multi-frame structure files |
-| `.pdb` | Frame count | Multi-model PDB files supported |
-
-For TRR, GRO, and PDB files the progress bar shows the running frame count rather than a percentage because the total number of frames cannot be determined cheaply without reading the whole file.
-
-If you have a GRO or PDB single-structure file you want to treat as a one-frame trajectory, pass it directly — cmdata will read the single frame and process it normally.
-
 ## Examples
 
 Compute intra-molecular histograms only, using 8 threads:
