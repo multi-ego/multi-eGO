@@ -77,7 +77,7 @@ static void mindist_cross(
           {
             for (std::size_t j = (first_j_cross) ? start_j_cross : 0; j < natmol2[mt_j]; j++)
             {
-              std::size_t offset = cmdata::indexing::offset_cross(mt_i, mt_j, im, jm, i, j, natmol2);
+              std::size_t offset = cmdata::indexing::offset_cross(mt_i, mt_j, im, jm, i, j, natmol2, num_mol_unique[mt_j]);
               std::size_t mutex_j = cmdata::indexing::mutex_access(mt_j, i, j, natmol2);
               float mindist = frame_cross_mat[cross_index[mt_i][mt_j]][offset];
               
@@ -94,9 +94,9 @@ static void mindist_cross(
         }
         first_jm_cross = false;
       }
-      first_mtj_cross = false;
+      first_im_cross = false;
     }
-    first_im_cross = false;
+    first_mtj_cross = false;
   }
 }
 

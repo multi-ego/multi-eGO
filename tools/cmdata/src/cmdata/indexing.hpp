@@ -23,14 +23,10 @@ static std::size_t offset_same( std::size_t i, std::size_t mol_i, std::size_t a_
 
 static std::size_t offset_cross(
   std::size_t i, std::size_t j, std::size_t mol_i, std::size_t mol_j,
-  std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2
+  std::size_t a_i, std::size_t a_j, const std::vector<int> &natmol2, std::size_t num_mol_j
 )
 {
-  // TODO: the stride for mol_i uses mol_j (a loop index) rather than a constant
-  // num_mol_unique[j]. For a flat 4-D array [mol_i][mol_j][a_i][a_j] the correct
-  // formula requires the total count of molecules of type j as a fixed multiplier.
-  // Verify this is correct when num_mol_unique[j] > 1.
-  return mol_i * (mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_i * natmol2[j] + a_j;
+  return mol_i * (num_mol_j * natmol2[i] * natmol2[j]) + mol_j * (natmol2[i] * natmol2[j]) + a_i * natmol2[j] + a_j;
 }
 
 struct SameThreadIndices {

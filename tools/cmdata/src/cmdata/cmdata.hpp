@@ -238,7 +238,7 @@ private:
               if (dx2 < cut_sig_2_)
               {
                 f_inter_mol_cross_(
-                  i, j, mol_i, mol_j, a_i, a_j, dx2, weight, mol_id_, natmol2_, cross_index_, density_bins_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
+                  i, j, mol_i, mol_j, a_i, a_j, dx2, weight, mol_id_, natmol2_, cross_index_, density_bins_, num_mol_unique_, frame_cross_mutex_, frame_cross_mat_, interm_cross_mat_density_
                 );
               }
             }
@@ -786,7 +786,6 @@ public:
           pool_.cv_work.notify_all();
           pool_.cv_done.wait(lk, [this]{ return pool_.done_count == pool_.num_workers; });
         }
-
         /* calculate the mindist accumulation indices */
         for ( int tid = 0; tid < num_threads_; tid++ )
         {
