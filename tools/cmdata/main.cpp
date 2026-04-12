@@ -115,14 +115,15 @@ int main(int argc, const char** argv)
       }
     }
   }
-  if ( num_threads < 1 )
+  if ( num_threads != 1 )
   {
-    std::cerr << "Number of threads must be at least 1!" << std::endl;
-    return 6;
+    std::cerr << "Number of threads is currently unused!" << std::endl;
+    num_threads = 1;
+    //return 6;
   }
-  if ( mol_threads < 1 )
+  if ( mol_threads != 1 )
   {
-    std::cout << "Setting molecule threads to number of threads!" << std::endl;
+    std::cout << "threads cannot be used currently!" << std::endl;
     mol_threads = num_threads;
   }
   if ( dt < 0 )
