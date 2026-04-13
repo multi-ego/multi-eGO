@@ -338,7 +338,7 @@ def get_col_params(values, weights):
     cutoff : float
         The cutoff which is deduced by reading the last value of the weights array
     i : int
-        The index at which the cutoff is greter or equal than the values array
+        The index at which the cutoff is greater or equal than the values array
     norm : float
         The new normalization constant after truncation
     v : np.array
