@@ -578,7 +578,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_i = pd.DataFrame()
     topology_df_j = pd.DataFrame()
 
-    # define matrix type (intra o inter)
+    # define matrix type (intra or inter)
     mat_type = prefix.split("_")[0]
     print(
         f"\nCalculating {mat_type} between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
