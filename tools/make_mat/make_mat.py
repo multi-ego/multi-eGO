@@ -155,7 +155,7 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
 
 def run_mat_(arguments):
     """
-    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
+    Performs the main routine of the histogram analysis to obtain the intra- and intermat files.
     Is used in combination with multiprocessing to speed up the calculations.
 
     Parameters
@@ -338,7 +338,7 @@ def get_col_params(values, weights):
     cutoff : float
         The cutoff which is deduced by reading the last value of the weights array
     i : int
-        The index at which the cutoff is greter or equal than the values array
+        The index at which the cutoff is greater or equal than the values array
     norm : float
         The new normalization constant after truncation
     v : np.array
@@ -578,7 +578,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     topology_df_i = pd.DataFrame()
     topology_df_j = pd.DataFrame()
 
-    # define matrix type (intra o inter)
+    # define matrix type (intra or inter)
     mat_type = prefix.split("_")[0]
     print(
         f"\nCalculating {mat_type} between molecule {mol_i} and {mol_j}: {molecules_name[mol_i-1]} and {molecules_name[mol_j-1]}"
@@ -625,7 +625,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         ]
     )
 
-    # the following lines are needed to generate a dictionary atoms - residue includining hydrongen
+    # the following lines are needed to generate a dictionary atoms - residue including hydrogen
     # that we use for neighbour contact
     d_protein_ref_i = [a for a in protein_ref_i.atoms]
     d_sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in d_protein_ref_i]
