@@ -9,7 +9,7 @@ ATOL=${CMDATA_ATOL:-1e-7}
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPARE="$SCRIPT_DIR/compare_histo.py"
 
-mkdir test_inputs/cmdata/histo
+mkdir -p test_inputs/cmdata/histo
 cd test_inputs/cmdata/histo
 cmdata -f ../traj.xtc -s ../protein.tpr --noh5
 cd ../../../
