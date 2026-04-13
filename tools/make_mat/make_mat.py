@@ -625,7 +625,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         ]
     )
 
-    # the following lines are needed to generate a dictionary atoms - residue includining hydrongen
+    # the following lines are needed to generate a dictionary atoms - residue including hydrogen
     # that we use for neighbour contact
     d_protein_ref_i = [a for a in protein_ref_i.atoms]
     d_sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in d_protein_ref_i]
