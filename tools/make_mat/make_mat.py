@@ -155,7 +155,7 @@ def read_mat(name, protein_ref_indices, args, cumulative=False):
 
 def run_mat_(arguments):
     """
-    Preforms the main routine of the histogram analysis to obtain the intra- and intermat files.
+    Performs the main routine of the histogram analysis to obtain the intra- and intermat files.
     Is used in combination with multiprocessing to speed up the calculations.
 
     Parameters
