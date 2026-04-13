@@ -606,14 +606,22 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         [
             i + 1
             for i in range(len(protein_ref_i.atoms))
-            if (protein_ref_i[i].element_name != "H" or protein_ref_i[i].name == args.bkbn_H)
+            if (
+                protein_ref_i[i].element_name != "H"
+                or protein_ref_i[i].name in {"H", "HN"}
+                or protein_ref_i[i].name == args.bkbn_H
+            )
         ]
     )
     protein_ref_indices_j = np.array(
         [
             i + 1
             for i in range(len(protein_ref_j.atoms))
-            if (protein_ref_j[i].element_name != "H" or protein_ref_j[i].name == args.bkbn_H)
+            if (
+                protein_ref_j[i].element_name != "H"
+                or protein_ref_j[i].name in {"H", "HN"}
+                or protein_ref_j[i].name == args.bkbn_H
+            )
         ]
     )
 
@@ -628,8 +636,16 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
     # create full dictionary with ai to ri
     d_ref_ai_to_ri_i = dict(zip(d_protein_ref_indices_i, d_sorter_i))
 
-    protein_ref_i = [a for a in protein_ref_i.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
-    protein_ref_j = [a for a in protein_ref_j.atoms if (a.element_name != "H" or a.name == args.bkbn_H)]
+    protein_ref_i = [
+        a
+        for a in protein_ref_i.atoms
+        if (a.element_name != "H" or a.name in {"H", "HN"} or (args.bkbn_H and a.name == args.bkbn_H))
+    ]
+    protein_ref_j = [
+        a
+        for a in protein_ref_j.atoms
+        if (a.element_name != "H" or a.name in {"H", "HN"} or (args.bkbn_H and a.name == args.bkbn_H))
+    ]
 
     sorter_i = [str(x.residue.number) + map_if_exists(x.name) for x in protein_ref_i]
     sorter_mego_i = [str(x.residue.number) + x.name for x in protein_mego_i]
@@ -894,7 +910,11 @@ if __name__ == "__main__":
         help="Sets the calculation to be intra/same/cross for histograms processing",
         default="intra+same+cross",
     )
-    parser.add_argument("--bkbn_H", help="Name of backbone hydrogen (default H, charmm HN)", default="H")
+    parser.add_argument(
+        "--bkbn_H",
+        help="Extra backbone H name to include beyond H and HN (e.g. a force-field-specific variant)",
+        default="",
+    )
     parser.add_argument("--out", default="./", help="""Sets the output path""")
     parser.add_argument(
         "--out_name",

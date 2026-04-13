@@ -77,12 +77,12 @@ void inter_mol_same_routine(
 void inter_mol_cross_routine(
   int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, float dx2, float weight,
   const std::vector<int> &mol_id_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
-  const std::vector<float> &density_bins_, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
+  const std::vector<float> &density_bins_, const std::vector<int> &num_mol_unique, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
   std::vector<std::vector<float>> &frame_cross_mat_, std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_mat_density_
 )
 {
   float dist = std::sqrt(dx2);
-  std::size_t cross_access_index = cmdata::indexing::offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_);
+  std::size_t cross_access_index = cmdata::indexing::offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_, num_mol_unique[mol_id_[j]]);
   std::size_t cross_mutex_index = cmdata::indexing::mutex_access(mol_id_[j], a_i, a_j, natmol2_);
   std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
   kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, weight);
