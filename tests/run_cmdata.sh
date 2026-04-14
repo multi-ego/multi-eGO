@@ -39,8 +39,6 @@ cd ../../../
 
 tar -zxf test_outputs/cmdata/hh-pdb.tgz -C test_outputs/cmdata/
 
-RTOL=${CMDATA_RTOL:-1e-5}
-ATOL=${CMDATA_ATOL:-1e-7}
 failures=0
 for i in $(ls -1 test_inputs/cmdata/histo_pdb); do
   if ! python "$COMPARE" \
