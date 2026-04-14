@@ -2,10 +2,6 @@
 #define _CMDATA_FRAME_HPP
 
 #include <cmath>
-#include <cstring>
-#include <string>
-#include <algorithm>
-#include <stdexcept>
 
 #ifdef GMXVGE2026
 #include "gromacs/utility/vec.h"

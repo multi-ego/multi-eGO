@@ -24,7 +24,6 @@
 #include <cmath>
 #include <string>
 #include <algorithm>
-#include <functional>
 #include <numeric>
 #include <sstream>
 
@@ -384,8 +383,6 @@ public:
 
   void run()
   {
-    std::cout << "Running frame-by-frame analysis" << std::endl;
-
     // No-op callables for disabled modes — stateless lambdas, zero overhead.
     auto no_op = [](auto&&...) {};
 
