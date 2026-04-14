@@ -181,7 +181,9 @@ def proteins_atoms_mask(df):
         ``sidechain_cgs``, ``sidechain_cds``.
     """
     types_dict = {}
-    types_dict["first_backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] == "NL")).to_numpy()
+    types_dict["first_backbone_nitrogen"] = (
+        (df["name"] == "N") & ((df["type"] == "NL") | ((df["type"] == "NT") & (df["resname"] == "PRO")))
+    ).to_numpy()
     types_dict["backbone_nitrogen"] = ((df["name"] == "N") & (df["type"] != "NL")).to_numpy()
     types_dict["backbone_carbonyl"] = (df["name"] == "C").to_numpy()
     types_dict["backbone_oxygen"] = (df["name"] == "O").to_numpy()
