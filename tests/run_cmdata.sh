@@ -18,7 +18,7 @@ tar -zxf test_outputs/cmdata/hh.tgz -C test_outputs/cmdata/
 
 failures=0
 for i in $(ls -1 test_inputs/cmdata/histo); do
-  if ! python3 "$COMPARE" \
+  if ! python "$COMPARE" \
         test_inputs/cmdata/histo/$i \
         test_outputs/cmdata/histo/$i \
         --rtol "$RTOL" --atol "$ATOL"; then

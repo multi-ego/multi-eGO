@@ -16,7 +16,8 @@
 #include "indexing.hpp"
 #include "density.hpp"
 #include "mindist.hpp"
-#include "xtc_frame.hpp"
+#include "frame.hpp"
+#include "molfile_support.hpp"
 
 // standard library imports
 #include <iostream>
@@ -27,9 +28,6 @@
 #include <numeric>
 #include <sstream>
 
-// xdrfile includes
-#include <xdrfile.h>
-#include <xdrfile_xtc.h>
 
 namespace cmdata
 {
@@ -71,8 +69,7 @@ private:
   PbcType pbcType_;
 
   // frame fields
-  cmdata::xtc::Frame *frame_;
-  XDRFILE *trj_;
+  cmdata::traj::Frame *frame_;
 
   // density fields
   float dx_;
@@ -205,25 +202,34 @@ public:
       set_pbc(pbc_, pbcType_, boxtop_);
     }
 
-    int natom;
-    long unsigned int nframe;
-    int64_t *offsets;
-
-    frame_ = (cmdata::xtc::Frame*)malloc(sizeof(cmdata::xtc::Frame));
     std::cout << "Reading trajectory file " << traj_path << std::endl;
-    read_xtc_header(traj_path.c_str(), &natom, &nframe, &offsets);
-    *frame_ = cmdata::xtc::Frame(natom);
-    frame_->nframe  = nframe;
-    frame_->offsets = offsets;
-
-    trj_ = xdrfile_open(traj_path.c_str(), "r");
+    {
+      const std::size_t dot = traj_path.rfind('.');
+      if (dot == std::string::npos)
+        throw std::runtime_error("Cannot determine trajectory format: no extension in '" + traj_path + "'");
+      const std::string ext = traj_path.substr(dot + 1);
+      molfile_plugin_t *plugin = cmdata::get_molfile_plugin(ext);
+      int natom = 0;
+      void *handle = plugin->open_file_read(traj_path.c_str(), ext.c_str(), &natom);
+      if (!handle)
+        throw std::runtime_error("Cannot open trajectory file: " + traj_path);
+      // GROMACS formats (xtc/trr/gro/g96) are compiled with MOLFILE_NATIVE_NM,
+      // so their coordinates are already in nm — no unit conversion needed.
+      // PDB coordinates are in Angstrom and need *0.1 to reach nm.
+      const bool native_nm = (ext == "xtc" || ext == "trr" || ext == "gro" || ext == "g96");
+      const float coord_scale = native_nm ? 1.0f : 0.1f;
+      frame_ = (cmdata::traj::Frame*)malloc(sizeof(cmdata::traj::Frame));
+      *frame_ = cmdata::traj::Frame(natom, plugin, handle, coord_scale);
+    }
     initAnalysis();
   }
 
   ~CMData()
   {
+    if (frame_->mf_handle && frame_->mf_plugin)
+      frame_->mf_plugin->close_file_read(frame_->mf_handle);
+    free(frame_->mf_coords);
     free(frame_->x);
-    free(frame_->offsets);
     free(frame_);
     free(mtop_);
     if (xcm_ != nullptr) free(xcm_);
@@ -395,12 +401,10 @@ public:
     auto do_run = [this](auto f_intra, auto f_same, auto f_cross)
     {
       int frnr = 0;
-      float progress = 0.f;
-      cmdata::io::print_progress_bar(progress);
-      while (frame_->read_next_frame(trj_, no_pbc_, pbcType_, pbc_) == exdrOK)
+      while (frame_->read_next_frame(no_pbc_, pbcType_, pbc_) == cmdata::traj::FRAME_OK)
       {
-        float new_progress = static_cast<float>(frnr) / static_cast<float>(frame_->nframe);
-        if (new_progress - progress > 0.01f) { progress = new_progress; cmdata::io::print_progress_bar(progress); }
+        printf("\r  Frame %d (t=%.1f ps)", frnr + 1, frame_->time);
+        fflush(stdout);
 
         if ((frame_->time >= t_begin_ && (t_end_ < 0 || frame_->time <= t_end_)) &&
             (dt_ == 0 || std::fmod(frame_->time, dt_) == 0) &&
@@ -443,7 +447,7 @@ public:
         }
         ++frnr;
       }
-      cmdata::io::print_progress_bar(1.f);
+      printf("\r  Read %d frames (t=%.1f ps).               \n", frnr, frame_->time);
     };
 
     if      ( intra_ &&  same_ &&  cross_) do_run(fi,     fs,     fc    );

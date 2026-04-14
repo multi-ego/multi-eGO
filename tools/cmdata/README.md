@@ -57,11 +57,20 @@ make && ctest
 cmdata -f TRAJ -s TOP [OPTIONS]
 ```
 
+### Supported trajectory formats
+
+| Extension | Format |
+|-----------|--------|
+| `.xtc`    | GROMACS compressed trajectory |
+| `.trr`    | GROMACS full-precision trajectory |
+| `.gro`    | GROMACS coordinate file (multi-model) |
+| `.pdb`    | PDB coordinate file (multi-model) |
+
 ### Required options
 
 | Option | Description |
 |--------|-------------|
-| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`) |
+| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`, `.trr`, `.gro`, or `.pdb`) |
 | `-s`, `--top=FILE`  | Input topology file (`.tpr`) |
 | `--mode=STRING`     | Calculation mode (see below) |
 
@@ -143,4 +152,10 @@ OMP_NUM_THREADS=8 cmdata -f traj.xtc -s topol.tpr \
     --mode intra+same \
     --weights weights.dat \
     -o weighted/
+```
+
+Read a full-precision TRR trajectory:
+
+```bash
+OMP_NUM_THREADS=8 cmdata -f traj.trr -s topol.tpr --mode intra -o output/
 ```

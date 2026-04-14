@@ -59,6 +59,33 @@ endif()
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
+# ---------------------------------------------------------------------------
+# VMD molfile plugins (bundled in src/molfile, originally from PLUMED2).
+# Both .cpp files define VMDPLUGIN_init/register; per-source COMPILE_DEFINITIONS
+# rename those entry points to avoid link-time symbol collisions.
+# MOLFILE_NATIVE_NM keeps GROMACS-format coordinates in nm (avoids nm→Å→nm
+# round-trip precision loss).  The PDB plugin is left at default Å output.
+# ---------------------------------------------------------------------------
+set(_MOLFILE_COMMON "__PLUMED_HAS_MOLFILE_PLUGINS")
+set(_GMX_RENAMES
+  "VMDPLUGIN_init=molfile_gromacsplugin_init"
+  "VMDPLUGIN_register=molfile_gromacsplugin_register"
+  "VMDPLUGIN_fini=molfile_gromacsplugin_fini"
+  "MOLFILE_NATIVE_NM")
+set(_PDB_RENAMES
+  "VMDPLUGIN_init=molfile_pdbplugin_init"
+  "VMDPLUGIN_register=molfile_pdbplugin_register"
+  "VMDPLUGIN_fini=molfile_pdbplugin_fini")
+
+set_source_files_properties(src/molfile/gromacsplugin.cpp PROPERTIES
+  COMPILE_DEFINITIONS "${_MOLFILE_COMMON};${_GMX_RENAMES}")
+set_source_files_properties(src/molfile/pdbplugin.cpp PROPERTIES
+  COMPILE_DEFINITIONS "${_MOLFILE_COMMON};${_PDB_RENAMES}")
+
+target_sources(${CMDATA} PRIVATE
+  src/molfile/gromacsplugin.cpp
+  src/molfile/pdbplugin.cpp)
+
 include(FetchContent)
 SET(FETCHCONTENT_QUIET OFF)
 SET(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cmdata_fetch)
@@ -79,25 +106,8 @@ if(_popt_inc)
   set_target_properties(popt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_popt_inc}")
 endif()
 
-message(STATUS "Fetching xdrfile")
-FetchContent_Declare(
-  xdrfile
-  URL https://github.com/multi-ego/xdrfile/archive/refs/heads/chemfiles.zip
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-# xdrfile's CMakeLists.txt calls project() without VERSION; set the policy
-# default so the warning is suppressed in that subdirectory.
-set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
-FetchContent_MakeAvailable(xdrfile)
-# Suppress all warnings from xdrfile (third-party, no control)
-target_compile_options(xdrfile PRIVATE -w)
-get_target_property(_xdr_inc xdrfile INTERFACE_INCLUDE_DIRECTORIES)
-if(_xdr_inc)
-  set_target_properties(xdrfile PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_xdr_inc}")
-endif()
-
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs popt $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
 
 # Workaround for macOS 26+ SDK: libm.tbd was removed because math functions are
 # now fully part of libSystem. GROMACS (and other deps) may export an absolute
@@ -117,7 +127,6 @@ if(APPLE)
     endif()
   endmacro()
   strip_libm(Gromacs::libgromacs)
-  strip_libm(xdrfile)
   strip_libm(popt)
   strip_libm(${CMDATA})
 endif()
