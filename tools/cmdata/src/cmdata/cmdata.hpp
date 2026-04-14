@@ -427,6 +427,7 @@ public:
           }
 
           // per-molecule pairwise distance computation
+          #pragma omp parallel for schedule(dynamic)
           for (int i = 0; i < nindex_; i++)
             molecule_routine(i, pbc_, frame_->x, f_intra, f_same, f_cross, weight);
 

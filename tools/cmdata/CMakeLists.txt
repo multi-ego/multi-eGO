@@ -26,6 +26,11 @@ endif()
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
 
+find_package(OpenMP)
+if(NOT OpenMP_CXX_FOUND)
+  message(WARNING "OpenMP not found — building single-threaded")
+endif()
+
 # check if gromacs version is at least 2026
 string(REPLACE "." ";" GMX_VER_LIST "${GROMACS_VERSION}")
 list(GET GMX_VER_LIST 0 GMX_MAJOR_VER)
@@ -86,7 +91,7 @@ if(_xdr_inc)
 endif()
 
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
 
 # Workaround for macOS 26+ SDK: libm.tbd was removed because math functions are
 # now fully part of libSystem. GROMACS (and other deps) may export an absolute

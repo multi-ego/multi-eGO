@@ -40,8 +40,9 @@ void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<
   for (int i = from; i < to; i++)
   {
     float f = (mu - bins[i]) / h;
-    float kernel = std::exp(-0.5f * f * f);
-    x[i] += scale * (kernel - KDE_TAIL_SHIFT);
+    float contrib = scale * (std::exp(-0.5f * f * f) - KDE_TAIL_SHIFT);
+    #pragma omp atomic
+    x[i] += contrib;
   }
 }
 
