@@ -211,7 +211,7 @@ void f_write_intra_HDF5(const std::string &output_prefix,
   for (size_t k = 0; k < density_bins.size(); ++k) {
       flat_data.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[i]); ++jj) {
           flat_data.push_back(intram_mat_density[i][ii][jj][k]);
       }
   }
@@ -279,7 +279,7 @@ void f_write_inter_same_HDF5(const std::string &output_prefix,
       flat_data.push_back(density_bins[k]);
       flat_data_c.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[i]); ++jj) {
           flat_data.push_back(interm_same_mat_density[i][ii][jj][k]);
           flat_data_c.push_back(interm_same_maxcdf_mol[i][ii][jj][k]);
       }
@@ -355,7 +355,7 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
       flat_data.push_back(density_bins[k]);
       flat_data_c.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[j]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[j]); ++jj) {
           flat_data.push_back(interm_cross_mat_density[cross_index[i][j]][ii][jj][k]);
           flat_data_c.push_back(interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k]);
       }

@@ -61,6 +61,12 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(popt)
+# Suppress all warnings from popt (third-party, no control)
+target_compile_options(popt PRIVATE -w)
+get_target_property(_popt_inc popt INTERFACE_INCLUDE_DIRECTORIES)
+if(_popt_inc)
+  set_target_properties(popt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_popt_inc}")
+endif()
 
 message(STATUS "Fetching xdrfile")
 FetchContent_Declare(
@@ -72,6 +78,12 @@ FetchContent_Declare(
 # default so the warning is suppressed in that subdirectory.
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 FetchContent_MakeAvailable(xdrfile)
+# Suppress all warnings from xdrfile (third-party, no control)
+target_compile_options(xdrfile PRIVATE -w)
+get_target_property(_xdr_inc xdrfile INTERFACE_INCLUDE_DIRECTORIES)
+if(_xdr_inc)
+  set_target_properties(xdrfile PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_xdr_inc}")
+endif()
 
 # link libraries
 target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)

@@ -105,13 +105,13 @@ private:
     float weight
   )
   {
-    int tmp_i = 0;
+    std::size_t tmp_i = 0;
     std::size_t mol_i = i, mol_j = 0;
-    while ( static_cast<int>(mol_i) - num_mol_unique_[tmp_i] >= 0 )
+    while ( mol_i >= static_cast<std::size_t>(num_mol_unique_[tmp_i]) )
     {
       mol_i -= num_mol_unique_[tmp_i];
       tmp_i++;
-      if (tmp_i == static_cast<int>(num_mol_unique_.size())) break;
+      if (tmp_i == num_mol_unique_.size()) break;
     }
     if (mol_i == static_cast<std::size_t>(num_mol_unique_[mol_id_[i]])) mol_i = 0;
 
@@ -133,12 +133,16 @@ private:
       if (mol_id_[i] != mol_id_[j] && j < i) continue;
 
       const int mt_j = mol_id_[j];
+      const std::size_t ii_begin = static_cast<std::size_t>(mols_.block(i).begin());
+      const std::size_t ii_end   = static_cast<std::size_t>(mols_.block(i).end());
+      const std::size_t jj_begin = static_cast<std::size_t>(mols_.block(j).begin());
+      const std::size_t jj_end   = static_cast<std::size_t>(mols_.block(j).end());
       std::size_t a_i = 0;
-      for (std::size_t ii = mols_.block(i).begin(); ii < mols_.block(i).end(); ii++)
+      for (std::size_t ii = ii_begin; ii < ii_end; ii++)
       {
         std::size_t a_j = 0;
         if (!atom_active_[mt_i][a_i]) { a_i++; continue; }
-        for (std::size_t jj = mols_.block(j).begin(); jj < mols_.block(j).end(); jj++)
+        for (std::size_t jj = jj_begin; jj < jj_end; jj++)
         {
           if (!atom_active_[mt_j][a_j]) { a_j++; continue; }
           std::size_t delta = a_i - a_j;
@@ -295,7 +299,7 @@ public:
     bool check_same = false;
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
-      printf("mol %lu num %u size %u\n", i, num_mol_unique_[i], natmol2_[i]);
+      printf("mol %zu num %d size %d\n", i, num_mol_unique_[i], natmol2_[i]);
       if (num_mol_unique_[i] > 1) check_same = true;
     }
     if (!check_same && same_) same_ = false;
@@ -364,7 +368,7 @@ public:
     {
       printf("Weights file provided. Reading weights from %s\n", weights_path_.c_str());
       weights_ = cmdata::io::read_weights_file(weights_path_);
-      printf("Found %li frame weights in file\n", weights_.size());
+      printf("Found %zu frame weights in file\n", weights_.size());
       float w_sum = std::accumulate(weights_.begin(), weights_.end(), 0.f);
       printf("Sum of weights amounts to %lf\n", w_sum);
     }
