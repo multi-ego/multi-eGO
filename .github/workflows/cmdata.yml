@@ -39,8 +39,12 @@ jobs:
         cmake ../ -DCMDATA_BUILD_TESTS=ON
         make
         sudo make install
+    - name: Test cmdata
+      run: |
+        cd tools/cmdata/build
+        make test
         cmdata --help
-    - name: Run cmdata test 
+    - name: Run cmdata regtests
       run: |
         source /usr/local/gromacs/bin/GMXRC
         cd tests; bash run_cmdata.sh; cd ..
