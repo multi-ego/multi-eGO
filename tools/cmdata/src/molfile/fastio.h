@@ -34,8 +34,8 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
 OTHER DEALINGS WITH THE SOFTWARE.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-#ifndef __PLUMED_molfile_fastio_h
-#define __PLUMED_molfile_fastio_h
+#ifndef __molfile_fastio_h
+#define __molfile_fastio_h
 /***************************************************************************
  *cr
  *cr            (C) Copyright 1995-2016 The Board of Trustees of the
