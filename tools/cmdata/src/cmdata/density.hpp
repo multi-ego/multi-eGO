@@ -1,8 +1,8 @@
 #ifndef _CMDATA_DENSITY_HPP
 #define _CMDATA_DENSITY_HPP
 
+#include <algorithm>
 #include <cmath>
-#include <mutex>
 #include <vector>
 
 #include "indexing.hpp"
@@ -45,49 +45,40 @@ void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<
   }
 }
 
-void intra_mol_routine( 
+void intra_mol_routine(
   int i, std::size_t a_i, std::size_t a_j, float dx2, float weight, const std::vector<int> &mol_id_,
   const std::vector<int> &natmol2_, const std::vector<float> &density_bins_,
-  const std::vector<float> &inv_num_mol_, std::vector<std::vector<std::mutex>> &frame_same_mutex_, 
+  const std::vector<float> &inv_num_mol_,
   std::vector<std::vector<std::vector<std::vector<float>>>> &intram_mat_density_
 )
 {
-  std::size_t same_mutex_index = cmdata::indexing::mutex_access(mol_id_[i], a_i, a_j, natmol2_);
-  std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
   kernel_density_estimator(std::begin(intram_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, std::sqrt(dx2), weight*inv_num_mol_[i]);
-  lock.unlock();
 }
 
 void inter_mol_same_routine(
-  int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, float dx2, float weight, 
+  int i, std::size_t mol_i, std::size_t a_i, std::size_t a_j, float dx2, float weight,
   const std::vector<int> &mol_id_, const std::vector<int> &natmol2_, const std::vector<float> &density_bins_,
-  std::vector<std::vector<std::mutex>> &frame_same_mutex_, std::vector<std::vector<float>> &frame_same_mat_,
+  std::vector<std::vector<float>> &frame_same_mat_,
   std::vector<std::vector<std::vector<std::vector<float>>>> &interm_same_mat_density_
 )
 {
   float dist = std::sqrt(dx2);
   std::size_t same_access_index = cmdata::indexing::offset_same(mol_id_[i], mol_i, a_i, a_j, natmol2_);
-  std::size_t same_mutex_index = cmdata::indexing::mutex_access(mol_id_[i], a_i, a_j, natmol2_);
-  std::unique_lock lock(frame_same_mutex_[mol_id_[i]][same_mutex_index]);
   kernel_density_estimator(std::begin(interm_same_mat_density_[mol_id_[i]][a_i][a_j]), density_bins_, dist, weight);
   frame_same_mat_[mol_id_[i]][same_access_index] = std::min(dist, frame_same_mat_[mol_id_[i]][same_access_index]);
-  lock.unlock();
 }
 
 void inter_mol_cross_routine(
   int i, int j, std::size_t mol_i, std::size_t mol_j, std::size_t a_i, std::size_t a_j, float dx2, float weight,
   const std::vector<int> &mol_id_, const std::vector<int> &natmol2_, const std::vector<std::vector<int>> &cross_index_,
-  const std::vector<float> &density_bins_, const std::vector<int> &num_mol_unique, std::vector<std::vector<std::mutex>> &frame_cross_mutex_,
+  const std::vector<float> &density_bins_, const std::vector<int> &num_mol_unique,
   std::vector<std::vector<float>> &frame_cross_mat_, std::vector<std::vector<std::vector<std::vector<float>>>> &interm_cross_mat_density_
 )
 {
   float dist = std::sqrt(dx2);
   std::size_t cross_access_index = cmdata::indexing::offset_cross(mol_id_[i], mol_id_[j], mol_i, mol_j, a_i, a_j, natmol2_, num_mol_unique[mol_id_[j]]);
-  std::size_t cross_mutex_index = cmdata::indexing::mutex_access(mol_id_[j], a_i, a_j, natmol2_);
-  std::unique_lock lock(frame_cross_mutex_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_mutex_index]);
   kernel_density_estimator(std::begin(interm_cross_mat_density_[cross_index_[mol_id_[i]][mol_id_[j]]][a_i][a_j]), density_bins_, dist, weight);
   frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index] = std::min(dist, frame_cross_mat_[cross_index_[mol_id_[i]][mol_id_[j]]][cross_access_index]);
-  lock.unlock();
 }
 
 void normalize_histo(
@@ -96,7 +87,7 @@ void normalize_histo(
 )
 {
   std::transform(
-    std::begin(data[i][ii][jj]), std::end(data[i][ii][jj]), std::begin(data[i][ii][jj]), 
+    std::begin(data[i][ii][jj]), std::end(data[i][ii][jj]), std::begin(data[i][ii][jj]),
     [norm, inv_num_mol_same]( auto &c ){ return c * norm * inv_num_mol_same; }
   );
 }

@@ -16,7 +16,7 @@ int main(int argc, const char** argv)
   std::cout << "################################################\n" << std::endl;
 
   float cutoff = 0.75, mol_cutoff = 6.0;
-  int nskip = 0, num_threads = 1, mol_threads = -1, dt = 0;
+  int nskip = 0, dt = 0;
   float t_begin = 0.0, t_end = -1.0;
   char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL,*p_bkbn_H = NULL, *p_weights_path = NULL;
   char *p_out_prefix = NULL;
@@ -42,8 +42,6 @@ int main(int argc, const char** argv)
     {"cutoff",      '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &cutoff,          0, "Cutoff distance",             "DOUBLE"},
     {"mol_cutoff",  '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &mol_cutoff,      0, "Molecule cutoff distance",    "DOUBLE"},
     {"nskip",       '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &nskip,           0, "Number of frames to skip",    "INT"},
-    {"num_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &num_threads,     0, "Number of threads",           "INT"},
-    {"mol_threads", '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &mol_threads,     0, "Number of molecule threads",  "INT"},
     {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
     {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Extra backbone H name (H and HN are always included)", "STRING"},
     {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
@@ -115,17 +113,6 @@ int main(int argc, const char** argv)
       }
     }
   }
-  if ( num_threads != 1 )
-  {
-    std::cerr << "Number of threads is currently unused!" << std::endl;
-    num_threads = 1;
-    //return 6;
-  }
-  if ( mol_threads != 1 )
-  {
-    std::cout << "threads cannot be used currently!" << std::endl;
-    mol_threads = num_threads;
-  }
   if ( dt < 0 )
   {
     std::cerr << "Time step must be a positive number!" << std::endl;
@@ -158,7 +145,7 @@ int main(int argc, const char** argv)
   }
 
   cmdata::CMData cmdata(
-    top_path, traj_path, cutoff, mol_cutoff, nskip, num_threads, mol_threads, dt,
+    top_path, traj_path, cutoff, mol_cutoff, nskip, dt,
     mode, bkbn_H, weights_path, nopbc, t_begin, t_end, h5
   );
   cmdata.run();
