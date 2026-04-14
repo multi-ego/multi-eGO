@@ -36,7 +36,7 @@ jobs:
     - name: Build cmdata 
       run: |
         cd tools/cmdata; mkdir build; cd build
-        cmake ../
+        cmake ../ -DCMDATA_BUILD_TESTS=ON
         make
         sudo make install
         cmdata --help

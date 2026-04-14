@@ -103,6 +103,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_P
 install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # build test
+option(CMDATA_BUILD_TESTS "Build and register unit tests (no GROMACS required)" OFF)
 if(CMDATA_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test/)
