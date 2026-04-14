@@ -39,13 +39,22 @@ inline molfile_plugin_t *get_molfile_plugin(const std::string &ext)
   struct Ctx { const char *ext; molfile_plugin_t *plugin; };
   Ctx ctx{ ext.c_str(), nullptr };
 
-  // Non-capturing lambda → compatible with vmdplugin_register_cb
+  // Non-capturing lambda → compatible with vmdplugin_register_cb.
+  // filename_extension may be a comma-separated list (e.g. "pdb,ent"),
+  // so tokenise and compare each token individually.
   auto cb = [](void *data, vmdplugin_t *p) -> int {
     auto *c  = static_cast<Ctx *>(data);
     auto *mp = reinterpret_cast<molfile_plugin_t *>(p);
-    if (mp->filename_extension &&
-        std::strcmp(c->ext, mp->filename_extension) == 0)
-      c->plugin = mp;
+    if (!mp->filename_extension) return 0;
+    // duplicate so we can strtok in-place without mutating plugin data
+    char *exts = strdup(mp->filename_extension);
+    char *tok  = strtok(exts, ",");
+    while (tok)
+    {
+      if (std::strcmp(c->ext, tok) == 0) { c->plugin = mp; break; }
+      tok = strtok(nullptr, ",");
+    }
+    free(exts);
     return 0;
   };
 

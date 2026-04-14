@@ -39,7 +39,13 @@ private:
   float cutoff_, mcut2_, cut_sig_2_;
   int nskip_, n_x_;
   float dt_, t_begin_, t_end_;
-  gmx_mtop_t *mtop_;
+  // mtop_ is non-null only for TPR topology; null for structure-file topology.
+  gmx_mtop_t *mtop_ = nullptr;
+  // atom_names_ holds names read from non-TPR structure files (parallel to global atom index).
+  std::vector<std::string> atom_names_;
+  // nontpr_chain_sizes_: atoms per chain, in order, parsed from the structure file.
+  // Consecutive chains of the same size are treated as one molecule type (nmol > 1).
+  std::vector<int> nontpr_chain_sizes_;
   rvec *xcm_ = nullptr;
 
   // molecule number fields
@@ -141,7 +147,6 @@ private:
         for (std::size_t jj = jj_begin; jj < jj_end; jj++)
         {
           if (!atom_active_[mt_j][a_j]) { a_j++; continue; }
-          std::size_t delta = a_i - a_j;
           rvec sym_dx;
           if (pbc != nullptr) pbc_dx(pbc, x[ii], x[jj], sym_dx);
           else rvec_sub(x[ii], x[jj], sym_dx);
@@ -155,11 +160,13 @@ private:
           {
             if (dx2 < cut_sig_2_)
               f_inter_mol_same_(i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mat_, interm_same_mat_density_);
-            if (delta != 0)
+            if (a_i != a_j)
             {
-              // account for atom/molecule index inversion
-              if (pbc != nullptr) pbc_dx(pbc, x[ii-delta], x[jj+delta], sym_dx);
-              else rvec_sub(x[ii-delta], x[jj+delta], sym_dx);
+              // Account for atom/molecule index inversion (symmetric contribution).
+              // Use explicit index arithmetic to avoid unsigned underflow when a_i < a_j.
+              // ii = ii_begin + a_i and jj = jj_begin + a_j always hold.
+              if (pbc != nullptr) pbc_dx(pbc, x[ii_begin + a_j], x[jj_begin + a_i], sym_dx);
+              else rvec_sub(x[ii_begin + a_j], x[jj_begin + a_i], sym_dx);
               dx2 = iprod(sym_dx, sym_dx);
               if (dx2 < cut_sig_2_)
                 f_inter_mol_same_(i, mol_i, a_i, a_j, dx2, weight, mol_id_, natmol2_, density_bins_, frame_same_mat_, interm_same_mat_density_);
@@ -188,17 +195,72 @@ public:
       t_begin_(t_begin), t_end_(t_end), bkbn_H_(bkbn_H), weights_path_(weights_path),
       no_pbc_(no_pbc), mode_(mode), h5_(h5)
   {
-    matrix boxtop_;
-    mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
-    int natoms;
-    pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
+    const std::string top_ext = [&]{
+      const std::size_t d = top_path.rfind('.');
+      return d != std::string::npos ? top_path.substr(d + 1) : std::string{};
+    }();
 
-    if (no_pbc_)
-      pbc_ = nullptr;
+    if (top_ext == "tpr")
+    {
+      matrix boxtop_;
+      mtop_ = (gmx_mtop_t*)malloc(sizeof(gmx_mtop_t));
+      int natoms;
+      pbcType_ = read_tpx(top_path.c_str(), nullptr, boxtop_, &natoms, nullptr, nullptr, mtop_);
+      if (no_pbc_)
+        pbc_ = nullptr;
+      else
+      {
+        pbc_ = (t_pbc*)malloc(sizeof(t_pbc));
+        set_pbc(pbc_, pbcType_, boxtop_);
+      }
+    }
     else
     {
-      pbc_ = (t_pbc*)malloc(sizeof(t_pbc));
-      set_pbc(pbc_, pbcType_, boxtop_);
+      // Structure-file topology (pdb, gro, …): read atom names via molfile,
+      // treat the whole system as one molecule, disable PBC.
+      printf("Note: topology is not a .tpr — treating all atoms as one molecule, PBC disabled.\n");
+      const std::string ext = top_ext.empty() ? "" : top_ext;
+      molfile_plugin_t *tplugin = cmdata::get_molfile_plugin(ext);
+      int natom_top = 0;
+      void *thandle = tplugin->open_file_read(top_path.c_str(), ext.c_str(), &natom_top);
+      if (!thandle)
+        throw std::runtime_error("Cannot open topology file: " + top_path);
+      atom_names_.resize(natom_top);
+      if (tplugin->read_structure)
+      {
+        std::vector<molfile_atom_t> mf_atoms(natom_top);
+        int optflags = 0;
+        if (tplugin->read_structure(thandle, &optflags, mf_atoms.data()) == MOLFILE_SUCCESS)
+        {
+          for (int i = 0; i < natom_top; i++)
+            atom_names_[i] = std::string(mf_atoms[i].name);
+          // Split into chains by chain ID so each chain becomes a molecule instance.
+          // Consecutive chains of the same atom count are treated as the same type.
+          if (natom_top > 0)
+          {
+            char cur_chain = mf_atoms[0].chain[0];
+            int  cur_start = 0;
+            for (int i = 1; i <= natom_top; i++)
+            {
+              char c = (i < natom_top) ? mf_atoms[i].chain[0] : '\0';
+              if (c != cur_chain)
+              {
+                nontpr_chain_sizes_.push_back(i - cur_start);
+                cur_chain = c;
+                cur_start = i;
+              }
+            }
+          }
+        }
+      }
+      tplugin->close_file_read(thandle);
+      mtop_    = nullptr;
+      pbcType_ = PbcType::No;
+      pbc_     = nullptr;
+      if (nontpr_chain_sizes_.empty())
+        printf("Note: no chain IDs found — treating all %d atoms as one molecule.\n", natom_top);
+      else
+        printf("Note: detected %zu chain(s) from topology.\n", nontpr_chain_sizes_.size());
     }
 
     std::cout << "Reading trajectory file " << traj_path << std::endl;
@@ -212,6 +274,12 @@ public:
       void *handle = plugin->open_file_read(traj_path.c_str(), ext.c_str(), &natom);
       if (!handle)
         throw std::runtime_error("Cannot open trajectory file: " + traj_path);
+      // For non-TPR topologies the atom count comes from the structure file;
+      // verify it matches what the trajectory says.
+      if (!mtop_ && !atom_names_.empty() && natom != static_cast<int>(atom_names_.size()))
+        throw std::runtime_error(
+          "Atom count mismatch: topology has " + std::to_string(atom_names_.size()) +
+          " atoms but trajectory has " + std::to_string(natom));
       // GROMACS formats (xtc/trr/gro/g96) are compiled with MOLFILE_NATIVE_NM,
       // so their coordinates are already in nm — no unit conversion needed.
       // PDB coordinates are in Angstrom and need *0.1 to reach nm.
@@ -230,7 +298,7 @@ public:
     free(frame_->mf_coords);
     free(frame_->x);
     free(frame_);
-    free(mtop_);
+    if (mtop_) free(mtop_);
     if (xcm_ != nullptr) free(xcm_);
   }
 
@@ -238,12 +306,41 @@ public:
   {
     n_x_ = 0;
 
-    // build molecule blocks; equivalent to mols_ = gmx::gmx_mtop_molecules(*top.mtop())
-    for (const gmx_molblock_t &molb : mtop_->molblock)
+    // build molecule blocks
+    if (mtop_)
     {
-      int natm_per_mol = mtop_->moltype[molb.type].atoms.nr;
-      for (int i = 0; i < molb.nmol; i++) mols_.appendBlock(natm_per_mol);
-      num_mol_unique_.push_back(molb.nmol);
+      // TPR path: use GROMACS molecule topology
+      for (const gmx_molblock_t &molb : mtop_->molblock)
+      {
+        int natm_per_mol = mtop_->moltype[molb.type].atoms.nr;
+        for (int i = 0; i < molb.nmol; i++) mols_.appendBlock(natm_per_mol);
+        num_mol_unique_.push_back(molb.nmol);
+      }
+    }
+    else
+    {
+      // Structure-file path: split by chain (each chain = one molecule instance).
+      // Consecutive chains of equal atom count share a molecule type.
+      if (nontpr_chain_sizes_.empty())
+      {
+        // No chain info (e.g. plugin did not fill chain field): one molecule.
+        mols_.appendBlock(static_cast<int>(atom_names_.size()));
+        num_mol_unique_.push_back(1);
+      }
+      else
+      {
+        std::size_t i = 0;
+        while (i < nontpr_chain_sizes_.size())
+        {
+          int sz = nontpr_chain_sizes_[i];
+          std::size_t j = i;
+          while (j < nontpr_chain_sizes_.size() && nontpr_chain_sizes_[j] == sz) ++j;
+          int nmol = static_cast<int>(j - i);
+          for (int k = 0; k < nmol; k++) mols_.appendBlock(sz);
+          num_mol_unique_.push_back(nmol);
+          i = j;
+        }
+      }
     }
     nindex_ = mols_.numBlocks();
 
@@ -286,13 +383,21 @@ public:
       for (std::size_t mt = 0; mt < natmol2_.size(); mt++)
       {
         atom_active_[mt].resize(natmol2_[mt]);
-        const char *atomname;
+        const char *atomname = nullptr;
         for (int a = 0; a < natmol2_[mt]; a++)
         {
           int global_atom = mols_.block(mol_first).begin() + a;
-          mtopGetAtomAndResidueName(*mtop_, global_atom, &molb, &atomname, nullptr, nullptr, nullptr);
-          const std::string aname(atomname);
-          const bool is_H    = (aname[0] == 'H');
+          std::string aname;
+          if (mtop_)
+          {
+            mtopGetAtomAndResidueName(*mtop_, global_atom, &molb, &atomname, nullptr, nullptr, nullptr);
+            aname = std::string(atomname);
+          }
+          else
+          {
+            aname = atom_names_[global_atom];
+          }
+          const bool is_H    = (!aname.empty() && aname[0] == 'H');
           const bool is_bkbn = (aname == "H" || aname == "HN" || (!bkbn_H_.empty() && aname == bkbn_H_));
           atom_active_[mt][a] = !(is_H && !is_bkbn);
         }

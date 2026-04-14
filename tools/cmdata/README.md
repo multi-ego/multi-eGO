@@ -71,7 +71,7 @@ cmdata -f TRAJ -s TOP [OPTIONS]
 | Option | Description |
 |--------|-------------|
 | `-f`, `--traj=FILE` | Input trajectory file (`.xtc`, `.trr`, `.gro`, or `.pdb`) |
-| `-s`, `--top=FILE`  | Input topology file (`.tpr`) |
+| `-s`, `--top=FILE`  | Input topology file. Accepts `.tpr` (full GROMACS topology with PBC support) or a structure file such as `.pdb` or `.gro` (treated as a single molecule; PBC is disabled). |
 | `--mode=STRING`     | Calculation mode (see below) |
 
 ### Optional options
@@ -158,4 +158,10 @@ Read a full-precision TRR trajectory:
 
 ```bash
 OMP_NUM_THREADS=8 cmdata -f traj.trr -s topol.tpr --mode intra -o output/
+```
+
+Analyse a single PDB file (no `.tpr` required — PBC disabled, whole system treated as one molecule):
+
+```bash
+OMP_NUM_THREADS=1 cmdata -f struct.pdb -s struct.pdb --mode intra --noh5 -o output/
 ```

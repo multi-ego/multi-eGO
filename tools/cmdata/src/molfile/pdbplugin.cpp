@@ -34,7 +34,6 @@ OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR 
 OTHER DEALINGS WITH THE SOFTWARE.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
-#if defined(__PLUMED_HAS_MOLFILE_PLUGINS) && ! defined(__PLUMED_HAS_EXTERNAL_MOLFILE_PLUGINS)
 /***************************************************************************
  *cr
  *cr            (C) Copyright 1995-2016 The Board of Trustees of the
@@ -639,6 +638,3 @@ VMDPLUGIN_API int VMDPLUGIN_register(void *v, vmdplugin_register_cb cb) {
 VMDPLUGIN_API int VMDPLUGIN_fini() {
   return VMDPLUGIN_SUCCESS;
 }
-
-
-#endif
