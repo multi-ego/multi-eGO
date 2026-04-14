@@ -17,6 +17,8 @@
 #include <vector>
 #include <iomanip>
 #include <regex>
+#include <chrono>
+#include <unistd.h>
 
 #define COUT_FLOAT_PREC std::fixed << std::setprecision(5)
 
@@ -211,7 +213,7 @@ void f_write_intra_HDF5(const std::string &output_prefix,
   for (size_t k = 0; k < density_bins.size(); ++k) {
       flat_data.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[i]); ++jj) {
           flat_data.push_back(intram_mat_density[i][ii][jj][k]);
       }
   }
@@ -279,7 +281,7 @@ void f_write_inter_same_HDF5(const std::string &output_prefix,
       flat_data.push_back(density_bins[k]);
       flat_data_c.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[i]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[i]); ++jj) {
           flat_data.push_back(interm_same_mat_density[i][ii][jj][k]);
           flat_data_c.push_back(interm_same_maxcdf_mol[i][ii][jj][k]);
       }
@@ -355,7 +357,7 @@ void f_write_inter_cross_HDF5(const std::string &output_prefix,
       flat_data.push_back(density_bins[k]);
       flat_data_c.push_back(density_bins[k]);
       // Then iterate over jj dimension
-      for (size_t jj = 0; jj < natmol2[j]; ++jj) {
+      for (size_t jj = 0; jj < static_cast<size_t>(natmol2[j]); ++jj) {
           flat_data.push_back(interm_cross_mat_density[cross_index[i][j]][ii][jj][k]);
           flat_data_c.push_back(interm_cross_maxcdf_mol[cross_index[i][j]][ii][jj][k]);
       }
@@ -449,14 +451,51 @@ std::vector<uint> read_selection( const std::string &path, const std::string &se
   */
 void print_progress_bar(float percentage)
 {
-  constexpr std::size_t PROGRESS_BAR_LENGTH = 60;
-  constexpr char PROGRESS_BAR[] = "############################################################";
-  
-  int val = (int) (percentage * 100);
-  int lpad = (int) (percentage * PROGRESS_BAR_LENGTH);
-  int rpad = PROGRESS_BAR_LENGTH - lpad;
-  
-  printf("\r%3d%% [%.*s%*s]", val, lpad, PROGRESS_BAR, rpad, "");
+  static const auto t0 = std::chrono::steady_clock::now();
+  constexpr int BAR_WIDTH = 50;
+
+  const bool tty    = isatty(fileno(stdout));
+  const int  pct    = static_cast<int>(percentage * 100.f);
+  const int  filled = static_cast<int>(percentage * BAR_WIDTH);
+
+  auto elapsed_s = std::chrono::duration<double>(
+    std::chrono::steady_clock::now() - t0).count();
+
+  // Build time suffix: elapsed + ETA once we have some progress
+  char time_buf[32];
+  if (percentage <= 0.f || elapsed_s < 0.5)
+  {
+    snprintf(time_buf, sizeof(time_buf), " %4.0fs", elapsed_s);
+  }
+  else if (percentage >= 1.f)
+  {
+    snprintf(time_buf, sizeof(time_buf), " %4.0fs", elapsed_s);
+  }
+  else
+  {
+    double eta = elapsed_s * (1.0 - percentage) / percentage;
+    snprintf(time_buf, sizeof(time_buf), " %4.0fs  ETA %4.0fs", elapsed_s, eta);
+  }
+
+  if (tty)
+  {
+    // Coloured bar: green brackets, cyan fill, dark empty
+    printf("\r\033[32m%3d%%\033[0m [\033[36m", pct);
+    for (int i = 0; i < filled;         i++) printf("\xe2\x96\x88"); // █
+    printf("\033[90m");
+    for (int i = filled; i < BAR_WIDTH; i++) printf("\xe2\x96\x91"); // ░
+    printf("\033[0m]%s", time_buf);
+  }
+  else
+  {
+    // Plain ASCII fallback for pipes / log files
+    printf("\r%3d%% [", pct);
+    for (int i = 0; i < filled;         i++) putchar('#');
+    for (int i = filled; i < BAR_WIDTH; i++) putchar(' ');
+    printf("]%s", time_buf);
+  }
+
+  if (percentage >= 1.f) putchar('\n');
   fflush(stdout);
 }
 

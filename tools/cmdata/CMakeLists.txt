@@ -26,6 +26,17 @@ endif()
 # find gromacs
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+  message(STATUS "OpenMP ${OpenMP_CXX_VERSION} found — parallel build enabled (set OMP_NUM_THREADS at runtime)")
+else()
+  message(WARNING "OpenMP not found — building single-threaded.\n"
+    "  On macOS: brew install libomp, then re-run cmake with:\n"
+    "    -DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp'\n"
+    "    -DOpenMP_CXX_LIB_NAMES=omp\n"
+    "    -DOpenMP_omp_LIBRARY=$(brew --prefix libomp)/lib/libomp.dylib")
+endif()
+
 # check if gromacs version is at least 2026
 string(REPLACE "." ";" GMX_VER_LIST "${GROMACS_VERSION}")
 list(GET GMX_VER_LIST 0 GMX_MAJOR_VER)
@@ -61,6 +72,12 @@ FetchContent_Declare(
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 FetchContent_MakeAvailable(popt)
+# Suppress all warnings from popt (third-party, no control)
+target_compile_options(popt PRIVATE -w)
+get_target_property(_popt_inc popt INTERFACE_INCLUDE_DIRECTORIES)
+if(_popt_inc)
+  set_target_properties(popt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_popt_inc}")
+endif()
 
 message(STATUS "Fetching xdrfile")
 FetchContent_Declare(
@@ -72,9 +89,15 @@ FetchContent_Declare(
 # default so the warning is suppressed in that subdirectory.
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 FetchContent_MakeAvailable(xdrfile)
+# Suppress all warnings from xdrfile (third-party, no control)
+target_compile_options(xdrfile PRIVATE -w)
+get_target_property(_xdr_inc xdrfile INTERFACE_INCLUDE_DIRECTORIES)
+if(_xdr_inc)
+  set_target_properties(xdrfile PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_xdr_inc}")
+endif()
 
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt)
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs xdrfile popt $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
 
 # Workaround for macOS 26+ SDK: libm.tbd was removed because math functions are
 # now fully part of libSystem. GROMACS (and other deps) may export an absolute
@@ -103,6 +126,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH ${CMAKE_INSTALL_P
 install(TARGETS ${CMDATA} DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
 # build test
+option(CMDATA_BUILD_TESTS "Build and register unit tests (no GROMACS required)" OFF)
 if(CMDATA_BUILD_TESTS)
   enable_testing()
   add_subdirectory(test/)

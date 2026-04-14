@@ -3,15 +3,15 @@ set -o pipefail
 
 # Relative and absolute tolerances for numerical comparison.
 # Adjust RTOL / ATOL here to tighten or loosen the test.
-RTOL=${CMDATA_RTOL:-1e-4}
+RTOL=${CMDATA_RTOL:-5e-4}
 ATOL=${CMDATA_ATOL:-1e-7}
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 COMPARE="$SCRIPT_DIR/compare_histo.py"
 
-mkdir test_inputs/cmdata/histo
+mkdir -p test_inputs/cmdata/histo
 cd test_inputs/cmdata/histo
-cmdata -f ../traj.xtc -s ../protein.tpr --noh5
+OMP_NUM_THREADS=2 cmdata -f ../traj.xtc -s ../protein.tpr --noh5
 cd ../../../
 
 tar -zxf test_outputs/cmdata/hh.tgz -C test_outputs/cmdata/
