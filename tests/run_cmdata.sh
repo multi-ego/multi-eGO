@@ -11,7 +11,7 @@ COMPARE="$SCRIPT_DIR/compare_histo.py"
 
 mkdir -p test_inputs/cmdata/histo
 cd test_inputs/cmdata/histo
-OMP_NUM_THREADS=4 cmdata -f ../traj.xtc -s ../protein.tpr --noh5
+OMP_NUM_THREADS=2 cmdata -f ../traj.xtc -s ../protein.tpr --noh5
 cd ../../../
 
 tar -zxf test_outputs/cmdata/hh.tgz -C test_outputs/cmdata/
