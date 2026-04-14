@@ -27,8 +27,14 @@ endif()
 find_package(GROMACS REQUIRED NAMES gromacs gromacs_mpi gromacs_d gromacs_mpi_d HINTS "$ENV{GROMACS_DIR}")
 
 find_package(OpenMP)
-if(NOT OpenMP_CXX_FOUND)
-  message(WARNING "OpenMP not found — building single-threaded")
+if(OpenMP_CXX_FOUND)
+  message(STATUS "OpenMP ${OpenMP_CXX_VERSION} found — parallel build enabled (set OMP_NUM_THREADS at runtime)")
+else()
+  message(WARNING "OpenMP not found — building single-threaded.\n"
+    "  On macOS: brew install libomp, then re-run cmake with:\n"
+    "    -DOpenMP_CXX_FLAGS='-Xpreprocessor -fopenmp'\n"
+    "    -DOpenMP_CXX_LIB_NAMES=omp\n"
+    "    -DOpenMP_omp_LIBRARY=$(brew --prefix libomp)/lib/libomp.dylib")
 endif()
 
 # check if gromacs version is at least 2026

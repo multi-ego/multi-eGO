@@ -243,7 +243,7 @@ public:
     nindex_ = mols_.numBlocks();
 
     // parse mode string (e.g. "intra+same+cross")
-    printf("Evaluating mode selection:\n");
+    printf("\nEvaluating mode selection:\n");
     std::string token;
     std::stringstream ss{ mode_ };
     while (std::getline(ss, token, '+'))
@@ -311,7 +311,7 @@ public:
     }
     if (same_)  std::cout << ":: activating intermat same calculations"  << std::endl;
     if (cross_) std::cout << ":: activating intermat cross calculations" << std::endl;
-    if (intra_) std::cout << " :: activating intramat calculations"      << std::endl;
+    if (intra_) std::cout << ":: activating intramat calculations"      << std::endl;
 
     // set up density bins
     n_bins_ = cmdata::indexing::n_bins(cutoff_);
@@ -458,7 +458,7 @@ public:
 
   void process_data()
   {
-    std::cout << "\nFinished frame-by-frame analysis\n";
+    std::cout << "Finished frame-by-frame analysis\n";
     std::cout << "Analyzed " << n_x_ << " frames\n";
     std::cout << "Normalizing data... " << std::endl;
 
@@ -534,12 +534,12 @@ public:
 
     for (std::size_t i = 0; i < natmol2_.size(); i++)
     {
-      std::cout << "Writing data for molecule " << i << "..." << std::endl;
-      cmdata::io::print_progress_bar(0.f);
+      std::cout << "Molecule " << i << ":" << std::endl;
       float progress = 0.f;
+      cmdata::io::print_progress_bar(0.f);
       for (int ii = 0; ii < natmol2_[i]; ii++)
       {
-        float new_progress = static_cast<float>(ii) / static_cast<float>(natmol2_[i]);
+        float new_progress = static_cast<float>(ii + 1) / static_cast<float>(natmol2_[i]);
         if (new_progress - progress > 0.01f) { progress = new_progress; cmdata::io::print_progress_bar(progress); }
         if (intra_) wf_intra(output_prefix, i, ii, density_bins_, natmol2_, intram_mat_density_);
         if (same_)  wf_same (output_prefix, i, ii, density_bins_, natmol2_, interm_same_mat_density_, interm_same_maxcdf_mol_);
@@ -550,9 +550,9 @@ public:
           for (int ii = 0; ii < natmol2_[i]; ii++)
             wf_cross(output_prefix, i, j, ii, density_bins_, natmol2_, cross_index_, interm_cross_mat_density_, interm_cross_maxcdf_mol_);
       }
+      cmdata::io::print_progress_bar(1.f);  // closes the bar line with \n
     }
-    cmdata::io::print_progress_bar(1.f);
-    std::cout << "\nFinished!" << std::endl;
+    std::cout << "Finished!" << std::endl;
   }
 };
 
