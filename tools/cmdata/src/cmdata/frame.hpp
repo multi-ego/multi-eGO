@@ -25,8 +25,9 @@ static constexpr int FRAME_EOF = 1;
 // Frame — one trajectory frame, backed by a VMD molfile plugin.
 //
 // coord_scale controls the unit conversion applied to molfile coordinates:
-//   1.0f  — plugin already outputs nm (GROMACS formats compiled with MOLFILE_NATIVE_NM)
-//   0.1f  — plugin outputs Angstrom (PDB)
+//   1.0  — plugin already outputs nm (GROMACS formats compiled with MOLFILE_NATIVE_NM)
+//   0.1  — plugin outputs Angstrom (PDB); conversion done in double to minimise
+//          rounding error before casting to float storage.
 //
 // The same scale is applied to box lengths (ts.A/B/C); angles are dimensionless.
 // ---------------------------------------------------------------------------
@@ -34,7 +35,7 @@ class Frame {
 public:
   int    natom      = 0;
   float  time       = 0.f;
-  float  coord_scale = 0.1f; // Angstrom→nm by default; 1.0f when plugin outputs nm
+  double coord_scale = 0.1; // Angstrom→nm by default; 1.0 when plugin outputs nm
   matrix box        = {};
   rvec  *x          = nullptr;
 
@@ -44,7 +45,7 @@ public:
 
   Frame() { x = (rvec *)malloc(0); }
 
-  Frame(int n, molfile_plugin_t *plugin, void *handle, float scale = 0.1f)
+  Frame(int n, molfile_plugin_t *plugin, void *handle, double scale = 0.1)
     : natom(n), coord_scale(scale), mf_plugin(plugin), mf_handle(handle)
   {
     x         = (rvec *)malloc(n * sizeof(rvec));
@@ -55,20 +56,26 @@ public:
   // to GROMACS triclinic matrix (nm).  scale converts lengths to nm.
   static void box_from_molfile(float A, float B, float C,
                                float alpha, float beta, float gamma,
-                               float scale, matrix out)
+                               double scale, matrix out)
   {
-    constexpr float d2r = static_cast<float>(M_PI) / 180.f;
-    const float a  = A * scale, b = B * scale, c = C * scale;
-    const float ca = std::cos(alpha * d2r);
-    const float cb = std::cos(beta  * d2r);
-    const float cg = std::cos(gamma * d2r);
-    const float sg = std::sin(gamma * d2r);
+    constexpr double d2r = M_PI / 180.0;
+    const double a  = A * scale, b = B * scale, c = C * scale;
+    const double ca = std::cos(alpha * d2r);
+    const double cb = std::cos(beta  * d2r);
+    const double cg = std::cos(gamma * d2r);
+    const double sg = std::sin(gamma * d2r);
 
-    out[0][0] = a;        out[0][1] = 0.f;                     out[0][2] = 0.f;
-    out[1][0] = b * cg;   out[1][1] = b * sg;                  out[1][2] = 0.f;
-    out[2][0] = c * cb;   out[2][1] = c * (ca - cb * cg) / sg;
-    const float z2 = c * c - out[2][0] * out[2][0] - out[2][1] * out[2][1];
-    out[2][2] = z2 > 0.f ? std::sqrt(z2) : 0.f;
+    out[0][0] = static_cast<float>(a);
+    out[0][1] = 0.f;
+    out[0][2] = 0.f;
+    out[1][0] = static_cast<float>(b * cg);
+    out[1][1] = static_cast<float>(b * sg);
+    out[1][2] = 0.f;
+    out[2][0] = static_cast<float>(c * cb);
+    out[2][1] = static_cast<float>(c * (ca - cb * cg) / sg);
+    const double z2 = c * c - static_cast<double>(out[2][0]) * out[2][0]
+                             - static_cast<double>(out[2][1]) * out[2][1];
+    out[2][2] = z2 > 0.0 ? static_cast<float>(std::sqrt(z2)) : 0.f;
   }
 
   int read_next_frame(bool nopbc, PbcType pbc_type, t_pbc *pbc)
@@ -80,9 +87,9 @@ public:
 
     for (int i = 0; i < natom; i++)
     {
-      x[i][XX] = mf_coords[3 * i    ] * coord_scale;
-      x[i][YY] = mf_coords[3 * i + 1] * coord_scale;
-      x[i][ZZ] = mf_coords[3 * i + 2] * coord_scale;
+      x[i][XX] = static_cast<float>(static_cast<double>(mf_coords[3 * i    ]) * coord_scale);
+      x[i][YY] = static_cast<float>(static_cast<double>(mf_coords[3 * i + 1]) * coord_scale);
+      x[i][ZZ] = static_cast<float>(static_cast<double>(mf_coords[3 * i + 2]) * coord_scale);
     }
     time = static_cast<float>(ts.physical_time);
     box_from_molfile(ts.A, ts.B, ts.C, ts.alpha, ts.beta, ts.gamma, coord_scale, box);

@@ -284,7 +284,7 @@ public:
       // so their coordinates are already in nm — no unit conversion needed.
       // PDB coordinates are in Angstrom and need *0.1 to reach nm.
       const bool native_nm = (ext == "xtc" || ext == "trr" || ext == "gro" || ext == "g96");
-      const float coord_scale = native_nm ? 1.0f : 0.1f;
+      const double coord_scale = native_nm ? 1.0 : 0.1;
       frame_ = (cmdata::traj::Frame*)malloc(sizeof(cmdata::traj::Frame));
       *frame_ = cmdata::traj::Frame(natom, plugin, handle, coord_scale);
     }

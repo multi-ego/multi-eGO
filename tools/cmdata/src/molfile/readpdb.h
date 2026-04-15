@@ -180,17 +180,17 @@ static void get_pdb_coordinates(const char *record,
 
   if (x != NULL) {
     strncpy(numstr, record + 30, 8);
-    *x = (float) atof(numstr);
+    *x = strtof(numstr, NULL);
   }
 
   if (y != NULL) {
     strncpy(numstr+10, record + 38, 8);
-    *y = (float) atof(numstr+10);
+    *y = strtof(numstr+10, NULL);
   }
 
   if (z != NULL) {
     strncpy(numstr+20, record + 46, 8);
-    *z = (float) atof(numstr+20);
+    *z = strtof(numstr+20, NULL);
   }
 
   if (occup != NULL) {
