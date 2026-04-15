@@ -157,17 +157,17 @@ static void get_pdb_cryst1(const char *record,
   strncpy(tmp, record, PDB_RECORD_LENGTH);
 
   s = tmp+6 ;          ch = tmp[15]; tmp[15] = 0;
-  *a = (float) atof(s);
+  *a = strtof(s, NULL);
   s = tmp+15; *s = ch; ch = tmp[24]; tmp[24] = 0;
-  *b = (float) atof(s);
+  *b = strtof(s, NULL);
   s = tmp+24; *s = ch; ch = tmp[33]; tmp[33] = 0;
-  *c = (float) atof(s);
+  *c = strtof(s, NULL);
   s = tmp+33; *s = ch; ch = tmp[40]; tmp[40] = 0;
-  *alpha = (float) atof(s);
+  *alpha = strtof(s, NULL);
   s = tmp+40; *s = ch; ch = tmp[47]; tmp[47] = 0;
-  *beta = (float) atof(s);
+  *beta = strtof(s, NULL);
   s = tmp+47; *s = ch; ch = tmp[54]; tmp[54] = 0;
-  *gamma = (float) atof(s);
+  *gamma = strtof(s, NULL);
 }
 
 
