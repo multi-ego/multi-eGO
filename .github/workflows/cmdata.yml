@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build-linux-gromacs:
@@ -23,15 +24,25 @@ jobs:
       uses: actions/setup-python@v6
       with:
         python-version: '3.11'
-    - name: Install generic packages
+    - name: Get GROMACS commit hash
+      id: gmx-hash
       run: |
-        sudo apt-get update -qq
-    - name: Build gromacs 
+        echo "hash=$(git ls-remote https://github.com/multi-ego/gromacs.git refs/heads/release-2025 | cut -f1)" >> $GITHUB_OUTPUT
+
+    - name: Cache GROMACS installation
+      id: cache-gromacs
+      uses: actions/cache@v5
+      with:
+        path: /usr/local/gromacs
+        key: gromacs-release-2025-${{ steps.gmx-hash.outputs.hash }}
+
+    - name: Build GROMACS
+      if: steps.cache-gromacs.outputs.cache-hit != 'true'
       run: |
         git clone --depth 1 -b release-2025 https://github.com/multi-ego/gromacs.git
         cd gromacs; mkdir build; cd build
         cmake .. -DGMX_FFT_LIBRARY=fftpack -DBUILD_TESTING=OFF -DGMX_INSTALL_LEGACY_API=ON -DGMX_IMD=OFF
-        make -j2 
+        make -j2
         sudo make install
     - name: Build cmdata 
       run: |
