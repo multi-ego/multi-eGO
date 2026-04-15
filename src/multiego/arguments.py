@@ -1,5 +1,4 @@
 import os
-import sys
 import yaml
 import argparse
 from . import io
@@ -225,20 +224,22 @@ def read_arguments(args, args_dict, args_dict_global, args_dict_single_reference
 
 def validate_args(args):
     """
-    Validates parsed and fully resolved arguments, exiting with a clear
-    message on any error. Should be called after read_arguments.
+    Validates parsed and fully resolved arguments. Should be called after read_arguments.
 
     Parameters
     ----------
     args : argparse.Namespace
         Arguments as returned by read_arguments.
+
+    Raises
+    ------
+    ValueError
+        On any invalid or missing argument.
     """
     if not args.system:
-        print("ERROR: No system name found! Please provide a system name.")
-        sys.exit()
+        raise ValueError("No system name found! Please provide a system name.")
     if not args.egos:
-        print("ERROR: No egos mode found! Please provide an egos mode.")
-        sys.exit()
+        raise ValueError("No egos mode found! Please provide an egos mode.")
 
     for ref in args.input_refs:
         required_keys = {"matrix", "epsilon", "train", "reference"}
@@ -249,26 +250,23 @@ def validate_args(args):
         empty_required_keys = [key for key in required_keys if not ref[key]]
         if empty_required_keys:
             if "train" in empty_required_keys:
-                print("ERROR: No training simulations found! Please provide a list of training simulations.")
-                sys.exit()
+                raise ValueError("No training simulations found! Please provide a list of training simulations.")
             if "epsilon" in empty_required_keys:
-                print("ERROR: No epsilon value found! Please provide an epsilon value.")
-                sys.exit()
+                raise ValueError("No epsilon value found! Please provide an epsilon value.")
             raise ValueError(f"Empty values for required keys in {ref}.\nMissing {empty_required_keys}")
 
         if ref["epsilon"] < config.epsilon_min:
-            print(f"ERROR: --epsilon ({ref['epsilon']}) must be greater-equal than epsilon_min ({config.epsilon_min})")
-            sys.exit()
+            raise ValueError(
+                f"--epsilon ({ref['epsilon']}) must be greater-equal than epsilon_min ({config.epsilon_min})"
+            )
 
     if args.symmetry_file and args.symmetry:
-        print("ERROR: Both symmetry file and symmetry list provided. Please provide only one.")
-        sys.exit()
+        raise ValueError("Both symmetry file and symmetry list provided. Please provide only one.")
 
     if args.custom_c12 is not None:
         custom_c12_dict = io.read_custom_c12_parameters(args.custom_c12)
         if custom_c12_dict is None or custom_c12_dict.empty:
-            print("ERROR: Custom c12 parameter file was parsed, but the dictionary is empty")
-            sys.exit()
+            raise ValueError("Custom c12 parameter file was parsed, but the dictionary is empty")
 
 
 def read_config(file, args_dict):

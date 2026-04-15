@@ -29,7 +29,6 @@ import numpy as np
 import os
 import pandas as pd
 import parmed
-import sys
 import time
 import warnings
 
@@ -868,11 +867,10 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     difference_set = comparison_set.difference(reference_set)
     if difference_set:
-        _term.error(
+        raise RuntimeError(
             f"The following atomtypes are not converted:\n  {difference_set}\n"
             f'  You MUST add them in "from_ff_to_multiego" dictionary to properly merge all the contacts.'
         )
-        sys.exit()
 
     return ensemble, {
         "reference_matrices": reference_contact_matrices,
