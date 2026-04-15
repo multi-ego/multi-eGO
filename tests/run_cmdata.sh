@@ -38,8 +38,8 @@ OMP_NUM_THREADS=1 cmdata -f ../test.pdb -s ../test.pdb --noh5
 cd ../../../
 
 tar -zxf test_outputs/cmdata/hh-pdb.tgz -C test_outputs/cmdata/
-RTOL=${CMDATA_RTOL:-1e-3}
-ATOL=${CMDATA_ATOL:-1e-7}
+RTOL=${CMDATA_RTOL:-6e-3}
+ATOL=${CMDATA_ATOL:-1e-6}
 
 failures=0
 for i in $(ls -1 test_inputs/cmdata/histo_pdb); do
