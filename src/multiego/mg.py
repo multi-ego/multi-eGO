@@ -6,7 +6,14 @@ import pandas as pd
 import itertools
 
 
-def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=None, factor=1.0):
+def _make_combinations(sbtype1, sbtype2):
+    """Return the full ordered list of (ai, aj) pairs for the given sb_type sets."""
+    if sbtype1 == sbtype2:
+        return list(itertools.product(sbtype1, repeat=2))
+    return list(set(itertools.product(sbtype1, sbtype2)) | set(itertools.product(sbtype2, sbtype1)))
+
+
+def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, sbtype_c12_dict, c12_rep=None, factor=1.0):
     """
     Generates repulsive LJ pairs for the MG prior force field.
 
@@ -14,7 +21,7 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     ----------
     sbtype1, sbtype2 : list of str
         Lists of sb_type identifiers for the two interacting groups.
-    dictionary_name_rc_c12 : dict
+    sbtype_c12_dict : dict
         Mapping from sb_type to rc_c12 value, used when c12_rep is not specified.
     c12_rep : float or None
         Fixed repulsive c12 value. If None, computed as geometric mean from dictionary.
@@ -26,16 +33,10 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     pd.DataFrame
         Pairs DataFrame with columns ai, aj, c6, c12, epsilon, sigma, mg_sigma, mg_epsilon.
     """
-    if sbtype1 == sbtype2:
-        combinations = list(itertools.product(sbtype1, repeat=2))
-    else:
-        combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
-        combinations = list(set(combinations))
+    combinations = _make_combinations(sbtype1, sbtype2)
 
     if c12_rep is None:
-        c12_rep = np.array(
-            [np.sqrt(dictionary_name_rc_c12[ai] * dictionary_name_rc_c12[aj]) for ai, aj in combinations]
-        )
+        c12_rep = np.array([np.sqrt(sbtype_c12_dict[ai] * sbtype_c12_dict[aj]) for ai, aj in combinations])
 
     pairs_LJ = pd.DataFrame(combinations, columns=["ai", "aj"])
     pairs_LJ["c12"] = c12_rep / factor
@@ -48,9 +49,7 @@ def generate_MG_LJ_pairs_rep(sbtype1, sbtype2, dictionary_name_rc_c12, c12_rep=N
     return pairs_LJ.reset_index(drop=True)
 
 
-def generate_MG_LJ_pairs_attr(
-    sbtype1, sbtype2, dictionary_name_mg_c12, dictionary_name_mg_c6, epsilon=None, sigma=None
-):
+def generate_MG_LJ_pairs_attr(sbtype1, sbtype2, sbtype_mg_c12_dict, sbtype_mg_c6_dict, epsilon=None, sigma=None):
     """
     Generates attractive LJ pairs for the MG prior force field.
 
@@ -58,9 +57,9 @@ def generate_MG_LJ_pairs_attr(
     ----------
     sbtype1, sbtype2 : list of str
         Lists of sb_type identifiers for the two interacting groups.
-    dictionary_name_mg_c12 : dict
+    sbtype_mg_c12_dict : dict
         Mapping from sb_type to mg_c12, used to derive sigma when not specified.
-    dictionary_name_mg_c6 : dict
+    sbtype_mg_c6_dict : dict
         Mapping from sb_type to mg_c6, used to derive sigma when not specified.
     epsilon : float or None
         Interaction well depth.
@@ -72,17 +71,11 @@ def generate_MG_LJ_pairs_attr(
     pd.DataFrame
         Pairs DataFrame with columns ai, aj, c6, c12, epsilon, sigma, mg_sigma, mg_epsilon.
     """
-    if sbtype1 == sbtype2:
-        combinations = list(itertools.product(sbtype1, repeat=2))
-    else:
-        combinations = list(itertools.product(sbtype1, sbtype2)) + list(itertools.product(sbtype2, sbtype1))
-        combinations = list(set(combinations))
+    combinations = _make_combinations(sbtype1, sbtype2)
 
     if epsilon is not None and sigma is None:
-        c6 = np.array([np.sqrt(dictionary_name_mg_c6[ai] * dictionary_name_mg_c6[aj]) for ai, aj in combinations])
-        c12_rep = np.array(
-            [np.sqrt(dictionary_name_mg_c12[ai] * dictionary_name_mg_c12[aj]) for ai, aj in combinations]
-        )
+        c6 = np.array([np.sqrt(sbtype_mg_c6_dict[ai] * sbtype_mg_c6_dict[aj]) for ai, aj in combinations])
+        c12_rep = np.array([np.sqrt(sbtype_mg_c12_dict[ai] * sbtype_mg_c12_dict[aj]) for ai, aj in combinations])
         sigma = (c12_rep / c6) ** (1.0 / 6.0)
     elif epsilon is None and sigma is not None:
         raise ValueError("You can provide a custom value for epsilon but not for sigma alone")
@@ -115,19 +108,6 @@ def generate_MG_LJ(meGO_ensemble):
     rc_LJ : pd.DataFrame
         DataFrame of MG prior LJ interactions.
     """
-    dictionary_name_rc_c12 = {
-        name: rc12
-        for name, rc12 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["rc_c12"])
-    }
-    dictionary_name_mg_c12 = {
-        name: mg12
-        for name, mg12 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c12"])
-    }
-    dictionary_name_mg_c6 = {
-        name: mg6
-        for name, mg6 in zip(meGO_ensemble.topology_dataframe["sb_type"], meGO_ensemble.topology_dataframe["mg_c6"])
-    }
-
     chunks = []
     for special in type_definitions.special_non_local:
         sbtype_a = [
@@ -140,7 +120,7 @@ def generate_MG_LJ(meGO_ensemble):
             temp_LJ = generate_MG_LJ_pairs_rep(
                 sbtype_a,
                 sbtype_b,
-                dictionary_name_rc_c12,
+                meGO_ensemble.sbtype_c12_dict,
                 c12_rep=special["epsilon"],
                 factor=special.get("factor", 1.0),
             )
@@ -148,8 +128,8 @@ def generate_MG_LJ(meGO_ensemble):
             temp_LJ = generate_MG_LJ_pairs_attr(
                 sbtype_a,
                 sbtype_b,
-                dictionary_name_mg_c12,
-                dictionary_name_mg_c6,
+                meGO_ensemble.sbtype_mg_c12_dict,
+                meGO_ensemble.sbtype_mg_c6_dict,
                 epsilon=special["epsilon"],
                 sigma=special["sigma"],
             )
