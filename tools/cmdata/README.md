@@ -57,12 +57,21 @@ make && ctest
 cmdata -f TRAJ -s TOP [OPTIONS]
 ```
 
+### Supported trajectory formats
+
+| Extension | Format |
+|-----------|--------|
+| `.xtc`    | GROMACS compressed trajectory |
+| `.trr`    | GROMACS full-precision trajectory |
+| `.gro`    | GROMACS coordinate file (multi-model) |
+| `.pdb`    | PDB coordinate file (multi-model) |
+
 ### Required options
 
 | Option | Description |
 |--------|-------------|
-| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`) |
-| `-s`, `--top=FILE`  | Input topology file (`.tpr`) |
+| `-f`, `--traj=FILE` | Input trajectory file (`.xtc`, `.trr`, `.gro`, or `.pdb`) |
+| `-s`, `--top=FILE`  | Input topology file. Accepts `.tpr` (full GROMACS topology with PBC support) or a structure file such as `.pdb` or `.gro` (treated as a single molecule; PBC is disabled). |
 | `--mode=STRING`     | Calculation mode (see below) |
 
 ### Optional options
@@ -143,4 +152,16 @@ OMP_NUM_THREADS=8 cmdata -f traj.xtc -s topol.tpr \
     --mode intra+same \
     --weights weights.dat \
     -o weighted/
+```
+
+Read a full-precision TRR trajectory:
+
+```bash
+OMP_NUM_THREADS=8 cmdata -f traj.trr -s topol.tpr --mode intra -o output/
+```
+
+Analyse a single PDB file (no `.tpr` required — PBC disabled, whole system treated as one molecule):
+
+```bash
+OMP_NUM_THREADS=1 cmdata -f struct.pdb -s struct.pdb --mode intra --noh5 -o output/
 ```

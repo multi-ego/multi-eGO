@@ -12,23 +12,14 @@ namespace cmdata::density
 
 void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<float> &bins, const float mu, const float norm)
 {
-  // KDE bandwidth (nm). Controls the smoothing width of each sample.
-  static constexpr float h = 0.01f;
-  // erf(1/sqrt(2)) — normalisation factor for a Gaussian kernel truncated at ±2h.
-  static constexpr float ERF_1_OVER_SQRT2 = 0.73853587f;
-  // Kernel tail value at the truncation boundary (exp(-0.5 * 2^2) = exp(-2)).
-  static const float KDE_TAIL_SHIFT = std::exp(-2.f);
+  static constexpr float h               = 0.01f;
+  static constexpr float ERF_1_OVER_SQRT2 = 0.73853587f; // erf(1/sqrt(2))
+  static constexpr float KDE_TAIL_SHIFT   = 0.13533528f;  // exp(-2)
 
-  // Bins are uniformly spaced: bins[k] = bins[0] + k*dx, so the window
-  // [mu-2h, mu+2h] maps to integer indices via O(1) arithmetic instead of
-  // two O(n_bins) linear scans with find_if.
-  //
-  // from: first k where bins[k] >= mu-2h  → ceil((mu-2h - bins[0]) / dx)
-  // to:   first k where bins[k] >  mu+2h  → floor((mu+2h - bins[0]) / dx) + 1
-  // (using ceil for 'from' is essential: floor gives an extra bin to the left
-  //  where kernel < KDE_TAIL_SHIFT, producing a spurious negative accumulation)
-  const int n = static_cast<int>(bins.size());
-  const float dx = (n > 1) ? (bins[1] - bins[0]) : 1.f;
+  // Bins are uniformly spaced — map [mu±2h] to integer indices in O(1).
+  // ceil for 'from' is required: floor overshoots left into negative-contrib bins.
+  const int   n      = static_cast<int>(bins.size());
+  const float dx     = (n > 1) ? (bins[1] - bins[0]) : 1.f;
   const float inv_dx = 1.f / dx;
   int from = static_cast<int>(std::ceil( (mu - 2.f * h - bins[0]) * inv_dx));
   int to   = static_cast<int>(           (mu + 2.f * h - bins[0]) * inv_dx) + 1;
@@ -39,8 +30,8 @@ void kernel_density_estimator(std::vector<float>::iterator x, const std::vector<
   if (mu < h) scale *= 2.f;
   for (int i = from; i < to; i++)
   {
-    float f = (mu - bins[i]) / h;
-    float contrib = scale * (std::exp(-0.5f * f * f) - KDE_TAIL_SHIFT);
+    const float f      = (mu - bins[i]) / h;
+    const float contrib = scale * (std::exp(-0.5f * f * f) - KDE_TAIL_SHIFT);
     #pragma omp atomic
     x[i] += contrib;
   }
