@@ -464,7 +464,7 @@ public:
     {
       frame_same_mat_.resize(n_mol_types);
       for (std::size_t i = 0; i < n_mol_types; i++)
-        frame_same_mat_[i].resize(natmol2_[i] * natmol2_[i] * num_mol_unique_[i], 0.f);
+        frame_same_mat_[i].resize(static_cast<std::size_t>(natmol2_[i]) * (natmol2_[i] + 1) / 2 * num_mol_unique_[i], 0.f);
     }
     if (cross_)
     {

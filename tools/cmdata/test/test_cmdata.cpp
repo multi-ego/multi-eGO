@@ -74,8 +74,9 @@ static void test_n_bins()
 
 static void test_offset_same_uniqueness()
 {
-  // For each topology (natmol2, num_mol_unique), all tuples
-  // (mol_i, a_i, a_j) must map to distinct offsets.
+  // For each topology (natmol2, num_mol_unique), all canonical tuples
+  // (mol_i, a_i, a_j) with a_i <= a_j must map to distinct offsets.
+  // (a_i, a_j) and (a_j, a_i) intentionally alias — they're the same cell.
   struct Case { std::vector<int> natmol2; std::vector<int> nmol; };
   std::vector<Case> cases = {
     {{ 2 }, { 1 }},
@@ -91,7 +92,7 @@ static void test_offset_same_uniqueness()
     for (std::size_t mt = 0; mt < c.natmol2.size(); mt++)
       for (int im = 0; im < c.nmol[mt]; im++)
         for (int ai = 0; ai < c.natmol2[mt]; ai++)
-          for (int aj = 0; aj < c.natmol2[mt]; aj++)
+          for (int aj = ai; aj < c.natmol2[mt]; aj++)  // upper triangle only
           {
             auto off = cmdata::indexing::offset_same(mt, im, ai, aj, c.natmol2);
             ok = ok && seen.insert(off).second; // insert returns false on duplicate
@@ -103,12 +104,13 @@ static void test_offset_same_uniqueness()
 static void test_offset_same_formula()
 {
   std::vector<int> nat = { 3 };
-  // offset_same = mol_i * N*N + a_i * N + a_j
+  // N=3, per_mol = 3*4/2 = 6, row lo starts at lo*(2N-lo+1)/2
+  // (a_i,a_j) is canonicalized to (min,max), so (1,0) == (0,1)
   CHECK(cmdata::indexing::offset_same(0, 0, 0, 0, nat) == 0);
   CHECK(cmdata::indexing::offset_same(0, 0, 0, 2, nat) == 2);
-  CHECK(cmdata::indexing::offset_same(0, 0, 1, 0, nat) == 3);
-  CHECK(cmdata::indexing::offset_same(0, 1, 0, 0, nat) == 9);  // mol_i=1 → +1*9
-  CHECK(cmdata::indexing::offset_same(0, 1, 2, 1, nat) == 9 + 6 + 1); // 16
+  CHECK(cmdata::indexing::offset_same(0, 0, 1, 0, nat) == 1);  // canonicalized (0,1) → 1
+  CHECK(cmdata::indexing::offset_same(0, 1, 0, 0, nat) == 6);  // mol_i=1 → +1*6
+  CHECK(cmdata::indexing::offset_same(0, 1, 2, 1, nat) == 10); // mol=1, (1,2): 6+3+1=10
 }
 
 static void test_offset_cross_uniqueness()
@@ -289,8 +291,8 @@ static void test_mindist_same_single_mol()
   auto bins = make_bins(cutoff);
   float dx = cutoff / static_cast<float>(bins.size());
 
-  // frame_same_mat[mt][offset] — size = nmol * N * N = 1*2*2 = 4
-  std::vector<std::vector<float>> fsm(1, std::vector<float>(4, 100.f));
+  // frame_same_mat[mt][offset] — size = nmol * N*(N+1)/2 = 1*3 = 3
+  std::vector<std::vector<float>> fsm(1, std::vector<float>(3, 100.f));
   // set distance for (im=0, a_i=0, a_j=1)
   float test_dist = 0.30f;
   fsm[0][cmdata::indexing::offset_same(0, 0, 0, 1, natmol2)] = test_dist;
@@ -332,7 +334,7 @@ static void test_mindist_same_multi_mol()
   auto bins = make_bins(cutoff);
 
   // fill every slot with a known distance
-  std::vector<std::vector<float>> fsm(1, std::vector<float>(M * N * N, 0.40f));
+  std::vector<std::vector<float>> fsm(1, std::vector<float>(M * N * (N + 1) / 2, 0.40f));
 
   std::vector<std::vector<std::vector<std::vector<float>>>> cdf(1);
   cdf[0].resize(N, std::vector<std::vector<float>>(N, std::vector<float>(bins.size(), 0.f)));
