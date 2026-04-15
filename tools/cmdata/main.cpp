@@ -1,11 +1,11 @@
 // standard library imports
+#include <filesystem>
 #include <iostream>
 #include <string>
-#include <filesystem>
+// CLI11 argument parser (header-only)
+#include <CLI11.hpp>
 // cmdata import
 #include "src/cmdata/cmdata.hpp"
-// external library import
-#include <popt.h>
 
 int main(int argc, const char** argv)
 {
@@ -15,133 +15,91 @@ int main(int argc, const char** argv)
   std::cout << "################## Version 1.0 #################" << std::endl;
   std::cout << "################################################\n" << std::endl;
 
-  float cutoff = 0.75, mol_cutoff = 6.0;
-  int nskip = 0, dt = 0;
-  float t_begin = 0.0, t_end = -1.0;
-  char *p_traj_path = NULL, *p_top_path = NULL, *p_mode = NULL,*p_bkbn_H = NULL, *p_weights_path = NULL;
-  char *p_out_prefix = NULL;
-  std::string traj_path, top_path, mode, weights_path, bkbn_H;
-  std::string out_prefix;
-  int *p_nopbc = NULL;
-  int *p_h5 = NULL;
-  bool nopbc = false;
-  bool h5 = false;
-  #ifdef USE_HDF5
+  CLI::App app{"cmdata — contact data from GROMACS trajectories for multi-eGO"};
+  app.set_version_flag("--version", "1.0");
+
+  std::string traj_path, top_path;
+  std::string mode         = "intra+same+cross";
+  std::string out_prefix   = "";
+  std::string bkbn_H       = "";
+  std::string weights_path = "";
+  float  cutoff     = 0.75f;
+  float  mol_cutoff = 6.0f;
+  float  t_begin    = 0.0f;
+  float  t_end      = -1.0f;
+  int    nskip      = 0;
+  int    dt         = 0;
+  bool   nopbc      = false;
+  bool   noh5       = false;
+  bool   h5         = false;
+#ifdef USE_HDF5
   h5 = true;
-  #endif
+#endif
 
-  // make popt options
-  struct poptOption optionsTable[] = {
-    POPT_AUTOHELP
-    {"traj",        'f',  POPT_ARG_STRING,                          &p_traj_path,     0, "Trajectory file",             "FILE"},
-    {"top",         's',  POPT_ARG_STRING,                          &p_top_path,      0, "Topology file",               "FILE"},
-    {"t_begin",     'b',  POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL,   &t_begin,         0, "Start time",                  "FLOAT"},
-    {"t_end",       'e',  POPT_ARG_FLOAT | POPT_ARGFLAG_OPTIONAL,   &t_end,           0, "End time",                    "FLOAT"},
-    {"out",         'o',  POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_out_prefix,    0, "Output prefix",               "STRING"},
-    {"dt",          '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &dt,              0, "Time step",                   "INT"},
-    {"cutoff",      '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &cutoff,          0, "Cutoff distance",             "DOUBLE"},
-    {"mol_cutoff",  '\0', POPT_ARG_DOUBLE | POPT_ARGFLAG_OPTIONAL,  &mol_cutoff,      0, "Molecule cutoff distance",    "DOUBLE"},
-    {"nskip",       '\0', POPT_ARG_INT | POPT_ARGFLAG_OPTIONAL,     &nskip,           0, "Number of frames to skip",    "INT"},
-    {"mode",        '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_mode,          0, "Mode of operation",           "STRING"},
-    {"bkbn_H",      '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_bkbn_H,        0, "Extra backbone H name (H and HN are always included)", "STRING"},
-    {"weights",     '\0', POPT_ARG_STRING | POPT_ARGFLAG_OPTIONAL,  &p_weights_path,  0, "Weights file",                "FILE"},
-    {"no_pbc",      '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,    &p_nopbc,         0, "Ignore pbcs",                 0},
-    {"noh5",          '\0', POPT_ARG_NONE | POPT_ARGFLAG_OPTIONAL,  &p_h5,            0, "Write output in text format", 0},
-    POPT_TABLEEND
-  };
+  app.add_option("-f,--traj",       traj_path,     "Input trajectory file (.xtc, .trr, .gro, .pdb)")->required()->check(CLI::ExistingFile);
+  app.add_option("-s,--top",        top_path,      "Input topology file (.tpr, .pdb, or .gro)")->required()->check(CLI::ExistingFile);
+  app.add_option("--mode",          mode,          "Calculation mode: +-separated combination of intra, same, cross");
+  app.add_option("-o,--out",        out_prefix,    "Output file prefix");
+  app.add_option("-b,--t_begin",    t_begin,       "Start time (ps)");
+  app.add_option("-e,--t_end",      t_end,         "End time (ps); -1 means read to the end");
+  app.add_option("--dt",            dt,            "Only process frames at multiples of this time (ps)");
+  app.add_option("--cutoff",        cutoff,        "Distance cutoff for atom pairs (nm)");
+  app.add_option("--mol_cutoff",    mol_cutoff,    "Centre-of-mass cutoff for molecule pairs (nm)");
+  app.add_option("--nskip",         nskip,         "Skip every N frames (0 = no skipping)");
+  app.add_option("--bkbn_H",        bkbn_H,        "Backbone hydrogen atom name to include (H and HN are always included)");
+  app.add_option("--weights",       weights_path,  "Per-frame weight file (one float per line)")->check(CLI::ExistingFile);
+  app.add_flag("--no_pbc",          nopbc,         "Disable periodic boundary corrections");
+  app.add_flag("--noh5",            noh5,          "Write plain-text .dat files instead of HDF5 .h5");
 
-  // parse options
-  poptContext opt_context = poptGetContext("cmdata", argc, argv, optionsTable, 0);
-  int opt=poptGetNextOpt(opt_context); // needs to be run to parse
-  if (opt < -1) {
-      /* Handle error condition */
-      fprintf(stderr, "%s: %s\n", poptBadOption(opt_context, POPT_BADOPTION_NOALIAS), poptStrerror(opt));
-      return 1;
-  }
-  poptFreeContext(opt_context);
+  CLI11_PARSE(app, argc, argv);
 
-  // check if traj and top are set
-  if ( !(p_traj_path && p_top_path) )
-  {
-    std::cerr << "Trajectory and topology files must be set!" << std::endl;
-    return 1;
-  }
+  // --noh5 overrides the HDF5 default set at compile time
+  if (noh5) h5 = false;
 
-  traj_path = std::string(p_traj_path);
-  top_path = std::string(p_top_path);
-  mode = p_mode ? std::string(p_mode) : std::string("intra+same+cross");
-  bkbn_H = p_bkbn_H ? std::string(p_bkbn_H) : std::string(""); // "H" and "HN" are always included
-  if ( p_weights_path != NULL ) weights_path = std::string(p_weights_path);
-  if ( p_out_prefix != NULL ) out_prefix = std::string(p_out_prefix);
-  if ( p_nopbc != NULL ) nopbc = true;
-  if ( p_h5 != NULL ) h5 = false;
-
-  // check if paths are valid
-  if ( !std::filesystem::exists(std::filesystem::path(traj_path)) )
-  {
-    std::cerr << "Trajectory file does not exist!" << std::endl;
-    return 1;
-  }
-  if ( !std::filesystem::exists(std::filesystem::path(top_path)) )
-  {
-    std::cerr << "Topology file does not exist!" << std::endl;
-    return 2;
-  }
-  if ( !weights_path.empty() && !std::filesystem::exists(std::filesystem::path(weights_path)) )
-  {
-    std::cerr << "Weights file does not exist!" << std::endl;
-    return 3;
-  }
-  if ( !out_prefix.empty() )
-  {
-    bool created = std::filesystem::create_directories(std::filesystem::path(out_prefix));
-    if ( !created ) // if not created
-    {
-      std::cout << "Could not create output directory at " << out_prefix << std::endl;
-      if ( std::filesystem::exists(std::filesystem::path(out_prefix)) ) // already exists
-      {
-        std::cout << "Reason: directory already exists! WARNING: Files might be overwritten!" << std::endl;
-      }
-      else if ( !std::filesystem::is_directory(std::filesystem::path(out_prefix)) ) // not a directory (file or non-existent path)
-      {
-        std::cout << "Reason: path is not a directory!" << std::endl;
-      }
-      else if ( !std::filesystem::exists(std::filesystem::path(out_prefix)) ) // does not exist (no permissions or non-existent parent directory)
-      {
-        std::cout << "Reason: could not create directory!" << std::endl;
-        return 5;
-      }
-    }
-  }
-  if ( dt < 0 )
+  // validate numeric arguments
+  if (dt < 0)
   {
     std::cerr << "Time step must be a positive number!" << std::endl;
     return 7;
   }
-  if ( nskip < 0 )
+  if (nskip < 0)
   {
     std::cerr << "Number of frames to skip must be at least 0!" << std::endl;
     return 8;
   }
-  if ( cutoff <= 0.0 )
+  if (cutoff <= 0.0f)
   {
     std::cerr << "Cutoff distance must be greater than 0!" << std::endl;
     return 9;
   }
-  if ( mol_cutoff <= 0.0 )
+  if (mol_cutoff <= 0.0f)
   {
     std::cerr << "Molecule cutoff distance must be greater than 0!" << std::endl;
     return 10;
   }
-  if ( t_begin < 0.0 )
+  if (t_begin < 0.0f)
   {
     std::cerr << "Start time must be at least 0!" << std::endl;
     return 11;
   }
-  if ( t_end < t_begin && t_end != -1.0 )
+  if (t_end < t_begin && t_end != -1.0f)
   {
     std::cerr << "End time must be greater than start time!" << std::endl;
     return 12;
+  }
+
+  // create output directory if a prefix was given
+  if (!out_prefix.empty())
+  {
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path(out_prefix), ec);
+    if (ec && !std::filesystem::is_directory(out_prefix))
+    {
+      std::cerr << "Could not create output directory: " << out_prefix << std::endl;
+      return 5;
+    }
+    if (!ec)
+      std::cout << "WARNING: output directory already exists — files may be overwritten.\n";
   }
 
   cmdata::CMData cmdata(

@@ -58,6 +58,9 @@ endif()
 
 # include source and header files
 target_include_directories(${CMDATA} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+# CLI11 is vendored in src/CLI — mark it SYSTEM so the compiler suppresses
+# deprecation warnings from third-party code we don't control.
+target_include_directories(${CMDATA} SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/CLI)
 
 # ---------------------------------------------------------------------------
 # VMD molfile plugins (bundled in src/molfile, originally from PLUMED2).
@@ -86,28 +89,11 @@ target_sources(${CMDATA} PRIVATE
   src/molfile/gromacsplugin.cpp
   src/molfile/pdbplugin.cpp)
 
-include(FetchContent)
-SET(FETCHCONTENT_QUIET OFF)
-SET(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_BINARY_DIR}/cmdata_fetch)
-
-message(STATUS "Fetching popt")
-FetchContent_Declare(
-  popt
-  URL https://github.com/rpm-software-management/popt/archive/refs/heads/master.zip
-  GIT_TAG 2bca0aa
-  PATCH_COMMAND patch --directory=${FETCHCONTENT_BASE_DIR}/popt-src -p0 < ${CMAKE_CURRENT_SOURCE_DIR}/popt.patch
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
-)
-FetchContent_MakeAvailable(popt)
-# Suppress all warnings from popt (third-party, no control)
-target_compile_options(popt PRIVATE -w)
-get_target_property(_popt_inc popt INTERFACE_INCLUDE_DIRECTORIES)
-if(_popt_inc)
-  set_target_properties(popt PROPERTIES INTERFACE_SYSTEM_INCLUDE_DIRECTORIES "${_popt_inc}")
-endif()
+# CLI11 — header-only argument parser, vendored in src/CLI/CLI11.hpp.
+# No download or find_package needed.
 
 # link libraries
-target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs popt $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
+target_link_libraries(${CMDATA} PRIVATE Gromacs::libgromacs $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>)
 
 # Workaround for macOS 26+ SDK: libm.tbd was removed because math functions are
 # now fully part of libSystem. GROMACS (and other deps) may export an absolute
@@ -127,7 +113,6 @@ if(APPLE)
     endif()
   endmacro()
   strip_libm(Gromacs::libgromacs)
-  strip_libm(popt)
   strip_libm(${CMDATA})
 endif()
 
