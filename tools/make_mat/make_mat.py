@@ -347,7 +347,7 @@ def get_col_params(values, weights):
         The truncated weights of the histogram according to the cutoff
     """
     v = values[:-1]
-    cutoff = weights[len(weights) - 1]
+    cutoff = weights[-1]
     w = weights[:-1]
     i = np.where(v <= cutoff)
     if i[0].size == 0:
