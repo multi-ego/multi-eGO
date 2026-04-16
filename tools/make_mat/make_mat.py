@@ -81,7 +81,7 @@ def create_matrix_mask(
 
 
 def write_mat(df, output_file):
-    if df.empty:  # Check if the DataFrame is empty
+    if df.empty:
         print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
         return
 
