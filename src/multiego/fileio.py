@@ -1,4 +1,5 @@
 import importlib.metadata
+import itertools
 import numpy as np
 import pandas as pd
 import glob
@@ -26,12 +27,8 @@ def strip_gz_h5_suffix(filename):
     - str: The filename without the '.gz' suffix, if it was originally present.
            Otherwise, the original filename is returned.
     """
-    if filename.endswith(".gz"):
+    if filename.endswith((".gz", ".h5")):
         return filename[:-3]
-
-    if filename.endswith(".h5"):
-        return filename[:-3]
-
     return filename
 
 
@@ -56,33 +53,15 @@ def check_matrix_compatibility(input_path):
     Returns:
     - None: The function returns None but raises an error if incompatible files are found.
     """
-    matrix_paths = glob.glob(f"{input_path}.ndx")
-    matrix_paths_gz = glob.glob(f"{input_path}.ndx.gz")
-    matrix_paths_h5 = glob.glob(f"{input_path}.ndx.h5")
-    stripped_matrix_paths_gz_set = set(map(strip_gz_h5_suffix, matrix_paths_gz))
-    stripped_matrix_paths_h5_set = set(map(strip_gz_h5_suffix, matrix_paths_h5))
-    matrix_paths_set = set(matrix_paths)
-
-    # Find intersection of the two sets
-    common_files = matrix_paths_set.intersection(stripped_matrix_paths_gz_set)
-
-    # Check if there are any common elements and raise an error if there are
-    if common_files:
-        raise ValueError(f"Error: Some files have both text and gz versions: {common_files}")
-
-    # Find intersection of the two sets
-    common_files = matrix_paths_set.intersection(stripped_matrix_paths_h5_set)
-
-    # Check if there are any common elements and raise an error if there are
-    if common_files:
-        raise ValueError(f"Error: Some files have both text and hdf5 versions: {common_files}")
-
-    # Find intersection of the two sets
-    common_files = stripped_matrix_paths_gz_set.intersection(stripped_matrix_paths_h5_set)
-
-    # Check if there are any common elements and raise an error if there are
-    if common_files:
-        raise ValueError(f"Error: Some files have both gz and hdf5 versions: {common_files}")
+    format_sets = {
+        "text (.ndx)": set(glob.glob(f"{input_path}.ndx")),
+        "gz (.ndx.gz)": set(map(strip_gz_h5_suffix, glob.glob(f"{input_path}.ndx.gz"))),
+        "hdf5 (.h5)": set(map(strip_gz_h5_suffix, glob.glob(f"{input_path}.ndx.h5"))),
+    }
+    for (n1, s1), (n2, s2) in itertools.combinations(format_sets.items(), 2):
+        overlap = s1 & s2
+        if overlap:
+            raise ValueError(f"Error: Some files exist in both {n1} and {n2} formats: {overlap}")
 
 
 def check_mat_name(mat_name, ref):
@@ -194,18 +173,13 @@ def parse_symmetry_list(symmetry_list):
     symmetry = []
 
     for line in symmetry_list:
-        if "#" in line:
-            line = line[: line.index("#")]
-        line = line.replace("\n", "")
-        line = line.strip()
+        line = line.split("#", 1)[0].strip()
         if not line:
             continue
-        line = line.split(" ")
-        line = [x for x in line if x]
-        if len(line) < 3:
+        parts = line.split()
+        if len(parts) < 3:
             continue
-
-        symmetry.append(line)
+        symmetry.append(parts)
 
     return symmetry
 
@@ -236,21 +210,19 @@ def read_molecular_contacts(path, ensemble_molecules_idx_sbtype_dictionary, simu
 
     contact_matrix["learned"] = contact_matrix["learned"].astype(bool)
 
-    # Validation checks using `query` for more efficient conditional filtering
-    if contact_matrix.query("probability < 0 or probability > 1").shape[0] > 0:
+    # Validation — extract arrays once for all checks (avoids 5 separate DataFrame scans)
+    probs = contact_matrix["probability"].to_numpy()
+    dists = contact_matrix["distance"].to_numpy()
+    cuts = contact_matrix["cutoff"].to_numpy()
+    if np.any((probs < 0) | (probs > 1)):
         raise ValueError("ERROR: Probabilities should be between 0 and 1.")
-
-    if contact_matrix.query("distance < 0 or distance > cutoff").shape[0] > 0:
-        raise ValueError("ERROR: Distances should be between 0 and cutoff.")
-
-    if contact_matrix.query("cutoff < 0").shape[0] > 0:
+    if np.any(cuts < 0):
         raise ValueError("ERROR: Cutoff values cannot be negative.")
-
-    # Check for NaN or infinite values in critical columns
-    if contact_matrix[["probability", "distance", "cutoff"]].isnull().any().any():
+    if np.any((dists < 0) | (dists > cuts)):
+        raise ValueError("ERROR: Distances should be between 0 and cutoff.")
+    if np.any(np.isnan(probs) | np.isnan(dists) | np.isnan(cuts)):
         raise ValueError("ERROR: The matrix contains NaN values.")
-
-    if np.isinf(contact_matrix[["probability", "distance", "cutoff"]].values).any():
+    if np.any(np.isinf(probs) | np.isinf(dists) | np.isinf(cuts)):
         raise ValueError("ERROR: The matrix contains INF values.")
 
     molecule_names_dictionary = {
@@ -420,36 +392,36 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
 
 def print_stats(meGO_LJ):
     # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
-    intrad_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"])])
-    interm_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"])])
-    intrad_a_contacts = len(meGO_LJ.loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
-    interm_a_contacts = len(meGO_LJ.loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)])
+    intra = meGO_LJ[meGO_LJ["same_chain"]]
+    inter = meGO_LJ[~meGO_LJ["same_chain"]]
+    intra_att = intra[intra["epsilon"] > 0.0]
+    inter_att = inter[inter["epsilon"] > 0.0]
+
+    intrad_contacts = len(intra)
+    interm_contacts = len(inter)
+    intrad_a_contacts = len(intra_att)
+    interm_a_contacts = len(inter_att)
     intrad_r_contacts = intrad_contacts - intrad_a_contacts
     interm_r_contacts = interm_contacts - interm_a_contacts
-    intrad_a_ave_contacts = 0.000
-    intrad_a_min_contacts = 0.000
-    intrad_a_max_contacts = 0.000
-    intrad_a_s_min_contacts = 0.000
-    intrad_a_s_max_contacts = 0.000
-    interm_a_ave_contacts = 0.000
-    interm_a_min_contacts = 0.000
-    interm_a_max_contacts = 0.000
-    interm_a_s_min_contacts = 0.000
-    interm_a_s_max_contacts = 0.000
+
+    intrad_a_ave_contacts = intrad_a_min_contacts = intrad_a_max_contacts = 0.0
+    intrad_a_s_min_contacts = intrad_a_s_max_contacts = 0.0
+    interm_a_ave_contacts = interm_a_min_contacts = interm_a_max_contacts = 0.0
+    interm_a_s_min_contacts = interm_a_s_max_contacts = 0.0
 
     if intrad_a_contacts > 0:
-        intrad_a_ave_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        intrad_a_min_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        intrad_a_max_contacts = meGO_LJ["epsilon"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        intrad_a_s_min_contacts = meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        intrad_a_s_max_contacts = meGO_LJ["sigma"].loc[(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        intrad_a_ave_contacts = intra_att["epsilon"].mean()
+        intrad_a_min_contacts = intra_att["epsilon"].min()
+        intrad_a_max_contacts = intra_att["epsilon"].max()
+        intrad_a_s_min_contacts = intra_att["sigma"].min()
+        intrad_a_s_max_contacts = intra_att["sigma"].max()
 
     if interm_a_contacts > 0:
-        interm_a_ave_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].mean()
-        interm_a_min_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        interm_a_max_contacts = meGO_LJ["epsilon"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
-        interm_a_s_min_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].min()
-        interm_a_s_max_contacts = meGO_LJ["sigma"].loc[~(meGO_LJ["same_chain"]) & (meGO_LJ["epsilon"] > 0.0)].max()
+        interm_a_ave_contacts = inter_att["epsilon"].mean()
+        interm_a_min_contacts = inter_att["epsilon"].min()
+        interm_a_max_contacts = inter_att["epsilon"].max()
+        interm_a_s_min_contacts = inter_att["sigma"].min()
+        interm_a_s_max_contacts = inter_att["sigma"].max()
 
     stat_str = f"""
 \t- LJ parameterization completed for a total of {len(meGO_LJ)} contacts.
@@ -567,10 +539,7 @@ def make_header(parameters, write_header):
                 header += ";\t- {:<26} :\n".format(parameter)
                 for line in value:
                     header += f";\t  - {' '.join(line)}\n"
-            elif isinstance(value, list):
-                value = np.array(value, dtype=str)
-                header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
-            elif type(value) is np.ndarray:
+            elif isinstance(value, (list, np.ndarray)):
                 value = np.array(value, dtype=str)
                 header += ";\t- {:<26} = {:<20}\n".format(parameter, ", ".join(value))
             elif isinstance(value, dict):
@@ -691,14 +660,7 @@ def create_output_directories(parameters, out_dir):
     output_folder : str
         The path to the output directory
     """
-    if not os.path.exists(parameters.outputs_dir) and not os.path.isdir(parameters.outputs_dir):
-        os.mkdir(parameters.outputs_dir)
-    if not os.path.exists(f"{parameters.outputs_dir}/{parameters.system}") and not os.path.isdir(
-        f"{parameters.outputs_dir}/{parameters.system}"
-    ):
-        os.mkdir(f"{parameters.outputs_dir}/{parameters.system}")
-    if not os.path.isdir(out_dir) and not os.path.exists(out_dir):
-        os.mkdir(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
 
 
 def check_files_existence(args):
@@ -826,70 +788,17 @@ def sort_LJ(meGO_ensemble, meGO_LJ):
 
     meGO_LJ = meGO_LJ[(meGO_LJ["ai"].cat.codes <= meGO_LJ["aj"].cat.codes)].copy()
 
-    (
-        meGO_LJ["ai"],
-        meGO_LJ["aj"],
-        meGO_LJ["molecule_name_ai"],
-        meGO_LJ["molecule_name_aj"],
-        meGO_LJ["number_ai"],
-        meGO_LJ["number_aj"],
-    ) = np.where(
-        (meGO_LJ["molecule_name_ai"].astype(str) <= meGO_LJ["molecule_name_aj"].astype(str)),
-        [
-            meGO_LJ["ai"],
-            meGO_LJ["aj"],
-            meGO_LJ["molecule_name_ai"],
-            meGO_LJ["molecule_name_aj"],
-            meGO_LJ["number_ai"],
-            meGO_LJ["number_aj"],
-        ],
-        [
-            meGO_LJ["aj"],
-            meGO_LJ["ai"],
-            meGO_LJ["molecule_name_aj"],
-            meGO_LJ["molecule_name_ai"],
-            meGO_LJ["number_aj"],
-            meGO_LJ["number_ai"],
-        ],
+    # Canonical ordering: swap (ai, aj) so that molecule_name_ai <= molecule_name_aj,
+    # and within the same molecule so that number_ai <= number_aj.
+    cols_i = ["ai", "molecule_name_ai", "number_ai"]
+    cols_j = ["aj", "molecule_name_aj", "number_aj"]
+    swap_mol = meGO_LJ["molecule_name_ai"].astype(str) > meGO_LJ["molecule_name_aj"].astype(str)
+    swap_same = (meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"]) & (
+        meGO_LJ["number_ai"] > meGO_LJ["number_aj"]
     )
-
-    (
-        meGO_LJ["ai"],
-        meGO_LJ["aj"],
-        meGO_LJ["molecule_name_ai"],
-        meGO_LJ["molecule_name_aj"],
-        meGO_LJ["number_ai"],
-        meGO_LJ["number_aj"],
-    ) = np.where(
-        meGO_LJ["molecule_name_ai"] == meGO_LJ["molecule_name_aj"],
-        np.where(
-            meGO_LJ["number_ai"] <= meGO_LJ["number_aj"],
-            [
-                meGO_LJ["ai"],
-                meGO_LJ["aj"],
-                meGO_LJ["molecule_name_ai"],
-                meGO_LJ["molecule_name_aj"],
-                meGO_LJ["number_ai"],
-                meGO_LJ["number_aj"],
-            ],
-            [
-                meGO_LJ["aj"],
-                meGO_LJ["ai"],
-                meGO_LJ["molecule_name_aj"],
-                meGO_LJ["molecule_name_ai"],
-                meGO_LJ["number_aj"],
-                meGO_LJ["number_ai"],
-            ],
-        ),
-        [
-            meGO_LJ["ai"],
-            meGO_LJ["aj"],
-            meGO_LJ["molecule_name_ai"],
-            meGO_LJ["molecule_name_aj"],
-            meGO_LJ["number_ai"],
-            meGO_LJ["number_aj"],
-        ],
-    )
+    swap = swap_mol | swap_same
+    if swap.any():
+        meGO_LJ.loc[swap, cols_i + cols_j] = meGO_LJ.loc[swap, cols_j + cols_i].values
 
     meGO_LJ.sort_values(by=["molecule_name_ai", "molecule_name_aj", "number_ai", "number_aj"], inplace=True)
 

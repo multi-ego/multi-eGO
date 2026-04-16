@@ -19,7 +19,7 @@ This module covers two related stages of the pipeline:
 Private helpers are prefixed with ``_`` and are not part of the public API.
 """
 
-from . import fileio as io
+from . import fileio
 from . import type_definitions
 from . import _term
 from .model_config import config
@@ -49,7 +49,7 @@ def _index_training_topology(topology, custom_dict):
     - the topology DataFrame (used later in ``init_meGO_matrices`` to check
       that all non-hydrogen atom names have been mapped to multi-eGO sb_types)
     - the ``molecules_idx_sbtype_dictionary`` (used by
-      ``io.read_molecular_contacts`` to remap raw atom indices to sb_type
+      ``fileio.read_molecular_contacts`` to remap raw atom indices to sb_type
       labels)
 
     LJ parameter lookup and all ``sbtype_*`` dict extractions are intentionally
@@ -139,13 +139,8 @@ def _get_lj_params(topology):
         DataFrame with columns ``ai`` (atom type string), ``c6``, and ``c12``,
         indexed 0...N-1 for each atom in the topology.
     """
-    lj_params = pd.DataFrame(
-        {
-            "ai": [atom.atom_type for atom in topology.atoms],
-            "c6": [atom.sigma * 0.1 for atom in topology.atoms],
-            "c12": [atom.epsilon * 4.184 for atom in topology.atoms],
-        }
-    )
+    rows = [(a.atom_type, a.sigma * 0.1, a.epsilon * 4.184) for a in topology.atoms]
+    lj_params = pd.DataFrame(rows, columns=["ai", "c6", "c12"])
     return lj_params
 
 
@@ -225,20 +220,21 @@ def _get_lj14_pairs(topology):
         DataFrame with columns ``ai``, ``aj``, ``epsilon``, and ``sigma``,
         concatenated across all molecules.
     """
-    lj14_pairs = pd.DataFrame()
-    for mol, top in topology.molecules.items():
-        pair14 = [
-            {
-                "ai": pair.atom1.type,
-                "aj": pair.atom2.type,
-                "c6": pair.type.sigma * 0.1,
-                "c12": pair.type.epsilon * 4.184,
-            }
-            for pair in top[0].adjusts
-        ]
-        lj14_pairs = pd.concat([lj14_pairs, pd.DataFrame(pair14)])
-
-    lj14_pairs = lj14_pairs.reset_index(drop=True)
+    frames = [
+        pd.DataFrame(
+            [
+                {
+                    "ai": pair.atom1.type,
+                    "aj": pair.atom2.type,
+                    "c6": pair.type.sigma * 0.1,
+                    "c12": pair.type.epsilon * 4.184,
+                }
+                for pair in top[0].adjusts
+            ]
+        )
+        for _mol, top in topology.molecules.items()
+    ]
+    lj14_pairs = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["ai", "aj", "c6", "c12"])
     lj14_pairs["epsilon"] = np.where(
         lj14_pairs["c6"] > 0,
         lj14_pairs["c6"] ** 2 / (4 * lj14_pairs["c12"]),
@@ -488,8 +484,8 @@ def _symmetrize_reference_contacts(contact_matrix, symmetry, topology_df):
     # ── Group by canonical pair and average ────────────────────────────────
     ai_str = contact_matrix["rc_ai"].astype(str)
     aj_str = contact_matrix["rc_aj"].astype(str)
-    canon_ai = ai_str.map(lambda x: canonical_map.get(x, x))
-    canon_aj = aj_str.map(lambda x: canonical_map.get(x, x))
+    canon_ai = ai_str.map(canonical_map).fillna(ai_str)
+    canon_aj = aj_str.map(canonical_map).fillna(aj_str)
 
     group_key = canon_ai.values + "|" + canon_aj.values + "|" + contact_matrix["rc_same_chain"].astype(str).values
     contact_matrix = contact_matrix.copy()
@@ -568,7 +564,8 @@ def _load_reference_matrix(reference, ensemble, args):
         topol = parmed.load_file(topology_path)
 
     lj_data = _get_lj_params(topol)
-    lj_data_dict = {str(key): val for key, val in zip(lj_data["ai"], lj_data[["c6", "c12"]].values)}
+    c6_map = dict(zip(lj_data["ai"].astype(str), lj_data["c6"]))
+    c12_map = dict(zip(lj_data["ai"].astype(str), lj_data["c12"]))
     ensemble.topology_dataframe["c6"] = lj_data["c6"].to_numpy()
     ensemble.topology_dataframe["c12"] = lj_data["c12"].to_numpy()
 
@@ -586,7 +583,7 @@ def _load_reference_matrix(reference, ensemble, args):
 
     path = matrix_paths[0]
     name = _path_to_matrix_name(path, args.inputs_dir)
-    contact_matrix = io.read_molecular_contacts(
+    contact_matrix = fileio.read_molecular_contacts(
         path, ensemble.molecules_idx_sbtype_dictionary, reference["reference"], path.endswith(".h5")
     )
 
@@ -597,11 +594,11 @@ def _load_reference_matrix(reference, ensemble, args):
     if args.symmetry:
         contact_matrix = _symmetrize_reference_contacts(contact_matrix, args.symmetry, ensemble.topology_dataframe)
 
-    contact_matrix["c6_i"] = [lj_data_dict[x][0] for x in contact_matrix["rc_ai"]]
-    contact_matrix["c6_j"] = [lj_data_dict[x][0] for x in contact_matrix["rc_aj"]]
+    contact_matrix["c6_i"] = contact_matrix["rc_ai"].map(c6_map)
+    contact_matrix["c6_j"] = contact_matrix["rc_aj"].map(c6_map)
     contact_matrix["c6"] = np.sqrt(contact_matrix["c6_i"] * contact_matrix["c6_j"])
-    contact_matrix["c12_i"] = [lj_data_dict[x][1] for x in contact_matrix["rc_ai"]]
-    contact_matrix["c12_j"] = [lj_data_dict[x][1] for x in contact_matrix["rc_aj"]]
+    contact_matrix["c12_i"] = contact_matrix["rc_ai"].map(c12_map)
+    contact_matrix["c12_j"] = contact_matrix["rc_aj"].map(c12_map)
     contact_matrix["c12"] = np.sqrt(contact_matrix["c12_i"] * contact_matrix["c12_j"])
 
     # Combination-rule defaults; overridden below where explicit entries exist.
@@ -731,7 +728,7 @@ def _load_train_matrix(
     name = f"{args.system}/{reference['reference']}/{simulation}/{reference['matrix']}".replace("/", "_")
 
     if train_name not in computed_contact_matrices:
-        train_contact_matrices_general[train_name] = io.read_molecular_contacts(
+        train_contact_matrices_general[train_name] = fileio.read_molecular_contacts(
             path, ensemble.molecules_idx_sbtype_dictionary, simulation, path.endswith(".h5")
         )
         computed_contact_matrices.add(train_name)
@@ -796,7 +793,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
     train_contact_matrices_general = {}
     computed_contact_matrices = set()  # set for O(1) membership checks
     computed_train_topologies = {}  # simulation_path → (topology_df, sbtype_dict)
-    train_topology_dataframe = pd.DataFrame()
+    train_topology_frames = []
 
     for reference in args.input_refs:
         # Skip if this (reference, matrix) combination has already been loaded —
@@ -837,7 +834,7 @@ def init_meGO_matrices(ensemble, args, custom_dict):
                     computed_train_topologies,
                 )
             train_contact_matrices[name] = contact_matrix
-            train_topology_dataframe = pd.concat([train_topology_dataframe, topology_df], axis=0, ignore_index=True)
+            train_topology_frames.append(topology_df)
             ensemble.train_matrix_tuples.append((name, ref_name))
             et = time.time()
             _term.timing(et - st)
@@ -845,6 +842,8 @@ def init_meGO_matrices(ensemble, args, custom_dict):
 
     del train_contact_matrices_general
     del computed_train_topologies
+
+    train_topology_dataframe = pd.concat(train_topology_frames, axis=0, ignore_index=True)
 
     # Verify that all non-hydrogen atom names in the training topologies have
     # been mapped to multi-eGO sb_types. Unmapped names indicate missing entries
