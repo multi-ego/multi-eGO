@@ -3,7 +3,7 @@ from . import mg
 from . import bonded
 from . import _term
 from .model_config import config
-from . import fileio as io
+from . import fileio
 
 import numpy as np
 import pandas as pd
@@ -88,6 +88,9 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ["epsilon"] = meGO_LJ["epsilon_prior"]
     meGO_LJ["sigma"] = meGO_LJ["sigma_prior"]
 
+    # Precompute shared sub-expression (used in both attractive and repulsive conditions)
+    eps_prior_pos = np.maximum(0.0, meGO_LJ["epsilon_prior"])
+
     # Attractive interactions
     # These are defined only if the training probability is greater than MD_threshold and
     # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
@@ -96,8 +99,8 @@ def set_sig_epsilon(meGO_LJ, parameters):
         > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
     ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
     with np.errstate(divide="ignore"):
-        meGO_LJ.loc[condition, "epsilon"] = np.maximum(0.0, meGO_LJ["epsilon_prior"]) - (
-            (meGO_LJ["epsilon_0"] - np.maximum(0.0, meGO_LJ["epsilon_prior"])) / np.log(meGO_LJ["rc_threshold"])
+        meGO_LJ.loc[condition, "epsilon"] = eps_prior_pos - (
+            (meGO_LJ["epsilon_0"] - eps_prior_pos) / np.log(meGO_LJ["rc_threshold"])
         ) * (np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))))
     meGO_LJ.loc[condition, "learned"] = 1
     meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
@@ -112,9 +115,10 @@ def set_sig_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
         & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
     )
-    meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
-        lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
-    )[condition]
+    sub = meGO_LJ.loc[condition]
+    meGO_LJ.loc[condition, "epsilon"] = (-sub["rep"] * (sub["distance"] / sub["rc_distance"]) ** 12).clip(
+        lower=-20 * sub["rep"], upper=-0.05 * sub["rep"]
+    )
     meGO_LJ.loc[condition, "learned"] = 1
 
     # for repulsive interactions reset sigma to its effective value for consistent merging
@@ -263,7 +267,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
 
     chunks = []
     for name, ref_name in meGO_ensemble.train_matrix_tuples:
-        if ref_name not in matrices["reference_matrices"].keys():
+        if ref_name not in matrices["reference_matrices"]:
             raise RuntimeError(
                 f'Encountered error while trying to find {ref_name} in reference matrices {matrices["reference_matrices"].keys()}'
             )
@@ -347,7 +351,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
             * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c6_dict)
         )
     ) ** (1 / 12)
-    train_dataset["mg_sigma"] = pd.Series(pairwise_mg_sigma)
+    train_dataset["mg_sigma"] = pairwise_mg_sigma
 
     # default (mg) epsilon
     pairwise_mg_epsilon = (
@@ -360,7 +364,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
             * train_dataset["aj"].map(meGO_ensemble.sbtype_mg_c12_dict)
         )
     )
-    train_dataset["mg_epsilon"] = pd.Series(pairwise_mg_epsilon)
+    train_dataset["mg_epsilon"] = pairwise_mg_epsilon
 
     # Apply special non-local interaction rules from type_definitions.
     #
@@ -459,6 +463,12 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
         raise RuntimeError(f"Inconsistent cutoff and C12 repulsive values\n{detail}")
 
     return train_dataset
+
+
+def _add_c6_c12(df):
+    """Compute c6/c12 columns in-place from epsilon and sigma."""
+    df["c6"] = np.where(df["epsilon"] < 0.0, 0.0, 4 * df["epsilon"] * df["sigma"] ** 6)
+    df["c12"] = np.where(df["epsilon"] < 0.0, -df["epsilon"], 4 * df["epsilon"] * df["sigma"] ** 12)
 
 
 def generate_LJ(meGO_ensemble, train_dataset, parameters):
@@ -564,7 +574,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
 
         meGO_LJ = meGO_LJ[needed_fields]
 
-        stat_str = io.print_stats(meGO_LJ)
+        stat_str = fileio.print_stats(meGO_LJ)
 
         # --- identify duplicates ON ORIGINAL DATA ---
         dup_mask = meGO_LJ.duplicated(subset=["ai", "aj"], keep=False)
@@ -596,26 +606,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
             meGO_LJ = meGO_LJ.loc[(~meGO_LJ["same_chain"])]
 
         # Add MG prior interactions for pairs not learned in any other way
-        needed_fields_mg = [
-            "molecule_name_ai",
-            "ai",
-            "molecule_name_aj",
-            "aj",
-            "probability",
-            "same_chain",
-            "source",
-            "reference",
-            "rc_probability",
-            "sigma",
-            "epsilon",
-            "bond_distance",
-            "rep",
-            "mg_sigma",
-            "mg_epsilon",
-            "md_threshold",
-            "rc_threshold",
-            "learned",
-        ]
+        needed_fields_mg = [f for f in needed_fields if f not in {"sigma_prior", "epsilon_prior"}]
         basic_LJ = mg.generate_MG_LJ(meGO_ensemble)[needed_fields_mg]
         meGO_LJ = pd.concat([meGO_LJ, basic_LJ])
 
@@ -627,7 +618,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
                 "molecule_name_ai": "molecule_name_aj",
                 "molecule_name_aj": "molecule_name_ai",
             }
-        ).copy()
+        )
         meGO_LJ = pd.concat([meGO_LJ, inverse_meGO_LJ], axis=0, sort=False, ignore_index=True)
 
         meGO_LJ["ai"] = meGO_LJ["ai"].astype("category")
@@ -638,17 +629,8 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         meGO_LJ.sort_values(by=["ai", "aj", "learned", "sigma"], ascending=[True, True, False, True], inplace=True)
         meGO_LJ = meGO_LJ.drop_duplicates(subset=["ai", "aj"], keep="first")
 
-        meGO_LJ["c6"] = np.where(meGO_LJ["epsilon"] < 0.0, 0.0, 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 6))
-        meGO_LJ["c12"] = np.where(
-            meGO_LJ["epsilon"] < 0.0, -meGO_LJ["epsilon"], 4 * meGO_LJ["epsilon"] * (meGO_LJ["sigma"] ** 12)
-        )
-
-        meGO_LJ_14["c6"] = np.where(
-            meGO_LJ_14["epsilon"] < 0.0, 0.0, 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 6)
-        )
-        meGO_LJ_14["c12"] = np.where(
-            meGO_LJ_14["epsilon"] < 0.0, -meGO_LJ_14["epsilon"], 4 * meGO_LJ_14["epsilon"] * (meGO_LJ_14["sigma"] ** 12)
-        )
+        _add_c6_c12(meGO_LJ)
+        _add_c6_c12(meGO_LJ_14)
 
     et = time.time()
     _term.timing(et - st)
