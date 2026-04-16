@@ -24,7 +24,7 @@ import warnings
 import pandas as pd
 import parmed
 
-from . import io
+from . import fileio as io
 from . import topology as _topology
 from . import type_definitions
 from ._parmed_compat import gmxlib_in_topo_dir

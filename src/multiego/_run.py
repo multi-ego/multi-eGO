@@ -13,7 +13,7 @@ import time
 from multiego import arguments
 from multiego import contacts
 from multiego import generate_face
-from multiego import io
+from multiego import fileio as io
 from multiego import lj
 from multiego import mg
 from multiego import pairs
@@ -72,12 +72,7 @@ def meGO_parsing(root_dir):
 
     arguments.validate_args(args)
 
-    custom_dict = {}
-    if args.custom_dict:
-        custom_dict = io.parse_json(args.custom_dict)
-        if custom_dict is None:
-            print("ERROR: Custom dictionary was parsed, but the dictionary is empty")
-            sys.exit()
+    custom_dict = io.parse_json(args.custom_dict) if args.custom_dict else {}
 
     if args.symmetry_file:
         args.symmetry = io.read_symmetry_file(args.symmetry_file)
@@ -104,6 +99,14 @@ def main(root_dir):
     """
     bt = time.time()
     generate_face.print_welcome()
+    try:
+        _main(root_dir, bt)
+    except (ValueError, RuntimeError, FileNotFoundError) as e:
+        _term.error(str(e))
+        sys.exit(1)
+
+
+def _main(root_dir, bt):
     args, meGO_ensembles, custom_dict = meGO_parsing(root_dir)
 
     st = time.time()

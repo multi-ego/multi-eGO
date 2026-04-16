@@ -5,7 +5,6 @@ import glob
 import os
 import git
 import time
-import sys
 import re
 import json
 
@@ -492,8 +491,7 @@ def get_outdir_name(output_dir, explicit_name, egos):
     while os.path.exists(f"{output_dir}/{out}_{index}"):
         index += 1
         if index > 100:
-            _term.error(f"too many directories in {output_dir}")
-            sys.exit()
+            raise RuntimeError(f"too many directories in {output_dir}")
     output_dir = f"{output_dir}/{out}_{index}"
 
     return output_dir
@@ -748,8 +746,7 @@ def check_files_existence(args):
 
 def read_intra_file(file_path):
     if not os.path.exists(file_path):
-        _term.error(f"File {file_path} does not exist.")
-        sys.exit()
+        raise FileNotFoundError(f"File {file_path} does not exist.")
 
     names = []
     epsilons = []
@@ -764,8 +761,7 @@ def read_intra_file(file_path):
 
 def read_inter_file(file_path):
     if not os.path.exists(file_path):
-        _term.error(f"File {file_path} does not exist.")
-        sys.exit()
+        raise FileNotFoundError(f"File {file_path} does not exist.")
 
     with open(file_path, "r") as file:
         lines = file.readlines()
@@ -776,19 +772,17 @@ def read_inter_file(file_path):
 
     # Check that the names are consistent on rows and columns (avoid mistakes)
     if np.any(names_row != names_col):
-        _term.error(
+        raise ValueError(
             f"the names are inconsistent in the inter epsilon matrix:\n"
             f"  Rows:    {names_row}\n"
             f"  Columns: {names_col}\n"
             f"  Please fix to avoid silly mistakes."
         )
-        sys.exit()
 
     epsilons = [line.split()[1:] for line in lines[1:]]
     epsilons = np.array(epsilons, dtype=float)
     if np.any(epsilons != epsilons.T):
-        _term.error(f"the matrix of inter epsilon must be symmetric, check the input file {file_path}")
-        sys.exit()
+        raise ValueError(f"the matrix of inter epsilon must be symmetric, check the input file {file_path}")
     return names_row, epsilons
 
 
@@ -797,18 +791,16 @@ def read_custom_c12_parameters(file):
 
 
 def parse_json(file_path):
-    if file_path:
-        try:
-            with open(file_path, "r") as file:
-                custom_dict = json.load(file)
-                if not isinstance(custom_dict, dict):
-                    raise ValueError("Error in reading the custom dictionary: Invalid dictionary format")
-                return custom_dict
-        except (json.JSONDecodeError, ValueError) as e:
-            _term.error(f"Error in reading the custom dictionary: {e}")
-            sys.exit()
-    else:
+    if not file_path:
         return {}
+    try:
+        with open(file_path, "r") as file:
+            custom_dict = json.load(file)
+        if not isinstance(custom_dict, dict):
+            raise ValueError("Invalid dictionary format")
+        return custom_dict
+    except (json.JSONDecodeError, ValueError) as e:
+        raise ValueError(f"Error reading custom dictionary {file_path}: {e}") from e
 
 
 def sort_LJ(meGO_ensemble, meGO_LJ):

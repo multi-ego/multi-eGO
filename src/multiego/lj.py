@@ -3,12 +3,11 @@ from . import mg
 from . import bonded
 from . import _term
 from .model_config import config
-from . import io
+from . import fileio as io
 
 import numpy as np
 import pandas as pd
 import itertools
-import sys
 import time
 
 
@@ -278,12 +277,14 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
         )
 
         if (np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"])).max() > 0:
-            print(
+            detail = (
                 temp_merged[["ai", "aj", "rc_ai", "rc_aj", "source", "rc_source", "cutoff", "rc_cutoff", "same_chain"]]
                 .loc[(np.abs(temp_merged["rc_cutoff"] - temp_merged["cutoff"]) > 0)]
                 .to_string()
             )
-            sys.exit("ERROR: Inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data")
+            raise RuntimeError(
+                f"Inconsistent cutoff values between the TRAINING and corresponding REFERENCE input data\n{detail}"
+            )
 
         # Restrict the check to contacts that appear in both matrices: the outer
         # merge leaves rc_same_chain = NaN for training contacts that have no
@@ -298,8 +299,10 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
         )
         if mismatched.any():
             diff_indices = temp_merged.index[mismatched].tolist()
-            print(f"Difference found at indices: {diff_indices}")
-            sys.exit("ERROR: You are pairing intra and inter molecular training and reference data")
+            raise RuntimeError(
+                f"You are pairing intra and inter molecular training and reference data\n"
+                f"Mismatched indices: {diff_indices}"
+            )
 
         chunks.append(temp_merged[td_fields])
 
@@ -448,12 +451,12 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
     train_dataset = train_dataset.loc[train_dataset["rep"] > 0.0]
 
     if (np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12))).max() > 1e-5:
-        print(
+        detail = (
             train_dataset[["ai", "aj", "source", "same_chain", "cutoff", "rep"]]
             .loc[(np.abs(train_dataset["cutoff"] - 1.45 * train_dataset["rep"] ** (1 / 12)) > 1e-5)]
             .to_string()
         )
-        sys.exit("ERROR: Inconsistent cutoff and C12 repulsive values")
+        raise RuntimeError(f"Inconsistent cutoff and C12 repulsive values\n{detail}")
 
     return train_dataset
 

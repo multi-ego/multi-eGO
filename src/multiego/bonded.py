@@ -5,7 +5,6 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 from itertools import combinations
-import sys
 
 
 def compute_bond_distances(reduced_topology, bond_pair, max_distance=config.max_bond_separation):
@@ -128,7 +127,7 @@ def create_pairs_14_dataframe(atomtype1, atomtype2, c6=0.0, shift=0, prefactor=N
     if prefactor is None and constant is None:
         raise ValueError("Neither prefactor nor constant has been set.")
 
-    _empty = pd.DataFrame(columns=["ai", "aj", "func", "c6", "c12", "probability", "rc_probability", "source"])
+    _empty = pd.DataFrame(columns=["ai", "aj", "func", "c6", "c12", "source"])
 
     at1 = atomtype1[["number", "resnum", "c12"]].copy()
     at2 = atomtype2[["number", "resnum", "c12"]].copy()
@@ -353,11 +352,10 @@ def generate_14_data(meGO_ensemble):
             nonprotein_c12 = []
             for test in meGO_ensemble.user_pairs[molecule].type:
                 if test is None:
-                    print(
-                        "\nERROR: you have 1-4 pairs defined in your reference topology without the associated C6/C12 values"
+                    raise RuntimeError(
+                        "1-4 pairs defined in your reference topology without the associated C6/C12 values.\n"
+                        "User-provided 1-4 pairs need to define also the C6/C12."
                     )
-                    print("       user provided 1-4 pairs need to define also the C6/C12\n")
-                    sys.exit()
                 nonprotein_c12.append(float(test.epsilon) * 4.184)
 
             pairs["func"] = 1

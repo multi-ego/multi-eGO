@@ -73,8 +73,8 @@ _multiego.type_definitions = _td
 _bonded = _stub("multiego.bonded")
 _multiego.bonded = _bonded
 
-_io_stub = _stub("multiego.io")
-_multiego.io = _io_stub
+_io_stub = _stub("multiego.fileio")
+_multiego.fileio = _io_stub
 
 # ---------------------------------------------------------------------------
 # Import the module under test via file path

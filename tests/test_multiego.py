@@ -535,7 +535,7 @@ class TestValidateArgs:
     @pytest.fixture(autouse=True)
     def load_module(self, stub_deps):
         # Give the io stub the specific attribute validate_args needs
-        stub_deps["multiego.io"].read_custom_c12_parameters = lambda path: pd.DataFrame(
+        stub_deps["multiego.fileio"].read_custom_c12_parameters = lambda path: pd.DataFrame(
             {"name": ["CH2"], "c12": [1e-5]}
         )
         from multiego.arguments import validate_args
@@ -549,18 +549,18 @@ class TestValidateArgs:
         self.validate(_make_args(system="GB1", egos="production", input_refs=[self._valid_ref()]))
 
     def test_missing_system_exits(self):
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError, match="No system name found"):
             self.validate(_make_args(system="", egos="production", input_refs=[]))
 
     def test_missing_egos_exits(self):
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError, match="No egos mode found"):
             self.validate(_make_args(system="GB1", egos=None, input_refs=[]))
 
     def test_epsilon_below_epsilon_min_exits(self):
-        """ref epsilon below config.epsilon_min (0.07) must trigger sys.exit."""
+        """ref epsilon below config.epsilon_min (0.07) must raise ValueError."""
         ref = self._valid_ref()
         ref["epsilon"] = 0.01  # below the default config.epsilon_min of 0.07
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError, match="epsilon_min"):
             self.validate(_make_args(system="GB1", egos="production", input_refs=[ref]))
 
     def test_missing_required_ref_key_raises(self):
@@ -569,7 +569,7 @@ class TestValidateArgs:
             self.validate(_make_args(system="GB1", egos="production", input_refs=[bad_ref]))
 
     def test_symmetry_conflict_exits(self):
-        with pytest.raises(SystemExit):
+        with pytest.raises(ValueError, match="symmetry"):
             self.validate(
                 _make_args(
                     system="GB1",
