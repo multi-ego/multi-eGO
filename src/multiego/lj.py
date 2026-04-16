@@ -3,7 +3,7 @@ from . import mg
 from . import bonded
 from . import _term
 from .model_config import config
-from . import io
+from . import fileio as io
 
 import numpy as np
 import pandas as pd
@@ -113,7 +113,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
         & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
     )
     meGO_LJ.loc[condition, "epsilon"] = (-meGO_LJ["rep"] * (meGO_LJ["distance"] / meGO_LJ["rc_distance"]) ** 12).clip(
-        lower=-20 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
+        lower=-2 * meGO_LJ["rep"], upper=-0.05 * meGO_LJ["rep"]
     )[condition]
     meGO_LJ.loc[condition, "learned"] = 1
 

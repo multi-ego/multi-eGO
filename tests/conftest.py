@@ -57,8 +57,8 @@ def stub_deps():
         MeGOEnsemble=type("MeGOEnsemble", (), {}),
     )
 
-    # multiego.io — no attributes needed at import time
-    stubs["multiego.io"] = _install_stub("multiego.io")
+    # multiego.fileio — no attributes needed at import time
+    stubs["multiego.fileio"] = _install_stub("multiego.fileio")
 
     # parmed — third-party, may not be installed in all test environments
     stubs["parmed"] = _install_stub("parmed")

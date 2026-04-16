@@ -13,7 +13,7 @@ import time
 from multiego import arguments
 from multiego import contacts
 from multiego import generate_face
-from multiego import io
+from multiego import fileio as io
 from multiego import lj
 from multiego import mg
 from multiego import pairs

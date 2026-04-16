@@ -19,7 +19,7 @@ This module covers two related stages of the pipeline:
 Private helpers are prefixed with ``_`` and are not part of the public API.
 """
 
-from . import io
+from . import fileio as io
 from . import type_definitions
 from . import _term
 from .model_config import config

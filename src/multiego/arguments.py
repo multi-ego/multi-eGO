@@ -1,7 +1,7 @@
 import os
 import yaml
 import argparse
-from . import io
+from . import fileio as io
 from .model_config import config
 
 # Arguments shared between the single-reference CLI mode and the config-file (global) mode.

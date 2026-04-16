@@ -535,7 +535,7 @@ class TestValidateArgs:
     @pytest.fixture(autouse=True)
     def load_module(self, stub_deps):
         # Give the io stub the specific attribute validate_args needs
-        stub_deps["multiego.io"].read_custom_c12_parameters = lambda path: pd.DataFrame(
+        stub_deps["multiego.fileio"].read_custom_c12_parameters = lambda path: pd.DataFrame(
             {"name": ["CH2"], "c12": [1e-5]}
         )
         from multiego.arguments import validate_args
