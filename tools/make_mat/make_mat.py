@@ -20,8 +20,7 @@ from multiego import type_definitions
 from multiego import fileio as io
 
 _DEFAULT_C12 = {
-    atom_name: rc_c12
-    for atom_name, rc_c12 in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)
+    atom_name: rc_c12 for atom_name, rc_c12 in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)
 }
 
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
