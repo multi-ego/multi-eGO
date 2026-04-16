@@ -20,8 +20,8 @@ from multiego import type_definitions
 from multiego import fileio as io
 
 _DEFAULT_C12 = {
-    type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.rc_c12[i]
-    for i in range(len(type_definitions.gromos_atp.name))
+    atom_name: rc_c12
+    for atom_name, rc_c12 in zip(type_definitions.gromos_atp.name, type_definitions.gromos_atp.rc_c12)
 }
 
 COLUMNS = ["mi", "ai", "mj", "aj", "c12dist", "p", "cutoff"]
@@ -81,7 +81,7 @@ def create_matrix_mask(
 
 
 def write_mat(df, output_file):
-    if df.empty:  # Check if the DataFrame is empty
+    if df.empty:
         print(f"Warning: The DataFrame is empty. No file will be written to {output_file}.")
         return
 
@@ -182,7 +182,7 @@ def run_mat_(arguments):
     process = multiprocessing.current_process()
     df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
-    frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
+    frac_target_list = [x for x in frac_target_list if len(x) > 0 and x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
         print(f"\rProgress: [{i + 1}/{len(frac_target_list)}] {ref_f} ", end="", flush=True)
         results_df = pd.DataFrame()
@@ -295,7 +295,7 @@ def read_topologies(mego_top, target_top):
 
     n_mol = len(list(topology_mego.molecules.keys()))
     mol_names = list(topology_mego.molecules.keys())
-    mol_list = np.arange(1, n_mol + 1, 1)
+    mol_list = np.arange(1, n_mol + 1)
 
     return topology_mego, topology_ref, n_mol, mol_names, mol_list
 
@@ -347,7 +347,7 @@ def get_col_params(values, weights):
         The truncated weights of the histogram according to the cutoff
     """
     v = values[:-1]
-    cutoff = weights[len(weights) - 1]
+    cutoff = weights[-1]
     w = weights[:-1]
     i = np.where(v <= cutoff)
     if i[0].size == 0:
