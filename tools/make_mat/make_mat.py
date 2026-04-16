@@ -182,7 +182,7 @@ def run_mat_(arguments):
     process = multiprocessing.current_process()
     df = pd.DataFrame(columns=COLUMNS)
     # We do not consider old histograms
-    frac_target_list = [x for x in frac_target_list if x[0] != "#" and x[-1] != "#"]
+    frac_target_list = [x for x in frac_target_list if len(x) > 0 and x[0] != "#" and x[-1] != "#"]
     for i, ref_f in enumerate(frac_target_list):
         print(f"\rProgress: [{i + 1}/{len(frac_target_list)}] {ref_f} ", end="", flush=True)
         results_df = pd.DataFrame()
