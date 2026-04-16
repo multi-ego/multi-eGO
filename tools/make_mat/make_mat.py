@@ -295,7 +295,7 @@ def read_topologies(mego_top, target_top):
 
     n_mol = len(list(topology_mego.molecules.keys()))
     mol_names = list(topology_mego.molecules.keys())
-    mol_list = np.arange(1, n_mol + 1, 1)
+    mol_list = np.arange(1, n_mol + 1)
 
     return topology_mego, topology_ref, n_mol, mol_names, mol_list
 
