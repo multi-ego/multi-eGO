@@ -117,7 +117,7 @@ def set_sig_epsilon(meGO_LJ, parameters):
     )
     sub = meGO_LJ.loc[condition]
     meGO_LJ.loc[condition, "epsilon"] = (-sub["rep"] * (sub["distance"] / sub["rc_distance"]) ** 12).clip(
-        lower=-20 * sub["rep"], upper=-0.05 * sub["rep"]
+        lower=-2 * sub["rep"], upper=-0.05 * sub["rep"]
     )
     meGO_LJ.loc[condition, "learned"] = 1
 
