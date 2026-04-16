@@ -17,7 +17,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
 from multiego import bonded
 from multiego import type_definitions
-from multiego import io
+from multiego import fileio as io
 
 _DEFAULT_C12 = {
     type_definitions.gromos_atp.name[i]: type_definitions.gromos_atp.rc_c12[i]
