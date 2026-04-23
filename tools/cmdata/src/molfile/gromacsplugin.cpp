@@ -195,6 +195,7 @@ static int read_gro_timestep(void *v, int natoms, molfile_timestep_t *ts) {
       ts->beta = mdts.box->beta;
       ts->gamma = mdts.box->gamma;
     }
+    ts->physical_time = mdts.time;
   }
   mdio_tsfree(&mdts);
   return MOLFILE_SUCCESS;
@@ -454,6 +455,7 @@ static int read_g96_timestep(void *v, int natoms, molfile_timestep_t *ts) {
       ts->beta = mdts.box->beta;
       ts->gamma = mdts.box->gamma;
     }
+    ts->physical_time = mdts.time;
   }
   mdio_tsfree(&mdts);
   return MOLFILE_SUCCESS;
@@ -543,6 +545,8 @@ static int read_trr_timestep(void *v, int natoms, molfile_timestep_t *ts) {
       ts->beta = mdts.box->beta;
       ts->gamma = mdts.box->gamma;
     }
+
+    ts->physical_time = mdts.time;
   }
   mdio_tsfree(&mdts);
   return MOLFILE_SUCCESS;
