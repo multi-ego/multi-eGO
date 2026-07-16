@@ -1,5 +1,5 @@
 import pandas as pd
-
+import os
 from .model_config import config
 
 mg_OO_c12_rep = 7.5e-7
@@ -185,150 +185,161 @@ atom_type_combinations = [
 
 # Special non-local interactions different from basic mg combination rules
 # PROTEIN
-special_non_local = [
-    {
-        "atomtypes": (["O"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": mg_OO_c12_rep,
-    },
-    {
-        "atomtypes": (["OM"], ["OM"]),  # charged oxygen-oxygen repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": mg_OMOM_c12_rep,
-    },
-    {
-        "atomtypes": (["NL", "NZ"], ["NL"]),  # charged nitrogen-nitrogen repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": mg_NN_c12_rep,
-    },
-    {
-        "atomtypes": (["NZ"], ["NZ"]),  # less repulsive to allow ARG-ARG pi stacking
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": None,
-    },
-    {
-        "atomtypes": (["H"], ["H"]),  # hydrogen-hydrogen repulsion
-        "interaction": "rep",
-        "sigma": None,  # not needed for repulsion
-        "epsilon": mg_HH_c12_rep,
-    },
-    {
-        "atomtypes": (["O", "OM", "OA"], ["H"]),  # hydrogen bond attraction
-        "interaction": "att",
-        "sigma": mg_HO_sigma,
-        "epsilon": mg_eps_HO,
-    },
-    {
-        "atomtypes": (
-            ["NZ"],
-            ["N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CH3"],
-        ),  # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
-        "interaction": "rep",
-        "sigma": None,
-        "epsilon": None,
-    },
-    {
-        "atomtypes": (
-            ["NL"],
-            ["N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CH3", "CH2r"],
-        ),  # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
-        "interaction": "rep",
-        "sigma": None,
-        "epsilon": None,
-    },
-    {
-        "atomtypes": (
-            ["NL", "NZ"],
-            ["CAH2", "CH1t"],
-        ),  # Weak interaction of charged N based on hyd of CAH2  from local fingerprint Parrinello and ATDhisto contact probability
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.085,
-    },
-    {
-        "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH3", "CH2r", "S"]),  # repulsion of charged O with hydrophobic
-        "interaction": "rep",
-        "sigma": None,
-        "epsilon": None,
-    },
-    {
-        "atomtypes": (
-            ["OM"],
-            ["CAH2", "CH2", "CH1t"],
-        ),  # Weak interaction of OM based on hyd of CAH2 and CH2 (Not sure about CH2) from local fingerprint Parrinello and ATDhisto contact probability
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.085,
-    },
-    {
-        "atomtypes": (["NZ", "CZ", "NE"], ["CH"]),  # cation-pi generic
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.13,
-    },
-    {
-        "atomtypes": (["NL"], ["CH"]),  # cation-pi generic
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.10,
-    },
-    {
-        "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # weak interactions of polar N
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.07,
-    },
-    {
-        "atomtypes": (["NR"], ["CH"]),  # weak cation-pi
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.085,
-    },
-    {
-        "atomtypes": (["CZ", "C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.07,
-    },
-    {
-        "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH  and SH-CH cation-pi interaction
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.10,
-    },
-    {
-        "atomtypes": (
-            ["OA"],
-            ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL", "CH1t"],
-        ),  # H-bond of OA with polar and charged
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": mg_eps_HO,
-    },
-    {
-        "atomtypes": (["OA"], ["CH2", "CH3", "CAH2"]),  # H-bond of OA with polar and charged
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.085,
-    },
-    {
-        "atomtypes": (["CH1t"], ["CH2", "CH3", "CAH2", "CH1", "CH"]),  # H-bond of OA with polar and charged
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.085,
-    },
-    {
-        "atomtypes": (["OM"], ["NL", "NZ", "NE"]),  # salt bridges
-        "interaction": "att",
-        "sigma": None,
-        "epsilon": 0.15,
-    },
-]
+# special_non_local = [
+#     {
+#         "atomtypes": (["O"], ["O", "OM"]),  # charged oxygen-oxygen repulsion
+#         "interaction": "rep",
+#         "sigma": None,  # not needed for repulsion
+#         "epsilon": mg_OO_c12_rep,
+#     },
+#     {
+#         "atomtypes": (["OM"], ["OM"]),  # charged oxygen-oxygen repulsion
+#         "interaction": "rep",
+#         "sigma": None,  # not needed for repulsion
+#         "epsilon": mg_OMOM_c12_rep,
+#     },
+#     {
+#         "atomtypes": (["NL", "NZ"], ["NL"]),  # charged nitrogen-nitrogen repulsion
+#         "interaction": "rep",
+#         "sigma": None,  # not needed for repulsion
+#         "epsilon": mg_NN_c12_rep,
+#     },
+#     {
+#         "atomtypes": (["NZ"], ["NZ"]),  # less repulsive to allow ARG-ARG pi stacking
+#         "interaction": "rep",
+#         "sigma": None,  # not needed for repulsion
+#         "epsilon": None,
+#     },
+#     {
+#         "atomtypes": (["H"], ["H"]),  # hydrogen-hydrogen repulsion
+#         "interaction": "rep",
+#         "sigma": None,  # not needed for repulsion
+#         "epsilon": mg_HH_c12_rep,
+#     },
+#     {
+#         "atomtypes": (["O", "OM", "OA"], ["H"]),  # hydrogen bond attraction
+#         "interaction": "att",
+#         "sigma": mg_HO_sigma,
+#         "epsilon": mg_eps_HO,
+#     },
+#     {
+#         "atomtypes": (
+#             ["NZ"],
+#             ["N", "NT", "NR", "C", "CH1", "CAH", "CH2", "CH3"],
+#         ),  # Repulsion of charged N with all but CH, CH2r (aromatic) and CZ, NE (for ARG-ARG interactions)
+#         "interaction": "rep",
+#         "sigma": None,
+#         "epsilon": None,
+#     },
+#     {
+#         "atomtypes": (
+#             ["NL"],
+#             ["N", "NT", "NR", "C", "NE", "CZ", "CH1", "CAH", "CH2", "CH3", "CH2r"],
+#         ),  # Repulsion of charged N with all but CH (interacts less then NZ to make ARG stickier than LYS)
+#         "interaction": "rep",
+#         "sigma": None,
+#         "epsilon": None,
+#     },
+#     {
+#         "atomtypes": (
+#             ["NL", "NZ"],
+#             ["CAH2", "CH1t"],
+#         ),  # Weak interaction of charged N based on hyd of CAH2  from local fingerprint Parrinello and ATDhisto contact probability
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.085,
+#     },
+#     {
+#         "atomtypes": (["OM"], ["CH", "CH1", "CAH", "CH3", "CH2r", "S"]),  # repulsion of charged O with hydrophobic
+#         "interaction": "rep",
+#         "sigma": None,
+#         "epsilon": None,
+#     },
+#     {
+#         "atomtypes": (
+#             ["OM"],
+#             ["CAH2", "CH2", "CH1t"],
+#         ),  # Weak interaction of OM based on hyd of CAH2 and CH2 (Not sure about CH2) from local fingerprint Parrinello and ATDhisto contact probability
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.085,
+#     },
+#     {
+#         "atomtypes": (["NZ", "CZ", "NE"], ["CH"]),  # cation-pi generic
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.13,
+#     },
+#     {
+#         "atomtypes": (["NL"], ["CH"]),  # cation-pi generic
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.10,
+#     },
+#     {
+#         "atomtypes": (["NT", "N"], ["CH", "CH2", "CH3", "CH1", "CH2r"]),  # weak interactions of polar N
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.07,
+#     },
+#     {
+#         "atomtypes": (["NR"], ["CH"]),  # weak cation-pi
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.085,
+#     },
+#     {
+#         "atomtypes": (["CZ", "C", "NE", "NR"], ["CH2", "CH3", "CH1", "CH2r"]),  # polar-hyd weak interactions but not CH
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.07,
+#     },
+#     {
+#         "atomtypes": (["OA", "SH"], ["CH"]),  # weaker OA-CH  and SH-CH cation-pi interaction
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.10,
+#     },
+#     {
+#         "atomtypes": (
+#             ["OA"],
+#             ["NR", "NT", "NE", "S", "O", "OA", "OM", "NZ", "NL", "CH1t"],
+#         ),  # H-bond of OA with polar and charged
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": mg_eps_HO,
+#     },
+#     {
+#         "atomtypes": (["OA"], ["CH2", "CH3", "CAH2"]),  # H-bond of OA with polar and charged
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.085,
+#     },
+#     {
+#         "atomtypes": (["CH1t"], ["CH2", "CH3", "CAH2", "CH1", "CH"]),  # H-bond of OA with polar and charged
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.085,
+#     },
+#     {
+#         "atomtypes": (["OM"], ["NL", "NZ", "NE"]),  # salt bridges
+#         "interaction": "att",
+#         "sigma": None,
+#         "epsilon": 0.15,
+#     },
+# ]
 
+# from .atdhist_matrix import special_nonlocal as special_non_local 
+from .interaction_matrix import InteractionMatrix
+
+EMAX = 0.15  # maximum epsilon value for the colorbar in the interaction matrix plot
+P_TH = 0.15  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
+matrix = InteractionMatrix(emax = EMAX, pth=P_TH)
+special_non_local = matrix.special_nonlocal_dict
+# print(len(special_non_local_A), len(special_non_local))
+# print(special_non_local_A[0])
+# print()
+print(special_non_local[0])
 # Verify that every attractive special interaction carries an epsilon at least
 # as large as the global minimum.  A violation here means the entry was
 # mis-typed and would silently produce interactions weaker than the threshold
@@ -378,13 +389,43 @@ H_ALLOWED_PARTNERS = {"H", "O", "OM", "OA"}
 # Each entry: (types_ai, types_aj, c12_value)
 # Rules are applied symmetrically: (A, B) also matches (B, A).
 # Order matters — later entries override earlier ones for the same pair.
-NTHBOND_C12_OVERRIDES = [
-    ({"O", "OM"}, {"O", "OM"}, mg_OO_c12_rep),
-    ({"OM"}, {"OM"}, mg_OMOM_c12_rep),
-    ({"H"}, {"H"}, mg_HH_c12_rep),
-    ({"NL"}, {"NL", "NZ"}, mg_NN_c12_rep),
-    ({"O"}, {"N"}, mg_ON_c12_rep),
-]
+
+# temporary override of the above hard-coded values with a data-driven approach
+# TODO make a rc_12 not merged with 4-5 bond df
+# this must then be used as a substitute of rc_12
+
+# Load data-driven c12 overrides for nth-bond repulsive pairs from the
+# Minimum_CUTOFF_Manual_modif.csv file located next to this module. This makes
+# NTHBOND_C12_OVERRIDES available automatically when the module is imported
+# import pandas as pd
+
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_csv_path = os.path.join(_this_dir, "Minimum_CUTOFF_Manual_modif.csv")
+# _csv_path = os.path.join(_this_dir, "Merged_c12_sigma.csv")
+
+# Fallback: older layout had the CSV in src/multiego relative to project root
+if not os.path.exists(_csv_path):
+    _csv_path = os.path.join(_this_dir, "..", "src", "multiego", "Minimum_CUTOFF_Manual_modif.csv")
+
+try:
+    _c12_df = pd.read_csv(_csv_path, sep="\s+")
+    NTHBOND_C12_OVERRIDES = [
+        ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12"])) for _, row in _c12_df.iterrows()
+    ]
+except Exception:
+    # If file not found or parsing fails, expose an empty list so other code
+    # can import the module without crashing.
+    raise RuntimeError(
+        f"Failed to load Minimum_CUTOFF_Manual_modif.csv from {_csv_path}. "
+        "Please ensure the file exists and is formatted correctly."
+    )
+# NTHBOND_C12_OVERRIDES = [
+#     ({"O", "OM"}, {"O", "OM"}, mg_OO_c12_rep),
+#     ({"OM"}, {"OM"}, mg_OMOM_c12_rep),
+#     ({"H"}, {"H"}, mg_HH_c12_rep),
+#     ({"NL"}, {"NL", "NZ"}, mg_NN_c12_rep),
+#     ({"O"}, {"N"}, mg_ON_c12_rep),
+# ]
 
 # List of amino acids and nucleic acids
 aminoacids_list = [

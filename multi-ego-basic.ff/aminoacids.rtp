@@ -341,6 +341,7 @@
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44C
+   -C     N    CA     C     gd_44Cb
    -C     N    CA     C     gd_43C
     N    CA    CB    SG     gd_34
     N    CA     C    +N     gd_45C
@@ -604,6 +605,7 @@
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44I
    -C     N    CA     C     gd_43I
+   -C     N    CA     C     gd_43Ib
     N    CA    CB   CG1     gd_34
     N    CA     C    +N     gd_45I
     N    CA     C    +N     gd_42I
@@ -831,6 +833,7 @@
 ;  ai    aj    ak    al   gromos type
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44F
+   -C     N    CA     C     gd_43Fb
    -C     N    CA     C     gd_43F
     N    CA    CB    CG     gd_34
     N    CA     C    +N     gd_45F
@@ -973,6 +976,7 @@
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44T
    -C     N    CA     C     gd_43T
+   -C     N    CA     C     gd_43Tb
     N    CA    CB   OG1     gd_34
     N    CA     C    +N     gd_45T
     N    CA     C    +N     gd_42T
@@ -1063,6 +1067,7 @@
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44W
    -C     N    CA     C     gd_43W
+   -C     N    CA     C     gd_43Wb
     N    CA    CB    CG     gd_34
     N    CA     C    +N     gd_45W
     N    CA     C    +N     gd_42W
@@ -1138,6 +1143,7 @@
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44Y
    -C     N    CA     C     gd_43Y
+   -C     N    CA     C     gd_43Yb
     N    CA    CB    CG     gd_34
     N    CA     C    +N     gd_45Y
     N    CA     C    +N     gd_42Y
@@ -1187,6 +1193,7 @@
   -CA    -C     N    CA     gd_14
    -C     N    CA     C     gd_44V
    -C     N    CA     C     gd_43V
+   -C     N    CA     C     gd_43Vb
     N    CA    CB   CG1     gd_34
     N    CA     C    +N     gd_45V
     N    CA     C    +N     gd_42V

@@ -341,6 +341,29 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
     train_dataset["rep"] = np.sqrt(
         train_dataset["ai"].map(meGO_ensemble.sbtype_c12_dict) * train_dataset["aj"].map(meGO_ensemble.sbtype_c12_dict)
     )
+    train_dataset["type_pair"] = (
+        train_dataset["ai"].map(meGO_ensemble.sbtype_type_dict)
+        + "_"
+        + train_dataset["aj"].map(meGO_ensemble.sbtype_type_dict)
+    )
+
+    # Build a lookup that covers both "atp1_atp2" and "atp2_atp1" orderings
+    c12_lookup = pd.concat(
+        [
+            type_definitions._c12_df.set_index(
+                type_definitions._c12_df["atp1"] + "_" + type_definitions._c12_df["atp2"]
+            )["c12"],
+            type_definitions._c12_df.set_index(
+                type_definitions._c12_df["atp2"] + "_" + type_definitions._c12_df["atp1"]
+            )["c12"],
+        ]
+    )
+    # if a pair appears in both directions with different values, keep one consistently
+    c12_lookup = c12_lookup[~c12_lookup.index.duplicated(keep="first")]
+
+    # vectorized replace: use matched c12 where found, else keep existing rep
+    train_dataset["rep"] = train_dataset["type_pair"].map(c12_lookup).fillna(0)
+    # print(train_dataset[["ai", "aj", "type_pair", "rep"]].head(10))
 
     # default (mg) sigma
     pairwise_mg_sigma = (
