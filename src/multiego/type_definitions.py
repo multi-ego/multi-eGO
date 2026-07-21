@@ -332,9 +332,12 @@ atom_type_combinations = [
 # from .atdhist_matrix import special_nonlocal as special_non_local 
 from .interaction_matrix import InteractionMatrix
 
-EMAX = 0.15  # maximum epsilon value for the colorbar in the interaction matrix plot
-P_TH = 0.15  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
-matrix = InteractionMatrix(emax = EMAX, pth=P_TH)
+EMAX = 0.15 #maximum epsilon value for the colorbar in the interaction matrix plot
+P_TH = None#1.0#0.3 # 0.005  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
+SHOW = False
+# PKL = "atdhisto_density.pkl"
+PKL = "atdhisto_mindist.pkl"
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, pth=P_TH, show=SHOW)
 special_non_local = matrix.special_nonlocal_dict
 # print(len(special_non_local_A), len(special_non_local))
 # print(special_non_local_A[0])

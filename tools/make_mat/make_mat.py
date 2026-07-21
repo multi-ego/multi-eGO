@@ -495,17 +495,33 @@ def generate_c12_values(df, types, combinations, molecule_type):
     #         ].values[0]
     #     print(f"c12 for {a}-{b}: {aaa}")
 
-    # TODO vectorize it as in lj.py?
-    c12_matrix = np.array(
+    print("Mapping c12 values for all atom-type combinations...")
+    # c12_matrix = np.array(
+    #     [
+    #         type_definitions._c12_df.loc[
+    #             ((type_definitions._c12_df["atp1"] == a) & (type_definitions._c12_df["atp2"] == b))
+    #             | ((type_definitions._c12_df["atp1"] == b) & (type_definitions._c12_df["atp2"] == a)),
+    #             "c12",
+    #         ].values[0]
+    #         for a, b in all_combinations
+    #     ]
+    # ).reshape(len(mego_types_i), len(mego_types_j))
+    # vectorized version
+    c12_lookup = pd.concat(
         [
-            type_definitions._c12_df.loc[
-                ((type_definitions._c12_df["atp1"] == a) & (type_definitions._c12_df["atp2"] == b))
-                | ((type_definitions._c12_df["atp1"] == b) & (type_definitions._c12_df["atp2"] == a)),
-                "c12",
-            ].values[0]
-            for a, b in all_combinations
+            type_definitions._c12_df.set_index(
+                type_definitions._c12_df["atp1"] + "_" + type_definitions._c12_df["atp2"]
+            )["c12"],
+            type_definitions._c12_df.set_index(
+                type_definitions._c12_df["atp2"] + "_" + type_definitions._c12_df["atp1"]
+            )["c12"],
         ]
-    ).reshape(len(mego_types_i), len(mego_types_j))
+    )
+    # if a pair appears in both directions with different values, keep one consistently
+    c12_lookup = c12_lookup[~c12_lookup.index.duplicated(keep="first")]
+    # select only the relevant pairs which are present in the current molecule: all_combinations
+    all_combinations_str = [f"{a}_{b}" for a, b in all_combinations]
+    c12_matrix = c12_lookup.reindex(all_combinations_str).to_numpy().reshape(len(mego_types_i), len(mego_types_j))
 
     all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
     all_c12 = c12_matrix.copy()
@@ -705,7 +721,6 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
         c12_lookup.update(zip(custom_c12_dict.name, custom_c12_dict.rc_c12))
 
     topology_df_i["c12"] = topology_df_i["mego_type"].map(c12_lookup)
-    print(topology_df_i["mego_type"])
     # preparing topology of molecule j
     topology_df_j["ref_ai"] = protein_ref_indices_j
     topology_df_j["ref_type"] = [a.name for a in protein_ref_j]
