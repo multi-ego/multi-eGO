@@ -391,16 +391,19 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; ASN
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42N  130.0000 1.5000 2
+#define gd_42N  100.0000 1.5000 2
 ; Backbone dihedral angle -N-CA-C-N- ASN
 ;
-#define gd_43N  15.0000 0.600 3
+#define gd_43N  -35.0000 1.700 3
 ; Backbone dihedral angle -C-N-CA-C- ASN
 ;
-#define gd_44N  -110.000 3.3 1
+#define gd_44N  -85.000 2.7 1
 ; Backbone dihedral angle -C-N-CA-C- ASN
 ;
-#define gd_45N  180.00 2.6 1
+#define gd_44Nb  30.000 2.2 4
+; Backbone dihedral angle -C-N-CA-C- ASN
+;
+#define gd_45N  0.00 1.6 1
 ; Backbone dihedral angle -N-CA-C-N- ASN
 ;
 ;;;;;;;;;;;;;;;;;;;;
@@ -421,31 +424,32 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; CYS
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42C 98.0000 2.0000 2
+#define gd_42C 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- CYS
 ;
-#define gd_43C 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43C 70.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- CYS
 ;
-#define gd_43Cb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_44C   68.000 3 1
 ; Backbone dihedral angle -C-N-CA-C- CYS
 ;
-#define gd_44C   68.000 3.0 1
+#define gd_43Cb -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- CYS
 ;
-#define gd_45C    -125.00 1.0  1
+;
+#define gd_45C    0.00 5.50  1
 ; Backbone dihedral angle -N-CA-C-N- CYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;GLU
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42E 120.0000 2.5000 2
+#define gd_42E 90.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- GLU
 ;
 #define gd_43E 15.0000 2.60 3                ;heigher k to shift down J coupling and have a cleaner distinction between betas
 ; Backbone dihedral angle -C-N-CA-C- GLU
 ;
-#define gd_44E -120.000 1.50 1
+#define gd_44E -160.000 1.50 1
 ; Backbone dihedral angle -C-N-CA-C- GLU
 ;
 #define gd_45E 180.00 2.900 1
@@ -454,28 +458,30 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; HIS
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42H 150.0000 2.5000 2
+#define gd_42H 80.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- HIS
 ;
-#define gd_43H  15.0000 0.20 3
+#define gd_43H  -50.0000 2.70 3
 ; Backbone dihedral angle -C-N-CA-C- HIS
 ;
-#define gd_44H   -110.000 3.10 1
+#define gd_44H   -25.000 1.60 1
+; Backbone dihedral angle -C-N-CA-C- HIS
+#define gd_44Hb   40.000 2.40 4
 ; Backbone dihedral angle -C-N-CA-C- HIS
 ;
-#define gd_45H  160.00 0.5    1
+#define gd_45H  0.00 3.0    1
 ; Backbone dihedral angle -N-CA-C-N- HIS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; LEU
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42L 120.0000 2.5000 2
+#define gd_42L 90.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- LEU
 ;
 #define gd_43L 15.0000  0.600 3
 ; Backbone dihedral angle -C-N-CA-C- LEU
 ;
-#define gd_44L   -140.000 2.5 1
+#define gd_44L   -160.000 2.5 1
 ; Backbone dihedral angle -C-N-CA-C- LEU
 ;
 #define gd_45L 180.00 2.0 1
@@ -484,7 +490,7 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; MET
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42M 120.0000 2.5000 2
+#define gd_42M 90.0000 2.5000 2
 ; Backbone dihedral angle -N-CA-C-N- MET
 ;
 #define gd_43M 15.0000 0.600 3
@@ -499,13 +505,13 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; ARG
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42R 120.0000 2.5000 2
+#define gd_42R 95.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- ARG
 ;
 #define gd_43R 15.0000 1.600 3
 ; Backbone dihedral angle -C-N-CA-C- ARG
 ;
-#define gd_44R  -110.000 2.50 1
+#define gd_44R  -150.000 2.50 1
 ; Backbone dihedral angle -C-N-CA-C- ARG
 ;
 #define gd_45R 180.000 2.50 1
@@ -514,31 +520,31 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; TRP
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42W 98.0000 2.0000 2
+#define gd_42W 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- TRP
 ;
-#define gd_43W 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43W 80.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- TRP
 ;
-#define gd_43Wb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Wb -10.000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- TRP
 ;
 #define gd_44W   68.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- TRP
 ;
-#define gd_45W    -125.00 2.0  1
+#define gd_45W    0.00 6.0  1
 ; Backbone dihedral angle -N-CA-C-N- TRP
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; GLN
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42Q 120.0000 1.5000 2
+#define gd_42Q 90.0000 1.5000 2
 ; Backbone dihedral angle -N-CA-C-N- GLN
 ;
 #define gd_43Q 15.0000 1.000 3
 ; Backbone dihedral angle -C-N-CA-C- GLN
 ;
-#define gd_44Q  -140.000 2.60 1
+#define gd_44Q  180.000 2.60 1
 ; Backbone dihedral angle -C-N-CA-C- GLN
 ;
 #define gd_45Q 180.000 2.50 1
@@ -547,122 +553,128 @@
 ;;;;;;;;;;;;;;;;;;;;
 ; LYS
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42K 150.0000 1.5000 2
+#define gd_42K 100.0000 2.3000 2
 ; Backbone dihedral angle -N-CA-C-N- LYS
 ;
-#define gd_43K 15.0000 2.000 3
+#define gd_43K 30.0000 2.000 3
 ; Backbone dihedral angle -C-N-CA-C- LYS
 ;
-#define gd_44K  -120.000 1.00 1
+#define gd_44K  0.000 1.50 1
 ; Backbone dihedral angle -C-N-CA-C- LYS
 ;
-#define gd_45K 180.000 1.40 1
+#define gd_44Kb  65.000 1.80 4
+; Backbone dihedral angle -C-N-CA-C- LYS
+;
+#define gd_45K 0.000 3.0 1
 ; Backbone dihedral angle -N-CA-C-N- LYS
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; ILE
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42I 98.0000 2.0000 2
+#define gd_42I 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- ILE
 ;
-#define gd_43I 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43I 80.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- ILE
 ;
-#define gd_43Ib -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Ib -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- ILE
 ;
 #define gd_44I   68.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- ILE
 ;
-#define gd_45I    -125.00 1.0  1
+#define gd_45I    0.00 6.0  1
 ; Backbone dihedral angle -N-CA-C-N- ILE
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ; VAL
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42V 98.0000 2.0000 2
+#define gd_42V 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- VAL
 ;
-#define gd_43V 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43V 95.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- VAL
 ;
-#define gd_43Vb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Vb -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- VAL
 ;
-#define gd_44V   68.000 3.0 1
+#define gd_44V   50.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- VAL
 ;
-#define gd_45V    -125.00 0.0  1
+#define gd_45V    0.00 6.0  1
 ; Backbone dihedral angle -N-CA-C-N- VAL
 
 
 ;;;;;;;;;;;;;;;;;;;;
 ; PHE
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42F 98.0000 2.0000 2
+#define gd_42F 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- PHE
 ;
-#define gd_43F 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43F 80.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- PHE
 ;
-#define gd_43Fb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Fb -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- PHE
 ;
 #define gd_44F   68.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- PHE
 ;
-#define gd_45F    -125.00 0.7  1
+#define gd_45F    0.00 5.7  1
 ; Backbone dihedral angle -N-CA-C-N- PHE
 
 ;;;;;;;;;;;;;;;;;;;;
 ;SER
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42S 120.0000 2.5000 2
+#define gd_42S 110.0000 2.9000 2
 ; Backbone dihedral angle -N-CA-C-N- SER
 ;
-#define gd_43S 15.0000 2.000 3
+#define gd_43S -15.0000 2.000 3
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
-#define gd_44S -140.000 1.50 1
+#define gd_44S -10.000 1.50 1
 ; Backbone dihedral angle -C-N-CA-C- SER
 ;
-#define gd_45S 180.00 0.60 1
+#define gd_44Sb 40.000 1.70 4
+; Backbone dihedral angle -C-N-CA-C- SER
+;
+#define gd_45S 0.00 3.00 1
 ; Backbone dihedral angle -N-CA-C-N- SER
 ;
 ;;;;;;;;;;;;;;;;;;;;
 ;THR
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42T 98.0000 2.0000 2
+#define gd_42T 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- THR
 ;
-#define gd_43T 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43T 80.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_43Tb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Tb -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
 #define gd_44T   68.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- THR
 ;
-#define gd_45T    -125.00 1.5  1
+#define gd_45T    0.00 6.0  1
 ; Backbone dihedral angle -N-CA-C-N- THR
 
 ;;;;;;;;;;;;;;;;;;;;
 ; TYR
 ;;;;;;;;;;;;;;;;;;;;
-#define gd_42Y 98.0000 2.0000 2
+#define gd_42Y 30.0000 2.0000 2
 ; Backbone dihedral angle -N-CA-C-N- TYR
 ;
-#define gd_43Y 70.0000 4.300 3                   ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Y 80.0000 2.200 3                   ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- TYR
 ;
-#define gd_43Yb -24.0000 5.500 2                  ; lower k for higher J coupling and more population in intermediate beta region
+#define gd_43Yb -10.0000 2.700 2                  ; lower k for higher J coupling and more population in intermediate beta region
 ; Backbone dihedral angle -C-N-CA-C- TYR
 ;
 #define gd_44Y   68.000 3.0 1
 ; Backbone dihedral angle -C-N-CA-C- TYR
 ;
-#define gd_45Y    -125.00 1.5  1
+#define gd_45Y    0.00 5.5  1
 ; Backbone dihedral angle -N-CA-C-N- TYR
 
 

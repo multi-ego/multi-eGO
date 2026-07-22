@@ -21,13 +21,13 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, emax=0.16, pth=None):
-        self.atmat = self.read_pickle_file("atdhisto.pkl")
+    def __init__(self, pkl_file, emax=0.16, pth=None, show=False):
+        self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
         self.pth = pth
         self.define_p_threshold()
         self.nonlocal_matrix()
-        self.plot_energy_matrix()
+        self.plot_energy_matrix(show=show)
 
     def roundPartial(self, value, resolution=0.005):
         """
@@ -51,15 +51,17 @@ class InteractionMatrix:
         e = np.array([self.roundPartial(ei) for ei in e])
         return e
 
-    def plot_energy_matrix(self, out_path = None):
+    def plot_energy_matrix(self, out_path = None, show = False):
         """
         Plot the energy matrix as a heatmap.
         """
 
         # TODO read them by gromos to avoid hardcoding them here
+        bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
-        attype_ordering_polar = [ "NE", "NR", "NT", "O", "OA", "H","N", "CZ", "S", "SH", "CAH", "CH2", "CAH2", "CH1t"]
-        attype_ordering_apolar = ["C", "CH", "CH1", "CH3"]
+        attype_ordering_polar = [ "NE", "NR", "NT", "OA", "CZ", "S", "SH",  "CH2r", "CH1t"]
+        attype_ordering_apolar = ["CH1","CH",  "CH2", "CH3"]
+
 
 
         list_atom1 = np.sort(np.array(self.atmat["attype1"].unique()))
@@ -72,8 +74,8 @@ class InteractionMatrix:
         list_atom2 = [at for at in list_atom2 if at not in noplot]
 
         # create ordered list of atom types based on attype_ordering
-        order_list_atom1 = [at for at in attype_ordering_charged if at in list_atom1] + [at for at in attype_ordering_polar if at in list_atom1] + [at for at in attype_ordering_apolar if at in list_atom1]
-        order_list_atom2 = [at for at in attype_ordering_charged if at in list_atom2] + [at for at in attype_ordering_polar if at in list_atom2] + [at for at in attype_ordering_apolar if at in list_atom2]
+        order_list_atom1 = [at for at in bkbnd_atoms if at in list_atom1] + [at for at in attype_ordering_charged if at in list_atom1] + [at for at in attype_ordering_polar if at in list_atom1] + [at for at in attype_ordering_apolar if at in list_atom1]
+        order_list_atom2 = [at for at in bkbnd_atoms if at in list_atom2] + [at for at in attype_ordering_charged if at in list_atom2] + [at for at in attype_ordering_polar if at in list_atom2] + [at for at in attype_ordering_apolar if at in list_atom2]
 
         energies = []
         for at1 in order_list_atom1:
@@ -121,7 +123,8 @@ class InteractionMatrix:
         ax.grid()
         if out_path is not None:
             plt.savefig(out_path)
-        plt.show()
+        if show:
+            plt.show()
 
 
     def read_pickle_file(self, filename):
@@ -149,16 +152,36 @@ class InteractionMatrix:
         probs = []
         dists = []
         cutoffs = []
+        bins = []
+        kde = []
+        tot_reps = []
+        sum_probs = []
         for key in data.keys():
             probs.append(data[key].p_repeats)
             dists.append(data[key].exp_aver)
             cutoffs.append(data[key].cutoff)
+            bins.append(data[key].xbins)
+            kde.append(data[key].kde)
+            tot_reps.append(data[key].tot_repeats)
+            sum_probs.append(np.sum(data[key].sum_probs))
         atmat["probability"] = np.array(probs)#/np.array(cutoffs)**2
         # atmat["p_water"] =np.zeros(len(probs))
         atmat["exp_aver"] = np.array(dists)
         atmat["attype1"] = atmat["atom_pair"].str.split("_").str[0]
         atmat["attype2"] = atmat["atom_pair"].str.split("_").str[1]
         atmat["cutoff"] = np.array(cutoffs)
+        atmat["bins"] = bins
+        atmat["kde"] = kde
+        atmat["tot_repeats"] = tot_reps
+        atmat["sum_probs"] = sum_probs
+        # where O-H set distance to 0.195
+        # atmat.loc[atmat["atom_pair"]=="O_H", "exp_aver"] = 0.195
+        # atmat.loc[atmat["atom_pair"]=="O_N", "exp_aver"] = 0.29
+        # atmat.loc[atmat["atom_pair"]=="C_N", "exp_aver"] = 0.41
+        ps = []
+        for i in range(len(atmat)): 
+            ps.append((np.sum(kde[i]*np.diff(bins[i])[0]/bins[i]**2/ tot_reps[i] )))#* cutoffs[i]**3   ))  )
+        # atmat["probability"] = np.array(ps)
         return atmat
 
 
@@ -177,7 +200,7 @@ class InteractionMatrix:
                 if (self.atmat.loc[self.atmat["atom_pair"]=="NL_NL", "energy"].values[0] < 0):
                     # self.atmat.loc[self.atmat["atom_pair"]=="OM_OM", "energy"].values[0] < 0 and
                     # self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"].values[0] < 0 and
-                    # self.atmat.loc[self.atmat["atom_pair"]=="O_OM", "energy"].values[0] < 0)
+                    # self.atmat.loc[self.atmat["atom_pair"]=="OA_OA", "energy"].values[0] < 0):
                     break
                 pth += dp
             # find also the maximum pth such that the following atom-pairs have energy > 0
@@ -227,6 +250,12 @@ class InteractionMatrix:
 
     def nonlocal_matrix(self):
         self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
+        self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
+        self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
+        self.atmat.loc[self.atmat["atom_pair"]=="O_C", "energy"] = 0.45
+        self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"] = 0.09
+        self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"] = 0.09
+
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
 
 
