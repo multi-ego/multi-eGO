@@ -253,6 +253,8 @@ class InteractionMatrix:
         self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
         self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
         self.atmat.loc[self.atmat["atom_pair"]=="O_C", "energy"] = 0.45
+        self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"] = 0.09
+        self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"] = 0.09
 
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
 
