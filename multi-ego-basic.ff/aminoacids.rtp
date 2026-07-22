@@ -499,7 +499,7 @@
    H      H       0.000     0
    CA   CAH       0.000     0
    CB   CH2       0.000     0
-   CG     C       0.000     0
+   CG    CR       0.000     0
   ND1    NR       0.000     0
   CD2    CH       0.000     0
   CE1    CH       0.000     0
@@ -728,7 +728,7 @@
    CA   CAH       0.000     0
    CB   CH2       0.000     0
    CG   CH2       0.000     0
-   SD     S       0.000     0
+   SD    SM       0.000     0
    CE   CH3       0.000     0
     C     C       0.000     0
     O     O       0.000     0
@@ -778,7 +778,7 @@
    H      H       0.000     0
    CA   CAH       0.000     0
    CB   CH2       0.000     0
-   CG    CH       0.000     0
+   CG    CR       0.000     0
   CD1    CH       0.000     0
   CD2    CH       0.000     0
   CE1    CH       0.000     0
@@ -991,11 +991,11 @@
    H      H       0.000     0
    CA   CAH       0.000     0
    CB   CH2       0.000     0
-   CG    CH       0.000     0
+   CG    CR       0.000     0
   CD1    CH       0.000     0
-  CD2    CH       0.000     0
+  CD2    CR       0.000     0
   NE1    NR       0.000     0
-  CE2    CH       0.000     0
+  CE2    CR       0.000     0
   CE3    CH       0.000     0
   CZ2    CH       0.000     0
   CZ3    CH       0.000     0
@@ -1083,7 +1083,7 @@
    H      H       0.000     0
    CA   CAH       0.000     0
    CB   CH2       0.000     0
-   CG    CH       0.000     0
+   CG    CR       0.000     0
   CD1    CH       0.000     0
   CD2    CH       0.000     0
   CE1    CH       0.000     0

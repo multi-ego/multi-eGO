@@ -12,6 +12,7 @@
     C  11.01100 ;     bare carbon
    CZ  11.01100 ;     bare carbon
    CH  13.01900 ;     aromatic CH
+   CR  12.01100 ;     aromatic C
   CAH  12.01100 ;     aliphatic or sugar CH-group
   CH1  13.01900 ;     aliphatic or sugar CH-group
   CH1t 13.01900 ;     aliphatic or sugar CH-group
@@ -20,6 +21,7 @@
   CH3  15.03500 ;     aliphatic CH3-group
  CH2r  14.02700 ;     CH2-group in a ring
     S  32.06000 ;     sulfur
+   SM  32.06000 ;     sulfur MET
    SH  32.06000 ;     sulfur
     H   4.03200 ;     backbone Hydrogen
 ; LIPIDS
