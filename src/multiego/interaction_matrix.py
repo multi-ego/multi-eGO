@@ -21,10 +21,11 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, pth=None, show=False):
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False):
         self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
         self.pth = pth
+        self.c12_rep_df = c12_rep_df
         self.define_p_threshold()
         self.nonlocal_matrix()
         self.plot_energy_matrix(show=show)
@@ -44,7 +45,7 @@ class InteractionMatrix:
         emax: maximum energy value
         pth: threshold probability to split attractive and repulsive interactions
         """
-        e = - emax/np.log(1e-4) * np.log(ps/(np.maximum(1e-4, preference*pth)))
+        e = - emax/np.log(1e-4) * np.log((ps + 1e-10)/(np.maximum(1e-4, preference*pth)))
         e /= np.max(e)
         e = np.where(e==-np.inf, -2, e)
         e = np.where(e > 0.0, 0.07 + e* (emax-0.07), e)
@@ -59,8 +60,8 @@ class InteractionMatrix:
         # TODO read them by gromos to avoid hardcoding them here
         bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
-        attype_ordering_polar = [ "NE", "NR", "NT", "OA", "CZ", "S", "SH",  "CH2r", "CH1t"]
-        attype_ordering_apolar = ["CH1","CH",  "CH2", "CH3"]
+        attype_ordering_polar = [ "NE", "NR", "NT", "OA", "CZ", "S", "SM", "SH",  "CH2r", "CH1t"]
+        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3"]
 
 
 
@@ -157,14 +158,17 @@ class InteractionMatrix:
         tot_reps = []
         sum_probs = []
         for key in data.keys():
-            probs.append(data[key].p_repeats)
+            # probs.append(data[key].p_repeats_n2)
+            probs.append(data[key].p_density)
+            # probs.append(data[key].p_mindist_repeats_allpdbs)
             dists.append(data[key].exp_aver)
             cutoffs.append(data[key].cutoff)
             bins.append(data[key].xbins)
             kde.append(data[key].kde)
             tot_reps.append(data[key].tot_repeats)
             sum_probs.append(np.sum(data[key].sum_probs))
-        atmat["probability"] = np.array(probs)#/np.array(cutoffs)**2
+        atmat["probability"] = np.array(probs)
+        # atmat["probability"] = np.where(np.array(cutoffs) > 0 ,np.array(probs)/np.array(cutoffs)**2, np.array(probs)) 
         # atmat["p_water"] =np.zeros(len(probs))
         atmat["exp_aver"] = np.array(dists)
         atmat["attype1"] = atmat["atom_pair"].str.split("_").str[0]
@@ -174,6 +178,10 @@ class InteractionMatrix:
         atmat["kde"] = kde
         atmat["tot_repeats"] = tot_reps
         atmat["sum_probs"] = sum_probs
+        # atmat["probability"] = atmat["sum_probs"]/atmat["tot_repeats"]**(0.5*1.8) if np.sum(atmat["sum_probs"]) > 0 else 0
+        # fill nan values in probability with 0
+        atmat["probability"] = atmat["probability"].fillna(0)
+
         # where O-H set distance to 0.195
         # atmat.loc[atmat["atom_pair"]=="O_H", "exp_aver"] = 0.195
         # atmat.loc[atmat["atom_pair"]=="O_N", "exp_aver"] = 0.29
@@ -193,8 +201,8 @@ class InteractionMatrix:
             print("Neither atpairref nor pth provided, or both provided. Optimizing pth to best fit KL_SCALE.")
             # find the minimum pth such that the following atom-pairs have energy < 0
             # OM_OM, O_O, NL_NL, O_OM
-            pth = 0.001  # Initialize with a default value
-            dp = 0.001
+            pth = 0.01  # Initialize with a default value
+            dp = 0.01
             while True:
                 self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, pth))
                 if (self.atmat.loc[self.atmat["atom_pair"]=="NL_NL", "energy"].values[0] < 0):
@@ -209,7 +217,7 @@ class InteractionMatrix:
             pth_max = pth
             while True:    
                 self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, pth_max))
-                if self.atmat.loc[self.atmat["atom_pair"]=="OM_NZ", "energy"].values[0] < 0:
+                if self.atmat.loc[self.atmat["atom_pair"]=="CH_CH", "energy"].values[0] < 0:
                     break
                 pth_max += dp
             pth_max -= dp
@@ -244,7 +252,7 @@ class InteractionMatrix:
                     "atomtypes": ([atom_pair.split("_")[0]], [atom_pair.split("_")[1]]),
                     "interaction": "rep",
                     "sigma": None,
-                    "epsilon": None,
+                    "epsilon": float(self.c12_rep_df.loc[((self.c12_rep_df["atp1"]==atp1) & (self.c12_rep_df["atp2"]==atp2)) | ((self.c12_rep_df["atp1"]==atp2) & (self.c12_rep_df["atp2"]==atp1)), "c12"].values[0]),
                 })
         return special_nonlocal_dict
 
@@ -253,9 +261,10 @@ class InteractionMatrix:
         self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
         self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
         self.atmat.loc[self.atmat["atom_pair"]=="O_C", "energy"] = 0.45
-        self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"] = 0.09
-        self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"] = 0.09
-
+        self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"]   = 0.08
+        self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"]   = 0.08
+        self.atmat.loc[self.atmat["atom_pair"]=="C_C", "energy"]   = 0.08
+        
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
 
 
