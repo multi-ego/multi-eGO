@@ -258,9 +258,9 @@ class InteractionMatrix:
 
     def nonlocal_matrix(self):
         self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
-        self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
-        self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
-        self.atmat.loc[self.atmat["atom_pair"]=="O_C", "energy"] = 0.45
+        self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.9
+        self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.9
+        self.atmat.loc[self.atmat["atom_pair"]=="O_C", "energy"] = 0.9
         self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"]   = 0.08
         self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"]   = 0.08
         self.atmat.loc[self.atmat["atom_pair"]=="C_C", "energy"]   = 0.08
