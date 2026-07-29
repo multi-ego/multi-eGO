@@ -54,6 +54,7 @@ gromos_atp = pd.DataFrame(
             "NZ",
             "NE",
             "C",
+            "CR",
             "CZ",
             "CH",
             "CH1",
@@ -64,6 +65,7 @@ gromos_atp = pd.DataFrame(
             "CH3",
             "CH2r",
             "S",
+            "SM",
             "SH",
             "CH3p",
             "P",
@@ -72,7 +74,7 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
@@ -84,6 +86,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.289746**12,  # "NZ",  8.752940e-07
             2.5 * 0.289746**12,  # "NE",  8.752940e-07
             2.5 * 0.317248**12,  # "C",   2.598570e-06
+            2.5 * 0.317248**12,  # "CR",   2.598570e-06
             2.5 * 0.317248**12,  # "CZ",   2.598570e-06
             2.5 * 0.317248**12,  # "CH",  2.598570e-06
             2.5 * 0.415167**12,  # "CH1", 6.555574e-05
@@ -94,6 +97,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.350505**12,  # "CH3", 8.595562e-06
             2.5 * 0.360236**12,  # "CH2r",1.193966e-05
             2.5 * 0.318498**12,  # "S",   2.724050e-06
+            2.5 * 0.318498**12,  # "SM",   2.724050e-06
             2.5 * 0.318498**12,  # "SH",   2.724050e-06
             2.5 * 0.350981**12,  # "CH3p",8.736473e-06
             2.5 * 0.328121**12,  # "P",   3.893600e-06
@@ -114,6 +118,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**12 * eps_NZ,  # "NZ", sig=0.31365
             4.0 * 0.31365**12 * eps_NE,  # "NE", sig=0.31365
             4.0 * 0.35812**12 * eps_C,  # "C",  sig=0.35812
+            4.0 * 0.35812**12 * eps_C,  # "CR",  sig=0.35812
             4.0 * 0.35812**12 * eps_CZ,  # "CZ",  sig=0.35812
             4.0 * 0.35812**12 * eps_CH,  # "CH", sig=0.35812
             4.0 * 0.44592**12 * eps_CH1,  # "CH1",  sig=0.50192
@@ -123,6 +128,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.40704**12 * eps_CAH2,  # "CAH2", sig=0.40704
             4.0 * 0.37479**12 * eps_CH3,  # "CH3",  sig=0.37479
             4.0 * 0.39547**12 * eps_CH2r,  # "CH2r", sig=0.39547
+            4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
             4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
             4.0 * 0.33077**12 * eps_SH,  # "SH",    sig=0.33077
             4.0 * 0.37479**12 * eps_CH3p,  # "CH3p", sig=0.37479
@@ -143,6 +149,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**6 * eps_NZ,  # "NZ",
             4.0 * 0.31365**6 * eps_NE,  # "NE",
             4.0 * 0.35812**6 * eps_C,  # "C",
+            4.0 * 0.35812**6 * eps_C,  # "C",
             4.0 * 0.35812**6 * eps_CZ,  # "CZ",
             4.0 * 0.35812**6 * eps_CH,  # "CH"
             4.0 * 0.44592**6 * eps_CH1,  # "CH1"
@@ -152,6 +159,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.40704**6 * eps_CAH2,  # "CAH2"
             4.0 * 0.37479**6 * eps_CH3,  # "CH3"
             4.0 * 0.39547**6 * eps_CH2r,  # "CH2r"
+            4.0 * 0.33077**6 * eps_S,  # "S",
             4.0 * 0.33077**6 * eps_S,  # "S",
             4.0 * 0.33077**6 * eps_SH,  # "SH",
             4.0 * 0.37479**6 * eps_CH3p,  # "CH3p"
@@ -332,12 +340,31 @@ atom_type_combinations = [
 # from .atdhist_matrix import special_nonlocal as special_non_local 
 from .interaction_matrix import InteractionMatrix
 
-EMAX = 0.15 #maximum epsilon value for the colorbar in the interaction matrix plot
-P_TH = 0.006#None#1.0#0.3 # 0.005  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
-SHOW = False
+_this_dir = os.path.dirname(os.path.abspath(__file__))
+_csv_path = os.path.join(_this_dir, "Minimum_CUTOFF_Manual_modif.csv")
+# _csv_path = os.path.join(_this_dir, "Merged_c12_sigma.csv")
+
+# Fallback: older layout had the CSV in src/multiego relative to project root
+if not os.path.exists(_csv_path):
+    _csv_path = os.path.join(_this_dir, "..", "src", "multiego", "Minimum_CUTOFF_Manual_modif.csv")
+try:
+    _c12_df = pd.read_csv(_csv_path, sep="\s+")
+
+except Exception:
+    # If file not found or parsing fails, expose an empty list so other code
+    # can import the module without crashing.
+    raise RuntimeError(
+        f"Failed to load Minimum_CUTOFF_Manual_modif.csv from {_csv_path}. "
+        "Please ensure the file exists and is formatted correctly."
+    )
+
+
+EMAX = 0.14 #maximum epsilon value for the colorbar in the interaction matrix plot
+P_TH = 1.0#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
+SHOW = False  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
 # PKL = "atdhisto_density.pkl"
 PKL = "atdhisto.pkl"
-matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, pth=P_TH, show=SHOW)
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, show=SHOW)
 special_non_local = matrix.special_nonlocal_dict
 # print(len(special_non_local_A), len(special_non_local))
 # print(special_non_local_A[0])
@@ -402,26 +429,9 @@ H_ALLOWED_PARTNERS = {"H", "O", "OM", "OA"}
 # NTHBOND_C12_OVERRIDES available automatically when the module is imported
 # import pandas as pd
 
-_this_dir = os.path.dirname(os.path.abspath(__file__))
-_csv_path = os.path.join(_this_dir, "Minimum_CUTOFF_Manual_modif.csv")
-# _csv_path = os.path.join(_this_dir, "Merged_c12_sigma.csv")
-
-# Fallback: older layout had the CSV in src/multiego relative to project root
-if not os.path.exists(_csv_path):
-    _csv_path = os.path.join(_this_dir, "..", "src", "multiego", "Minimum_CUTOFF_Manual_modif.csv")
-
-try:
-    _c12_df = pd.read_csv(_csv_path, sep="\s+")
-    NTHBOND_C12_OVERRIDES = [
-        ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12"])) for _, row in _c12_df.iterrows()
-    ]
-except Exception:
-    # If file not found or parsing fails, expose an empty list so other code
-    # can import the module without crashing.
-    raise RuntimeError(
-        f"Failed to load Minimum_CUTOFF_Manual_modif.csv from {_csv_path}. "
-        "Please ensure the file exists and is formatted correctly."
-    )
+NTHBOND_C12_OVERRIDES = [
+    ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12"])) for _, row in _c12_df.iterrows()
+]
 # NTHBOND_C12_OVERRIDES = [
 #     ({"O", "OM"}, {"O", "OM"}, mg_OO_c12_rep),
 #     ({"OM"}, {"OM"}, mg_OMOM_c12_rep),
