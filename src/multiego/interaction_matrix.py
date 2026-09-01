@@ -84,7 +84,7 @@ class InteractionMatrix:
                 if at1 in noplot or at2 in noplot:
                     continue
                 energy = self.atmat.loc[((self.atmat["attype1"]==at1) & (self.atmat["attype2"]==at2)) | ((self.atmat["attype1"]==at2) & (self.atmat["attype2"]==at1)), "energy"].values
-                if (at1 == "H" and at2 not in ["O", "H"]) or (at2 == "H" and at1 not in ["O", "H"]):
+                if (at1 == "H" and at2 not in ["O", "H", "OA", "OM"]) or (at2 == "H" and at1 not in ["O", "H", "OA", "OM"]):
                     energies.append(-2)
                     continue
                 if len(energy) > 0:
@@ -158,7 +158,7 @@ class InteractionMatrix:
         tot_reps = []
         sum_probs = []
         for key in data.keys():
-            # probs.append(data[key].p_repeats_n2)
+            #probs.append(data[key].p_repeats_n2)
             probs.append(data[key].p_density)
             # probs.append(data[key].p_mindist_repeats_allpdbs)
             dists.append(data[key].exp_aver)
@@ -201,8 +201,8 @@ class InteractionMatrix:
             print("Neither atpairref nor pth provided, or both provided. Optimizing pth to best fit KL_SCALE.")
             # find the minimum pth such that the following atom-pairs have energy < 0
             # OM_OM, O_O, NL_NL, O_OM
-            pth = 0.01  # Initialize with a default value
-            dp = 0.01
+            pth = 0.001  # Initialize with a default value
+            dp = 0.001
             while True:
                 self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, pth))
                 if (self.atmat.loc[self.atmat["atom_pair"]=="NL_NL", "energy"].values[0] < 0):
@@ -258,12 +258,12 @@ class InteractionMatrix:
 
     def nonlocal_matrix(self):
         self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
-        self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.9
-        self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.9
-        self.atmat.loc[self.atmat["atom_pair"]=="N_C", "energy"] = 0.9
-        self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"]   = 0.08
-        self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"]   = 0.08
-        self.atmat.loc[self.atmat["atom_pair"]=="C_C", "energy"]   = 0.08
+        # self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
+        # self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
+        # self.atmat.loc[self.atmat["atom_pair"]=="N_C", "energy"] = 0.45
+        # self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"]   = 0.08
+        # self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"]   = 0.08
+        # self.atmat.loc[self.atmat["atom_pair"]=="C_C", "energy"]   = 0.08
         
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
 
