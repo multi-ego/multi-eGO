@@ -448,7 +448,7 @@ def warning_cutoff_histo(cutoff, max_adaptive_cutoff):
     )
 
 
-def generate_c12_values(df, types, combinations, molecule_type):
+def generate_c12_values(df_i, df_j, types, combinations, molecule_type, mode_type):
     """
     Compute the pairwise c12 cutoff matrix for a molecule.
 
@@ -460,8 +460,10 @@ def generate_c12_values(df, types, combinations, molecule_type):
 
     Parameters
     ----------
-    df : pd.DataFrame
-        Per-atom topology slice.  Must contain columns ``c12`` and ``resnum``.
+    df_i : pd.DataFrame
+        Per-atom topology slice for the first molecule.  Must contain columns ``c12`` and ``resnum``.
+    df_j : pd.DataFrame
+        Per-atom topology slice for the second molecule.  Must contain columns ``c12`` and ``resnum``.
     types : dict
         Mapping from group name to a 1-D boolean numpy array (as returned by
         ``bonded.proteins_atoms_mask``).
@@ -479,8 +481,8 @@ def generate_c12_values(df, types, combinations, molecule_type):
         where ``N`` is the number of atoms in ``df``.
     """
     # create combination of mego_type
-    mego_types_i = df["mego_type"].to_numpy()
-    mego_types_j = df["mego_type"].to_numpy()
+    mego_types_i = df_i["mego_type"].to_numpy()
+    mego_types_j = df_j["mego_type"].to_numpy()
     all_combinations = [(a, b) for a in mego_types_i for b in mego_types_j]
     # map to c12 values using the _c12_df
 
@@ -523,37 +525,40 @@ def generate_c12_values(df, types, combinations, molecule_type):
     all_combinations_str = [f"{a}_{b}" for a, b in all_combinations]
     c12_matrix = c12_lookup.reindex(all_combinations_str).to_numpy().reshape(len(mego_types_i), len(mego_types_j))
 
-    all_c12 = np.sqrt(df["c12"].to_numpy() * df["c12"].to_numpy()[:, np.newaxis])
+    # all_c12 = np.sqrt(df_i["c12"].to_numpy() * df_j["c12"].to_numpy()[:, np.newaxis])
     all_c12 = c12_matrix.copy()
     # c12_map = np.full(all_c12.shape, np.nan, dtype=float)
     c12_map = np.full(c12_matrix.shape, np.nan, dtype=float)
 
-    resnums = df["resnum"].to_numpy()
+    # TODO types is used only for proteins intramolecular interactions
+    # this should better be handled as separately and called only if needed in order to make this function more general
+    if mode_type == "intra":
+        resnums = df_i["resnum"].to_numpy()
 
-    if molecule_type == "protein":
-        for combination in combinations:
-            name_1, name_2, factor, constant, shift = combination
-            if factor is not None and constant is not None:
+        if molecule_type == "protein":
+            for combination in combinations:
+                name_1, name_2, factor, constant, shift = combination
+                if factor is not None and constant is not None:
 
-                def operation(x, _f=factor, _c=constant):
-                    return np.minimum(_f * x, _c)
+                    def operation(x, _f=factor, _c=constant):
+                        return np.minimum(_f * x, _c)
 
-            elif factor is not None:
+                elif factor is not None:
 
-                def operation(x, _f=factor):
-                    return _f * x
+                    def operation(x, _f=factor):
+                        return _f * x
 
-            elif constant is not None:
+                elif constant is not None:
 
-                def operation(_, _c=constant):
-                    return _c
+                    def operation(_, _c=constant):
+                        return _c
 
-            else:
-                raise ValueError("Either factor or constant must be specified.")
+                else:
+                    raise ValueError("Either factor or constant must be specified.")
 
-            combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
-            combined_map = combined_map | combined_map.T
-            c12_map = np.where(combined_map, operation(all_c12), c12_map)
+                combined_map = (types[name_1] & types[name_2][:, np.newaxis]) & (resnums + shift == resnums[:, np.newaxis])
+                combined_map = combined_map | combined_map.T
+                c12_map = np.where(combined_map, operation(all_c12), c12_map)
 
     c12_map = np.where(np.isnan(c12_map), all_c12, c12_map)
 
@@ -767,7 +772,7 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
                 for ai, aj, c12 in user_pairs
             ]
 
-        c12_values = generate_c12_values(topology_df_i, types, type_definitions.atom_type_combinations, molecule_type)
+        c12_values = generate_c12_values(topology_df_i, topology_df_j, types, type_definitions.atom_type_combinations, molecule_type, "intra")
         c12_matrix = c12_values.copy()
         # print(type_i)
         # print(type_j)
@@ -820,7 +825,9 @@ def main_routine(mol_i, mol_j, topology_mego, topology_ref, molecules_name, pref
                     c12_cutoff[aj][ai] = CUTOFF_FACTOR * np.power(c12, 1.0 / 12.0)
 
     if mat_type == "inter":
-        c12_matrix = np.sqrt(topology_df_j["c12"].values * topology_df_i["c12"].values[:, np.newaxis])
+        # TODO: not sure "other" is correct in any inter case 
+        c12_values = generate_c12_values(topology_df_i, topology_df_j, None, type_definitions.atom_type_combinations, "other", "inter")
+        c12_matrix = c12_values.copy()
         # special repulsive rules
         for rule in type_definitions.special_non_local:
             if rule["interaction"] != "rep":
