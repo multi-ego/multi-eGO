@@ -22,10 +22,10 @@ class RemapUnpickler(pickle.Unpickler):
 class InteractionMatrix:
 
     def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, f_bkbn=1):
+        self.f_bkbn = f_bkbn
         self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
         self.pth = pth
-        self.f_bkbn = f_bkbn
         self.c12_rep_df = c12_rep_df
         self.define_p_threshold()
         self.nonlocal_matrix()
