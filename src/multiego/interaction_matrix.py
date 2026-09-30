@@ -21,10 +21,11 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False):
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, f_bkbn=1):
         self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
         self.pth = pth
+        self.f_bkbn = f_bkbn
         self.c12_rep_df = c12_rep_df
         self.define_p_threshold()
         self.nonlocal_matrix()
@@ -167,8 +168,6 @@ class InteractionMatrix:
             tot_reps.append(data[key].tot_repeats)
             sum_probs.append(np.sum(data[key].sum_probs))
         atmat["probability"] = np.array(probs)
-        # atmat["probability"] = np.where(np.array(cutoffs) > 0 ,np.array(probs)/np.array(cutoffs)**2, np.array(probs)) 
-        # atmat["p_water"] =np.zeros(len(probs))
         atmat["exp_aver"] = np.array(dists)
         atmat["attype1"] = atmat["atom_pair"].str.split("_").str[0]
         atmat["attype2"] = atmat["atom_pair"].str.split("_").str[1]
@@ -177,22 +176,19 @@ class InteractionMatrix:
         atmat["kde"] = kde
         atmat["tot_repeats"] = tot_reps
         atmat["sum_probs"] = sum_probs
-        # atmat["probability"] = atmat["sum_probs"]/atmat["tot_repeats"]**(0.5*1.8) if np.sum(atmat["sum_probs"]) > 0 else 0
         # fill nan values in probability with 0
         atmat["probability"] = atmat["probability"].fillna(0)
-        # for all bkbn atom pairs set multiply the probability by 1.5 to increase the attractive interactions
+        
+        # for all bkbn atom pairs set multiply the probability by a factor f_bkbn to compansate for the different statistics 
         bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", "O_N", "O_C", "O_CAH","O_CAH2",  "N_C","N_CAH", "C_CAH", "N_CAH2", "C_CAH2", "CAH_CAH2"]
         #bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "O_N", "O_C", "O_CAH", "N_C","N_CAH", "C_CAH" ]
         for pair in bkbn_pairs:
-            atmat.loc[atmat["atom_pair"]==pair, "probability"] *= 1.7
+            atmat.loc[atmat["atom_pair"]==pair, "probability"] *= self.f_bkbn
         # where O-H set distance to 0.195
         # atmat.loc[atmat["atom_pair"]=="O_H", "exp_aver"] = 0.195
         # atmat.loc[atmat["atom_pair"]=="O_N", "exp_aver"] = 0.29
         # atmat.loc[atmat["atom_pair"]=="C_N", "exp_aver"] = 0.41
-        ps = []
-        for i in range(len(atmat)): 
-            ps.append((np.sum(kde[i]*np.diff(bins[i])[0]/bins[i]**2/ tot_reps[i] )))#* cutoffs[i]**3   ))  )
-        # atmat["probability"] = np.array(ps)
+
         return atmat
 
 
