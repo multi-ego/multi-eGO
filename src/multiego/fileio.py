@@ -8,6 +8,8 @@ import git
 import time
 import re
 import json
+import matplotlib.pyplot as plt
+
 
 from . import _term
 
@@ -356,6 +358,7 @@ def write_model(meGO_ensemble, meGO_LJ, meGO_LJ_14, parameters, stat_str):
     )
     meGO_LJ = sort_LJ(meGO_ensemble, meGO_LJ)
     write_nonbonded(meGO_ensemble.topology_dataframe, meGO_LJ, parameters, output_dir)
+    save_matrix_png(output_dir)
     write_output_readme(meGO_LJ, parameters, output_dir, stat_str)
     return output_dir
 
@@ -389,6 +392,11 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
             f.write("\nContact parameters:\n")
             f.write(stat_str)
 
+def save_matrix_png(output_path):
+    # import matrix from type definition and use the class function to plot it
+    from .type_definitions import matrix
+    matrix.plot_energy_matrix(out_path=f"{output_path}/energy_matrix.png", show=False)
+    
 
 def print_stats(meGO_LJ):
     # it would be nice to cycle over molecule types and print an half matrix with all the relevant information
