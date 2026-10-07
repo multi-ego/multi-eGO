@@ -365,11 +365,12 @@ except Exception:
 
 EMAX = 0.14 #maximum epsilon value for the colorbar in the interaction matrix plot
 P_TH = 0.55#0.65#0.0034#0.46#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
+EMAX_BKBN = EMAX
 P_TH_BKBN = 0.35
 SHOW = False  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
 
 PKL = "atdhisto.pkl"
-matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW)
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN)
 special_non_local = matrix.special_nonlocal_dict
 
 # Verify that every attractive special interaction carries an epsilon at least

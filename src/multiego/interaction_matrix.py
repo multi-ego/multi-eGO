@@ -21,9 +21,10 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None):
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None):
         self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
+        self.emax_bkbn = emax_bkbn if emax_bkbn is not None else emax
         self.pth = pth
         self.pth_bkbn = pth_bkbn if pth_bkbn is not None else pth
         self.c12_rep_df = c12_rep_df
@@ -105,7 +106,7 @@ class InteractionMatrix:
 
         # Full normalization for the image
         energy_matrix = np.array(energies).reshape(len(order_list_atom1), len(order_list_atom2))
-        norm = TwoSlopeNorm(vmin=-1,vcenter=0.07,   vmax=self.emax)
+        norm = TwoSlopeNorm(vmin=-1,vcenter=0.07,   vmax=np.maximum(self.emax, self.emax_bkbn))
         # set -2 values to grey 
         energy_matrix = np.where(energy_matrix == -2, np.nan, energy_matrix)
         # set nan values to grey
@@ -116,7 +117,7 @@ class InteractionMatrix:
         blue_part = cmap(np.linspace(0.5, 1, 256))
         blue_cmap = LinearSegmentedColormap.from_list("blue_part", blue_part)
 
-        pos_norm = Normalize(vmin=0.07, vmax=self.emax)
+        pos_norm = Normalize(vmin=0.07, vmax=np.maximum(self.emax, self.emax_bkbn))
         sm = ScalarMappable(norm=pos_norm, cmap=blue_cmap)
         sm.set_array([])  # required for colorbar
         ax.set_xticks(ticks=np.arange(len(order_list_atom2)), labels=order_list_atom2, rotation=90)
@@ -269,10 +270,11 @@ class InteractionMatrix:
                 raise ValueError(f"Atom pair {pair} not found in atmat dataframe.")
 
         # where bkbn_pairs set probability pth to pth_bkbn and else to pth
-        self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax, self.pth_bkbn))
+        self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
         self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax, self.pth))
         #self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
         
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
+
 
 
