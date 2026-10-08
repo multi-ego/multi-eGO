@@ -21,14 +21,17 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False):
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None):
         self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
+        self.emax_bkbn = emax_bkbn if emax_bkbn is not None else emax
         self.pth = pth
+        self.pth_bkbn = pth_bkbn if pth_bkbn is not None else pth
         self.c12_rep_df = c12_rep_df
         self.define_p_threshold()
         self.nonlocal_matrix()
-        self.plot_energy_matrix(show=show)
+        if show:
+            self.plot_energy_matrix(show=show)
 
     def roundPartial(self, value, resolution=0.005):
         """
@@ -61,7 +64,7 @@ class InteractionMatrix:
         bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
         attype_ordering_polar = [ "NE", "NR", "NT", "OA", "CZ", "S", "SM", "SH",  "CH2r", "CH1t"]
-        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3"]
+        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3", "CS"]
 
 
 
@@ -103,7 +106,7 @@ class InteractionMatrix:
 
         # Full normalization for the image
         energy_matrix = np.array(energies).reshape(len(order_list_atom1), len(order_list_atom2))
-        norm = TwoSlopeNorm(vmin=-1,vcenter=0.07,   vmax=self.emax)
+        norm = TwoSlopeNorm(vmin=-1,vcenter=0.07,   vmax=np.maximum(self.emax, self.emax_bkbn))
         # set -2 values to grey 
         energy_matrix = np.where(energy_matrix == -2, np.nan, energy_matrix)
         # set nan values to grey
@@ -114,7 +117,7 @@ class InteractionMatrix:
         blue_part = cmap(np.linspace(0.5, 1, 256))
         blue_cmap = LinearSegmentedColormap.from_list("blue_part", blue_part)
 
-        pos_norm = Normalize(vmin=0.07, vmax=self.emax)
+        pos_norm = Normalize(vmin=0.07, vmax=np.maximum(self.emax, self.emax_bkbn))
         sm = ScalarMappable(norm=pos_norm, cmap=blue_cmap)
         sm.set_array([])  # required for colorbar
         ax.set_xticks(ticks=np.arange(len(order_list_atom2)), labels=order_list_atom2, rotation=90)
@@ -158,8 +161,8 @@ class InteractionMatrix:
         tot_reps = []
         sum_probs = []
         for key in data.keys():
-            probs.append(data[key].p_repeats_n2)
-            #probs.append(data[key].p_density)
+            # probs.append(data[key].p_repeats_n2)
+            probs.append(data[key].p_density)
             dists.append(data[key].exp_aver)
             cutoffs.append(data[key].cutoff)
             bins.append(data[key].xbins)
@@ -167,8 +170,6 @@ class InteractionMatrix:
             tot_reps.append(data[key].tot_repeats)
             sum_probs.append(np.sum(data[key].sum_probs))
         atmat["probability"] = np.array(probs)
-        # atmat["probability"] = np.where(np.array(cutoffs) > 0 ,np.array(probs)/np.array(cutoffs)**2, np.array(probs)) 
-        # atmat["p_water"] =np.zeros(len(probs))
         atmat["exp_aver"] = np.array(dists)
         atmat["attype1"] = atmat["atom_pair"].str.split("_").str[0]
         atmat["attype2"] = atmat["atom_pair"].str.split("_").str[1]
@@ -177,22 +178,19 @@ class InteractionMatrix:
         atmat["kde"] = kde
         atmat["tot_repeats"] = tot_reps
         atmat["sum_probs"] = sum_probs
-        # atmat["probability"] = atmat["sum_probs"]/atmat["tot_repeats"]**(0.5*1.8) if np.sum(atmat["sum_probs"]) > 0 else 0
         # fill nan values in probability with 0
         atmat["probability"] = atmat["probability"].fillna(0)
-        # for all bkbn atom pairs set multiply the probability by 1.5 to increase the attractive interactions
-        bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", "O_N", "O_C", "O_CAH","O_CAH2",  "N_C","N_CAH", "C_CAH", "N_CAH2", "C_CAH2", "CAH_CAH2"]
-        #bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "O_N", "O_C", "O_CAH", "N_C","N_CAH", "C_CAH" ]
-        for pair in bkbn_pairs:
-            atmat.loc[atmat["atom_pair"]==pair, "probability"] *= 2
+        
+        # # for all bkbn atom pairs set multiply the probability by a factor f_bkbn to compansate for the different statistics 
+        # bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", "O_N", "O_C", "O_CAH","O_CAH2",  "N_C","N_CAH", "C_CAH", "N_CAH2", "C_CAH2", "CAH_CAH2"]
+        # #bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "O_N", "O_C", "O_CAH", "N_C","N_CAH", "C_CAH" ]
+        # for pair in bkbn_pairs:
+        #     atmat.loc[atmat["atom_pair"]==pair, "probability"] *= self.f_bkbn
         # where O-H set distance to 0.195
         # atmat.loc[atmat["atom_pair"]=="O_H", "exp_aver"] = 0.195
         # atmat.loc[atmat["atom_pair"]=="O_N", "exp_aver"] = 0.29
         # atmat.loc[atmat["atom_pair"]=="C_N", "exp_aver"] = 0.41
-        ps = []
-        for i in range(len(atmat)): 
-            ps.append((np.sum(kde[i]*np.diff(bins[i])[0]/bins[i]**2/ tot_reps[i] )))#* cutoffs[i]**3   ))  )
-        # atmat["probability"] = np.array(ps)
+
         return atmat
 
 
@@ -260,22 +258,23 @@ class InteractionMatrix:
         return special_nonlocal_dict
 
     def nonlocal_matrix(self):
-        self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
-        # self.atmat.loc[self.atmat["atom_pair"]=="O_H", "energy"] = 0.45
-        # self.atmat.loc[self.atmat["atom_pair"]=="O_N", "energy"] = 0.45
-        # self.atmat.loc[self.atmat["atom_pair"]=="N_C", "energy"] = 0.45
-        # eps_base = 0.08
-        # bkbn_pairs = ["O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", "O_N", "O_C", "O_CAH","O_CAH2",  "N_C","N_CAH", "C_CAH", "N_CAH2", "C_CAH2", "CAH_CAH2"]
-        # for pair in bkbn_pairs:
-        #     if self.atmat.loc[self.atmat["atom_pair"]==pair, "energy"].values[0] < 0:
-        #         self.atmat.loc[self.atmat["atom_pair"]==pair, "energy"] = eps_base
-       
 
+        bkbn_pairs = [ "H_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", 
+                      "O_N", "O_C", "O_CAH","O_CAH2", "O_H", 
+                      "N_C","N_CAH", "N_CAH2",
+                      "C_CAH","C_CAH2", 
+                      "CAH_CAH2"]
+        # check that all bkbn_pairs are in the atmat dataframe
+        for pair in bkbn_pairs:
+            if pair not in self.atmat["atom_pair"].values:
+                raise ValueError(f"Atom pair {pair} not found in atmat dataframe.")
 
-        # self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"]   = 0.08
-        # self.atmat.loc[self.atmat["atom_pair"]=="N_N", "energy"]   = 0.08
-        # self.atmat.loc[self.atmat["atom_pair"]=="C_C", "energy"]   = 0.08
+        # where bkbn_pairs set probability pth to pth_bkbn and else to pth
+        self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
+        self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax, self.pth))
+        #self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
         
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
+
 
 

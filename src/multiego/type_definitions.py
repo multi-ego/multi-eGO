@@ -55,6 +55,7 @@ gromos_atp = pd.DataFrame(
             "NE",
             "C",
             "CR",
+            "CS",
             "CZ",
             "CH",
             "CH1",
@@ -74,7 +75,7 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
@@ -87,6 +88,7 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.289746**12,  # "NE",  8.752940e-07
             2.5 * 0.317248**12,  # "C",   2.598570e-06
             2.5 * 0.317248**12,  # "CR",   2.598570e-06
+            2.5 * 0.317248**12,  # "CS",   2.598570e-06
             2.5 * 0.317248**12,  # "CZ",   2.598570e-06
             2.5 * 0.317248**12,  # "CH",  2.598570e-06
             2.5 * 0.415167**12,  # "CH1", 6.555574e-05
@@ -119,6 +121,7 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**12 * eps_NE,  # "NE", sig=0.31365
             4.0 * 0.35812**12 * eps_C,  # "C",  sig=0.35812
             4.0 * 0.35812**12 * eps_C,  # "CR",  sig=0.35812
+            4.0 * 0.35812**12 * eps_C,  # "CS",  sig=0.35812
             4.0 * 0.35812**12 * eps_CZ,  # "CZ",  sig=0.35812
             4.0 * 0.35812**12 * eps_CH,  # "CH", sig=0.35812
             4.0 * 0.44592**12 * eps_CH1,  # "CH1",  sig=0.50192
@@ -149,7 +152,8 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.31365**6 * eps_NZ,  # "NZ",
             4.0 * 0.31365**6 * eps_NE,  # "NE",
             4.0 * 0.35812**6 * eps_C,  # "C",
-            4.0 * 0.35812**6 * eps_C,  # "C",
+            4.0 * 0.35812**6 * eps_C,  # "CR",
+            4.0 * 0.35812**6 * eps_C,  # "CS",
             4.0 * 0.35812**6 * eps_CZ,  # "CZ",
             4.0 * 0.35812**6 * eps_CH,  # "CH"
             4.0 * 0.44592**6 * eps_CH1,  # "CH1"
@@ -359,17 +363,16 @@ except Exception:
     )
 
 
-EMAX = 0.15 #maximum epsilon value for the colorbar in the interaction matrix plot
-P_TH = 0.0045#0.0034#0.46#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
-SHOW = True  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
-# PKL = "atdhisto_density.pkl"
+EMAX = 0.14 #maximum epsilon value for the colorbar in the interaction matrix plot
+P_TH = 0.55#0.65#0.0034#0.46#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
+EMAX_BKBN = EMAX
+P_TH_BKBN = 0.35
+SHOW = False  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
+
 PKL = "atdhisto.pkl"
-matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, show=SHOW)
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN)
 special_non_local = matrix.special_nonlocal_dict
-# print(len(special_non_local_A), len(special_non_local))
-# print(special_non_local_A[0])
-# print()
-print(special_non_local[0])
+
 # Verify that every attractive special interaction carries an epsilon at least
 # as large as the global minimum.  A violation here means the entry was
 # mis-typed and would silently produce interactions weaker than the threshold
@@ -432,6 +435,14 @@ H_ALLOWED_PARTNERS = {"H", "O", "OM", "OA"}
 NTHBOND_C12_OVERRIDES = [
     ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12"])) for _, row in _c12_df.iterrows()
 ]
+
+NTHBOND_C12_OVERRIDES_4_5 = NTHBOND_C12_OVERRIDES.copy()  # Use the same overrides for 4-5 pairs for now
+# Later should become this and use the 4-5 c12 when is much smaller than the >6 bond c12
+# NTHBOND_C12_OVERRIDES_1_5 = [
+#     ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12.2"])) if float(row["c12.2"])*5 < float(row["c12.1"]) else 
+#      ({str(row["atp1"]).strip()}, {str(row["atp2"]).strip()}, float(row["c12.1"])) for _, row in _c12_df.iterrows()
+# ]
+
 # NTHBOND_C12_OVERRIDES = [
 #     ({"O", "OM"}, {"O", "OM"}, mg_OO_c12_rep),
 #     ({"OM"}, {"OM"}, mg_OMOM_c12_rep),

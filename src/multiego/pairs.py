@@ -115,7 +115,6 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         sbtype_to_atnum = reduced_topology.set_index("sb_type")["number"].to_dict()
 
         nthbond = generate_bond_exclusions(reduced_topology, bond_pair)
-
         # Build nth-bond (3 < bonds <= max_bond_separation) pair list.
         # H-X pairs are skipped unless X is an allowed partner (e.g. H-CH2 is dropped).
         # Default c12 is the combination rule; special overrides are applied afterwards.
@@ -147,7 +146,7 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
         type_ai = pairs["ai"].map(meGO_ensemble.sbtype_type_dict)
         type_aj = pairs["aj"].map(meGO_ensemble.sbtype_type_dict)
 
-        for types_i, types_j, c12_val in type_definitions.NTHBOND_C12_OVERRIDES:
+        for types_i, types_j, c12_val in type_definitions.NTHBOND_C12_OVERRIDES_4_5:
             mask = type_ai.isin(types_i) & type_aj.isin(types_j)
             if types_i != types_j:
                 mask |= type_ai.isin(types_j) & type_aj.isin(types_i)
