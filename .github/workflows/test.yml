@@ -104,7 +104,7 @@ jobs:
         pytest tests/test_multiego.py tests/test_apply_symmetries.py tests/test_symmetrize_reference_contacts.py
 
   build-macos-conda:
-    runs-on: macos-14
+    runs-on: macos-15
     needs: lint
 
     steps:
