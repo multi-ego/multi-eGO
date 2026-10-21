@@ -22,8 +22,7 @@ class RemapUnpickler(pickle.Unpickler):
 class InteractionMatrix:
 
     def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None, pth_sc_bkbn=None, emax_sc_bkbn=None, om_scaledown=None):
-        # self.atmat = self.read_pickle_file(pkl_file)
-        self.atmat = self.read_csv_probs(pkl_file)
+        self.atmat = self.read_pickle_file(pkl_file)
         self.emax = emax
         self.emax_bkbn = emax_bkbn if emax_bkbn is not None else emax
         self.emax_sc_bkbn = emax_sc_bkbn if emax_sc_bkbn is not None else self.emax_bkbn
@@ -197,23 +196,7 @@ class InteractionMatrix:
         # atmat.loc[atmat["atom_pair"]=="C_N", "exp_aver"] = 0.41
 
         return atmat
-
-    def read_csv_probs(self, filename):
-        _this_dir = os.path.dirname(os.path.abspath(__file__))
-        pikle_path = os.path.join(_this_dir, filename)
-
-        # Fallback: older layout had the CSV in src/multiego relative to project root
-        if not os.path.exists(pikle_path):
-            pikle_path = os.path.join(_this_dir, "..", "src", "multiego", filename)
-
-        atmat = pd.read_csv(pikle_path)
-        atmat["attype1"] = atmat["atpair"].str.split("_").str[0]
-        atmat["attype2"] = atmat["atpair"].str.split("_").str[1]
-        atmat["probability"] = atmat["p"].copy()
-        atmat["atom_pair"] = atmat["atpair"].copy()
-        atmat["exp_aver"] = atmat["mu"].copy()
-        return atmat
-
+    
     def define_p_threshold(self):
         """
         Define p_threshold used to split attractive and repulsive interactions

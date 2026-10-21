@@ -45,6 +45,7 @@ gromos_atp = pd.DataFrame(
     {
         "name": [
             "O",
+            "OS",
             "OM",
             "OA",
             "N",
@@ -75,9 +76,10 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
+            2.5 * 0.262134**12,  # "OS",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
             2.5 * 0.276621**12,  # "OA",  5.018430e-07
             2.5 * 0.289746**12,  # "N",   8.752940e-07
@@ -111,6 +113,7 @@ gromos_atp = pd.DataFrame(
         # all to ch2 except ch e ch3
         "mg_c12": [
             4.0 * 0.27601**12 * eps_O,  # "O",  sig=0.27601
+            4.0 * 0.27601**12 * eps_O,  # "OS",  sig=0.27601
             4.0 * 0.26259**12 * eps_OM,  # "OM", sig=0.26259
             4.0 * 0.29548**12 * eps_OA,  # "OA", sig=0.29548
             4.0 * 0.31365**12 * eps_N,  # "N",  sig=0.31365
@@ -143,6 +146,7 @@ gromos_atp = pd.DataFrame(
         ],
         "mg_c6": [
             4.0 * 0.27601**6 * eps_O,  # "O",
+            4.0 * 0.27601**6 * eps_O,  # "OS",
             4.0 * 0.26259**6 * eps_OM,  # "OM",
             4.0 * 0.29548**6 * eps_OA,  # "OA",
             4.0 * 0.31365**6 * eps_N,  # "N",
@@ -362,15 +366,21 @@ except Exception:
         "Please ensure the file exists and is formatted correctly."
     )
 
+# Energies of atomtype interaction matrix
+EMAX = 0.13
+EMAX_SC_BKBN = 0.13
+EMAX_BKBN = 0.13
+# Threshold probability for contact matrix, they define the energy scaling and rep vs attraction atomtype itneraction
+P_TH = 0.8
+P_TH_SC_BKBN = 0.8
+P_TH_BKBN = 0.1
+# OM atomtype scaling factor. Probability is reduced by a factor to account for the protonation simmetry-breaking that can be found in protein cores 
+OM_SCALEDOWN = 1
 
-EMAX = 0.14 #maximum epsilon value for the colorbar in the interaction matrix plot
-P_TH = 0.55#0.65#0.0034#0.46#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
-EMAX_BKBN = EMAX
-P_TH_BKBN = 0.35
-SHOW = False  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
+SHOW = False
 
 PKL = "atdhisto.pkl"
-matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN)
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN, pth_sc_bkbn=P_TH_SC_BKBN, emax_sc_bkbn=EMAX_SC_BKBN, om_scaledown=OM_SCALEDOWN)
 special_non_local = matrix.special_nonlocal_dict
 
 # Verify that every attractive special interaction carries an epsilon at least
