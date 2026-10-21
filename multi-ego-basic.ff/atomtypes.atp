@@ -1,4 +1,5 @@
     O  15.99940 ;     carbonyl oxygen (C=O)
+   OS  15.99940 ;     carbonyl oxygen (C=O)
    OM  15.99940 ;     carboxyl oxygen (CO-)
    OA  16.99940 ;     hydroxyl, sugar or ester oxygen
 ;    N  15.00670 ;     peptide nitrogen (N or NH)
