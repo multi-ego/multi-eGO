@@ -21,13 +21,18 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None):
-        self.atmat = self.read_pickle_file(pkl_file)
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None, pth_sc_bkbn=None, emax_sc_bkbn=None, om_scaledown=None):
+        # self.atmat = self.read_pickle_file(pkl_file)
+        self.atmat = self.read_csv_probs(pkl_file)
         self.emax = emax
         self.emax_bkbn = emax_bkbn if emax_bkbn is not None else emax
+        self.emax_sc_bkbn = emax_sc_bkbn if emax_sc_bkbn is not None else self.emax_bkbn
         self.pth = pth
         self.pth_bkbn = pth_bkbn if pth_bkbn is not None else pth
+        self.pth_sc_bkbn = pth_sc_bkbn if pth_sc_bkbn is not None else (self.pth + self.pth_bkbn) / 2
+        self.om_scaledown = om_scaledown
         self.c12_rep_df = c12_rep_df
+
         self.define_p_threshold()
         self.nonlocal_matrix()
         if show:
@@ -63,8 +68,8 @@ class InteractionMatrix:
         # TODO read them by gromos to avoid hardcoding them here
         bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
-        attype_ordering_polar = [ "NE", "NR", "NT", "OA", "CZ", "S", "SM", "SH",  "CH2r", "CH1t"]
-        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3", "CS"]
+        attype_ordering_polar = [ "NE", "NR", "NT", "OA","OS", "CZ","CS", "CH1t",  "CH2r", "S","SM", "SH"]
+        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3"]
 
 
 
@@ -87,7 +92,7 @@ class InteractionMatrix:
                 if at1 in noplot or at2 in noplot:
                     continue
                 energy = self.atmat.loc[((self.atmat["attype1"]==at1) & (self.atmat["attype2"]==at2)) | ((self.atmat["attype1"]==at2) & (self.atmat["attype2"]==at1)), "energy"].values
-                if (at1 == "H" and at2 not in ["O", "H", "OA", "OM"]) or (at2 == "H" and at1 not in ["O", "H", "OA", "OM"]):
+                if (at1 == "H" and at2 not in ["O", "H", "OA", "OM", "OS"]) or (at2 == "H" and at1 not in ["O", "H", "OA", "OM", "OS"]):
                     energies.append(-2)
                     continue
                 if len(energy) > 0:
@@ -193,6 +198,21 @@ class InteractionMatrix:
 
         return atmat
 
+    def read_csv_probs(self, filename):
+        _this_dir = os.path.dirname(os.path.abspath(__file__))
+        pikle_path = os.path.join(_this_dir, filename)
+
+        # Fallback: older layout had the CSV in src/multiego relative to project root
+        if not os.path.exists(pikle_path):
+            pikle_path = os.path.join(_this_dir, "..", "src", "multiego", filename)
+
+        atmat = pd.read_csv(pikle_path)
+        atmat["attype1"] = atmat["atpair"].str.split("_").str[0]
+        atmat["attype2"] = atmat["atpair"].str.split("_").str[1]
+        atmat["probability"] = atmat["p"].copy()
+        atmat["atom_pair"] = atmat["atpair"].copy()
+        atmat["exp_aver"] = atmat["mu"].copy()
+        return atmat
 
     def define_p_threshold(self):
         """
@@ -237,7 +257,7 @@ class InteractionMatrix:
         for atom_pair in self.atmat["atom_pair"].unique():
             atp1, atp2 = atom_pair.split("_")
             # write only H-O interaction, skip all the rest
-            if (atp1 == "H" and atp2 not in  ["O", "H"]) or (atp2 == "H" and atp1 not in ["O", "H"]):
+            if (atp1 == "H" and atp2 not in  ["O", "OM", "OA", "OS", "H"]) or (atp2 == "H" and atp1 not in ["O", "OM", "OA", "OS", "H"]):
                 continue
             energy = self.atmat.loc[self.atmat["atom_pair"]==atom_pair, "energy"].values[0]
             sigma = self.atmat.loc[self.atmat["atom_pair"]==atom_pair, "exp_aver"].values[0] / 2**(1/6)
@@ -259,22 +279,32 @@ class InteractionMatrix:
 
     def nonlocal_matrix(self):
 
-        bkbn_pairs = [ "H_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", 
-                      "O_N", "O_C", "O_CAH","O_CAH2", "O_H", 
-                      "N_C","N_CAH", "N_CAH2",
-                      "C_CAH","C_CAH2", 
-                      "CAH_CAH2"]
+        # bkbn_pairs = [ "H_H", "O_O", "N_N", "C_C", "CAH_CAH",# "CAH2_CAH2", 
+        #               "O_N", "O_C", "O_CAH", "O_H", #"O_CAH2",
+        #               "N_C","N_CAH", #"N_CAH2",
+        #               "C_CAH"],#"C_CAH2", 
+        #               #"CAH_CAH2"]
+        bkbn_attypes = ["H", "O", "N", "C", "CAH", "CAH2", "CH2r"]
         # check that all bkbn_pairs are in the atmat dataframe
-        for pair in bkbn_pairs:
-            if pair not in self.atmat["atom_pair"].values:
-                raise ValueError(f"Atom pair {pair} not found in atmat dataframe.")
+        # for pair in bkbn_pairs:
+        #     if pair not in self.atmat["atom_pair"].values:
+        #         raise ValueError(f"Atom pair {pair} not found in atmat dataframe.")
+
+        # scale OM probabilities
+        if self.om_scaledown is not None:
+            self.atmat.loc[self.atmat["attype1"]=="OM", "probability"] /= self.om_scaledown
+            self.atmat.loc[self.atmat["attype2"]=="OM", "probability"] /= self.om_scaledown 
+
+        # if self.om_scaledown is not None:
+        #     self.atmat.loc[self.atmat["attype1"]=="NZ", "probability"] /= 1.8
+        #     self.atmat.loc[self.atmat["attype2"]=="NZ", "probability"] /= 1.8 
+                
 
         # where bkbn_pairs set probability pth to pth_bkbn and else to pth
-        self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
-        self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "energy"] = np.array(self.regall(self.atmat.loc[~self.atmat["atom_pair"].isin(bkbn_pairs), "probability"].to_numpy(), 1, self.emax, self.pth))
+        self.atmat.loc[~(self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes)), "energy"] = np.array(self.regall(self.atmat.loc[~(self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes)), "probability"].to_numpy(), 1, self.emax, self.pth))
+        self.atmat.loc[self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes), "probability"].to_numpy(), 1, self.emax_sc_bkbn, self.pth_sc_bkbn))
         #self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
-        
+        self.atmat.loc[ self.atmat["attype1"].isin(bkbn_attypes) & self.atmat["attype2"].isin(bkbn_attypes), "energy"] = np.array(self.regall(self.atmat.loc[ self.atmat["attype1"].isin(bkbn_attypes) & self.atmat["attype2"].isin(bkbn_attypes), "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
+
+        # modify sigma of O-H interaction 
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()
-
-
-
