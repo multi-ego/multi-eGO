@@ -1,3 +1,5 @@
+from fileinput import filename
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -6,6 +8,10 @@ import os
 from matplotlib.colors import LinearSegmentedColormap, TwoSlopeNorm, Normalize
 from matplotlib.cm import ScalarMappable
 
+bkbn_attypes = ["H", "O", "N", "C", "CAH"]#, "CAH2"]
+H_interactions = ["O", "H", "OA", "OM", "OS"]
+
+noplot = ["C0", "CH3p", "CR1", "OE", "P"]
 
 class AttrDict(dict):
     def __getattr__(self, key):
@@ -21,8 +27,8 @@ class RemapUnpickler(pickle.Unpickler):
 
 class InteractionMatrix:
 
-    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None, pth_sc_bkbn=None, emax_sc_bkbn=None, om_scaledown=None):
-        self.atmat = self.read_pickle_file(pkl_file)
+    def __init__(self, pkl_file, emax=0.16, c12_rep_df=None, pth=None, show=False, pth_bkbn=None, emax_bkbn=None, pth_sc_bkbn=None, emax_sc_bkbn=None, om_scaledown=None, pkl_file2=None, r2_corr_sb=None):
+        self.atmat = self.build_matrix_dataframe(pkl_file, filename2=pkl_file2, r2_corr_sb=r2_corr_sb)
         self.emax = emax
         self.emax_bkbn = emax_bkbn if emax_bkbn is not None else emax
         self.emax_sc_bkbn = emax_sc_bkbn if emax_sc_bkbn is not None else self.emax_bkbn
@@ -30,9 +36,10 @@ class InteractionMatrix:
         self.pth_bkbn = pth_bkbn if pth_bkbn is not None else pth
         self.pth_sc_bkbn = pth_sc_bkbn if pth_sc_bkbn is not None else (self.pth + self.pth_bkbn) / 2
         self.om_scaledown = om_scaledown
+        self.r2_corr_sb = r2_corr_sb
         self.c12_rep_df = c12_rep_df
 
-        self.define_p_threshold()
+        # self.define_p_threshold()
         self.nonlocal_matrix()
         if show:
             self.plot_energy_matrix(show=show)
@@ -56,7 +63,7 @@ class InteractionMatrix:
         e /= np.max(e)
         e = np.where(e==-np.inf, -2, e)
         e = np.where(e > 0.0, 0.07 + e* (emax-0.07), e)
-        e = np.array([self.roundPartial(ei) for ei in e])
+        # e = np.array([self.roundPartial(ei) for ei in e])
         return e
 
     def plot_energy_matrix(self, out_path = None, show = False):
@@ -67,8 +74,8 @@ class InteractionMatrix:
         # TODO read them by gromos to avoid hardcoding them here
         bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
-        attype_ordering_polar = [ "NE", "NR", "NT", "OA","OS", "CZ","CS", "CH1t",  "CH2r", "S","SM", "SH"]
-        attype_ordering_apolar = ["CH1","CR", "CH",  "CH2", "CH3"]
+        attype_ordering_polar = [ "NE", "NR", "NT", "OA","OS", "CZ", "CS", "CH1t", "CH2r", "CH2t", "CH3t", "S", "SM", "SH"]
+        attype_ordering_apolar = ["CH1", "CR", "CH",  "CH2", "CH3"]
 
 
 
@@ -76,7 +83,6 @@ class InteractionMatrix:
         list_atom2 = np.sort(np.array(self.atmat["attype2"].unique()))
 
         # TODO read them by gromos to avoid hardcoding them here
-        noplot = ["C0", "CH3p", "CR1", "OE", "P"]
         # remove from list_atom1 and list_atom2 the atoms in noplot
         list_atom1 = [at for at in list_atom1 if at not in noplot]
         list_atom2 = [at for at in list_atom2 if at not in noplot]
@@ -91,8 +97,8 @@ class InteractionMatrix:
                 if at1 in noplot or at2 in noplot:
                     continue
                 energy = self.atmat.loc[((self.atmat["attype1"]==at1) & (self.atmat["attype2"]==at2)) | ((self.atmat["attype1"]==at2) & (self.atmat["attype2"]==at1)), "energy"].values
-                if (at1 == "H" and at2 not in ["O", "H", "OA", "OM", "OS"]) or (at2 == "H" and at1 not in ["O", "H", "OA", "OM", "OS"]):
-                    energies.append(-2)
+                if (at1 == "H" and at2 not in H_interactions) or (at2 == "H" and at1 not in H_interactions):
+                    energies.append(-np.inf) # force repulsion for H interactions with non-interaction-H atoms
                     continue
                 if len(energy) > 0:
                     energy = energy[0]
@@ -134,17 +140,7 @@ class InteractionMatrix:
         if show:
             plt.show()
 
-
     def read_pickle_file(self, filename):
-        """
-        Read atdhito data from pikle file per atomtype pair and return a pandas dataframe with the following columns:
-        - atom_pair: atomtype pair
-        - probability: probability of the atomtype pair
-        - exp_aver: expected average distance of the atomtype pair
-        - attype1: first atomtype
-        - attype2: second atomtype
-        - cutoff: cutoff distance of the atomtype pair
-        """
         _this_dir = os.path.dirname(os.path.abspath(__file__))
         pikle_path = os.path.join(_this_dir, filename)
 
@@ -184,52 +180,50 @@ class InteractionMatrix:
         atmat["sum_probs"] = sum_probs
         # fill nan values in probability with 0
         atmat["probability"] = atmat["probability"].fillna(0)
-        
-        # # for all bkbn atom pairs set multiply the probability by a factor f_bkbn to compansate for the different statistics 
-        # bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "CAH2_CAH2", "O_N", "O_C", "O_CAH","O_CAH2",  "N_C","N_CAH", "C_CAH", "N_CAH2", "C_CAH2", "CAH_CAH2"]
-        # #bkbn_pairs = ["O_H", "O_O", "N_N", "C_C", "CAH_CAH", "O_N", "O_C", "O_CAH", "N_C","N_CAH", "C_CAH" ]
-        # for pair in bkbn_pairs:
-        #     atmat.loc[atmat["atom_pair"]==pair, "probability"] *= self.f_bkbn
-        # where O-H set distance to 0.195
-        # atmat.loc[atmat["atom_pair"]=="O_H", "exp_aver"] = 0.195
-        # atmat.loc[atmat["atom_pair"]=="O_N", "exp_aver"] = 0.29
-        # atmat.loc[atmat["atom_pair"]=="C_N", "exp_aver"] = 0.41
-
         return atmat
-    
-    def define_p_threshold(self):
+
+    def build_matrix_dataframe(self, filename, filename2=None, r2_corr_sb=None):
         """
-        Define p_threshold used to split attractive and repulsive interactions
+        Read atdhito data from pikle file per atomtype pair and return a pandas dataframe with the following columns:
+        - atom_pair: atomtype pair
+        - probability: probability of the atomtype pair
+        - exp_aver: expected average distance of the atomtype pair
+        - attype1: first atomtype
+        - attype2: second atomtype
+        - cutoff: cutoff distance of the atomtype pair
         """
-        if self.pth is None: 
-            print("Neither atpairref nor pth provided, or both provided. Optimizing pth to best fit KL_SCALE.")
-            # find the minimum pth such that the following atom-pairs have energy < 0
-            # OM_OM, O_O, NL_NL, O_OM
-            pth = 0.001  # Initialize with a default value
-            dp = 0.001
-            while True:
-                self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, pth))
-                if (self.atmat.loc[self.atmat["atom_pair"]=="NL_NL", "energy"].values[0] < 0):
-                    # self.atmat.loc[self.atmat["atom_pair"]=="OM_OM", "energy"].values[0] < 0 and
-                    # self.atmat.loc[self.atmat["atom_pair"]=="O_O", "energy"].values[0] < 0 and
-                    # self.atmat.loc[self.atmat["atom_pair"]=="OA_OA", "energy"].values[0] < 0):
-                    break
-                pth += dp
-            # find also the maximum pth such that the following atom-pairs have energy > 0
-            # OM_NZ
-            self.pth = pth
-            pth_max = pth
-            while True:    
-                self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, pth_max))
-                if self.atmat.loc[self.atmat["atom_pair"]=="CH_CH", "energy"].values[0] < 0:
-                    break
-                pth_max += dp
-            pth_max -= dp
-            print(f"Minimum pth: {pth}, Maximum pth: {pth_max}")
-            self.pth_max = pth_max
-        else:
-            self.pth_max = self.pth
-            print(f"Using provided pth: {self.pth}")
+        _this_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        atmat = self.read_pickle_file(filename)
+        
+        if filename2 != None:
+            atmat_sb = self.read_pickle_file(filename2)
+
+        # use exp_aver and probability from atmat_sb for atom pairs where one of the atomtypes is in bkbn_attypes and the other is not
+        if filename2 != None:
+            for index, row in atmat.iterrows():
+                at1 = row["attype1"]
+                at2 = row["attype2"]
+                if (at1 in bkbn_attypes and at2 not in bkbn_attypes) or (at2 in bkbn_attypes and at1 not in bkbn_attypes):
+                    # find the corresponding row in atmat_sb
+                    sb_row = atmat_sb.loc[(atmat_sb["attype1"]==at1) & (atmat_sb["attype2"]==at2)]
+                    if len(sb_row) == 0:
+                        sb_row = atmat_sb.loc[(atmat_sb["attype1"]==at2) & (atmat_sb["attype2"]==at1)]
+                    if len(sb_row) > 0:
+                        atmat.at[index, "exp_aver"] = sb_row["exp_aver"].values[0]
+                        atmat.at[index, "probability"] = sb_row["probability"].values[0]
+
+        # read sc-bkbn correction:
+        if r2_corr_sb is not None:
+            corr = pd.read_csv(os.path.join(_this_dir, r2_corr_sb), sep=r"\s+")
+            for index, row in atmat.iterrows():
+                atpair = row["atom_pair"]
+                corr_row = corr.loc[(corr["atom_pair"]==atpair)]
+                if len(corr_row) == 0:
+                    corr_row = corr.loc[(corr["atom_pair"]==atpair)]
+                if len(corr_row) > 0:
+                    atmat.at[index, "probability"] = atmat.at[index, "probability"] - atmat.at[index, "probability"] *corr_row["r2"].values[0]
+        return atmat
 
     def define_special_nonlocal_dict(self):
         """
@@ -240,7 +234,7 @@ class InteractionMatrix:
         for atom_pair in self.atmat["atom_pair"].unique():
             atp1, atp2 = atom_pair.split("_")
             # write only H-O interaction, skip all the rest
-            if (atp1 == "H" and atp2 not in  ["O", "OM", "OA", "OS", "H"]) or (atp2 == "H" and atp1 not in ["O", "OM", "OA", "OS", "H"]):
+            if (atp1 == "H" and atp2 not in  H_interactions) or (atp2 == "H" and atp1 not in H_interactions):
                 continue
             energy = self.atmat.loc[self.atmat["atom_pair"]==atom_pair, "energy"].values[0]
             sigma = self.atmat.loc[self.atmat["atom_pair"]==atom_pair, "exp_aver"].values[0] / 2**(1/6)
@@ -261,33 +255,17 @@ class InteractionMatrix:
         return special_nonlocal_dict
 
     def nonlocal_matrix(self):
+        """
+        Calculate the energy values for the atomtype pairs based on the probability values and the p_threshold.
+        """
+        # sc-sc
+        condition_sc_sc = ~(self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes))
+        self.atmat.loc[condition_sc_sc, "energy"] = np.array(self.regall(self.atmat.loc[condition_sc_sc, "probability"].to_numpy(), 1, self.emax, self.pth))
+        # sc-bkbn
+        condition_sc_bkbn = (self.atmat["attype1"].isin(bkbn_attypes) & ~self.atmat["attype2"].isin(bkbn_attypes)) | (self.atmat["attype2"].isin(bkbn_attypes) & ~self.atmat["attype1"].isin(bkbn_attypes))
+        self.atmat.loc[condition_sc_bkbn, "energy"] = np.array(self.regall(self.atmat.loc[condition_sc_bkbn, "probability"].to_numpy(), 1, self.emax_sc_bkbn, self.pth_sc_bkbn))
+        # bkbn-bkbn
+        condition_bkbn_bkbn = self.atmat["attype1"].isin(bkbn_attypes) & self.atmat["attype2"].isin(bkbn_attypes)
+        self.atmat.loc[ condition_bkbn_bkbn, "energy"] = np.array(self.regall(self.atmat.loc[condition_bkbn_bkbn, "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
 
-        # bkbn_pairs = [ "H_H", "O_O", "N_N", "C_C", "CAH_CAH",# "CAH2_CAH2", 
-        #               "O_N", "O_C", "O_CAH", "O_H", #"O_CAH2",
-        #               "N_C","N_CAH", #"N_CAH2",
-        #               "C_CAH"],#"C_CAH2", 
-        #               #"CAH_CAH2"]
-        bkbn_attypes = ["H", "O", "N", "C", "CAH", "CAH2", "CH2r"]
-        # check that all bkbn_pairs are in the atmat dataframe
-        # for pair in bkbn_pairs:
-        #     if pair not in self.atmat["atom_pair"].values:
-        #         raise ValueError(f"Atom pair {pair} not found in atmat dataframe.")
-
-        # scale OM probabilities
-        if self.om_scaledown is not None:
-            self.atmat.loc[self.atmat["attype1"]=="OM", "probability"] /= self.om_scaledown
-            self.atmat.loc[self.atmat["attype2"]=="OM", "probability"] /= self.om_scaledown 
-
-        # if self.om_scaledown is not None:
-        #     self.atmat.loc[self.atmat["attype1"]=="NZ", "probability"] /= 1.8
-        #     self.atmat.loc[self.atmat["attype2"]=="NZ", "probability"] /= 1.8 
-                
-
-        # where bkbn_pairs set probability pth to pth_bkbn and else to pth
-        self.atmat.loc[~(self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes)), "energy"] = np.array(self.regall(self.atmat.loc[~(self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes)), "probability"].to_numpy(), 1, self.emax, self.pth))
-        self.atmat.loc[self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes), "energy"] = np.array(self.regall(self.atmat.loc[self.atmat["attype1"].isin(bkbn_attypes) | self.atmat["attype2"].isin(bkbn_attypes), "probability"].to_numpy(), 1, self.emax_sc_bkbn, self.pth_sc_bkbn))
-        #self.atmat["energy"] = np.array(self.regall(self.atmat["probability"].to_numpy(), 1, self.emax, self.pth))
-        self.atmat.loc[ self.atmat["attype1"].isin(bkbn_attypes) & self.atmat["attype2"].isin(bkbn_attypes), "energy"] = np.array(self.regall(self.atmat.loc[ self.atmat["attype1"].isin(bkbn_attypes) & self.atmat["attype2"].isin(bkbn_attypes), "probability"].to_numpy(), 1, self.emax_bkbn, self.pth_bkbn))
-
-        # modify sigma of O-H interaction 
         self.special_nonlocal_dict = self.define_special_nonlocal_dict()

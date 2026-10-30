@@ -19,8 +19,10 @@
   CH1  13.01900 ;     aliphatic or sugar CH-group
   CH1t 13.01900 ;     aliphatic or sugar CH-group
   CH2  14.02700 ;     aliphatic or sugar CH2-group
+  CH2t 14.02700 ;     aliphatic or sugar CH2-group
  CAH2  14.02700 ;     aliphatic or sugar CH2-group
   CH3  15.03500 ;     aliphatic CH3-group
+  CH3t 15.03500 ;     aliphatic CH3-group
  CH2r  14.02700 ;     CH2-group in a ring
     S  32.06000 ;     sulfur
    SM  32.06000 ;     sulfur MET
