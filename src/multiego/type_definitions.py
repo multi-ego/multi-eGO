@@ -45,6 +45,7 @@ gromos_atp = pd.DataFrame(
     {
         "name": [
             "O",
+            "OS",
             "OM",
             "OA",
             "N",
@@ -62,8 +63,10 @@ gromos_atp = pd.DataFrame(
             "CH1t",
             "CAH",
             "CH2",
+            "CH2t",
             "CAH2",
             "CH3",
+            "CH3t",
             "CH2r",
             "S",
             "SM",
@@ -75,9 +78,10 @@ gromos_atp = pd.DataFrame(
             "H",
             "C0",
         ],
-        "at.num": [8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
+        "at.num": [8, 8, 8, 8, 7, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 6,  6, 6, 6, 6, 6, 6, 16, 16, 16, 6, 15, 8, 6, 1, 20],
         "rc_c12": [
             2.5 * 0.262134**12,  # "O",   2.631580e-07
+            2.5 * 0.262134**12,  # "OS",   2.631580e-07
             2.5 * 0.253061**12,  # "OM",  1.724403e-07
             2.5 * 0.276621**12,  # "OA",  5.018430e-07
             2.5 * 0.289746**12,  # "N",   8.752940e-07
@@ -97,6 +101,8 @@ gromos_atp = pd.DataFrame(
             2.5 * 0.368035**12,  # "CH2", 1.543890e-05
             2.5 * 0.368035**12,  # "CAH2",1.543890e-05
             2.5 * 0.350505**12,  # "CH3", 8.595562e-06
+            2.5 * 0.350505**12,  # "CH3t", 8.595562e-06
+            2.5 * 0.368035**12,  # "CH2t",1.543890e-05
             2.5 * 0.360236**12,  # "CH2r",1.193966e-05
             2.5 * 0.318498**12,  # "S",   2.724050e-06
             2.5 * 0.318498**12,  # "SM",   2.724050e-06
@@ -111,6 +117,7 @@ gromos_atp = pd.DataFrame(
         # all to ch2 except ch e ch3
         "mg_c12": [
             4.0 * 0.27601**12 * eps_O,  # "O",  sig=0.27601
+            4.0 * 0.27601**12 * eps_O,  # "OS",  sig=0.27601
             4.0 * 0.26259**12 * eps_OM,  # "OM", sig=0.26259
             4.0 * 0.29548**12 * eps_OA,  # "OA", sig=0.29548
             4.0 * 0.31365**12 * eps_N,  # "N",  sig=0.31365
@@ -128,8 +135,10 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.44592**12 * eps_CH1t,  # "CH1t",  sig=0.50192
             4.0 * 0.44592**12 * eps_CAH,  # "CAH",  sig=0.50192
             4.0 * 0.40704**12 * eps_CH2,  # "CH2",  sig=0.40704
+            4.0 * 0.40704**12 * eps_CH2,  # "CH2t",  sig=0.40704
             4.0 * 0.40704**12 * eps_CAH2,  # "CAH2", sig=0.40704
             4.0 * 0.37479**12 * eps_CH3,  # "CH3",  sig=0.37479
+            4.0 * 0.37479**12 * eps_CH3,  # "CH3t",  sig=0.37479
             4.0 * 0.39547**12 * eps_CH2r,  # "CH2r", sig=0.39547
             4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
             4.0 * 0.33077**12 * eps_S,  # "S",    sig=0.33077
@@ -143,6 +152,7 @@ gromos_atp = pd.DataFrame(
         ],
         "mg_c6": [
             4.0 * 0.27601**6 * eps_O,  # "O",
+            4.0 * 0.27601**6 * eps_O,  # "OS",
             4.0 * 0.26259**6 * eps_OM,  # "OM",
             4.0 * 0.29548**6 * eps_OA,  # "OA",
             4.0 * 0.31365**6 * eps_N,  # "N",
@@ -160,8 +170,10 @@ gromos_atp = pd.DataFrame(
             4.0 * 0.44592**6 * eps_CH1t,  # "CH1t"
             4.0 * 0.44592**6 * eps_CAH,  # "CAH"
             4.0 * 0.40704**6 * eps_CH2,  # "CH2"
+            4.0 * 0.40704**6 * eps_CH2,  # "CH2t"
             4.0 * 0.40704**6 * eps_CAH2,  # "CAH2"
             4.0 * 0.37479**6 * eps_CH3,  # "CH3"
+            4.0 * 0.37479**6 * eps_CH3,  # "CH3t"
             4.0 * 0.39547**6 * eps_CH2r,  # "CH2r"
             4.0 * 0.33077**6 * eps_S,  # "S",
             4.0 * 0.33077**6 * eps_S,  # "S",
@@ -352,7 +364,7 @@ _csv_path = os.path.join(_this_dir, "Minimum_CUTOFF_Manual_modif.csv")
 if not os.path.exists(_csv_path):
     _csv_path = os.path.join(_this_dir, "..", "src", "multiego", "Minimum_CUTOFF_Manual_modif.csv")
 try:
-    _c12_df = pd.read_csv(_csv_path, sep="\s+")
+    _c12_df = pd.read_csv(_csv_path, sep=r'\s+')
 
 except Exception:
     # If file not found or parsing fails, expose an empty list so other code
@@ -362,15 +374,27 @@ except Exception:
         "Please ensure the file exists and is formatted correctly."
     )
 
+# Energies of atomtype interaction matrix
+SCALE = 1
+EMAX = 0.19 * SCALE
+EMAX_SC_BKBN = 0.16 * SCALE
+EMAX_BKBN = 0.20 * SCALE
+# Threshold probability for contact matrix, they define the energy scaling and rep vs attraction atomtype itneraction
+P_TH = 0.5/2
+P_TH_SC_BKBN = 0.015
+P_TH_BKBN = 0.5/2
+# OM atomtype scaling factor. Probability is reduced by a factor to account for the protonation simmetry-breaking that can be found in protein cores 
+OM_SCALEDOWN = 1
 
-EMAX = 0.14 #maximum epsilon value for the colorbar in the interaction matrix plot
-P_TH = 0.55#0.65#0.0034#0.46#0.009#0.008#0.12  # if P_TH is None it will be chosen in the InteractionMatrix class to have NL-NL repulsive
-EMAX_BKBN = EMAX
-P_TH_BKBN = 0.35
-SHOW = False  # if SHOW is True the interaction matrix will be plotted and saved in the current directory
+SHOW = False
 
 PKL = "atdhisto.pkl"
-matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN)
+# PKL = "atdhisto_nosimm.pkl"
+
+PKL_SB     = "sb_atdhisto_3res.pkl"
+R2_CORR_SB_= "scbk_correction_3res.csv" # Correction for sc-bkbn interactions # TODO merge the r2 in pkl file or viceversa
+# PKL_SB = None#"atdhisto_sb.pkl" 
+matrix = InteractionMatrix(pkl_file=PKL, emax = EMAX, c12_rep_df = _c12_df, pth=P_TH, pth_bkbn=P_TH_BKBN, show=SHOW, emax_bkbn=EMAX_BKBN, pth_sc_bkbn=P_TH_SC_BKBN, emax_sc_bkbn=EMAX_SC_BKBN, om_scaledown=OM_SCALEDOWN, pkl_file2=PKL_SB, r2_corr_sb=R2_CORR_SB_)
 special_non_local = matrix.special_nonlocal_dict
 
 # Verify that every attractive special interaction carries an epsilon at least

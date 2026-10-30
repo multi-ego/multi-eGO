@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 
 
 from . import _term
+from . import type_definitions
 
 
 def strip_gz_h5_suffix(filename):
@@ -391,6 +392,16 @@ def write_output_readme(meGO_LJ, parameters, output_dir, stat_str):
 
             f.write("\nContact parameters:\n")
             f.write(stat_str)
+        if parameters.egos == "mg":
+            f.write("\nInternal parameters:\n")
+            # write contents of the internal parameters file from type_definitions.py
+            f.write(f" - EMAX: {type_definitions.EMAX}\n")
+            f.write(f" - P_TH: {type_definitions.P_TH}\n")
+            f.write(f" - EMAX_BKBN: {type_definitions.EMAX_BKBN}\n")
+            f.write(f" - P_TH_BKBN: {type_definitions.P_TH_BKBN}\n")
+            f.write(f" - P_TH_SC_BKBN: {type_definitions.P_TH_SC_BKBN}\n")
+            f.write(f" - EMAX_SC_BKBN: {type_definitions.EMAX_SC_BKBN}\n")
+            f.write(f" - OM_SCALEDOWN: {type_definitions.OM_SCALEDOWN}\n")
 
 def save_matrix_png(output_path):
     # import matrix from type definition and use the class function to plot it
