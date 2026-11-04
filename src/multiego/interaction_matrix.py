@@ -75,7 +75,7 @@ class InteractionMatrix:
         bkbnd_atoms = ["C", "O", "N", "CAH", "CAH2", "H"]
         attype_ordering_charged = [ "OM",  "NL", "NZ"]
         attype_ordering_polar = [ "NE", "NR", "NT", "OA","OS", "CZ", "CS", "CH1t", "CH2r", "CH2t", "CH3t", "S", "SM", "SH"]
-        attype_ordering_apolar = ["CH1", "CR", "CH",  "CH2", "CH3"]
+        attype_ordering_apolar = ["CH1", "CR", "CH",  "CH2", "CH3", "CH3b", "CH2b", "CH1b"]
 
 
 
@@ -160,15 +160,21 @@ class InteractionMatrix:
         kde = []
         tot_reps = []
         sum_probs = []
+        r2 = []
         for key in data.keys():
             # probs.append(data[key].p_repeats_n2)
-            probs.append(data[key].p_density)
+            # probs.append(data[key].p_density)
+            probs.append(data[key].p_density_allpdbs)
             dists.append(data[key].exp_aver)
             cutoffs.append(data[key].cutoff)
             bins.append(data[key].xbins)
             kde.append(data[key].kde)
             tot_reps.append(data[key].tot_repeats)
             sum_probs.append(np.sum(data[key].sum_probs))
+            if hasattr(data[key], "r2"):
+                r2.append(data[key].r2)
+            else:
+                r2.append(None)
         atmat["probability"] = np.array(probs)
         atmat["exp_aver"] = np.array(dists)
         atmat["attype1"] = atmat["atom_pair"].str.split("_").str[0]
@@ -178,6 +184,7 @@ class InteractionMatrix:
         atmat["kde"] = kde
         atmat["tot_repeats"] = tot_reps
         atmat["sum_probs"] = sum_probs
+        atmat["r2"] = r2
         # fill nan values in probability with 0
         atmat["probability"] = atmat["probability"].fillna(0)
         return atmat
@@ -212,17 +219,10 @@ class InteractionMatrix:
                     if len(sb_row) > 0:
                         atmat.at[index, "exp_aver"] = sb_row["exp_aver"].values[0]
                         atmat.at[index, "probability"] = sb_row["probability"].values[0]
-
+                        atmat.at[index, "r2"] = sb_row["r2"].values[0]
         # read sc-bkbn correction:
-        if r2_corr_sb is not None:
-            corr = pd.read_csv(os.path.join(_this_dir, r2_corr_sb), sep=r"\s+")
-            for index, row in atmat.iterrows():
-                atpair = row["atom_pair"]
-                corr_row = corr.loc[(corr["atom_pair"]==atpair)]
-                if len(corr_row) == 0:
-                    corr_row = corr.loc[(corr["atom_pair"]==atpair)]
-                if len(corr_row) > 0:
-                    atmat.at[index, "probability"] = atmat.at[index, "probability"] - atmat.at[index, "probability"] *corr_row["r2"].values[0]
+        if filename2 != None:
+            atmat.loc[atmat["r2"].notnull(), "probability"] -= atmat.loc[atmat["r2"].notnull(), "probability"] * atmat.loc[atmat["r2"].notnull(), "r2"]
         return atmat
 
     def define_special_nonlocal_dict(self):
