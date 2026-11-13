@@ -388,9 +388,9 @@ except Exception:
 
 # Energies of atomtype interaction matrix
 SCALE = 1
-EMAX = 0.19 * SCALE
+EMAX = 0.20 * SCALE
 EMAX_SC_BKBN = 0.16 * SCALE
-EMAX_BKBN = 0.20 * SCALE
+EMAX_BKBN = 0.17 * SCALE
 # Threshold probability for contact matrix, they define the energy scaling and rep vs attraction atomtype itneraction
 P_TH = 0.55/2
 P_TH_SC_BKBN = 0.010
