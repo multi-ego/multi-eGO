@@ -453,7 +453,7 @@ del _atp_with_c6, _violating
 
 # Atom types allowed to pair with H in nth-bond repulsions.
 # H-X pairs where X is NOT in this set are skipped entirely.
-H_ALLOWED_PARTNERS = {"H", "O", "OM", "OA"}
+# H_ALLOWED_PARTNERS = H_interactions#{"H", "O", "OM", "OA", "OS"}
 
 # Data-driven c12 overrides for nth-bond repulsive pairs (egos == "mg").
 # Each entry: (types_ai, types_aj, c12_value)

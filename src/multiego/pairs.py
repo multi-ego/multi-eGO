@@ -1,4 +1,4 @@
-from . import bonded, type_definitions
+from . import bonded, type_definitions, interaction_matrix
 from .model_config import config
 
 from collections import defaultdict, deque
@@ -128,8 +128,8 @@ def make_pairs_exclusion_topology(meGO_ensemble, args, meGO_LJ_14=None):
             ti = meGO_ensemble.sbtype_type_dict[ai]
             tj = meGO_ensemble.sbtype_type_dict[aj]
 
-            if (ti == "H" and tj not in type_definitions.H_ALLOWED_PARTNERS) or (
-                tj == "H" and ti not in type_definitions.H_ALLOWED_PARTNERS
+            if (ti == "H" and tj not in interaction_matrix.H_interactions) or (
+                tj == "H" and ti not in interaction_matrix.H_interactions
             ):
                 continue
 
