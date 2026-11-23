@@ -2,6 +2,7 @@
 //   indexing.hpp  — n_bins, offset_same, offset_cross
 //   density.hpp   — kernel_density_estimator, normalize_histo
 //   mindist.hpp   — mindist_same, mindist_cross
+//   weights.hpp   — parse_weights
 //
 // Build (no CMake needed):
 //   g++ -std=c++17 -I../src test_cmdata.cpp -o test_cmdata && ./test_cmdata
@@ -10,11 +11,15 @@
 #include <cstdio>
 #include <numeric>
 #include <set>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include "cmdata/indexing.hpp"
 #include "cmdata/density.hpp"
 #include "cmdata/mindist.hpp"
+#include "cmdata/weights.hpp"
 
 // ── minimal test harness ─────────────────────────────────────────────────────
 static int g_pass = 0, g_fail = 0;
@@ -438,6 +443,95 @@ static void test_mindist_cross_uses_correct_offset()
 // main
 // ============================================================================
 
+// ── weights ──────────────────────────────────────────────────────────────────
+
+static std::vector<float> parse(const std::string &txt)
+{
+  std::istringstream in(txt);
+  return cmdata::io::parse_weights(in, "test");
+}
+
+// Returns the exception message, or "" if parsing succeeded.
+static std::string parse_error(const std::string &txt)
+{
+  try { parse(txt); } catch (const std::runtime_error &e) { return e.what(); }
+  return "";
+}
+
+static void test_weights_basic()
+{
+  auto w = parse("1\n0.5\n2e-3\n0\n");
+  CHECK(w.size() == 4);
+  CHECK_NEAR(w[0], 1.0, 1e-7);
+  CHECK_NEAR(w[1], 0.5, 1e-7);
+  CHECK_NEAR(w[2], 2e-3, 1e-9);
+  CHECK_NEAR(w[3], 0.0, 0.0);
+}
+
+static void test_weights_skips_blank_and_comments()
+{
+  auto w = parse("#! FIELDS weight\n@ title \"w\"\n\n   \n\t\n 1.5 \n  # indented comment\n2.5\n");
+  CHECK(w.size() == 2);
+  CHECK_NEAR(w[0], 1.5, 1e-7);
+  CHECK_NEAR(w[1], 2.5, 1e-7);
+}
+
+static void test_weights_crlf()
+{
+  auto w = parse("1\r\n\r\n2\r\n");
+  CHECK(w.size() == 2);
+  CHECK_NEAR(w[1], 2.0, 1e-7);
+}
+
+static void test_weights_no_trailing_newline()
+{
+  auto w = parse("1\n2");
+  CHECK(w.size() == 2);
+}
+
+static void test_weights_rejects_multi_column()
+{
+  std::string e = parse_error("0 1.5\n");
+  CHECK_MSG(e.find("more than one column") != std::string::npos, e.c_str());
+  CHECK_MSG(e.find("line 1") != std::string::npos, e.c_str());
+}
+
+static void test_weights_rejects_garbage()
+{
+  CHECK(!parse_error("1\nabc\n").empty());
+  CHECK(!parse_error("1.0abc\n").empty());
+  std::string e = parse_error("1\n2\nx\n");
+  CHECK_MSG(e.find("line 3") != std::string::npos, e.c_str());
+}
+
+static void test_weights_rejects_nonfinite()
+{
+  CHECK(!parse_error("nan\n").empty());
+  CHECK(!parse_error("inf\n").empty());
+  CHECK(!parse_error("-inf\n").empty());
+  CHECK(!parse_error("1e300\n").empty());   // finite double, overflows float
+}
+
+static void test_weights_rejects_negative()
+{
+  std::string e = parse_error("1\n-0.1\n");
+  CHECK_MSG(e.find("negative") != std::string::npos, e.c_str());
+}
+
+static void test_weights_rejects_empty()
+{
+  CHECK(!parse_error("").empty());
+  CHECK(!parse_error("# only a header\n\n").empty());
+}
+
+static void test_weights_missing_file()
+{
+  bool threw = false;
+  try { cmdata::io::read_weights_file("/nonexistent/weights.dat"); }
+  catch (const std::runtime_error &) { threw = true; }
+  CHECK(threw);
+}
+
 int main()
 {
   printf("=== indexing ===\n");
@@ -459,6 +553,18 @@ int main()
   test_mindist_cross_basic();
   test_mindist_cross_multi_mol();
   test_mindist_cross_uses_correct_offset();
+
+  printf("=== weights ===\n");
+  test_weights_basic();
+  test_weights_skips_blank_and_comments();
+  test_weights_crlf();
+  test_weights_no_trailing_newline();
+  test_weights_rejects_multi_column();
+  test_weights_rejects_garbage();
+  test_weights_rejects_nonfinite();
+  test_weights_rejects_negative();
+  test_weights_rejects_empty();
+  test_weights_missing_file();
 
   printf("\n%d PASS  %d FAIL\n", g_pass, g_fail);
   return g_fail > 0 ? 1 : 0;

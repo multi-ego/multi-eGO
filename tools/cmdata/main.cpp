@@ -1,4 +1,5 @@
 // standard library imports
+#include <exception>
 #include <filesystem>
 #include <iostream>
 #include <string>
@@ -102,13 +103,21 @@ int main(int argc, const char** argv)
       std::cout << "WARNING: output directory already exists — files may be overwritten.\n";
   }
 
-  cmdata::CMData cmdata(
-    top_path, traj_path, cutoff, mol_cutoff, nskip, dt,
-    mode, bkbn_H, weights_path, nopbc, t_begin, t_end, h5
-  );
-  cmdata.run();
-  cmdata.process_data();
-  cmdata.write_output(out_prefix);
+  try
+  {
+    cmdata::CMData cmdata(
+      top_path, traj_path, cutoff, mol_cutoff, nskip, dt,
+      mode, bkbn_H, weights_path, nopbc, t_begin, t_end, h5
+    );
+    cmdata.run();
+    cmdata.process_data();
+    cmdata.write_output(out_prefix);
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << "\nERROR: " << e.what() << std::endl;
+    return 1;
+  }
 
   return 0;
 }

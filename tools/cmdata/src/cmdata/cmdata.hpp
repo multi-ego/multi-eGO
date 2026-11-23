@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <numeric>
 #include <sstream>
+#include <stdexcept>
 
 
 namespace cmdata
@@ -480,7 +481,7 @@ public:
       weights_ = cmdata::io::read_weights_file(weights_path_);
       printf("Found %zu frame weights in file\n", weights_.size());
       float w_sum = std::accumulate(weights_.begin(), weights_.end(), 0.f);
-      printf("Sum of weights amounts to %lf\n", w_sum);
+      printf("Sum of weights in file: %f\n", w_sum);
     }
 
     printf("Finished preprocessing.\nStarting frame-by-frame analysis.\n");
@@ -513,7 +514,18 @@ public:
             (nskip_ == 0 || std::fmod(frnr, nskip_) == 0))
         {
           float weight = 1.f;
-          if (!weights_.empty()) { weight = weights_[frnr]; weights_sum_ += weight; }
+          if (!weights_.empty())
+          {
+            if (static_cast<std::size_t>(frnr) >= weights_.size())
+              throw std::runtime_error(
+                "Weights file has " + std::to_string(weights_.size()) +
+                " entries but frame " + std::to_string(frnr + 1) +
+                " (t=" + std::to_string(frame_->time) + " ps) needs a weight. "
+                "The file must contain one weight per trajectory frame, counting "
+                "frames excluded by -b/-e/--dt/--nskip.");
+            weight = weights_[frnr];
+            weights_sum_ += weight;
+          }
 
           // reset per-frame minimum-distance matrices
           for (auto &v : frame_same_mat_)  std::fill(v.begin(), v.end(), LARGE_DIST);
@@ -550,6 +562,9 @@ public:
         ++frnr;
       }
       printf("\r  Read %d frames (t=%.1f ps).               \n", frnr, frame_->time);
+      if (!weights_.empty() && weights_.size() != static_cast<std::size_t>(frnr))
+        printf("WARNING: weights file has %zu entries but the trajectory has %d frames. "
+               "Check that weights and frames are aligned.\n", weights_.size(), frnr);
     };
 
     if      ( intra_ &&  same_ &&  cross_) do_run(fi,     fs,     fc    );
@@ -568,6 +583,14 @@ public:
     std::cout << "Analyzed " << n_x_ << " frames\n";
     std::cout << "Normalizing data... " << std::endl;
 
+    if (n_x_ == 0)
+      throw std::runtime_error("No frames were analysed; check -b/-e/--dt/--nskip.");
+    if (!weights_.empty())
+    {
+      printf("Sum of weights over analysed frames: %f\n", weights_sum_);
+      if (!(weights_sum_ > 0.f))
+        throw std::runtime_error("Weights of all analysed frames sum to zero; cannot normalise.");
+    }
     float norm = weights_.empty() ? 1.f / n_x_ : 1.f / weights_sum_;
 
     for (std::size_t i = 0; i < natmol2_.size(); i++)
