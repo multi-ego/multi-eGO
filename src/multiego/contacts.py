@@ -318,13 +318,13 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     probabilities covers ``config.p_to_learn`` of the total mass. When no
     contacts are learned (norm = 0), the threshold defaults to 1.
 
-    Two per-contact threshold columns are added:
-
-    - ``rc_threshold``: the RC probability equivalent to ``md_threshold``,
-      scaled by the ratio of epsilon ranges.
-    - ``limit_rc_att``: the RC probability above which the MD contact is
-      considered genuinely attractive. Values below 1 arising from negative
-      ``epsilon_prior`` are clamped to 1.
+    The probability floor ``p_floor = min(md_threshold, config.p_floor_max)``
+    is also added. ``lj.set_sig_epsilon`` uses it as the lowest reference
+    probability that is trusted, ``P = max(rc_probability, p_floor)``, and to
+    set the energy scale ``s = (epsilon_0 - epsilon_min) / |ln p_floor|``.
+    Since learning requires ``probability >= md_threshold >= p_floor``, a
+    contact the training forms more often than the reference can never be
+    assigned an epsilon below its prior.
 
     Parameters
     ----------
@@ -345,8 +345,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
     -------
     pd.DataFrame
         The input ``contact_matrix`` with added columns: ``reference``,
-        ``epsilon_0``, ``md_threshold``, ``rc_threshold``, and
-        ``limit_rc_att``.
+        ``epsilon_0``, ``md_threshold`` and ``p_floor``.
     """
     # use prior matrix learned flag by matching everywhere contact matrix is not H (cutoff=0)
     contact_matrix.loc[contact_matrix["cutoff"] != 0, "learned"] = prior_matrix["rc_learned"].to_numpy()
@@ -361,21 +360,7 @@ def initialize_molecular_contacts(contact_matrix, prior_matrix, args, reference)
 
     contact_matrix["epsilon_0"] = reference["epsilon"]
     contact_matrix["md_threshold"] = md_threshold
-    contact_matrix["rc_threshold"] = contact_matrix["md_threshold"] ** (
-        (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-        / (contact_matrix["epsilon_0"] - config.epsilon_min)
-    )
-    contact_matrix["limit_rc_att"] = contact_matrix["rc_threshold"] ** (
-        (np.maximum(0, prior_matrix["epsilon_prior"]) - config.epsilon_min)
-        / (contact_matrix["epsilon_0"] - np.maximum(0, prior_matrix["epsilon_prior"]))
-    )
-
-    # When epsilon_prior is negative the formula can produce limit_rc_att < 1,
-    # which would incorrectly suppress learning. Clamp to 1 in those cases.
-    contact_matrix.loc[
-        (contact_matrix["limit_rc_att"] < 1) & (prior_matrix["epsilon_prior"] < 0),
-        "limit_rc_att",
-    ] = 1
+    contact_matrix["p_floor"] = min(md_threshold, config.p_floor_max)
 
     return contact_matrix
 
