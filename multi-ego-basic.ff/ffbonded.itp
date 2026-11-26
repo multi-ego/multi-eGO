@@ -171,7 +171,7 @@
 #define ga_17   115.000000 4.107196e+01 ;
 ; NR(heme)  -  FE  - NR 10
 ;
-#define ga_18       115.00      460.00
+#define ga_18   115.000000 3.778412e+02 ;
 ; H  -  N  -  CHn       90
 ;
 #define ga_19   115.000000 5.010779e+02 ;
@@ -204,7 +204,7 @@
 #define ga_31   122.000000 5.034694e+02 ;
 ; CH1, CH2  -  N  -  C  120
 ;
-#define ga_32       123.00      415.00
+#define ga_32   123.000000 2.918979e+02 ;
 ; H  - N  - C   70
 ;
 #define ga_33   124.000000 5.017746e+02 ;
@@ -228,7 +228,7 @@
 #define ga_40   155.000000 3.957481e+02 ;
 ; SI  - OA  - SI        95
 ;
-#define ga_41   180.000000 7.842112e-04 ;
+;#define ga_41   180.000000 7.842112e-04 ; disabled: harmonic form meaningless at 180 deg (K->0); unused. Use angle func 2 with GROMOS K=91350 if ever needed
 ; Fe  -  C  -  O (heme) 57
 ;
 ;       Table 2.5.4.1
@@ -263,6 +263,212 @@
 ;
 #define gi_5      -35.26439   334.84617
 ; tetrahedral centres   80
+;
+;       multi-eGO geometry corrections
+;       Equilibrium values reset to CCP4/Phenix geostd ideal geometry (Engh & Huber),
+;       rounded to 0.5 deg / 0.005 A; force constant copied from the GROMOS type in the name
+;       (e.g. ga_15_114p0 = ga_15 constant at 114.0 deg). Chirality impropers recomputed
+;       for the new bond lengths and angles at each centre. N-H stays 0.100 nm.
+;
+; --- bonds ---
+#define gb_10_0p1320      0.13200 9.300000e+04 ; K from gb_10
+;   CE1-NE2, ND1-CE1  [HIS]
+#define gb_10_0p1355      0.13550 9.300000e+04 ; K from gb_10
+;   CG-CD2  [HIS]
+#define gb_10_0p1365      0.13650 9.300000e+04 ; K from gb_10
+;   CG-CD1  [TRP]
+#define gb_10_0p1370      0.13700 9.300000e+04 ; K from gb_10
+;   NE1-CE2  [TRP]
+#define gb_10_0p1375      0.13750 9.300000e+04 ; K from gb_10
+;   CD1-NE1, CD2-NE2  [HIS TRP]
+#define gb_10_0p1380      0.13800 9.300000e+04 ; K from gb_10
+;   CG-ND1  [HIS]
+#define gb_11_0p1325      0.13250 9.300000e+04 ; K from gb_11
+;   CZ-NH1, NE-CZ  [ARG]
+#define gb_13_0p1375      0.13750 1.010000e+05 ; K from gb_13
+;   CZ-OH  [TYR]
+#define gb_16_0p1370      0.13700 9.300000e+04 ; K from gb_16
+;   CZ2-CH2  [TRP]
+#define gb_16_0p1380      0.13800 9.300000e+04 ; K from gb_16
+;   CD1-CE1, CD2-CE2, CE1-CZ, CE2-CZ, CE3-CZ3  [PHE TRP TYR]
+#define gb_16_0p1385      0.13850 9.300000e+04 ; K from gb_16
+;   CG-CD1, CG-CD2  [PHE]
+#define gb_16_0p1395      0.13950 9.300000e+04 ; K from gb_16
+;   CE2-CZ2  [TRP]
+#define gb_16_0p1400      0.14000 9.300000e+04 ; K from gb_16
+;   CD2-CE3, CZ3-CH2  [TRP]
+#define gb_16_0p1410      0.14100 9.300000e+04 ; K from gb_16
+;   CD2-CE2  [TRP]
+#define gb_16_0p1435      0.14350 9.300000e+04 ; K from gb_16
+;   CG-CD2  [TRP]
+#define gb_18_0p1415      0.14150 1.100000e+05 ; K from gb_18
+;   CB-OG  [SER]
+#define gb_18_0p1435      0.14350 1.100000e+05 ; K from gb_18
+;   CB-OG1  [THR]
+#define gb_21_0p1450      0.14500 9.000000e+04 ; K from gb_21
+;   N-CA  [GLY]
+#define gb_21_0p1460      0.14600 9.000000e+04 ; K from gb_21
+;   CD-NE, N-CA  [ALA ARG ASN ASP CYS CYS2 GLN GLU HIS ILE LEU LYS MET PHE SER THR TRP TYR VAL]
+#define gb_21_0p1465      0.14650 9.000000e+04 ; K from gb_21
+;   N-CA  [PRO]
+#define gb_21_0p1475      0.14750 9.000000e+04 ; K from gb_21
+;   N-CD  [PRO]
+#define gb_21_0p1490      0.14900 9.000000e+04 ; K from gb_21
+;   CE-NZ  [LYS]
+#define gb_27_0p1490      0.14900 9.000000e+04 ; K from gb_27
+;   CB-CG  [PRO]
+#define gb_27_0p1495      0.14950 9.000000e+04 ; K from gb_27
+;   CB-CG  [HIS]
+#define gb_27_0p1500      0.15000 9.000000e+04 ; K from gb_27
+;   CB-CG  [PHE TRP]
+#define gb_27_0p1505      0.15050 9.000000e+04 ; K from gb_27
+;   CG-CD  [PRO]
+#define gb_27_0p1510      0.15100 9.000000e+04 ; K from gb_27
+;   CB-CG  [TYR]
+#define gb_27_0p1515      0.15150 9.000000e+04 ; K from gb_27
+;   CA-C, CB-CG, CG-CD, CG1-CD  [ASN ASP GLN GLU GLY ILE]
+#define gb_27_0p1520      0.15200 9.000000e+04 ; K from gb_27
+;   CA-CB, CB-CG, CB-CG1, CB-CG2, CD-CE, CG-CD, CG-CD1, CG-CD2  [ALA ARG GLN GLU ILE LEU LYS MET THR VAL]
+#define gb_27_0p1525      0.15250 9.000000e+04 ; K from gb_27
+;   CA-C  [ALA ARG ASN ASP CYS CYS2 GLN GLU HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL]
+#define gb_27_0p1540      0.15400 9.000000e+04 ; K from gb_27
+;   CA-CB  [ILE THR VAL]
+#define gb_31_0p1790      0.17900 1.500000e+05 ; K from gb_31
+;   SD-CE  [MET]
+#define gb_32_0p1805      0.18050 1.400000e+05 ; K from gb_32
+;   CG-SD  [MET]
+#define gb_32_0p1810      0.18100 1.400000e+05 ; K from gb_32
+;   CB-SG  [CYS CYS2]
+; --- angles ---
+#define ga_13_103p0     103.00000 4.620764e+02 ; K from ga_13
+;   N-CA-CB, N-CD-CG  [PRO]
+#define ga_13_104p5     104.50000 4.620764e+02 ; K from ga_13
+;   CA-CB-CG  [PRO]
+#define ga_13_106p0     106.00000 4.620764e+02 ; K from ga_13
+;   CB-CG-CD  [PRO]
+#define ga_13_109p0     109.00000 4.620764e+02 ; K from ga_13
+;   CB-CA-C  [THR]
+#define ga_13_110p0     110.00000 4.620764e+02 ; K from ga_13
+;   CB-CA-C  [ARG ASN ASP CYS CYS2 GLN GLU HIS LEU LYS MET PHE PRO SER TRP TYR]
+#define ga_13_110p5     110.50000 4.620764e+02 ; K from ga_13
+;   CB-CA-C, N-CA-CB  [ALA ARG ASN ASP CYS CYS2 GLN GLU HIS LEU LYS MET PHE SER TRP TYR]
+#define ga_13_111p0     111.00000 4.620764e+02 ; K from ga_13
+;   CA-CB-OG, N-CA-C  [ALA ARG ASN ASP CYS CYS2 GLN GLU HIS ILE LEU LYS MET PHE SER THR TRP TYR VAL]
+#define ga_13_111p5     111.50000 4.620764e+02 ; K from ga_13
+;   CB-CA-C, N-CA-CB  [ILE THR VAL]
+#define ga_13_112p0     112.00000 4.620764e+02 ; K from ga_13
+;   CG-CD-NE, N-CA-C  [ARG PRO]
+#define ga_13_113p5     113.50000 4.620764e+02 ; K from ga_13
+;   N-CA-C  [GLY]
+#define ga_15_109p5     109.50000 4.619536e+02 ; K from ga_15
+;   OG1-CB-CG2  [THR]
+#define ga_15_110p5     110.50000 4.619536e+02 ; K from ga_15
+;   CA-CB-CG1, CA-CB-CG2, CB-CG-CD1, CB-CG-CD2, CG1-CB-CG2  [ILE LEU THR VAL]
+#define ga_15_111p5     111.50000 4.619536e+02 ; K from ga_15
+;   CB-CG-CD, CG-CD-CE  [ARG LYS]
+#define ga_15_112p0     112.00000 4.619536e+02 ; K from ga_15
+;   CD-CE-NZ  [LYS]
+#define ga_15_112p5     112.50000 4.619536e+02 ; K from ga_15
+;   CA-CB-CG, CB-CG-CD  [ASN ASP GLN GLU]
+#define ga_15_113p5     113.50000 4.619536e+02 ; K from ga_15
+;   CA-CB-CG  [TRP]
+#define ga_15_114p0     114.00000 4.619536e+02 ; K from ga_15
+;   CA-CB-CG, CB-CG1-CD  [ARG GLN GLU HIS ILE LYS MET PHE TYR]
+#define ga_15_116p5     116.50000 4.619536e+02 ; K from ga_15
+;   CA-CB-CG  [LEU]
+#define ga_16_112p5     112.50000 4.618172e+02 ; K from ga_16
+;   CB-CG-SD  [MET]
+#define ga_16_114p5     114.50000 4.618172e+02 ; K from ga_16
+;   CA-CB-SG  [CYS CYS2]
+#define ga_18_114p0     114.00000 3.778412e+02 ; K from ga_18
+;   H-N-CA  [ALA ARG ASN ASP CYS CYS2 GLN GLU GLY HIS ILE LEU LYS MET NME PHE SER THR TRP TYR VAL]
+#define ga_19_116p0     116.00000 5.010779e+02 ; K from ga_19
+;   CA-C-+N  [ACE ALA ARG ASN ASP CYS CYS2 GLN GLU GLY HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL]
+#define ga_19_116p5     116.50000 5.010779e+02 ; K from ga_19
+;   CB-CG-ND2, CG-CD-NE2  [ASN GLN]
+#define ga_21_112p0     112.00000 5.008842e+02 ; K from ga_21
+;   CA-N-CD  [PRO]
+#define ga_22_118p5     118.50000 5.041528e+02 ; K from ga_22
+;   CA-C-O1, CA-C-O2, CB-CG-OD1, CB-CG-OD2, CG-CD-OE1, CG-CD-OE2  [ASP COO- GLU]
+#define ga_27_117p5     117.50000 4.200300e+02 ; K from ga_27
+;   CE2-CZ2-CH2  [TRP]
+#define ga_27_118p0     118.00000 4.200300e+02 ; K from ga_27
+;   CD1-CG-CD2  [TYR]
+#define ga_27_118p5     118.50000 4.200300e+02 ; K from ga_27
+;   CD2-CE3-CZ3  [TRP]
+#define ga_27_119p0     119.00000 4.200300e+02 ; K from ga_27
+;   CD1-CG-CD2, CE2-CD2-CE3  [PHE TRP]
+#define ga_27_120p5     120.50000 4.200300e+02 ; K from ga_27
+;   CB-CG-CD1, CB-CG-CD2, CG-CD1-CE1, CG-CD2-CE2  [PHE]
+#define ga_27_121p0     121.00000 4.200300e+02 ; K from ga_27
+;   CB-CG-CD1, CB-CG-CD2, CE3-CZ3-CH2, CG-CD1-CE1, CG-CD2-CE2  [TRP TYR]
+#define ga_27_121p5     121.50000 4.200300e+02 ; K from ga_27
+;   CZ2-CH2-CZ3  [TRP]
+#define ga_27_122p5     122.50000 4.200300e+02 ; K from ga_27
+;   CD2-CE2-CZ2  [TRP]
+#define ga_28_119p0     119.00000 5.025358e+02 ; K from ga_28
+;   NE-CZ-NH2  [ARG]
+#define ga_28_119p5     119.50000 5.025358e+02 ; K from ga_28
+;   NH1-CZ-NH2  [ARG]
+#define ga_28_121p5     121.50000 5.025358e+02 ; K from ga_28
+;   NE-CZ-NH1  [ARG]
+#define ga_31_121p5     121.50000 5.034694e+02 ; K from ga_31
+;   -C-N-CA  [ALA ARG ASN ASP CYS CYS2 GLN GLU GLY HIS ILE LEU LYS MET NME PHE SER THR TRP TYR VAL]
+#define ga_31_123p0     123.00000 5.034694e+02 ; K from ga_31
+;   -C-N-CA  [PRO]
+#define ga_31_125p0     125.00000 5.034694e+02 ; K from ga_31
+;   -C-N-CD  [PRO]
+#define ga_32_124p5     124.50000 2.918979e+02 ; K from ga_32
+;   -C-N-H  [ALA ARG ASN ASP CYS CYS2 GLN GLU GLY HIS ILE LEU LYS MET NME PHE SER THR TRP TYR VAL]
+#define ga_33_122p5     122.50000 5.017746e+02 ; K from ga_33
+;   OD1-CG-ND2, OE1-CD-NE2  [ASN GLN]
+#define ga_33_123p0     123.00000 5.017746e+02 ; K from ga_33
+;   O-C-+N  [ACE ALA ARG ASN ASP CYS CYS2 GLN GLU GLY HIS ILE LEU LYS MET PHE PRO SER THR TRP TYR VAL]
+#define ga_33_124p5     124.50000 5.017746e+02 ; K from ga_33
+;   CD-NE-CZ  [ARG]
+#define ga_37_122p5     122.50000 4.189249e+02 ; K from ga_37
+;   CB-CG-ND1  [HIS]
+#define ga_37_126p5     126.50000 4.189249e+02 ; K from ga_37
+;   CB-CG-CD2  [TRP]
+#define ga_37_127p0     127.00000 4.189249e+02 ; K from ga_37
+;   CB-CG-CD1  [TRP]
+#define ga_37_131p5     131.50000 4.189249e+02 ; K from ga_37
+;   CB-CG-CD2  [HIS]
+#define ga_38_123p0     123.00000 5.040190e+02 ; K from ga_38
+;   O1-C-O2, OD1-CG-OD2, OE1-CD-OE2  [ASP COO- GLU]
+#define ga_39_130p0     130.00000 4.197722e+02 ; K from ga_39
+;   NE1-CE2-CZ2  [TRP]
+#define ga_39_134p0     134.00000 4.197722e+02 ; K from ga_39
+;   CG-CD2-CE3  [TRP]
+#define ga_4_101p0      101.00000 4.606854e+02 ; K from ga_4
+;   CG-SD-CE  [MET]
+#define ga_7_106p0      106.00000 4.206116e+02 ; K from ga_7
+;   ND1-CG-CD2  [HIS]
+#define ga_7_106p5      106.50000 4.206116e+02 ; K from ga_7
+;   CD1-CG-CD2  [TRP]
+#define ga_7_107p0      107.00000 4.206116e+02 ; K from ga_7
+;   CG-CD2-CE2, CG-CD2-NE2  [HIS TRP]
+#define ga_7_107p5      107.50000 4.206116e+02 ; K from ga_7
+;   CD2-CE2-NE1  [TRP]
+#define ga_7_108p5      108.50000 4.206116e+02 ; K from ga_7
+;   ND1-CE1-NE2  [HIS]
+#define ga_7_109p0      109.00000 4.206116e+02 ; K from ga_7
+;   CD1-NE1-CE2, CD2-NE2-CE1  [HIS TRP]
+#define ga_7_109p5      109.50000 4.206116e+02 ; K from ga_7
+;   CG-ND1-CE1  [HIS]
+#define ga_7_110p0      110.00000 4.206116e+02 ; K from ga_7
+;   CG-CD1-NE1  [TRP]
+; --- impropers ---
+#define gi_2_32p5        32.50000 3.348462e+02 ; K from gi_2
+;   CA-N-C-CB  [ILE VAL]
+#define gi_2_33p5        33.50000 3.348462e+02 ; K from gi_2
+;   CA-CG1-CG2-CB, CB-CD1-CD2-CG  [LEU VAL]
+#define gi_2_34p0        34.00000 3.348462e+02 ; K from gi_2
+;   CA-N-C-CB, CB-CG1-CG2-CA  [ALA ARG ASN ASP CYS CYS2 GLN GLU HIS ILE LEU LYS MET PHE SER TRP TYR]
+#define gi_2_34p5        34.50000 3.348462e+02 ; K from gi_2
+;   CA-N-C-CB  [THR]
+#define gi_2_39p0        39.00000 3.348462e+02 ; K from gi_2
+;   CA-N-C-CB  [PRO]
 ;
 ;       Table 2.5.5.1 (Note: changes with respect to the 43A1 table)
 ;       GROMOS (trigonometric) dihedral torsional angle parameters
@@ -708,55 +914,9 @@
 ;
 #define gd_56P    180.000     31.0     2
 ; Omega dihedral - PRO
-
-; D-amino acids
-#define gd_42d -170.0000 2.7000 2
-; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
 ;
-#define gd_43d -15.0000 2.500 3
-; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
-;
-#define gd_44d -180.000 4.00 1
-; Backbone dihedral angle -C-N-CA-C- ALA/SER/THR
-;
-#define gd_45d 105.00 0.2200 1
-; Backbone dihedral angle -N-CA-C-N- ALA/SER/THR
-;
-; OPT November 24, 22
-#define gd_42bd -130.0000 2.5000 2
-; Backbone dihedral angle -N-CA-C-N- BULKYAA
-;
-#define gd_43bd 0.0000 2.1500 3
-; Backbone dihedral angle -C-N-CA-C- BULKYAA
-;
-#define gd_44bd 110.000 3.90 1
-; Backbone dihedral angle -C-N-CA-C- BULKYAA
-;
-#define gd_45bd -180.000 0.05 1
-; Backbone dihedral angle -N-CA-C-N- BULKYAA
-;
-; OPT April,  3 2024
-;#define gd_48 180.0 5 2
-; Backbone dihedral angle -N-CA-C-N  GLY
-;
-;#define gd_49 180 6 1
-; Backbone dihedral angle -C-N-CA-C  GLY
-;
-;#define gd_51 -180 1.7 1
-; Backbone dihedral angle -N-CA-C-N  GLY
-;
-; OPT November, 23 2022
-#define gd_52d -150.0000 4.0000 2
-; Backbone dihedral angle -N-CA-C-N  PRO
-;
-#define gd_53d 0.0000 4.000 4
-; Backbone dihedral angle -C-N-CA-C  PRO
-;
-;#define gd_54d 110.4281 0.0000 1
-; Backbone dihedral angle -C-N-CA-C  PRO
-;
-#define gd_55d 60.0000   1.000 1
-; Backbone dihedral angle -N-CA-C-N  PRO
+#define gd_zero   0.000  0.000 3
+; zero-strength placeholder: stops pdb2gmx auto-generating a torsion (Pro ring)
 
 ; Gaia's additional dihedral groups for Cholesterol
 #define gd_57 180.00 5.920 3
