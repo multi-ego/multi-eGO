@@ -63,24 +63,47 @@ def create_linearized_mask(
 
 def set_sig_epsilon(meGO_LJ, parameters):
     """
-    Set sigma and epsilon for all LJ interactions based on probability and distance.
+    Set sigma and epsilon for all LJ interactions from the training and reference probabilities.
 
-    Attractive interactions are assigned when the training probability exceeds the
-    adaptive threshold relative to the RC distribution. Repulsive interactions are
-    assigned when training probability is above MD threshold but below the attractive
-    threshold. 1-4 interactions are always kept repulsive.
+    Prior-anchored, single-scale rule. With eps_p = max(0, epsilon_prior),
+
+        s       = (epsilon_0 - epsilon_min) / |ln p_floor|      (energy per e-fold, same for all pairs)
+        P       = max(rc_probability, p_floor)                  (reference probability, floored)
+        eps_lin = eps_p + s * ln(probability / P)
+
+    Only contacts with probability >= md_threshold are learned; the others keep the prior.
+
+    1. Attractive, eps_lin > epsilon_min:
+           epsilon = min(eps_lin, max(epsilon_0, eps_p)),  sigma = distance / 2^(1/6)
+    2. Prior attractive (epsilon_prior > 0) depleted to eps_lin <= epsilon_min:
+           bare wall, c12 = rep
+    3. Prior repulsive (epsilon_prior <= 0) depleted by dE = s * ln(P / probability) > epsilon_min:
+           harder wall, c12 = rep + dE * rc_distance^12
+    4. Anything else keeps the prior.
+
+    Properties:
+    - Sign: p_floor <= md_threshold <= probability, so probability > rc_probability always gives
+      epsilon >= epsilon_prior (and a depletion never gives more attraction).
+    - Cap: epsilon_0 is the largest learned epsilon (a prior above epsilon_0 is never lowered by an
+      enrichment). A contact unresolved in the reference (rc_probability <= p_floor) and always
+      formed in the training (probability = 1) gains epsilon_0 - epsilon_min over its prior.
+    - Window: a prior-repulsive contact becomes attractive only for probability / P > exp(epsilon_min / s).
+    - Limit: epsilon_0 -> epsilon_min gives s -> 0 and every contact returns to its prior.
+
+    Repulsive entries are stored as epsilon = -c12, with sigma = c12^(1/12) / 2^(1/6).
 
     Parameters
     ----------
     meGO_LJ : pd.DataFrame
-        DataFrame containing LJ parameters including probability thresholds.
+        DataFrame with probability, rc_probability, md_threshold, p_floor, epsilon_0,
+        epsilon_prior, sigma_prior, distance, rc_distance and rep.
     parameters : argparse.Namespace
-        Parsed arguments (``learn_tolerance`` is now read from ``config``).
+        Parsed arguments (not used by the rule; ``epsilon_min`` is read from ``config``).
 
     Returns
     -------
     pd.DataFrame
-        Updated DataFrame with epsilon and sigma columns set.
+        Updated DataFrame with epsilon, sigma and learned set; rows with epsilon == 0 are dropped.
     """
     # first: all contacts are set as for the prior model
     # these contacts are not considered as learned so can be overriden
@@ -88,38 +111,33 @@ def set_sig_epsilon(meGO_LJ, parameters):
     meGO_LJ["epsilon"] = meGO_LJ["epsilon_prior"]
     meGO_LJ["sigma"] = meGO_LJ["sigma_prior"]
 
-    # Precompute shared sub-expression (used in both attractive and repulsive conditions)
-    eps_prior_pos = np.maximum(0.0, meGO_LJ["epsilon_prior"])
+    eps_min = config.epsilon_min
+    eps_p = np.maximum(0.0, meGO_LJ["epsilon_prior"])
+    eps_0 = meGO_LJ["epsilon_0"]
+    s = (eps_0 - eps_min) / np.abs(np.log(meGO_LJ["p_floor"]))
+    P = np.maximum(meGO_LJ["rc_probability"], meGO_LJ["p_floor"])
+    above_md = meGO_LJ["probability"] >= meGO_LJ["md_threshold"]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        log_ratio = np.log(meGO_LJ["probability"] / P)
+    eps_lin = eps_p + s * log_ratio
+    prior_att = meGO_LJ["epsilon_prior"] > 0
 
-    # Attractive interactions
-    # These are defined only if the training probability is greater than MD_threshold and
-    # by comparing them with RC_probabilities so that the resulting epsilon is between eps_min and eps_0
-    condition = (
-        meGO_LJ["probability"]
-        > meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-    ) & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-    with np.errstate(divide="ignore"):
-        meGO_LJ.loc[condition, "epsilon"] = eps_prior_pos - (
-            (meGO_LJ["epsilon_0"] - eps_prior_pos) / np.log(meGO_LJ["rc_threshold"])
-        ) * (np.log(meGO_LJ["probability"] / (np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"]))))
-    meGO_LJ.loc[condition, "learned"] = 1
-    meGO_LJ.loc[condition, "sigma"] = meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0)
+    # 1. attractive
+    att = above_md & (eps_lin > eps_min)
+    meGO_LJ.loc[att, "epsilon"] = np.minimum(eps_lin, np.maximum(eps_0, eps_p))[att]
+    meGO_LJ.loc[att, "sigma"] = (meGO_LJ["distance"] / 2.0 ** (1.0 / 6.0))[att]
+    meGO_LJ.loc[att, "learned"] = 1
 
-    # Repulsive interactions (probability above MD threshold but below attractive threshold)
-    # this is used only when MD_th < MD_p < limit_rc_att*RC_p
-    condition = (
-        (
-            meGO_LJ["probability"]
-            <= meGO_LJ["limit_rc_att"] * np.maximum(meGO_LJ["rc_probability"], meGO_LJ["rc_threshold"])
-        )
-        & (meGO_LJ["probability"] > meGO_LJ["md_threshold"])
-        & (meGO_LJ["rc_probability"] > meGO_LJ["md_threshold"])
-    )
-    sub = meGO_LJ.loc[condition]
-    meGO_LJ.loc[condition, "epsilon"] = (-sub["rep"] * (sub["distance"] / sub["rc_distance"]) ** 12).clip(
-        lower=-2 * sub["rep"], upper=-0.05 * sub["rep"]
-    )
-    meGO_LJ.loc[condition, "learned"] = 1
+    # 2. prior attractive depleted below epsilon_min: bare wall
+    wall = above_md & prior_att & (eps_lin <= eps_min)
+    meGO_LJ.loc[wall, "epsilon"] = -meGO_LJ.loc[wall, "rep"]
+    meGO_LJ.loc[wall, "learned"] = 1
+
+    # 3. prior repulsive depleted on the same scale: wall raised by dE at the reference contact distance
+    dE = -s * log_ratio
+    dep = above_md & ~prior_att & (dE > eps_min)
+    meGO_LJ.loc[dep, "epsilon"] = -(meGO_LJ["rep"] + dE * meGO_LJ["rc_distance"] ** 12)[dep]
+    meGO_LJ.loc[dep, "learned"] = 1
 
     # for repulsive interactions reset sigma to its effective value for consistent merging
     meGO_LJ.loc[(meGO_LJ["epsilon"] < 0.0), "sigma"] = (-meGO_LJ["epsilon"]) ** (1.0 / 12.0) / (2.0 ** (1.0 / 6.0))
@@ -258,8 +276,7 @@ def init_LJ_datasets(meGO_ensemble, matrices, args):
         "epsilon_prior",
         "sigma_prior",
         "md_threshold",
-        "rc_threshold",
-        "limit_rc_att",
+        "p_floor",
         "rc_distance",
         "rc_probability",
         "learned",
@@ -539,7 +556,7 @@ def generate_LJ(meGO_ensemble, train_dataset, parameters):
         "mg_sigma",
         "mg_epsilon",
         "md_threshold",
-        "rc_threshold",
+        "p_floor",
         "learned",
     ]
 

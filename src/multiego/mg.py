@@ -147,7 +147,7 @@ def generate_MG_LJ(meGO_ensemble):
     rc_LJ["rep"] = rc_LJ["c12"]
     rc_LJ["probability"] = 1.0
     rc_LJ["rc_probability"] = 1.0
-    rc_LJ["rc_threshold"] = 1.0
+    rc_LJ["p_floor"] = 1.0
     rc_LJ["md_threshold"] = 1.0
     rc_LJ["learned"] = 0
     rc_LJ["bond_distance"] = config.max_bond_separation + 1

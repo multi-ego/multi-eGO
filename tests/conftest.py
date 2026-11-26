@@ -42,6 +42,7 @@ def stub_deps():
             epsilon_min=0.07,
             p_to_learn=0.9995,
             learn_tolerance=0.01,
+            p_floor_max=0.5,
         ),
     )
 

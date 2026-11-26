@@ -45,8 +45,7 @@ def _lj_row(
     probability=0.9,
     rc_probability=0.01,
     md_threshold=0.1,
-    rc_threshold=0.5,
-    limit_rc_att=1.0,
+    p_floor=0.1,
     epsilon_prior=0.0,
     sigma_prior=0.35,
     epsilon_0=0.3,
@@ -66,8 +65,7 @@ def _lj_row(
                 "probability": probability,
                 "rc_probability": rc_probability,
                 "md_threshold": md_threshold,
-                "rc_threshold": rc_threshold,
-                "limit_rc_att": limit_rc_att,
+                "p_floor": p_floor,
                 "epsilon_prior": epsilon_prior,
                 "sigma_prior": sigma_prior,
                 "epsilon_0": epsilon_0,
@@ -136,6 +134,10 @@ class TestCreateLinearizedMask:
 
 
 class TestSetSigEpsilon:
+    """Prior-anchored single-scale rule:
+    eps = min(eps_p + s ln(p / max(p_rc, p_floor)), max(eps0, eps_p)), s = (eps0 - eps_min)/|ln p_floor|."""
+
+    EPS_MIN = 0.07
 
     @pytest.fixture(autouse=True)
     def load_module(self, stub_deps):
@@ -143,98 +145,173 @@ class TestSetSigEpsilon:
 
         self.set_sig_epsilon = set_sig_epsilon
 
-    def test_attractive_contact_learned(self):
-        """A contact above both md_threshold and limit_rc_att*rc_probability threshold
-        should be marked as learned with positive epsilon."""
-        df = _lj_row(
-            probability=0.9,
-            rc_probability=0.01,
-            md_threshold=0.1,
-            rc_threshold=0.5,
-            limit_rc_att=1.0,
-            epsilon_0=0.3,
-            epsilon_prior=0.0,
-            distance=0.38,
-            bond_distance=10,
-            same_chain=False,
-        )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        assert len(result) == 1
-        assert result.iloc[0]["learned"] == 1
-        assert result.iloc[0]["epsilon"] > 0
-        assert abs(result.iloc[0]["sigma"] - 0.38 / 2 ** (1 / 6)) < 1e-10
+    def _run(self, **kw):
+        return self.set_sig_epsilon(_lj_row(**kw).copy(), _make_args())
 
-    def test_repulsive_contact_below_attractive_threshold(self):
-        """A contact above md_threshold but below attractive threshold and with
-        rc_probability also above md_threshold should be repulsive (negative epsilon)."""
-        df = _lj_row(
-            probability=0.15,
-            rc_probability=0.12,
-            md_threshold=0.1,
-            rc_threshold=0.5,
-            limit_rc_att=2.0,
-            epsilon_0=0.3,
-            epsilon_prior=0.0,
-            distance=0.38,
-            rc_distance=0.40,
-            rep=1e-6,
-            bond_distance=10,
-            same_chain=False,
+    def _s(self, eps0, p_floor):
+        return (eps0 - self.EPS_MIN) / abs(np.log(p_floor))
+
+    def test_attractive_contact_learned(self):
+        """Enriched contact: eps = eps_p + s ln(p/P), sigma from the training distance."""
+        p, prc, fl, e0 = 0.2, 0.01, 0.001, 0.3
+        res = self._run(probability=p, rc_probability=prc, md_threshold=fl, p_floor=fl, epsilon_0=e0, distance=0.38)
+        assert len(res) == 1
+        row = res.iloc[0]
+        assert row["learned"] == 1
+        assert abs(row["epsilon"] - self._s(e0, fl) * np.log(p / prc)) < 1e-12
+        assert abs(row["sigma"] - 0.38 / 2 ** (1 / 6)) < 1e-10
+
+    def test_enriched_never_below_prior(self):
+        """p > p_rc must give eps >= eps_prior, also when p_rc is far below the floor of the old rule."""
+        for prc in (1e-6, 1e-4, 1e-3, 0.004):
+            res = self._run(
+                probability=0.005,
+                rc_probability=prc,
+                md_threshold=5e-4,
+                p_floor=5e-4,
+                epsilon_prior=0.17,
+                epsilon_0=0.28,
+            )
+            assert res.iloc[0]["epsilon"] >= 0.17
+
+    def test_reference_below_floor_uses_floor(self):
+        """p_rc below p_floor is replaced by p_floor."""
+        fl, e0 = 5e-4, 0.28
+        a = self._run(
+            probability=0.01, rc_probability=1e-7, md_threshold=fl, p_floor=fl, epsilon_prior=0.1, epsilon_0=e0
         )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        assert len(result) == 1
-        assert result.iloc[0]["learned"] == 1
-        assert result.iloc[0]["epsilon"] < 0
+        b = self._run(probability=0.01, rc_probability=fl, md_threshold=fl, p_floor=fl, epsilon_prior=0.1, epsilon_0=e0)
+        assert abs(a.iloc[0]["epsilon"] - b.iloc[0]["epsilon"]) < 1e-12
+        assert abs(a.iloc[0]["epsilon"] - (0.1 + self._s(e0, fl) * np.log(0.01 / fl))) < 1e-12
+
+    def test_cap_at_epsilon_0(self):
+        """A strongly enriched contact is capped at eps0; p = 1 from below the floor gains eps0 - eps_min."""
+        fl, e0 = 5e-4, 0.28
+        res = self._run(
+            probability=0.5, rc_probability=1e-6, md_threshold=fl, p_floor=fl, epsilon_prior=0.17, epsilon_0=e0
+        )
+        assert abs(res.iloc[0]["epsilon"] - e0) < 1e-12
+        res = self._run(
+            probability=1.0, rc_probability=1e-6, md_threshold=fl, p_floor=fl, epsilon_prior=0.0, epsilon_0=e0
+        )
+        assert abs(res.iloc[0]["epsilon"] - (e0 - self.EPS_MIN)) < 1e-12
+
+    def test_prior_above_epsilon_0_not_lowered_by_enrichment(self):
+        res = self._run(
+            probability=0.5, rc_probability=0.01, md_threshold=1e-3, p_floor=1e-3, epsilon_prior=0.2, epsilon_0=0.15
+        )
+        assert abs(res.iloc[0]["epsilon"] - 0.2) < 1e-12
+
+    def test_prior_repulsive_window(self):
+        """A prior-repulsive contact turns attractive only above exp(eps_min/s) enrichment; inside the window it is dropped."""
+        fl, e0 = 1e-3, 0.3
+        r = np.exp(self.EPS_MIN / self._s(e0, fl))
+        inside = self._run(
+            probability=0.9 * r * 0.01,
+            rc_probability=0.01,
+            md_threshold=fl,
+            p_floor=fl,
+            epsilon_prior=-1e-6,
+            rep=1e-6,
+            epsilon_0=e0,
+        )
+        assert len(inside) == 1 and inside.iloc[0]["learned"] == 0 and inside.iloc[0]["epsilon"] == -1e-6
+        outside = self._run(
+            probability=1.1 * r * 0.01,
+            rc_probability=0.01,
+            md_threshold=fl,
+            p_floor=fl,
+            epsilon_prior=-1e-6,
+            rep=1e-6,
+            epsilon_0=e0,
+        )
+        assert outside.iloc[0]["epsilon"] > self.EPS_MIN
+
+    def test_prior_attractive_depleted_bare_wall(self):
+        """Prior-attractive contact depleted below eps_min becomes the bare type wall (c12 = rep)."""
+        res = self._run(
+            probability=0.01,
+            rc_probability=0.5,
+            md_threshold=1e-3,
+            p_floor=1e-3,
+            epsilon_prior=0.1,
+            rep=2e-6,
+            epsilon_0=0.3,
+        )
+        row = res.iloc[0]
+        assert row["learned"] == 1
+        assert abs(row["epsilon"] + 2e-6) < 1e-18
+        assert abs(row["sigma"] - (2e-6) ** (1 / 12) / 2 ** (1 / 6)) < 1e-10
+
+    def test_prior_repulsive_depleted_harder_wall(self):
+        """Prior-repulsive contact depleted by dE > eps_min: c12 = rep + dE rc_distance^12."""
+        fl, e0, p, prc, rep, rcd = 1e-3, 0.3, 0.002, 0.5, 1e-6, 0.4
+        res = self._run(
+            probability=p,
+            rc_probability=prc,
+            md_threshold=fl,
+            p_floor=fl,
+            epsilon_prior=-rep,
+            rep=rep,
+            rc_distance=rcd,
+            epsilon_0=e0,
+        )
+        dE = self._s(e0, fl) * np.log(prc / p)
+        assert dE > self.EPS_MIN
+        assert abs(-res.iloc[0]["epsilon"] - (rep + dE * rcd**12)) < 1e-18
 
     def test_contact_below_md_threshold_not_learned(self):
-        """A contact below md_threshold should retain prior values and learned=0."""
-        df = _lj_row(
-            probability=0.05,
-            rc_probability=0.01,
-            md_threshold=0.1,
-            rc_threshold=0.5,
-            limit_rc_att=1.0,
-            epsilon_prior=0.05,
-            sigma_prior=0.35,
-            bond_distance=10,
-            same_chain=False,
+        """A contact below md_threshold keeps its prior values and learned=0."""
+        res = self._run(
+            probability=0.05, rc_probability=0.01, md_threshold=0.1, p_floor=0.1, epsilon_prior=0.05, sigma_prior=0.35
         )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        assert len(result) == 1
-        assert result.iloc[0]["learned"] == 0
-        assert abs(result.iloc[0]["epsilon"] - 0.05) < 1e-10
+        assert len(res) == 1
+        assert res.iloc[0]["learned"] == 0
+        assert abs(res.iloc[0]["epsilon"] - 0.05) < 1e-10
+
+    def test_binary_training(self):
+        """Static (binary) training: md_threshold = 1, p_floor = p_floor_max; p = 1 contacts are learned
+        and gain eps0 - eps_min over the prior (capped at eps0)."""
+        res = self._run(
+            probability=1.0, rc_probability=1e-4, md_threshold=1.0, p_floor=0.5, epsilon_prior=0.1, epsilon_0=0.3
+        )
+        assert res.iloc[0]["learned"] == 1
+        assert abs(res.iloc[0]["epsilon"] - 0.3) < 1e-12
+        res = self._run(
+            probability=1.0,
+            rc_probability=1e-4,
+            md_threshold=1.0,
+            p_floor=0.5,
+            epsilon_prior=-1e-6,
+            rep=1e-6,
+            epsilon_0=0.3,
+        )
+        assert abs(res.iloc[0]["epsilon"] - (0.3 - self.EPS_MIN)) < 1e-12
+
+    def test_epsilon_0_at_epsilon_min_returns_prior(self):
+        """eps0 -> eps_min: s = 0, every contact keeps its prior epsilon."""
+        res = self._run(
+            probability=0.9,
+            rc_probability=1e-5,
+            md_threshold=1e-3,
+            p_floor=1e-3,
+            epsilon_prior=0.12,
+            epsilon_0=self.EPS_MIN,
+        )
+        assert abs(res.iloc[0]["epsilon"] - 0.12) < 1e-12
 
     def test_zero_epsilon_rows_dropped(self):
         """Rows where epsilon remains exactly 0 after processing should be dropped."""
-        df = _lj_row(
-            probability=0.05,
-            md_threshold=0.1,
-            epsilon_prior=0.0,
-            sigma_prior=0.35,
-            bond_distance=10,
-            same_chain=False,
-        )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        assert len(result) == 0
+        res = self._run(probability=0.05, md_threshold=0.1, p_floor=0.1, epsilon_prior=0.0, sigma_prior=0.35)
+        assert len(res) == 0
 
     def test_repulsive_sigma_consistency(self):
         """For repulsive contacts, sigma must satisfy: epsilon = -(sigma * 2^(1/6))^12."""
-        df = _lj_row(
-            probability=0.15,
-            rc_probability=0.12,
-            md_threshold=0.1,
-            rc_threshold=0.5,
-            limit_rc_att=2.0,
-            epsilon_0=0.3,
-            epsilon_prior=0.0,
-            rep=1e-6,
-            distance=0.38,
-            rc_distance=0.40,
-            bond_distance=10,
-            same_chain=False,
+        res = self._run(
+            probability=0.002, rc_probability=0.5, md_threshold=1e-3, p_floor=1e-3, epsilon_prior=-1e-6, rep=1e-6
         )
-        result = self.set_sig_epsilon(df.copy(), _make_args())
-        row = result.iloc[0]
+        row = res.iloc[0]
+        assert row["epsilon"] < 0
         expected_sigma = (-row["epsilon"]) ** (1 / 12) / (2 ** (1 / 6))
         assert abs(row["sigma"] - expected_sigma) < 1e-10
 
@@ -279,7 +356,12 @@ class TestInitializeMolecularContacts:
             _contacts,
             "config",
             types.SimpleNamespace(
-                epsilon_min=0.07, p_to_learn=0.9, learn_tolerance=0.01, max_bond_separation=5, bond14_separation=3
+                epsilon_min=0.07,
+                p_to_learn=0.9,
+                learn_tolerance=0.01,
+                max_bond_separation=5,
+                bond14_separation=3,
+                p_floor_max=0.5,
             ),
         )
         probs = [0.9, 0.5, 0.3, 0.1]
@@ -310,15 +392,28 @@ class TestInitializeMolecularContacts:
         )
         assert result["epsilon_0"].iloc[0] == 0.25
 
-    def test_limit_rc_att_clamped_when_epsilon_prior_negative(self):
-        """When epsilon_prior < 0 and limit_rc_att < 1, it should be set to 1."""
+    def test_p_floor_is_md_threshold(self):
+        """p_floor = md_threshold when md_threshold < p_floor_max."""
         result = self.func(
-            self._make_contact_matrix([0.9]),
-            self._make_prior_matrix([-0.5]),
+            self._make_contact_matrix([0.9, 0.5, 0.3, 0.1]),
+            self._make_prior_matrix([0.0] * 4),
             _make_args(),
             {"reference": "ref", "epsilon": 0.3},
         )
-        assert result["limit_rc_att"].iloc[0] >= 1.0
+        assert result["p_floor"].iloc[0] == result["md_threshold"].iloc[0]
+
+    def test_p_floor_capped_for_binary_training(self):
+        """A binary training gives md_threshold = 1; p_floor is capped at p_floor_max."""
+        from multiego.model_config import config
+
+        result = self.func(
+            self._make_contact_matrix([1.0, 1.0, 0.0]),
+            self._make_prior_matrix([0.0] * 3),
+            _make_args(),
+            {"reference": "ref", "epsilon": 0.3},
+        )
+        assert result["md_threshold"].iloc[0] == 1.0
+        assert result["p_floor"].iloc[0] == config.p_floor_max
 
     def test_reference_name_set(self):
         result = self.func(

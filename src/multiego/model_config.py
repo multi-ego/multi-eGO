@@ -20,6 +20,10 @@ class ModelConfig:
         learn_tolerance: Relative deviation (unitless) between a trained LJ
             parameter and its MG prior below which the trained value is considered
             indistinguishable from the prior and is therefore discarded.
+        p_floor_max: Upper bound for the probability floor ``p_floor = min(md_threshold, p_floor_max)``
+            used by ``lj.set_sig_epsilon``. It only matters for (near-)binary trainings such as a
+            static structure, where ``md_threshold`` -> 1 would make the energy scale diverge.
+            Must be in (0, 1).
     """
 
     max_bond_separation: int = 5
@@ -27,6 +31,7 @@ class ModelConfig:
     epsilon_min: float = 0.07
     p_to_learn: float = 0.9995
     learn_tolerance: float = 0.01
+    p_floor_max: float = 0.5
 
     def __post_init__(self):
         assert self.max_bond_separation >= self.bond14_separation, (
@@ -35,6 +40,7 @@ class ModelConfig:
         )
         assert self.epsilon_min > 0.0, f"epsilon_min ({self.epsilon_min}) must be > 0"
         assert 0.0 < self.p_to_learn <= 1.0, f"p_to_learn ({self.p_to_learn}) must be in (0, 1]"
+        assert 0.0 < self.p_floor_max < 1.0, f"p_floor_max ({self.p_floor_max}) must be in (0, 1)"
         if self.p_to_learn < 0.9:
             import warnings
 
