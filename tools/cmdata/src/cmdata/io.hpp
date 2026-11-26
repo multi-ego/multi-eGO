@@ -18,6 +18,8 @@
 #include <chrono>
 #include <unistd.h>
 
+#include "weights.hpp"
+
 #define COUT_FLOAT_PREC std::fixed << std::setprecision(5)
 
 #ifdef USE_HDF5
@@ -111,49 +113,6 @@ void mtopGetAtomAndResidueName(const gmx_mtop_t& mtop,
 
 namespace cmdata::io
 {
-
-std::vector<float> read_weights_file( const std::string &path )
-{
-  std::ifstream infile(path);
-  if (!infile.good())
-  {
-    std::string errorMessage = "Cannot find the indicated weights file";
-    throw std::runtime_error(errorMessage.c_str());
-  }
-  std::vector<float> w;
-
-  std::string line;
-  while ( std::getline(infile, line) )
-  {
-    std::string value;
-    std::istringstream iss(line);
-    if (line == "")
-    {
-      printf("Detected empty line. Skipping...\n");
-      continue;
-    }
-    iss >> value;
-    w.push_back(std::stod(value));
-  }
-
-  if (w.size() == 0)
-  {
-    std::string errorMessage = "The weights file is empty";
-    throw std::runtime_error(errorMessage.c_str());
-  }
-
-  for ( std::size_t i = 0; i < w.size(); i++ )
-  {
-    if (w[i] < 0)
-    {
-      std::string errorMessage = "The weights file contains negative values";
-      throw std::runtime_error(errorMessage.c_str());
-    }
-  }
-
-  return w;
-}
-
 
 #ifdef USE_HDF5
 void f_write_intra_HDF5(const std::string &output_prefix,

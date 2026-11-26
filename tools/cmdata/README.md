@@ -85,7 +85,7 @@ cmdata -f TRAJ -s TOP [OPTIONS]
 | `--cutoff=FLOAT`             | `0.75`                | Distance cutoff for atom pairs (nm) |
 | `--mol_cutoff=FLOAT`         | `6.0`                 | Centre-of-mass cutoff for molecule pairs (nm) |
 | `--nskip=INT`                | `0`                   | Skip every N frames (0 = no skipping) |
-| `--weights=FILE`             | `""` (none)           | Per-frame weight file (one float per line) |
+| `--weights=FILE`             | `""` (none)           | Per-frame weight file (one float per line, one line per trajectory frame; see below) |
 | `--bkbn_H=STRING`            | `""` (none)           | Backbone hydrogen atom name to include (all other H are skipped) |
 | `--no_pbc`                   | off                   | Disable periodic boundary corrections |
 | `--noh5`                     | off                   | Write plain-text `.dat` files instead of HDF5 `.h5` (ignored if HDF5 was not found at build time) |
@@ -153,6 +153,15 @@ OMP_NUM_THREADS=8 cmdata -f traj.xtc -s topol.tpr \
     --weights weights.dat \
     -o weighted/
 ```
+
+Weight file format:
+
+- plain text, one non-negative, finite, linear (not log) weight per line; weights need not be normalised;
+- **one line per frame of the whole trajectory**, in order: frames excluded by `-b`/`-e`/`--dt`/`--nskip` still need a line (their weight is ignored), so the same file works with any time selection;
+- blank lines and lines starting with `#` or `@` (PLUMED / xvg headers) are ignored;
+- exactly one column: for a multi-column file (e.g. a PLUMED COLVAR) extract the weight column first, e.g. `grep -v '^#' COLVAR | awk '{print $3}' > weights.dat`.
+
+cmdata stops with an error if an analysed frame has no weight, and warns if the number of weights differs from the number of frames. Output is normalised by the sum of the weights of the analysed frames.
 
 Read a full-precision TRR trajectory:
 
